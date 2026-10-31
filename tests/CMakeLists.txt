@@ -6,11 +6,27 @@
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(ALSA REQUIRED)
 
+    set(IHUB_MIDI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/midi")
+
     add_executable(ihub-selftest
         selftest/AudioSmoke.cpp
+        midi/LaunchkeySim.cpp
+        midi/MidiProbe.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyProtocol.cpp"
     )
 
     target_compile_features(ihub-selftest PRIVATE cxx_std_20)
+
+    target_include_directories(ihub-selftest
+        PRIVATE
+            "${IHUB_MIDI_DIR}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-selftest
+        PRIVATE
+            "IHUB_MIDI_FIXTURE_DIR=\"${IHUB_MIDI_DIR}/fixtures\""
+    )
 
     target_link_libraries(ihub-selftest
         PRIVATE
@@ -33,6 +49,49 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(
         NAME ihub-selftest-audio
         COMMAND ihub-selftest --out "${CMAKE_CURRENT_BINARY_DIR}/out.wav"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    # --- Virtual Launchkey (T041) -------------------------------------------
+    #
+    # ihub-selftest --midi-probe creates the `Launchkey Mini MK3 SIM` ALSA
+    # sequencer port, lists it, replays tests/midi/fixtures/pads-16.json and
+    # checks the 16 pad presses arrive in order, then writes LED feedback back
+    # and checks the recording. The standalone binary is the same simulator
+    # without the probe.
+
+    add_executable(ihub-launchkey-sim
+        midi/LaunchkeySim.cpp
+        midi/LaunchkeySimMain.cpp
+    )
+
+    target_compile_features(ihub-launchkey-sim PRIVATE cxx_std_20)
+
+    target_include_directories(ihub-launchkey-sim
+        PRIVATE
+            "${IHUB_MIDI_DIR}"
+    )
+
+    target_link_libraries(ihub-launchkey-sim
+        PRIVATE
+            ALSA::ALSA
+    )
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(ihub-launchkey-sim PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    set_target_properties(ihub-launchkey-sim PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-midi-sim
+        COMMAND ihub-selftest --midi-probe
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 else()

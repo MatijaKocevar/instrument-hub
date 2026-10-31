@@ -11,6 +11,11 @@
 // The playback/capture pair is the one documented in plan/TESTING.md:
 // hw:Loopback,0,0 -> hw:Loopback,1,0. Device names are used deliberately;
 // card indices are not stable across boots.
+//
+// `--midi-probe` runs the virtual Launchkey check instead of the audio smoke
+// test; see tests/midi/MidiProbe.cpp.
+
+#include "MidiProbe.h"
 
 #include <alsa/asoundlib.h>
 
@@ -47,6 +52,8 @@ struct Options
     std::string playback = kDefaultPlayback;
     std::string capture  = kDefaultCapture;
     std::string output   = kDefaultOutput;
+    std::string fixture;
+    bool midiProbe = false;
 };
 
 std::string alsaError (const char* what, int err)
@@ -341,6 +348,7 @@ Report analyse (const std::vector<std::int16_t>& source,
 void printUsage (const char* argv0)
 {
     std::cout << "usage: " << argv0 << " [--out FILE] [--playback DEVICE] [--capture DEVICE]\n"
+              << "       " << argv0 << " --midi-probe [--fixture FILE]\n"
               << "  defaults: --out out.wav --playback " << kDefaultPlayback
               << " --capture " << kDefaultCapture << std::endl;
 }
@@ -363,6 +371,10 @@ bool parseOptions (int argc, char** argv, Options& options)
             options.playback = argv[++i];
         else if (arg == "--capture" && i + 1 < argc)
             options.capture = argv[++i];
+        else if (arg == "--midi-probe")
+            options.midiProbe = true;
+        else if (arg == "--fixture" && i + 1 < argc)
+            options.fixture = argv[++i];
         else
             throw std::runtime_error ("unknown or incomplete argument: " + arg);
     }
@@ -379,6 +391,9 @@ int main (int argc, char** argv)
     {
         if (! parseOptions (argc, argv, options))
             return 0;
+
+        if (options.midiProbe)
+            return LaunchkeySim::runMidiProbe (options.fixture);
     }
     catch (const std::exception& e)
     {
