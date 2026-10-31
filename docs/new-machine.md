@@ -27,13 +27,14 @@ credentials, the git identity and the loopback modules. That is what
 gh auth login
 git clone --recursive git@github.com:MatijaKocevar/instrument-hub.git ~/Projects/instrument-hub
 cd ~/Projects/instrument-hub
-scripts/bootstrap.sh          # checks, builds, runs the full test suite
-scripts/bootstrap.sh --start  # same, then starts the autopilot
+scripts/bootstrap.sh            # checks, builds, runs the full test suite
+scripts/bootstrap.sh --install  # same, installing missing packages first
+scripts/bootstrap.sh --start    # ... then starts the autopilot
 ```
 
-The script checks every prerequisite, prints the exact `sudo` commands for
-anything missing, and refuses to build until they are satisfied. Run it
-twice when it asks for sudo: once to get the list, once after installing.
+`--install` runs the distro package manager and loads `snd-aloop` /
+`snd-virmidi`, asking for your password in the terminal. Without the flag
+the script only reports what is missing and refuses to build.
 
 `scripts/bootstrap.sh --check` is diagnostics only and changes nothing.
 
@@ -53,10 +54,13 @@ twice when it asks for sudo: once to get the list, once after installing.
 
 ## What it cannot do for you
 
-1. **`sudo apt install`** — the agent is not allowed to sudo. The script
-   prints the line; you run it.
-2. **`sudo modprobe snd-aloop snd-virmidi`** — same.
-3. **`opencode auth login`** — credentials do not travel between machines.
+1. **`opencode auth login`** — credentials do not travel between machines.
+2. **Anything on a distro other than Ubuntu/Debian/Fedora/Arch** — the
+   package lists in `--install` cover those four; elsewhere install the
+   equivalents by hand.
+
+The autopilot itself never runs `sudo`; `--install` is the human-supervised
+path, and it is the only part of the setup that needs a password.
 
 ## Running
 
