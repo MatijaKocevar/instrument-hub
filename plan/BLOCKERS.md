@@ -20,7 +20,7 @@ Status legend: `open` · `resolved`
 ## B002 · Launchkey Mini MK3 physical verification
 - task: T042
 - severity: soft
-- status: open
+- status: **superseded 2026-10-31 by B009** (Launchpad Mini MK3 is the controller target; this entry is kept as history)
 - what: LED palette velocities and the session-mode SysEx are implemented from the Programmer's Reference and tested against a simulator. Real firmware may disagree.
 - why: No hardware attached to the build machine.
 - human must: connect the Mini MK3, run the driver, confirm (a) pads light in the expected colours, (b) pads report in session mode, (c) encoders move macros, (d) keys reach the armed instrument. Note any mismatch; the byte tables live in `LaunchkeyProtocol.cpp`.
@@ -79,3 +79,14 @@ Status legend: `open` · `resolved`
 - why: Holiday calendar is not computed.
 - human must: add dates to `HOLIDAYS` in `autopilot.py` if a run lands on one.
 - workaround: a few peak-priced hours per year.
+
+## B009 · Launchpad Mini MK3 physical verification (supersedes B002)
+- task: T117
+- severity: soft
+- status: open
+- what: The controller target is the Novation **Launchpad Mini MK3** (64-pad 8x8 grid, no keys, no encoders). B002 describes the superseded Launchkey Mini MK3 and must not be used as the checklist. The Launchpad protocol, driver, 64-pad mapping, control rows and the pad-to-audio path are implemented and tested against scripted MIDI only.
+- why: No Launchpad is attached to the build machine. Real firmware may disagree on programmer-mode entry, LED palette values, port naming or CC routing.
+- human must: connect the Launchpad Mini MK3 on the Linux host and run `./build/engine/instrument-hub`; confirm (a) the programmer-mode SysEx is accepted and the surface leaves Live mode, (b) grid pads report notes 11..88 on the `MI` port and release as Note On velocity 0, (c) idle/warming/active/error LEDs are the expected off/yellow/green/red, (d) top-row CC 91..98 selects macro banks and right-column CC 89..19 selects scenes, (e) pads 0..7 arm audible slots. Record any byte mismatch; tables live in `engine/src/controller/LaunchpadProtocol.cpp` and the reference in `docs/launchpad-mini-mk3.md`.
+- note: B007's tablet check refers to Launchpad pad presses, not Launchkey presses.
+- note: the shipped mapping declares 64 pads/slots but the default composed session owns eight slots, so pads 8..63 resolve in the mapping and are out of range for the current graph. This is a code gap, not a hardware blocker; see `HANDOVER.md` section 2.
+- workaround: `ihub-launchpad-protocol`, `ihub-launchpad-mapping`, `ihub-launchpad-driver` and `ihub-e2e` cover the protocol, the full mapping, the scripted LED stream and the rendered/captured audio path without hardware.
