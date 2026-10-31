@@ -842,3 +842,77 @@ add_test(
     COMMAND ihub-mapping-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Driver integration (T044) ----------------------------------------------
+#
+# The full controller path against the ALSA simulator:
+#
+#   virtual Launchkey -> LaunchkeyDriver -> Mapping -> SlotSwitcher
+#                     -> LED feedback -> simulator recording
+#
+# pads-16.json is replayed one press at a time. Pads 0..7 are mapped by the
+# shipped shared/set.yaml and must arm slots 0,1,2,3,4,5,6,0; pads 8..15 are
+# unmapped and must change nothing. The recorded LED byte stream is compared
+# exactly with tests/midi/fixtures/driver-integration-leds.golden.
+#
+# The connect handshake is checked byte for byte first, so removing it from the
+# driver fails the test.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-driver-integration-test
+        PRODUCT_NAME "ihub-driver-integration-test"
+    )
+
+    target_sources(ihub-driver-integration-test
+        PRIVATE
+            midi/DriverIntegration.cpp
+            midi/LaunchkeySim.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyDriver.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyProtocol.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+    )
+
+    target_include_directories(ihub-driver-integration-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/midi"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-driver-integration-test
+        PRIVATE
+            "IHUB_MIDI_FIXTURE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/midi/fixtures\""
+            "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+    )
+
+    target_link_libraries(ihub-driver-integration-test
+        PRIVATE
+            Threads::Threads
+            ALSA::ALSA
+            juce::juce_audio_devices
+            juce::juce_audio_basics
+            juce::juce_audio_processors_headless
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-driver-integration-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-driver-integration
+        COMMAND ihub-driver-integration-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-driver-integration-test: ALSA simulator is Linux-only; skipping")
+endif()
