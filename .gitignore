@@ -32,6 +32,9 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
 
+# Autopilot driver scratch (briefs, results, per-task logs)
+plan/.autopilot/
+
 # Test and runtime artifacts
 /tests/artifacts/
 *.ihub.tmp
