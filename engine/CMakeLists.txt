@@ -111,6 +111,7 @@ target_sources(instrument-hub
         src/controller/LaunchkeyDriver.cpp
         src/controller/LaunchkeyProtocol.cpp
         src/controller/Mapping.cpp
+        src/dsp/Eq.cpp
         src/instruments/Instrument.cpp
         src/instruments/AudioInputInstrument.cpp
         src/plugins/PluginInstrument.cpp
