@@ -120,6 +120,15 @@ public:
         thread. Close editors here. */
     using DestroyHook = std::function<void (Instance&)>;
 
+    /** Called on the pool's background thread after an instance has become
+        warm and is resident.
+
+        The pool does not hold its mutex while calling this, so the hook may
+        call `acquire()`/`release()`. It is the hand-off point a session uses
+        to bind the instance to a fixed graph slot and to finish an arm that
+        was waiting for a cold patch. */
+    using WarmCallback = std::function<void (int slot)>;
+
     static constexpr int defaultNeighbourCount = 2;
 
     explicit WarmPool (int neighbourCount = defaultNeighbourCount);
@@ -134,6 +143,7 @@ public:
 
     void setFactory (Factory factory);
     void setDestroyHook (DestroyHook hook);
+    void setWarmCallback (WarmCallback callback);
 
     /** Format handed to each instance right after it is created, so arming
         does not have to prepare it. Without this the caller prepares the
@@ -198,11 +208,19 @@ public:
 
     bool isWarm (int slot) const;
 
+    /** True while this slot is queued for loading, deferred behind the
+        instance cap, or being created on the background thread. */
+    bool isWarming (int slot) const;
+
     /** Hard cap on live instances: `1 + K`, clamped to the slot count. */
     int getInstanceLimit() const;
 
     /** Instances currently alive, including ones queued for destruction. */
     int getLiveInstanceCount() const;
+
+    /** Largest live-instance count observed since construction. This is the
+        value that proves the instance bound held across a load hand-off. */
+    int getPeakLiveInstanceCount() const;
 
     int getPinnedCount() const;
 
@@ -284,8 +302,15 @@ private:
 
     Factory factory;
     DestroyHook destroyHook;
+    WarmCallback warmCallback;
 
     std::vector<SlotState> slots;
+
+    /** Slot currently being created on the worker, or -1. */
+    int loadingSlot = -1;
+
+    /** High-water mark for `liveCountLocked()`. */
+    mutable int peakLiveCount = 0;
     std::vector<int> warmQueue;
     std::vector<std::unique_ptr<Instance>> pendingDestroy;
 

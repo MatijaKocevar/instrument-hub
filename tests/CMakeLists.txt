@@ -836,6 +836,7 @@ target_sources(ihub-session-smoke-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -853,6 +854,7 @@ target_include_directories(ihub-session-smoke-test
 target_compile_definitions(ihub-session-smoke-test
     PRIVATE
         JUCE_PLUGINHOST_VST3=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
         IHUB_RT_GUARD=1
 )
 
@@ -956,6 +958,7 @@ target_sources(ihub-session-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -973,6 +976,7 @@ target_include_directories(ihub-session-api-test
 target_compile_definitions(ihub-session-api-test
     PRIVATE
         JUCE_PLUGINHOST_VST3=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
         IHUB_RT_GUARD=1
 )
 
@@ -1001,6 +1005,90 @@ set_target_properties(ihub-session-api-test PROPERTIES
 add_test(
     NAME ihub-session-api
     COMMAND ihub-session-api-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# --- 64 logical slots and the warm pool (T118) ------------------------------
+#
+# Configures all 64 Launchpad patches, proves that only the armed slot, its K
+# neighbours and the previous patch are instantiated (peak <= K+1), arms a cold
+# patch and observes warming -> active with non-silent audio, returns to the
+# previous patch instantly, sweeps every pad while the bound holds, and checks
+# that GET /state carries the 8 x 8 family/patch tree and per-slot warm state.
+# A 40 ms artificial load delay makes the warming state observable; it is zero
+# in production.
+
+juce_add_console_app(ihub-session-warm-test
+    PRODUCT_NAME "ihub-session-warm-test"
+)
+
+target_sources(ihub-session-warm-test
+    PRIVATE
+        session_warm/SessionWarmPoolTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+)
+
+target_include_directories(ihub-session-warm-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-session-warm-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
+)
+
+target_link_libraries(ihub-session-warm-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_audio_devices
+        juce::juce_audio_formats
+        juce::juce_audio_processors_headless
+        juce::juce_core
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-session-warm-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-session-warm
+    COMMAND ihub-session-warm-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -2527,6 +2615,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
@@ -2547,6 +2636,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(ihub-e2e-test
         PRIVATE
             JUCE_PLUGINHOST_VST3=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
             "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
     )
 

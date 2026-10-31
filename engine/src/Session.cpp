@@ -27,6 +27,17 @@ constexpr double defaultFrequencies[] = {
     110.0, 123.47, 138.59, 146.83, 164.81, 185.0, 207.65, 220.0
 };
 
+/** The eight families of the Launchpad grid, eight patches each. */
+constexpr const char* familyIds[] = {
+    "keys", "drums", "bass", "pads", "lead", "fx", "perc", "vox"
+};
+
+constexpr const char* familyNames[] = {
+    "Keys", "Drums", "Bass", "Pads", "Lead", "FX", "Percussion", "Vox"
+};
+
+constexpr int patchesPerFamily = 8;
+
 constexpr double silenceFloor = 1.0e-12;
 
 /** Per-block peak-meter decay. At 48 kHz / 128 frames a full-scale peak falls
@@ -106,6 +117,54 @@ private:
     double increment = 0.0;
 };
 
+/** A sampler patch whose kit is owned by the pooled instance.
+
+    The warm pool creates and destroys instruments on its own threads; a kit
+    reached through a `Session` member would race with that. Owning it here
+    keeps the lifetime identical to the instrument.
+*/
+class PooledSamplerSource final : public AudioEngine::SlotSource
+{
+public:
+    bool load (const juce::File& file, double sampleRate, juce::String& error)
+    {
+        kit = std::make_unique<sampler::LoadedKit>();
+
+        if (! sampler::KitLoader::loadFromFile (file, sampleRate, *kit, error))
+        {
+            kit.reset();
+            return false;
+        }
+
+        instrument = std::make_unique<sampler::SamplerInstrument>();
+        instrument->setKit (kit.get());
+        return true;
+    }
+
+    void prepare (double sampleRate, int maximumBlockSize) override
+    {
+        if (instrument != nullptr)
+            instrument->prepare (sampleRate, maximumBlockSize);
+    }
+
+    void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override
+    {
+        if (instrument != nullptr)
+            instrument->process (buffer, midi);
+        else
+            buffer.clear();
+    }
+
+    int latencySamples() const noexcept override
+    {
+        return instrument != nullptr ? instrument->latencySamples() : 0;
+    }
+
+private:
+    std::unique_ptr<sampler::LoadedKit> kit;
+    std::unique_ptr<sampler::SamplerInstrument> instrument;
+};
+
 } // namespace
 
 //==============================================================================
@@ -122,6 +181,105 @@ const char* toString (SessionSlotKind kind) noexcept
     return "init-tone";
 }
 
+const char* toString (SessionWarmState state) noexcept
+{
+    switch (state)
+    {
+        case SessionWarmState::cold:    return "cold";
+        case SessionWarmState::warming: return "warming";
+        case SessionWarmState::warm:    return "warm";
+        case SessionWarmState::active:  return "active";
+        case SessionWarmState::fading:  return "fading";
+    }
+
+    return "cold";
+}
+
+//==============================================================================
+/**
+    The permanent source of one fixed engine slot.
+
+    The engine slot never changes its `SlotSource*`, so the graph really is
+    fixed. The actual patch instrument lives in the warm pool and is published
+    here with an atomic pointer store: arming is one pointer hand-over, not a
+    graph edit. While no instance is bound the proxy renders silence.
+*/
+struct Session::Voice final : public AudioEngine::SlotSource
+{
+    void prepare (double, int) override {}
+
+    void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override
+    {
+        auto* instance = delegate.load (std::memory_order_acquire);
+
+        if (instance == nullptr)
+        {
+            buffer.clear();
+            return;
+        }
+
+        instance->process (buffer, midi);
+    }
+
+    int latencySamples() const noexcept override
+    {
+        return latency.load (std::memory_order_relaxed);
+    }
+
+    bool acceptsDeviceInput() const noexcept override
+    {
+        return acceptsInput.load (std::memory_order_relaxed);
+    }
+
+    void setInputBlock (const float* const* channelData, int numInputs) noexcept override
+    {
+        auto* instance = delegate.load (std::memory_order_acquire);
+
+        if (instance != nullptr && acceptsInput.load (std::memory_order_relaxed))
+            instance->setInputBlock (channelData, numInputs);
+    }
+
+    bool bypassesFxChain() const noexcept override
+    {
+        return bypassesChain.load (std::memory_order_relaxed);
+    }
+
+    void bind (AudioEngine::SlotSource* instance) noexcept
+    {
+        int latencySamples = 0;
+        bool accepts = false;
+        bool bypasses = false;
+
+        if (instance != nullptr)
+        {
+            latencySamples = instance->latencySamples();
+            accepts = instance->acceptsDeviceInput();
+            bypasses = instance->bypassesFxChain();
+        }
+
+        latency.store (latencySamples, std::memory_order_relaxed);
+        acceptsInput.store (accepts, std::memory_order_relaxed);
+        bypassesChain.store (bypasses, std::memory_order_relaxed);
+        delegate.store (instance, std::memory_order_release);
+    }
+
+    void clearIf (AudioEngine::SlotSource* instance) noexcept
+    {
+        if (delegate.load (std::memory_order_acquire) != instance)
+            return;
+
+        delegate.store (nullptr, std::memory_order_release);
+        latency.store (0, std::memory_order_relaxed);
+        acceptsInput.store (false, std::memory_order_relaxed);
+        bypassesChain.store (false, std::memory_order_relaxed);
+    }
+
+    std::atomic<AudioEngine::SlotSource*> delegate { nullptr };
+    std::atomic<int> latency { 0 };
+    std::atomic<bool> acceptsInput { false };
+    std::atomic<bool> bypassesChain { false };
+};
+
 //==============================================================================
 Session::Session()
 {
@@ -131,29 +289,53 @@ Session::Session()
 Session::~Session()
 {
     closeDevice();
+    shutdownWarmPool();
+    switcher.reset();
+    engine.reset();
+    voices.clear();
+    pluginFormats.reset();
 }
 
 std::vector<SessionSlotConfig> Session::makeDefaultSet()
 {
-    constexpr const char* names[] = {
-        "Init 1", "Init 2", "Init 3", "Init 4",
-        "Init 5", "Init 6", "Init 7", "Init 8"
-    };
-
     std::vector<SessionSlotConfig> slots;
-    slots.reserve (std::size (defaultFrequencies));
+    slots.reserve (static_cast<std::size_t> (defaultLogicalSlots));
 
-    for (std::size_t index = 0; index < std::size (defaultFrequencies); ++index)
+    for (int index = 0; index < defaultLogicalSlots; ++index)
     {
+        const int familyIndex = index / patchesPerFamily;
+        const int patchIndex = index % patchesPerFamily;
+        const double familyScale = std::pow (1.25, static_cast<double> (familyIndex));
+
         SessionSlotConfig slot;
-        slot.name = names[index];
+        slot.name = "Init " + std::to_string (index + 1);
         slot.kind = SessionSlotKind::initTone;
-        slot.frequency = defaultFrequencies[index];
+        slot.frequency = defaultFrequencies[patchIndex] * familyScale;
         slot.gain = 1.0f;
+
+        slot.family = familyIds[familyIndex];
+        slot.familyName = familyNames[familyIndex];
+        slot.patch = "init-" + std::to_string (index);
+        slot.patchName = slot.name;
+
         slots.push_back (std::move (slot));
     }
 
     return slots;
+}
+
+void Session::shutdownWarmPool() noexcept
+{
+    if (warmPool == nullptr)
+        return;
+
+    warmPool->setWarmCallback (nullptr);
+    warmPool->clear();
+    waitForWarmIdle (2000);
+    warmPool.reset();
+
+    pinnedActiveSlot = -1;
+    pinnedPreviousSlot = -1;
 }
 
 bool Session::build (const SessionConfig& newConfig, juce::String& error)
@@ -163,12 +345,11 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     prepared = false;
     transport.reset();
 
-    // Drop the graph before its sources: the slots hold non-owning pointers.
+    // Drop the graph before its proxies: the slots hold non-owning pointers.
+    shutdownWarmPool();
     switcher.reset();
     engine.reset();
-    sources.clear();
-    instruments.clear();
-    kits.clear();
+    voices.clear();
     pluginFormats.reset();
 
     config = newConfig;
@@ -193,6 +374,13 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
         return false;
     }
 
+    if (slotCount > defaultLogicalSlots)
+    {
+        error = "the session description has " + juce::String (slotCount)
+              + " slots; the Launchpad grid has " + juce::String (defaultLogicalSlots);
+        return false;
+    }
+
     engine = std::make_unique<AudioEngine::AudioEngine> (slotCount,
                                                          config.device.numOutputChannels);
     switcher = std::make_unique<AudioEngine::SlotSwitcher> (config.fadeMilliseconds);
@@ -200,62 +388,111 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     pluginFormats = std::make_unique<juce::AudioPluginFormatManager>();
     juce::addHeadlessDefaultFormatsToManager (*pluginFormats);
 
+    const int neighbours = juce::jmax (1, config.neighbourCount);
+
+    warmPool = std::make_unique<AudioEngine::WarmPool> (neighbours);
+    warmPool->setFactory ([this] (const AudioEngine::WarmPool::Request& request,
+                                  juce::String& factoryError)
+    {
+        int slotIndex = -1;
+
+        try
+        {
+            slotIndex = std::any_cast<int> (request.payload);
+        }
+        catch (...)
+        {
+            factoryError = "warm request has no slot payload";
+            return std::unique_ptr<AudioEngine::SlotSource>();
+        }
+
+        if (config.loadDelayMilliseconds > 0)
+            juce::Thread::sleep (config.loadDelayMilliseconds);
+
+        return createPooledSource (slotIndex, factoryError);
+    });
+    warmPool->setDestroyHook ([this] (AudioEngine::SlotSource& instance)
+    {
+        clearVoice (&instance);
+    });
+    warmPool->setWarmCallback ([this] (int slot)
+    {
+        warmCallback (slot);
+    });
+
+    voices.reserve (static_cast<std::size_t> (slotCount));
+
     std::vector<AudioEngine::Slot*> slotPointers;
     slotPointers.reserve (static_cast<std::size_t> (slotCount));
 
     for (int index = 0; index < slotCount; ++index)
     {
-        auto* source = createSource (config.slots[static_cast<std::size_t> (index)],
-                                     index,
-                                     error);
-
-        if (source == nullptr)
-        {
-            if (error.isEmpty())
-                error = "could not create slot " + juce::String (index);
-
-            switcher.reset();
-            engine.reset();
-            sources.clear();
-            instruments.clear();
-            kits.clear();
-            return false;
-        }
+        auto voice = std::make_unique<Voice>();
+        auto* source = static_cast<AudioEngine::SlotSource*> (voice.get());
+        voices.push_back (std::move (voice));
 
         auto& slot = engine->getSlot (index);
         slot.setSource (source);
         slot.setGain (config.slots[static_cast<std::size_t> (index)].gain);
 
-        sources.push_back (source);
         slotPointers.push_back (&slot);
     }
 
-    // All slots are wired in parallel once. Nothing rewires later.
+    // All slots are wired in parallel once. Nothing rewires later; arming only
+    // changes which warm-pool instance the fixed proxy points at.
     switcher->setSlots (slotPointers);
+
+    // Give the pool its format before any request can be queued. `build()`
+    // calls `setRequest()` before `prepare()`, and a pool without a format
+    // would create an unprepared instrument (silent init tone).
+    warmPool->setFormat (config.device.sampleRate, config.device.bufferSize);
+    warmPool->setNumSlots (slotCount);
+
+    for (int index = 0; index < slotCount; ++index)
+    {
+        const auto& slotConfig = config.slots[static_cast<std::size_t> (index)];
+
+        AudioEngine::WarmPool::Request request;
+        request.id = juce::String (index) + ":" + toString (slotConfig.kind)
+                   + ":" + slotConfig.path + ":" + juce::String (slotConfig.frequency);
+        request.payload = index;
+        warmPool->setRequest (index, std::move (request));
+    }
 
     prepare (config.device.sampleRate,
              config.device.bufferSize,
              config.device.numOutputChannels);
 
+    const int initial = juce::jlimit (0, slotCount - 1, config.initialSlot);
+    warmPool->setActiveSlot (initial);
+    warmPool->preloadAll();
+
+    requestedSlot.store (-1);
+    activeSlot.store (-1);
+    pendingArmSlot.store (-1);
+    pinnedActiveSlot = -1;
+    pinnedPreviousSlot = -1;
+
     return true;
 }
 
-AudioEngine::SlotSource* Session::createSource (const SessionSlotConfig& slotConfig,
-                                                int slotIndex,
-                                                juce::String& error)
+std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIndex,
+                                                                      juce::String& error)
 {
+    if (slotIndex < 0 || slotIndex >= static_cast<int> (config.slots.size()))
+    {
+        error = "warm request addresses slot " + juce::String (slotIndex);
+        return nullptr;
+    }
+
+    const auto& slotConfig = config.slots[static_cast<std::size_t> (slotIndex)];
     const auto slotLabel = juce::String (slotIndex) + " (\"" + juce::String (slotConfig.name) + "\")";
 
     switch (slotConfig.kind)
     {
         case SessionSlotKind::initTone:
-        {
-            auto instrument = std::make_unique<InitToneSource> (slotConfig.frequency,
-                                                                 initToneAmplitude);
-            auto* source = static_cast<AudioEngine::SlotSource*> (instrument.get());
-            instruments.push_back (std::move (instrument));
-            return source;
-        }
+            return std::make_unique<InitToneSource> (slotConfig.frequency,
+                                                     initToneAmplitude);
 
         case SessionSlotKind::sampler:
         {
@@ -265,24 +502,17 @@ AudioEngine::SlotSource* Session::createSource (const SessionSlotConfig& slotCon
                 return nullptr;
             }
 
-            auto kit = std::make_unique<sampler::LoadedKit>();
+            auto samplerSource = std::make_unique<PooledSamplerSource>();
 
-            if (! sampler::KitLoader::loadFromFile (juce::File (slotConfig.path),
-                                                    config.device.sampleRate,
-                                                    *kit,
-                                                    error))
+            if (! samplerSource->load (juce::File (slotConfig.path),
+                                       config.device.sampleRate,
+                                       error))
             {
                 error = "slot " + slotLabel + ": " + error;
                 return nullptr;
             }
 
-            auto instrument = std::make_unique<sampler::SamplerInstrument>();
-            instrument->setKit (kit.get());
-
-            auto* source = static_cast<AudioEngine::SlotSource*> (instrument.get());
-            instruments.push_back (std::move (instrument));
-            kits.push_back (std::move (kit));
-            return source;
+            return samplerSource;
         }
 
         case SessionSlotKind::plugin:
@@ -305,19 +535,14 @@ AudioEngine::SlotSource* Session::createSource (const SessionSlotConfig& slotCon
                 return nullptr;
             }
 
-            auto* source = static_cast<AudioEngine::SlotSource*> (instrument.get());
-            instruments.push_back (std::move (instrument));
-            return source;
+            return instrument;
         }
 
         case SessionSlotKind::audioInput:
         {
             auto instrument = std::make_unique<AudioInputInstrument>();
             instrument->setInputChannel (slotConfig.inputChannel);
-
-            auto* source = static_cast<AudioEngine::SlotSource*> (instrument.get());
-            instruments.push_back (std::move (instrument));
-            return source;
+            return instrument;
         }
     }
 
@@ -326,6 +551,161 @@ AudioEngine::SlotSource* Session::createSource (const SessionSlotConfig& slotCon
 }
 
 //==============================================================================
+void Session::warmCallback (int slot)
+{
+    const std::lock_guard<std::mutex> lock (armMutex);
+
+    if (warmPool == nullptr)
+        return;
+
+    auto* instance = warmPool->acquire (slot);
+
+    if (instance == nullptr)
+        return; // evicted before the hand-off; the next arm retries
+
+    bindVoice (slot, instance);
+
+    if (pendingArmSlot.load (std::memory_order_relaxed) == slot)
+    {
+        finishArmLocked (slot, instance);
+        return;
+    }
+
+    warmPool->release (slot);
+}
+
+void Session::bindVoice (int slot, AudioEngine::SlotSource* instance) noexcept
+{
+    if (slot < 0 || slot >= static_cast<int> (voices.size()))
+        return;
+
+    voices[static_cast<std::size_t> (slot)]->bind (instance);
+}
+
+void Session::clearVoice (AudioEngine::SlotSource* instance) noexcept
+{
+    if (instance == nullptr)
+        return;
+
+    for (auto& voice : voices)
+        voice->clearIf (instance);
+}
+
+void Session::releaseAllPinsLocked()
+{
+    if (warmPool == nullptr)
+    {
+        pinnedActiveSlot = -1;
+        pinnedPreviousSlot = -1;
+        return;
+    }
+
+    const int previous = pinnedPreviousSlot;
+    const int active = pinnedActiveSlot;
+
+    pinnedPreviousSlot = -1;
+    pinnedActiveSlot = -1;
+
+    if (previous >= 0)
+        warmPool->release (previous);
+
+    if (active >= 0)
+        warmPool->release (active);
+}
+
+bool Session::finishArmLocked (int slot, AudioEngine::SlotSource* pinnedInstance)
+{
+    if (warmPool == nullptr || switcher == nullptr || pinnedInstance == nullptr)
+        return false;
+
+    bindVoice (slot, pinnedInstance);
+
+    // The only audio-thread effect of arming: one lock-free atomic publish.
+    switcher->armSlot (slot);
+
+    const int oldActive = pinnedActiveSlot;
+    const int oldPrevious = pinnedPreviousSlot;
+
+    activeSlot.store (slot, std::memory_order_relaxed);
+    pendingArmSlot.store (-1, std::memory_order_relaxed);
+
+    if (oldActive == slot)
+    {
+        // Re-arming the same slot: drop the duplicate pin.
+        warmPool->release (slot);
+        return true;
+    }
+
+    if (oldPrevious >= 0 && oldPrevious != slot)
+        warmPool->release (oldPrevious);
+
+    pinnedPreviousSlot = oldActive;
+    pinnedActiveSlot = slot;
+
+    if (slot == oldPrevious)
+        warmPool->release (slot); // it was already pinned as the previous patch
+
+    return true;
+}
+
+bool Session::waitForWarmIdle (int timeoutMs)
+{
+    if (warmPool == nullptr)
+        return true;
+
+    const double deadline = juce::Time::getMillisecondCounterHiRes()
+                          + static_cast<double> (juce::jmax (0, timeoutMs));
+
+    for (;;)
+    {
+        if (warmPool->isIdle())
+            return true;
+
+        if (juce::Time::getMillisecondCounterHiRes() >= deadline)
+            return false;
+
+        // Instance destruction is posted to the message thread, and the pool
+        // counts it until the callback runs. Headless offline tools must pump
+        // that loop or a retirement would pin the budget forever.
+       #if JUCE_MODAL_LOOPS_PERMITTED
+        if (auto* manager = juce::MessageManager::getInstanceWithoutCreating())
+            manager->runDispatchLoopUntil (2);
+        else
+            juce::Thread::sleep (2);
+       #else
+        juce::Thread::sleep (2);
+       #endif
+    }
+}
+
+bool Session::warmSlotBlockingLocked (int slot, int timeoutMs)
+{
+    if (warmPool == nullptr)
+        return false;
+
+    if (warmPool->isWarm (slot))
+        return true;
+
+    warmPool->setActiveSlot (slot);
+    warmPool->preloadAll();
+
+    // A protected neighbour that cannot fit keeps the pool technically busy
+    // (deferred), but the target we were asked for may already be resident.
+    (void) waitForWarmIdle (timeoutMs);
+
+    if (warmPool->isWarm (slot))
+        return true;
+
+    auto* instance = warmPool->acquire (slot);
+
+    if (instance == nullptr)
+        return false;
+
+    bindVoice (slot, instance);
+    warmPool->release (slot);
+    return true;
+}
+
 void Session::prepare (double newSampleRate, int newMaximumBlockSize, int newNumChannels)
 {
     if (engine == nullptr)
@@ -337,6 +717,9 @@ void Session::prepare (double newSampleRate, int newMaximumBlockSize, int newNum
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 48000.0;
     maximumBlockSize = juce::jmax (1, newMaximumBlockSize);
     numChannels = juce::jmax (1, newNumChannels);
+
+    if (warmPool != nullptr)
+        warmPool->setFormat (sampleRate, maximumBlockSize);
 
     // The engine owns the slots, the summing bus and the timing monitor. The
     // switcher owns the crossfade envelope over the same slots.
@@ -437,6 +820,119 @@ float Session::getSlotMeterPeak (int slot) const noexcept
 float Session::getMasterMeterPeak() const noexcept
 {
     return masterMeterPeak.load (std::memory_order_relaxed);
+}
+
+//==============================================================================
+int Session::getNeighbourCount() const noexcept
+{
+    return config.neighbourCount;
+}
+
+int Session::getWarmInstanceLimit() const noexcept
+{
+    return warmPool != nullptr ? warmPool->getInstanceLimit()
+                               : juce::jmin (getLogicalSlotCount(), 1 + config.neighbourCount);
+}
+
+int Session::getLiveInstrumentCount() const noexcept
+{
+    return warmPool != nullptr ? warmPool->getLiveInstanceCount() : 0;
+}
+
+int Session::getPeakInstrumentCount() const noexcept
+{
+    return warmPool != nullptr ? warmPool->getPeakLiveInstanceCount() : 0;
+}
+
+bool Session::isSlotWarm (int slot) const noexcept
+{
+    return warmPool != nullptr && warmPool->isWarm (slot);
+}
+
+SessionWarmState Session::getWarmState (int slot) const noexcept
+{
+    if (slot < 0 || slot >= getNumSlots())
+        return SessionWarmState::cold;
+
+    if (pendingArmSlot.load (std::memory_order_relaxed) == slot)
+        return SessionWarmState::warming;
+
+    if (activeSlot.load (std::memory_order_relaxed) == slot)
+        return SessionWarmState::active;
+
+    if (warmPool != nullptr)
+    {
+        if (warmPool->isWarming (slot))
+            return SessionWarmState::warming;
+
+        if (warmPool->isWarm (slot))
+            return SessionWarmState::warm;
+    }
+
+    return SessionWarmState::cold;
+}
+
+const char* Session::getWarmStateName (int slot) const noexcept
+{
+    return toString (getWarmState (slot));
+}
+
+bool Session::waitForSlotWarm (int slot, int timeoutMs)
+{
+    const double deadline = juce::Time::getMillisecondCounterHiRes()
+                          + static_cast<double> (juce::jmax (0, timeoutMs));
+
+    for (;;)
+    {
+        if (warmPool != nullptr && warmPool->isWarm (slot))
+        {
+            const std::lock_guard<std::mutex> lock (armMutex);
+            auto* instance = warmPool->acquire (slot);
+
+            if (instance != nullptr)
+            {
+                bindVoice (slot, instance);
+                warmPool->release (slot);
+                return true;
+            }
+        }
+
+        if (juce::Time::getMillisecondCounterHiRes() >= deadline)
+            return false;
+
+       #if JUCE_MODAL_LOOPS_PERMITTED
+        if (auto* manager = juce::MessageManager::getInstanceWithoutCreating())
+            manager->runDispatchLoopUntil (2);
+        else
+            juce::Thread::sleep (2);
+       #else
+        juce::Thread::sleep (2);
+       #endif
+    }
+}
+
+bool Session::waitForSlotActive (int slot, int timeoutMs)
+{
+    const double deadline = juce::Time::getMillisecondCounterHiRes()
+                          + static_cast<double> (juce::jmax (0, timeoutMs));
+
+    for (;;)
+    {
+        if (getWarmState (slot) == SessionWarmState::active)
+            return true;
+
+        if (juce::Time::getMillisecondCounterHiRes() >= deadline)
+            return false;
+
+       #if JUCE_MODAL_LOOPS_PERMITTED
+        if (auto* manager = juce::MessageManager::getInstanceWithoutCreating())
+            manager->runDispatchLoopUntil (2);
+        else
+            juce::Thread::sleep (2);
+       #else
+        juce::Thread::sleep (2);
+       #endif
+    }
 }
 
 //==============================================================================
@@ -574,15 +1070,60 @@ void Session::closeDevice()
 }
 
 //==============================================================================
-void Session::armSlot (int slot) noexcept
+void Session::armSlot (int slot)
 {
-    if (switcher != nullptr)
-        switcher->armSlot (slot);
+    if (switcher == nullptr)
+        return;
+
+    if (slot < 0)
+    {
+        const std::lock_guard<std::mutex> lock (armMutex);
+        switcher->disarm();
+        requestedSlot.store (-1, std::memory_order_relaxed);
+        pendingArmSlot.store (-1, std::memory_order_relaxed);
+        activeSlot.store (-1, std::memory_order_relaxed);
+        return;
+    }
+
+    if (slot >= getNumSlots())
+        return;
+
+    const std::lock_guard<std::mutex> lock (armMutex);
+
+    // A cold slot reports `warming` from this store until the instance is
+    // resident. A warm slot completes below without ever publishing it.
+    pendingArmSlot.store (slot, std::memory_order_relaxed);
+    requestedSlot.store (slot, std::memory_order_relaxed);
+
+    if (warmPool == nullptr)
+        return;
+
+    if (warmPool->isWarm (slot))
+    {
+        if (auto* instance = warmPool->acquire (slot); instance != nullptr)
+        {
+            finishArmLocked (slot, instance);
+            return;
+        }
+    }
+
+    // The older previous patch is no longer needed for an instant return.
+    // Dropping its pin leaves room for the cold instance inside 1 + K.
+    if (pinnedPreviousSlot >= 0 && pinnedPreviousSlot != slot)
+    {
+        warmPool->release (pinnedPreviousSlot);
+        pinnedPreviousSlot = -1;
+    }
+
+    // Keep the outgoing patch audible while the new one loads, then let the
+    // pool warm the target and its neighbours.
+    warmPool->setActiveSlot (slot);
+    warmPool->preloadAll();
 }
 
 int Session::getArmedSlot() const noexcept
 {
-    return switcher != nullptr ? switcher->getArmedSlot() : -1;
+    return requestedSlot.load (std::memory_order_relaxed);
 }
 
 //==============================================================================
@@ -715,6 +1256,63 @@ SessionSwitchReport Session::measureSwitch (int fromSlot,
         || fromSlot == toSlot)
     {
         return report;
+    }
+
+    // This is an offline tool: make both endpoints resident and pinned before
+    // the references and the real render start from the same state.
+    if (warmPool != nullptr)
+    {
+        const std::lock_guard<std::mutex> lock (armMutex);
+
+        releaseAllPinsLocked();
+
+        // The measurement needs both endpoints resident at once. Temporary
+        // neighbours would compete for the 1+K budget with the pinned pair,
+        // so shrink the neighbourhood to one (limit 2) for the warm-up and
+        // restore it afterwards.
+        const int savedNeighbours = config.neighbourCount;
+        warmPool->setNeighbourCount (juce::jmin (1, savedNeighbours));
+
+        if (! warmSlotBlockingLocked (fromSlot, 5000))
+        {
+            warmPool->setNeighbourCount (savedNeighbours);
+            return report;
+        }
+
+        auto* fromInstance = warmPool->acquire (fromSlot);
+
+        if (fromInstance == nullptr)
+        {
+            warmPool->setNeighbourCount (savedNeighbours);
+            return report;
+        }
+
+        if (! warmSlotBlockingLocked (toSlot, 5000))
+        {
+            warmPool->release (fromSlot);
+            warmPool->setNeighbourCount (savedNeighbours);
+            return report;
+        }
+
+        auto* toInstance = warmPool->acquire (toSlot);
+
+        if (toInstance == nullptr)
+        {
+            warmPool->release (fromSlot);
+            warmPool->setNeighbourCount (savedNeighbours);
+            return report;
+        }
+
+        bindVoice (fromSlot, fromInstance);
+        bindVoice (toSlot, toInstance);
+
+        pinnedActiveSlot = toSlot;
+        pinnedPreviousSlot = fromSlot;
+        activeSlot.store (toSlot, std::memory_order_relaxed);
+        requestedSlot.store (toSlot, std::memory_order_relaxed);
+        pendingArmSlot.store (-1, std::memory_order_relaxed);
+
+        warmPool->setNeighbourCount (savedNeighbours);
     }
 
     const int blockSize = juce::jmax (1, maximumBlockSize);

@@ -280,6 +280,8 @@ PadRender runPadRender (float fadeMilliseconds)
 
     rig.press (kFirstPad);
     result.armedAfterFirst = session.getArmedSlot();
+    check (session.waitForSlotActive (kFirstPad, 5000),
+           "the first pad's patch warms and arms");
 
     for (int block = 0; block < kSettleBlocks + kRmsBlocks; ++block)
     {
@@ -294,6 +296,8 @@ PadRender runPadRender (float fadeMilliseconds)
 
     rig.press (kSecondPad);
     result.armedAfterSecond = session.getArmedSlot();
+    check (session.waitForSlotActive (kSecondPad, 5000),
+           "the second pad's patch warms and arms");
 
     for (int block = 0; block < kSwitchBlocks; ++block)
     {

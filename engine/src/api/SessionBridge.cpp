@@ -2,6 +2,10 @@
 
 #include "Session.h"
 
+#include <algorithm>
+#include <iterator>
+#include <utility>
+
 namespace Api
 {
 
@@ -25,15 +29,56 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
     const auto& slotConfigs = session.getSlotConfigs();
     const double sampleRate = session.getEngine().getSampleRate();
 
+    std::vector<FamilyState> families;
+
     for (int index = 0; index < state.getNumSlots(); ++index)
     {
         if (index < static_cast<int> (slotConfigs.size()))
-            state.setSlotName (index, slotConfigs[static_cast<std::size_t> (index)].name);
+        {
+            const auto& slotConfig = slotConfigs[static_cast<std::size_t> (index)];
+
+            state.setSlotName (index, slotConfig.name);
+            state.setSlotIdentity (index,
+                                   slotConfig.family,
+                                   slotConfig.familyName,
+                                   slotConfig.patch,
+                                   slotConfig.patchName);
+
+            if (! slotConfig.family.empty())
+            {
+                auto family = std::find_if (families.begin(), families.end(),
+                                            [&slotConfig] (const FamilyState& candidate)
+                                            {
+                                                return candidate.id == slotConfig.family;
+                                            });
+
+                if (family == families.end())
+                {
+                    FamilyState entry;
+                    entry.id = slotConfig.family;
+                    entry.name = slotConfig.familyName.empty() ? slotConfig.family
+                                                               : slotConfig.familyName;
+                    families.push_back (std::move (entry));
+                    family = std::prev (families.end());
+                }
+
+                PatchState patch;
+                patch.slot = index;
+                patch.id = slotConfig.patch;
+                patch.name = slotConfig.patchName.empty() ? slotConfig.name
+                                                          : slotConfig.patchName;
+                patch.family = slotConfig.family;
+                patch.familyName = slotConfig.familyName;
+                family->patches.push_back (std::move (patch));
+            }
+        }
 
         state.setSlotLatency (index,
                               session.getSlotLatencySamples (index),
                               sampleRate);
     }
+
+    state.setFamilyTree (std::move (families));
 
     // POST /arm -> SlotSwitcher::armSlot(): one lock-free atomic publish.
     state.setArmHandler ([&session] (int slot)
@@ -78,6 +123,8 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         runtime.gain = session.getSwitcher().getSlotGain (slot);
         runtime.state = AudioEngine::SlotSwitcher::toString (
             session.getSwitcher().getSlotState (slot));
+        runtime.warmState = session.getWarmStateName (slot);
+        runtime.warm = session.isSlotWarm (slot);
         return runtime;
     });
 

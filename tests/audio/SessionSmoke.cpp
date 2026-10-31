@@ -1,6 +1,6 @@
 // ihub-session-smoke-test: acceptance check for T114.
 //
-// Composes the default session (AudioEngine + SlotSwitcher + eight instrument
+// Composes the default session (AudioEngine + SlotSwitcher + 64 instrument
 // slots), arms slot 0, measures its RMS, switches to slot 1 and measures the
 // discontinuity across the 3 ms equal-power crossfade.
 //
@@ -29,7 +29,7 @@ namespace
 {
 constexpr double kSampleRate = 48000.0;
 constexpr int kBlockSize = 128;
-constexpr int kNumSlots = 8;
+constexpr int kNumSlots = 64;
 constexpr double kDiscontinuityLimitDbfs = -60.0;
 constexpr double kMinimumRmsDbfs = -60.0;
 
@@ -105,7 +105,7 @@ int main()
               << ", sample rate: " << kSampleRate << std::endl;
 
     //==========================================================================
-    // 1. The default set composes into eight fixed slots.
+    // 1. The default set composes into 64 fixed slots.
     {
         ihub::Session session;
         juce::String error;
@@ -114,9 +114,9 @@ int main()
 
         check (built, "the default session builds" + (built ? std::string() : ": " + error.toStdString()));
         check (session.isPrepared(), "the session is prepared");
-        check (session.getNumSlots() == kNumSlots, "eight slots were created");
+        check (session.getNumSlots() == kNumSlots, "64 slots were created");
         check (static_cast<int> (session.getSlotConfigs().size()) == kNumSlots,
-               "the default set describes eight slots");
+               "the default set describes 64 slots");
         check (session.getSlotConfigs()[0].kind == ihub::SessionSlotKind::initTone,
                "the default slots are initialisation tones");
         check (session.getEngine().getBus().getNumChannels() == 2,

@@ -149,6 +149,8 @@ int main()
     // --- POST /arm 0: slot 0 becomes the audible slot ----------------------
     auto response = client.Post ("/arm", "{\"slot\":0}", "application/json");
     check (response && response->status == 200, "POST /arm 0 returns 200");
+    check (session.waitForSlotActive (0, 5000),
+           "slot 0 warms and becomes the active patch");
 
     renderBlocks (session, 16); // let the 3 ms fade settle
 
@@ -193,6 +195,8 @@ int main()
     // --- POST /arm 1: the audible slot changes -----------------------------
     response = client.Post ("/arm", "{\"slot\":1}", "application/json");
     check (response && response->status == 200, "POST /arm 1 returns 200");
+    check (session.waitForSlotActive (1, 5000),
+           "slot 1 warms and becomes the active patch");
 
     renderBlocks (session, 16);
 
