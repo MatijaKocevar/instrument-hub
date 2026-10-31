@@ -538,9 +538,9 @@ file. If the check fails you are not done.
 ## T131 · 64-patch state and Analog Lab acceptance
 - depends: T130
 - size: M
-- goal: Two layers. Automated: 8 families x 8 patches using TestPlugin, each patch with its own state; arm all 64, switch across them so the warm pool evicts and reloads, restart and verify every state hash, and verify editor-follow. Real plugin: a smaller, stable Analog Lab pass - at least 4 slots with 2 distinct captured Analog Lab states, switch A -> B -> A, restart, verify the hashes and that both patches render non-silent, different audio. Do not load Analog Lab 64 times in one process: the Wine bridge stack-overflows under rapid repeated load. The full 64-patch Analog Lab pass stays a documented manual check in `docs/`.
+- goal: Two headless layers. Automated: 8 families x 8 patches using TestPlugin, each patch with its own state; arm all 64, switch across them so the warm pool evicts and reloads, restart and verify every state hash. Editor-follow is already covered by T130's `ihub-session-editor-follow`; do not open editors or wait on the message loop in this test. Real plugin: a smaller, stable Analog Lab pass - at least 4 slots with 2 distinct captured Analog Lab states, switch A -> B -> A, restart, verify the hashes and that both patches render non-silent, different audio, again without editor windows. Do not load Analog Lab 64 times in one process: the Wine bridge stack-overflows under rapid repeated load. The full 64-patch Analog Lab pass stays a documented manual check in `docs/`.
 - files: `tests/e2e/`, `tests/CMakeLists.txt`, `docs/`
-- accept: an automated 64-slot TestPlugin test passes with state-hash and editor-follow checks; a separate Analog Lab test (4 slots, 2 states) passes and records non-silent/different audio; full `ctest` green; the manual 64-patch Analog Lab procedure is documented and does not hang.
+- accept: the automated 64-slot TestPlugin test and the 4-slot Analog Lab test both pass through `scripts/test.sh` (120 s per-test timeout), with state-hash checks before/after eviction and after restart, and a recorded non-silent/different-audio result for the Analog Lab pair; full `ctest` green; the manual 64-patch Analog Lab procedure is documented and does not hang.
 
 ## T132 · Explicit save-sound control
 - depends: T130

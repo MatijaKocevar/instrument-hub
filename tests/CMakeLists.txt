@@ -3439,3 +3439,15 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-e2e-test: the ALSA Loopback acceptance is Linux-only; skipping")
 endif()
+
+# --- Hang guard -------------------------------------------------------------
+#
+# Every test gets a hard 120 s timeout. A deadlocked test fails the suite
+# instead of leaving the autopilot waiting on a command that never returns.
+# scripts/test.sh passes the same timeout; this property also protects plain
+# `ctest` invocations.
+
+get_property(IHUB_ALL_TESTS DIRECTORY PROPERTY TESTS)
+if(IHUB_ALL_TESTS)
+    set_tests_properties(${IHUB_ALL_TESTS} PROPERTIES TIMEOUT 120)
+endif()
