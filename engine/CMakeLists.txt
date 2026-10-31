@@ -92,6 +92,7 @@ target_sources(instrument-hub
         src/audio/RtGuard.cpp
         src/audio/Slot.cpp
         src/audio/TimingMonitor.cpp
+        src/plugins/PluginInstrument.cpp
         src/plugins/Scanner.cpp
         src/plugins/ScannerProcess.cpp
 )
