@@ -15,6 +15,7 @@ import {
     patchForInstrumentSlot,
 } from "./features/instrument";
 import { PairingPanel } from "./features/pairing";
+import { PluginsPage, pluginAssignmentsFromState } from "./features/plugins";
 import { useAppState, useAppStore } from "./state/AppStoreContext";
 import {
     instrumentPathForSlot,
@@ -167,25 +168,6 @@ function SystemPanels ({ state }: { readonly state: ControlState }): ReactElemen
     );
 }
 
-function PluginsPage (): ReactElement
-{
-    return (
-        <section className="page page--plugins" data-testid="plugins-page">
-            <header className="page__header">
-                <p className="page__eyebrow">Plugins</p>
-                <h2 className="page__title">Installed plugins</h2>
-                <p className="page__lede">
-                    The searchable VST3 inventory lands here with T125. Patches already
-                    carry their plugin descriptors, so this page only reads the scan.
-                </p>
-            </header>
-            <div className="page__empty" data-testid="plugins-empty">
-                No inventory loaded on this page yet.
-            </div>
-        </section>
-    );
-}
-
 interface AppProps
 {
     /** Render a specific route in the headless snapshot test. */
@@ -199,6 +181,7 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
     const router = useRouter (initialPath);
     const state = app.state;
     const grid = useMemo (() => gridFromState (state), [state]);
+    const pluginAssignments = useMemo (() => pluginAssignmentsFromState (state), [state]);
     const meters = useMeters ({ url: metersUrlFor (store.baseUrl) });
 
     const armedSlot = state?.armedSlot ?? -1;
@@ -208,15 +191,15 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
         state?.families.flatMap (family => family.patches) ?? [],
         instrumentSlot);
 
-    // The insert chain and the plug-in inventory are only needed on the
-    // Instrument page, so they are fetched on arrival and whenever the page's
-    // slot changes. The store de-duplicates the chain request per slot.
+    // The insert chain belongs to the Instrument page, and the inventory feeds
+    // both pages. Fetch each on arrival; the store de-duplicates the chain per
+    // slot and keeps a successful inventory until a rescan replaces it.
     useEffect (() =>
     {
-        if (router.route !== "instrument")
+        if (router.route !== "instrument" && router.route !== "plugins")
             return;
 
-        if (instrumentSlot !== null)
+        if (router.route === "instrument" && instrumentSlot !== null)
             void store.loadFxChain (instrumentSlot);
 
         if (app.plugins === null && ! app.pluginBusy)
@@ -375,7 +358,14 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
                               onRetryChain={slot => { void store.loadFxChain (slot, { force: true }); }}
                           />
                         : router.route === "plugins"
-                            ? <PluginsPage />
+                            ? <PluginsPage
+                                  inventory={app.plugins}
+                                  assignments={pluginAssignments}
+                                  error={app.pluginError}
+                                  busy={app.pluginBusy}
+                                  onRescan={() => { void store.rescanPlugins (); }}
+                                  onReload={() => { void store.loadPlugins (); }}
+                              />
                             : <section className="app__stack" data-testid="audio-page">
                                   <AudioSettingsPanel
                                       audio={app.audio}

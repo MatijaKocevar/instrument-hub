@@ -112,6 +112,28 @@ The page is rendered by `tests/artifacts/ui-instrument-snapshot.html`; the
 fixture-backed test drives the fader, mute/solo, every chain edit and a source
 swap through the real HTTP client.
 
+## Plugins page (`/plugins`)
+
+`src/features/plugins/` is the read-only inventory of everything the VST3
+scanner found. It never assigns anything; assignment stays on the patch.
+
+- **Inventory** — each row shows the name, vendor, version, category, format
+  and bundle path from `GET /plugins`, with an instrument/effect badge.
+- **Search** — filters locally as the user types across name, vendor,
+  description, category, id, format and path. Every term must match, so
+  `arturia instrument` narrows the list.
+- **Rescan** — `POST /plugins/rescan` starts one background scan. The page
+  adopts the engine's `scanning: true`, disables the button, and re-reads the
+  inventory until the scan settles, so newly installed bundles appear without
+  a reload.
+- **Used by** — derived from `/state`: a plug-in shows the patch, slot and
+  family of every patch whose instrument source is that plug-in. Effects used
+  in insert chains are edited on the patch's Instrument page, not here.
+
+The page is rendered by `tests/artifacts/ui-plugins-snapshot.html`; the
+fixture-backed test proves search, the used-by hint, and that a rescan picks
+up a newly scanned bundle.
+
 ## Stage remote (`/remote`)
 
 `src/features/remote/` is the tablet route. Open `http://<engine>:8080/remote`
