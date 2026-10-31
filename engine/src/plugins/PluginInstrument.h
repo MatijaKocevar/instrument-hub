@@ -11,6 +11,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
 
 namespace ihub::plugins
@@ -88,6 +89,17 @@ public:
         `process()` while this runs.
     */
     void unload();
+
+    /** Installs a callback that `unload()` (and therefore `load()` when it
+        replaces an instance) invokes on the message thread just before the
+        hosted processor is destroyed.
+
+        This is the seam `PluginWindow` uses: JUCE asserts when an
+        `AudioProcessor` is deleted while it still has an active editor, so the
+        window closes itself here. The callback is moved out of the wrapper
+        before it runs, so it may safely re-enter `setBeforeUnloadCallback()`.
+    */
+    void setBeforeUnloadCallback (std::function<void()> callback);
 
     bool isLoaded() const noexcept { return plugin != nullptr; }
 
@@ -221,6 +233,8 @@ private:
     std::atomic<int> droppedMidiEvents { 0 };
 
     juce::MidiBuffer midiScratch;
+
+    std::function<void()> beforeUnloadCallback;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginInstrument)
 };
