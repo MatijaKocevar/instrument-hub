@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Bus.h"
+#include "LatencyProbe.h"
 #include "Slot.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
@@ -75,6 +76,14 @@ public:
         delay-compensation stage has to align the others to.
     */
     int getLatencySamples() const noexcept;
+
+    /** Measures the device's real round-trip latency with an impulse.
+
+        Intended for the UI and command line: it briefly opens a full-duplex
+        Loopback device, so it must not be called from the audio thread or
+        while a set is streaming on that same device.
+    */
+    LatencyResult measureRoundTripLatency (const LatencyProbeOptions& options = {});
 
     //==============================================================================
     // Audio thread

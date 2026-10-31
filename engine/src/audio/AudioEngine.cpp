@@ -85,6 +85,12 @@ int AudioEngine::getLatencySamples() const noexcept
     return latency;
 }
 
+LatencyResult AudioEngine::measureRoundTripLatency (const LatencyProbeOptions& options)
+{
+    LatencyProbe probe;
+    return probe.measure (options);
+}
+
 void AudioEngine::processBlock (juce::AudioBuffer<float>& output, juce::MidiBuffer& midi) noexcept
 {
     processBlock (output, midi, output.getNumSamples());
