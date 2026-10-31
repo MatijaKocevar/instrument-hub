@@ -590,3 +590,10 @@ file. If the check fails you are not done.
 - goal: Remove or clearly quarantine the superseded Launchkey controller layer and its docs/tests, remove duplicate controller docs, and either wire `project/PluginStateStore` into the live session or delete it. Update AGENTS/DECISIONS/HANDOVER references so only the Launchpad path remains.
 - files: `engine/src/controller/`, `engine/src/project/PluginStateStore.*`, `tests/`, docs
 - accept: the build has no unused controller sources; `ctest` green; no document or code path still presents Launchkey as the target device.
+
+## T139 · App sidebar and settings/account navigation
+- depends: T138
+- size: M
+- goal: Replace the in-page route buttons with a persistent left sidebar in the desktop shell. Workspace items: Grid, Instrument, Plugins, Audio & MIDI. A bottom group holds Settings & Account: the existing pairing code, LAN mode enable/disable, token revoke, and an About/version section (no login system is invented). Active route is highlighted; `/remote` keeps its own full-screen layout without a sidebar. On narrow/tablet widths collapse to an icon rail or bottom tabs. Page-specific actions stay in the page; route navigation moves out of page bodies. Add the `/settings` route to the router and move the pairing panel there.
+- files: `ui/src/App.tsx`, `ui/src/state/router.ts`, `ui/src/features/pairing/`, `ui/src/styles.css`, `ui/src/testing/snapshot.tsx`
+- accept: a 1200x800 snapshot shows the sidebar with the four workspace items and a Settings & Account group, with the active route highlighted; clicking each renders the page; `/settings` exposes pairing/LAN/account/about; no duplicate route buttons remain in page headers; a narrow snapshot shows the collapsed rail/bottom tabs; snapshot and typecheck stay green.
