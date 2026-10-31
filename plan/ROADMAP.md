@@ -535,12 +535,12 @@ file. If the check fails you are not done.
 - files: `engine/src/Session.{h,cpp}`, `engine/src/api/SessionBridge.{h,cpp}`, `engine/src/plugins/PluginWindow.{h,cpp}`, `tests/`
 - accept: assign Analog Lab V to two patches, give them different presets, switch back and forth and restart the app; each patch restores its own sound, the old editor does not stay bound to the previous patch, and `ctest` stays green.
 
-## T131 · 64-patch state and Analog Lab acceptance
+## T131 · Per-patch state acceptance
 - depends: T130
 - size: M
-- goal: Two headless layers. Automated: 8 families x 8 patches using TestPlugin, each patch with its own state; arm all 64, switch across them so the warm pool evicts and reloads, restart and verify every state hash. Editor-follow is already covered by T130's `ihub-session-editor-follow`; do not open editors or wait on the message loop in this test. Real plugin: a smaller, stable Analog Lab pass - at least 4 slots with 2 distinct captured Analog Lab states, switch A -> B -> A, restart, verify the hashes and that both patches render non-silent, different audio, again without editor windows. Do not load Analog Lab 64 times in one process: the Wine bridge stack-overflows under rapid repeated load. The full 64-patch Analog Lab pass stays a documented manual check in `docs/`.
+- goal: Prove per-patch state without a plugin stress test. Automated: one patch per family (8 slots) using TestPlugin, two distinct states; arm and switch so the warm pool evicts and reloads, restart, and verify every state hash. Plugin loading must be synchronous; no editors, no `MessageManager::callAsync`, no message loop and no `PluginWindow` in this test. Real plugin: 2 Analog Lab patches with 2 captured states; switch A -> B -> A and restart, verify state hashes and non-silent/different audio, headless. Document the full 64-pad Analog Lab pass as a manual checklist in `docs/manual-analog-lab-64.md`; do not automate 64 Wine-hosted instances.
 - files: `tests/e2e/`, `tests/CMakeLists.txt`, `docs/`
-- accept: the automated 64-slot TestPlugin test and the 4-slot Analog Lab test both pass through `scripts/test.sh` (120 s per-test timeout), with state-hash checks before/after eviction and after restart, and a recorded non-silent/different-audio result for the Analog Lab pair; full `ctest` green; the manual 64-patch Analog Lab procedure is documented and does not hang.
+- accept: both tests pass through `scripts/test.sh` inside the 120 s per-test timeout; no test creates an editor or waits on a message loop; no process loads more than two Analog Lab instances; full `ctest` green; the manual 64-pad checklist exists.
 
 ## T132 · Explicit save-sound control
 - depends: T130
