@@ -443,3 +443,73 @@ file. If the check fails you are not done.
 - goal: One headless acceptance test that sends a pad event through the controller mapping into the composed session on the ALSA loopback, verifies the intended slot arms, audio is non-silent, and switching is click-free. Update `HANDOVER.md`, `BLOCKERS.md` and the controller docs to the Launchpad reality.
 - files: `tests/e2e/`, `HANDOVER.md`, `plan/BLOCKERS.md`, `docs/`
 - accept: `ctest -R ihub-e2e` passes and records the rendered RMS and switch measurement; `HANDOVER.md` no longer describes the app as uncomposed.
+
+## T118 · 64 logical slots and warm pool
+- depends: T033, T114
+- size: L
+- goal: Extend the composed session from 8 to 64 logical slots (one per pad), with only the armed slot plus K neighbours instantiated. Arming a cold patch loads it, reports `warming`, then crossfades in; the previous patch stays warm for instant return. Expose the family/patch tree and per-slot warm state through `/state`. Keep the audio-thread contract and the fixed graph.
+- files: `engine/src/Session.{h,cpp}`, `engine/src/audio/WarmPool.{h,cpp}`, `engine/src/Main.cpp`, `engine/src/api/Server.{h,cpp}`, `tests/`
+- accept: a headless test configures 64 patches, verifies at most K+1 instruments are instantiated, arms a cold slot, observes warming -> active and non-silent audio, and confirms the memory/instance bound; `ctest` stays green.
+
+## T119 · Per-patch persistence
+- depends: T080, T081, T118
+- size: M
+- goal: Persist every patch in `set.yaml`/`.ihub`: instrument descriptor, volume/pan/mute/solo, `colorIndex` (family default plus patch override) and FX chain. Store plugin state lazily for patches that have been loaded/edited; cold patches are descriptors only. Migrate existing sets.
+- files: `engine/src/controller/Mapping.{h,cpp}`, `engine/src/project/Serializer.cpp`, `engine/src/project/SetFile.cpp`, `shared/schema/set.schema.json`, `shared/set.yaml`, `tests/`
+- accept: a 64-patch set round-trips; cold patches carry descriptors only; a loaded patch restores its plugin state; older sets migrate; `ctest` stays green.
+
+## T120 · Instrument, mix and colour API
+- depends: T115, T118
+- size: M
+- goal: Publish families -> patches in `/state` (instrument descriptor, `volumeDb`, `pan`, `mute`, `solo`, `colorIndex`, warm state, latency). Add `PATCH /patches/{slot}` for those fields and coalesced parameter-change events over the existing WebSocket.
+- files: `engine/src/api/Server.{h,cpp}`, `engine/src/api/Routes.cpp`, `shared/api/openapi.yaml`, `ui/src/api/schema.d.ts`, `tests/api/`
+- accept: changing volume or colour updates audio/state and reaches a WebSocket client; `/state` carries the full patch tree; `ctest` stays green.
+
+## T121 · Per-patch FX chain API
+- depends: T119, T120
+- size: M
+- goal: Read and edit each patch's insert chain over the API: add/remove/reorder/bypass and wet/dry for the built-in EQ, compressor, delay, reverb and VST3 effects, with per-chain latency reporting.
+- files: `engine/src/api/`, `engine/src/audio/Slot.cpp`, `shared/api/openapi.yaml`, tests
+- accept: a chain can be built and reordered through the API and the rendered audio changes accordingly; latency is reported; `ctest` stays green.
+
+## T122 · Plugin inventory API
+- depends: T021
+- size: M
+- goal: Read-only inventory of installed VST3s from the existing scanner: name, vendor, version, category, instrument/FX, path. Add a rescan trigger and search. This is the Plugins page data source; assignment happens per patch, not here.
+- files: `engine/src/plugins/Scanner.{h,cpp}`, `engine/src/plugins/PluginCache.{h,cpp}`, `engine/src/api/`, `shared/api/openapi.yaml`, tests
+- accept: `/plugins` lists `TestPlugin` and any installed VST3 (including yabridge-wrapped Arturia), a rescan picks up changes, and `ctest` stays green.
+
+## T123 · UI shell, routes and Grid page
+- depends: T120
+- size: L
+- goal: Routed shell for `/grid`, `/instrument`, `/plugins`, `/audio` (plus existing `/remote`). The Grid page renders 8 families x 8 patches with their colours, arms on click and navigates to the Instrument page, and edits per-patch/family colours. The armed cell is bright red; Launchpad LEDs mirror the grid (idle colour, armed red, warming yellow, error flashing).
+- files: `ui/src/App.tsx`, `ui/src/features/grid/`, `ui/src/styles.css`, `ui/src/state/`, `engine/src/Main.cpp`, tests
+- accept: snapshot shows 64 coloured cells with the armed one red; clicking arms and routes; a colour change updates the cell and the driver LED; routes resolve; `ctest` and the UI snapshot stay green.
+
+## T124 · Instrument page
+- depends: T121, T122, T123
+- size: L
+- goal: The armed instrument's page: name/family/colour, warm state, latency, volume fader, balance, mute/solo, instrument source (change/open editor), and the insert FX chain editor with add/remove/reorder/bypass. The page follows the controller selection without yanking the user off other pages.
+- files: `ui/src/features/instrument/`, `ui/src/features/instrument/`, `ui/src/api/`, tests
+- accept: selecting a patch shows its real data; moving the fader changes the rendered level; the chain can be edited; snapshot and `ctest` stay green.
+
+## T125 · Plugins inventory page
+- depends: T122, T123
+- size: S
+- goal: Installed-plugin inventory page with search, scan trigger and metadata; no assignment controls. Show a "used by" hint where a plugin is assigned to a patch.
+- files: `ui/src/features/plugins/`, tests
+- accept: the page lists the scanned plugins, search filters them, rescan works; snapshot stays green.
+
+## T126 · Audio and MIDI page
+- depends: T123
+- size: M
+- goal: Move the existing audio settings panel onto its routed page and add MIDI inputs with enable checkboxes, Launchpad status/port (MI), Keystation, and a pad test that lights the grid on the device.
+- files: `ui/src/features/audio-settings/`, `ui/src/features/midi/`, `engine/src/api/`, tests
+- accept: audio settings still apply; MIDI inputs reflect the ALSA devices; the pad test lights the Launchpad; snapshot stays green.
+
+## T127 · Page end-to-end and snapshots
+- depends: T123, T124, T125, T126
+- size: M
+- goal: One acceptance pass over the pages: grid click and Launchpad pad both arm the same patch, audio is non-silent, the LED matches the patch colour with the armed pad red; snapshots for Grid, Instrument, Plugins and Audio pages. Update `HANDOVER.md` and `BLOCKERS.md`.
+- files: `tests/e2e/`, `tests/ui/`, `HANDOVER.md`, `plan/BLOCKERS.md`, `docs/`
+- accept: `ctest -R 'ihub-e2e|ihub-ui'` passes and records the pad/click/LED/audio evidence; snapshots are produced; handover reflects the pages.
