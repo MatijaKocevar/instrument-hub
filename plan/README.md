@@ -34,3 +34,6 @@ python3 autopilot.py               # run for real
 
 `BLOCKERS.md` B001: the C++ headers need one `sudo apt install`.
 No amount of automation gets past that.
+
+On a new machine, follow `docs/new-machine.md` once: clone, submodule,
+toolchain, git identity, opencode auth, `IH_REPO`, then `--dry-run`.
