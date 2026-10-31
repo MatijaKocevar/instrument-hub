@@ -109,8 +109,8 @@ int main (int argc, char** argv)
     ihub::Instrument* asInstrument = &instrument;
     AudioEngine::SlotSource* asSlotSource = &instrument;
 
-    check (asInstrument->kind() == ihub::Instrument::Kind::plugin,
-           "kind() reports Instrument::Kind::plugin");
+    check (asInstrument->kind() == ihub::Instrument::Kind::Plugin,
+           "kind() reports Instrument::Kind::Plugin");
     check (asSlotSource != nullptr, "the wrapper is usable as an AudioEngine::SlotSource");
 
     check (instrument.setParameterValue ("State Marker", stateMarkerNormalised),

@@ -161,6 +161,59 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Instrument interface and audio input (T030) ----------------------------
+#
+# Checks the AudioInputInstrument in isolation (unity/gain/channel selection/
+# latency) and then plays a sine into the ALSA Loopback, captures it, and feeds
+# every block through the instrument -> slot -> master bus path. The bus output
+# must reproduce the captured input at bit-exact unity gain.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-instrument-test
+        PRODUCT_NAME "ihub-instrument-test"
+    )
+
+    target_sources(ihub-instrument-test
+        PRIVATE
+            instruments/AudioInputInstrumentTest.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+    )
+
+    target_include_directories(ihub-instrument-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_link_libraries(ihub-instrument-test
+        PRIVATE
+            ALSA::ALSA
+            juce::juce_audio_basics
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-instrument-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-instrument
+        COMMAND ihub-instrument-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-instrument-test: ALSA loopback test is Linux-only; skipping")
+endif()
+
 # --- Xrun and timing monitor ------------------------------------------------
 # Injects exact callback durations (including a 2x-deadline stall) through the
 # deterministic recording seam and checks the overrun, dropped-block and rolling
