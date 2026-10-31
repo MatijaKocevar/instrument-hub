@@ -93,6 +93,7 @@ target_sources(instrument-hub
         src/audio/Slot.cpp
         src/audio/TimingMonitor.cpp
         src/plugins/PluginInstrument.cpp
+        src/plugins/PluginCache.cpp
         src/plugins/PluginWindow.cpp
         src/plugins/Scanner.cpp
         src/plugins/ScannerProcess.cpp
