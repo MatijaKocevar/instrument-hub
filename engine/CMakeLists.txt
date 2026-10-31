@@ -85,7 +85,10 @@ target_sources(instrument-hub
     PRIVATE
         src/Main.cpp
         src/Bridge/WebView.cpp
+        src/audio/AudioEngine.cpp
+        src/audio/Bus.cpp
         src/audio/DeviceManager.cpp
+        src/audio/Slot.cpp
 )
 
 target_include_directories(instrument-hub

@@ -87,3 +87,68 @@ add_test(
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-device-manager PROPERTIES DISABLED TRUE)
 endif()
+
+# --- Fixed slot graph -------------------------------------------------------
+#
+# Renders 2 s through AudioEngine with three slots and compares the bus output
+# against a manually mixed reference within -90 dBFS. It also counts heap
+# allocations across processBlock() by replacing the global operator new and
+# (on Linux) wrapping malloc/calloc/realloc.
+
+juce_add_console_app(ihub-audio-engine-test
+    PRODUCT_NAME "ihub-audio-engine-test"
+)
+
+target_sources(ihub-audio-engine-test
+    PRIVATE
+        audio_engine/AudioEngineTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+)
+
+target_include_directories(ihub-audio-engine-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-audio-engine-test
+    PRIVATE
+        juce::juce_audio_devices
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+# The replacement operator new below is backed by malloc/free (which is a valid
+# implementation), so GCC's pairing heuristic fires at inlined call sites.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-audio-engine-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+# The counting allocator's __wrap_* hooks are GNU-ld specific. On other
+# platforms the test still runs and counts operator new.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_link_options(ihub-audio-engine-test PRIVATE
+        "-Wl,--wrap=malloc"
+        "-Wl,--wrap=calloc"
+        "-Wl,--wrap=realloc"
+    )
+endif()
+
+set_target_properties(ihub-audio-engine-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-audio-engine
+    COMMAND ihub-audio-engine-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
