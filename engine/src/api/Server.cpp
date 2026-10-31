@@ -1,5 +1,6 @@
 #include "Server.h"
 #include "Routes.h"
+#include "StateBroadcast.h"
 
 #include <httplib.h>
 
@@ -60,6 +61,7 @@ int StateStore::getArmedSlot() const noexcept
 bool StateStore::setArmedSlot (int slot)
 {
     ArmHandler handler;
+    ChangeHandler changed;
     int appliedSlot = -1;
 
     {
@@ -71,10 +73,14 @@ bool StateStore::setArmedSlot (int slot)
         appliedSlot = slot < 0 ? -1 : slot;
         armedSlot = appliedSlot;
         handler = armHandler;
+        changed = changeHandler;
     }
 
     if (handler != nullptr)
         handler (appliedSlot);
+
+    if (changed != nullptr)
+        changed ("arm", appliedSlot);
 
     return true;
 }
@@ -99,59 +105,68 @@ bool StateStore::updateSettings (const juce::var& patch, std::string& error)
         return false;
     }
 
-    const std::lock_guard<std::mutex> lock (mutex);
-    auto next = settings;
-    const auto& properties = patch.getDynamicObject()->getProperties();
+    ChangeHandler changed;
 
-    for (int index = 0; index < properties.size(); ++index)
     {
-        const auto& name = properties.getName (index);
-        const auto& value = properties.getValueAt (index);
+        const std::lock_guard<std::mutex> lock (mutex);
+        auto next = settings;
+        const auto& properties = patch.getDynamicObject()->getProperties();
 
-        if (name.toString() == "masterGain")
+        for (int index = 0; index < properties.size(); ++index)
         {
-            double parsed = 0.0;
+            const auto& name = properties.getName (index);
+            const auto& value = properties.getValueAt (index);
 
-            if (! detail::readNumber (value, "masterGain", 0.0, 1.5, parsed, error))
+            if (name.toString() == "masterGain")
+            {
+                double parsed = 0.0;
+
+                if (! detail::readNumber (value, "masterGain", 0.0, 1.5, parsed, error))
+                    return false;
+
+                next.masterGain = parsed;
+            }
+            else if (name.toString() == "inputGain")
+            {
+                double parsed = 0.0;
+
+                if (! detail::readNumber (value, "inputGain", 0.0, 2.0, parsed, error))
+                    return false;
+
+                next.inputGain = parsed;
+            }
+            else if (name.toString() == "midiChannel")
+            {
+                std::int64_t parsed = 0;
+
+                if (! detail::readInteger (value, "midiChannel", 1, 16, parsed, error))
+                    return false;
+
+                next.midiChannel = static_cast<int> (parsed);
+            }
+            else if (name.toString() == "metronome")
+            {
+                bool parsed = false;
+
+                if (! detail::readBool (value, "metronome", parsed, error))
+                    return false;
+
+                next.metronome = parsed;
+            }
+            else
+            {
+                error = "unknown setting: " + name.toString().toStdString();
                 return false;
-
-            next.masterGain = parsed;
+            }
         }
-        else if (name.toString() == "inputGain")
-        {
-            double parsed = 0.0;
 
-            if (! detail::readNumber (value, "inputGain", 0.0, 2.0, parsed, error))
-                return false;
-
-            next.inputGain = parsed;
-        }
-        else if (name.toString() == "midiChannel")
-        {
-            std::int64_t parsed = 0;
-
-            if (! detail::readInteger (value, "midiChannel", 1, 16, parsed, error))
-                return false;
-
-            next.midiChannel = static_cast<int> (parsed);
-        }
-        else if (name.toString() == "metronome")
-        {
-            bool parsed = false;
-
-            if (! detail::readBool (value, "metronome", parsed, error))
-                return false;
-
-            next.metronome = parsed;
-        }
-        else
-        {
-            error = "unknown setting: " + name.toString().toStdString();
-            return false;
-        }
+        settings = next;
+        changed = changeHandler;
     }
 
-    settings = next;
+    if (changed != nullptr)
+        changed ("settings", -1);
+
     return true;
 }
 
@@ -170,6 +185,7 @@ bool StateStore::updateTransport (const juce::var& patch, std::string& error)
     }
 
     TransportHandler handler;
+    ChangeHandler changed;
     TransportState next;
 
     {
@@ -227,10 +243,14 @@ bool StateStore::updateTransport (const juce::var& patch, std::string& error)
 
         transport = next;
         handler = transportHandler;
+        changed = changeHandler;
     }
 
     if (handler != nullptr)
         handler (next);
+
+    if (changed != nullptr)
+        changed ("transport", -1);
 
     return true;
 }
@@ -241,6 +261,12 @@ void StateStore::setTransportHandler (TransportHandler handler)
     transportHandler = std::move (handler);
 }
 
+void StateStore::setChangeHandler (ChangeHandler handler)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    changeHandler = std::move (handler);
+}
+
 int StateStore::getNumSlots() const noexcept
 {
     return numSlots;
@@ -248,28 +274,44 @@ int StateStore::getNumSlots() const noexcept
 
 void StateStore::setSlotName (int slot, std::string name)
 {
-    const std::lock_guard<std::mutex> lock (mutex);
+    ChangeHandler changed;
 
-    if (slot < 0 || slot >= numSlots)
-        return;
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
 
-    slotNames[static_cast<std::size_t> (slot)] = std::move (name);
+        if (slot < 0 || slot >= numSlots)
+            return;
+
+        slotNames[static_cast<std::size_t> (slot)] = std::move (name);
+        changed = changeHandler;
+    }
+
+    if (changed != nullptr)
+        changed ("slot", slot);
 }
 
 void StateStore::setSlotLatency (int slot, int samples, double sampleRate)
 {
-    const std::lock_guard<std::mutex> lock (mutex);
+    ChangeHandler changed;
 
-    if (slot < 0 || slot >= numSlots)
-        return;
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
 
-    const int clampedSamples = juce::jmax (0, samples);
-    const auto index = static_cast<std::size_t> (slot);
+        if (slot < 0 || slot >= numSlots)
+            return;
 
-    slotLatencySamples[index] = clampedSamples;
-    slotLatencyMs[index] = sampleRate > 0.0
-                               ? static_cast<double> (clampedSamples) * 1000.0 / sampleRate
-                               : 0.0;
+        const int clampedSamples = juce::jmax (0, samples);
+        const auto index = static_cast<std::size_t> (slot);
+
+        slotLatencySamples[index] = clampedSamples;
+        slotLatencyMs[index] = sampleRate > 0.0
+                                   ? static_cast<double> (clampedSamples) * 1000.0 / sampleRate
+                                   : 0.0;
+        changed = changeHandler;
+    }
+
+    if (changed != nullptr)
+        changed ("slot", slot);
 }
 
 StateSnapshot StateStore::snapshot() const
@@ -319,6 +361,7 @@ struct Server::Impl
           options (std::move (optionsToUse)),
           authToken (options.authToken),
           meterHz (clampMeterHz (options.meterHz)),
+          broadcast (storeToUse),
           pairing ({}, options.port),
           nextPort (options.port)
     {
@@ -509,6 +552,24 @@ struct Server::Impl
         });
     }
 
+    /** Serves `/events`: the coalesced live state mirror (T103). */
+    void registerStateRoute()
+    {
+        http->WebSocket ("/events", [this] (const httplib::Request& request,
+                                           httplib::ws::WebSocket& websocket)
+        {
+            if (! authorized (request))
+            {
+                websocket.close (httplib::ws::CloseStatus::PolicyViolation, "unauthorized");
+                return;
+            }
+
+            activeWebSockets.fetch_add (1, std::memory_order_acq_rel);
+            broadcast.handleClient (websocket);
+            activeWebSockets.fetch_sub (1, std::memory_order_acq_rel);
+        });
+    }
+
     /** Starts advertising the API on the LAN, replacing any old record set.
 
         Called after a successful bind and only when LAN mode is on. A failure
@@ -546,17 +607,18 @@ struct Server::Impl
         http->set_pre_routing_handler ([this] (const httplib::Request& request,
                                                httplib::Response& response)
         {
-            // A meter WebSocket handler blocks for the life of the connection,
-            // so it must not hold up a LAN rebind. Every other request is
-            // counted until its response has been prepared.
-            const bool meterUpgrade = request.path == "/meters";
+            // A meter or state WebSocket handler blocks for the life of the
+            // connection, so it must not hold up a LAN rebind. Every other
+            // request is counted until its response has been prepared.
+            const bool webSocketUpgrade = request.path == "/meters"
+                                          || request.path == "/events";
 
-            if (! meterUpgrade)
+            if (! webSocketUpgrade)
                 requestsInFlight.fetch_add (1, std::memory_order_acq_rel);
 
             if (rebinding.load (std::memory_order_acquire))
             {
-                if (! meterUpgrade)
+                if (! webSocketUpgrade)
                     requestsInFlight.fetch_sub (1, std::memory_order_acq_rel);
 
                 setError (response, 503, "the control API is switching LAN mode");
@@ -584,7 +646,7 @@ struct Server::Impl
         http->set_post_routing_handler ([this] (const httplib::Request& request,
                                                 httplib::Response&)
         {
-            if (request.path != "/meters")
+            if (request.path != "/meters" && request.path != "/events")
                 requestsInFlight.fetch_sub (1, std::memory_order_acq_rel);
         });
 
@@ -601,6 +663,7 @@ struct Server::Impl
 
         registerRoutes (*http, context);
         registerMeterRoute();
+        registerStateRoute();
 
         const auto address = desiredAddress();
         int port = nextPort;
@@ -761,6 +824,7 @@ struct Server::Impl
     AudioMeasureHandler audioMeasure;
     std::string authToken;
     const int meterHz;
+    StateBroadcast broadcast;
 
     mutable std::mutex frameMutex;
     std::string latestFrameJson;
@@ -806,6 +870,7 @@ bool Server::start()
         return false;
 
     self.running.store (true, std::memory_order_release);
+    self.broadcast.start();
 
     {
         const std::lock_guard<std::mutex> lock (self.controlMutex);
@@ -830,6 +895,10 @@ void Server::stop()
     }
 
     self.controlCv.notify_all();
+
+    // Ends the `/events` loops; each closes its socket within one poll
+    // interval, before the listener is torn down.
+    self.broadcast.stop();
 
     if (self.controlThread.joinable())
         self.controlThread.join();
@@ -921,6 +990,16 @@ Discovery& Server::getDiscovery()
 const Discovery& Server::getDiscovery() const
 {
     return impl->discovery;
+}
+
+StateBroadcast& Server::getStateBroadcast()
+{
+    return impl->broadcast;
+}
+
+const StateBroadcast& Server::getStateBroadcast() const
+{
+    return impl->broadcast;
 }
 
 PairingSnapshot Server::setLanMode (bool enabled)

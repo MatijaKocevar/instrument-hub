@@ -1004,6 +1004,7 @@ target_sources(ihub-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
 )
 
 target_include_directories(ihub-api-test
@@ -1052,6 +1053,7 @@ target_sources(ihub-pairing-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
 )
 
 target_include_directories(ihub-pairing-test
@@ -1083,6 +1085,68 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Live state mirror (T103) -----------------------------------------------
+#
+# Acceptance: an event injected by the MIDI simulator appears in a WS
+# client's state within 100 ms. Two /events clients are connected; a pad
+# press goes simulator -> LaunchkeyDriver -> StateBroadcast -> both sockets,
+# and a POST /arm (the UI tap path) must reach both sockets too. Every
+# measured latency is compared against the 100 ms budget.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-state-broadcast-test
+        PRODUCT_NAME "ihub-state-broadcast-test"
+    )
+
+    target_sources(ihub-state-broadcast-test
+        PRIVATE
+            api/StateBroadcastTest.cpp
+            midi/LaunchkeySim.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyDriver.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyProtocol.cpp"
+    )
+
+    target_include_directories(ihub-state-broadcast-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/midi"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_link_libraries(ihub-state-broadcast-test
+        PRIVATE
+            Threads::Threads
+            ALSA::ALSA
+            ihub-httplib
+            juce::juce_audio_devices
+            juce::juce_core
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-state-broadcast-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-state-broadcast
+        COMMAND ihub-state-broadcast-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-state-broadcast-test: ALSA simulator is Linux-only; skipping")
+endif()
+
 # --- Audio settings panel backend (T053) ------------------------------------
 #
 # Part 1 starts the control server against an in-memory audio backend and
@@ -1101,6 +1165,7 @@ target_sources(ihub-audio-settings-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"

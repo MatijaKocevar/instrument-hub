@@ -98,6 +98,7 @@ target_sources(instrument-hub
         src/api/Pairing.cpp
         src/api/Routes.cpp
         src/api/Server.cpp
+        src/api/StateBroadcast.cpp
         src/Bridge/WebView.cpp
         src/audio/AudioEngine.cpp
         src/audio/AudioSettings.cpp

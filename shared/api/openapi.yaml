@@ -26,6 +26,13 @@ info:
     (30 Hz by default, at least 10 Hz by contract). Slow clients skip frames
     instead of queuing them: `sequence` is monotonic and can have gaps.
 
+    ### Live state
+
+    `/events` is the state counterpart to `/meters`: every hardware pad press
+    and every state mutation made through this API produces a frame carrying
+    the complete `/state` document plus the event that caused it. Frames are
+    coalesced per client and must reach a connected client within 100 ms.
+
 servers:
   - url: http://127.0.0.1:8080
     description: Default loopback listener
@@ -334,6 +341,50 @@ paths:
       responses:
         "101":
           description: WebSocket upgrade accepted; meter frames follow.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /events:
+    get:
+      tags: [state]
+      operationId: stateEventsWebSocket
+      summary: Live state stream (WebSocket upgrade)
+      description: |
+        Upgrade to a WebSocket. The server immediately sends the current
+        state, then sends a new frame whenever:
+
+        - a hardware pad is pressed or released (`event.kind: "pad"`),
+        - `POST /arm` changes the armed slot (`"arm"`),
+        - `POST /settings` or `POST /transport` succeeds,
+        - a slot name or measured latency changes (`"slot"`).
+
+        Frames are coalesced: a slow client skips sequence numbers instead of
+        receiving a backlog. Each frame embeds the same document as
+        `GET /state`, so a client never has to poll after an event. Latency
+        from the physical pad press to the frame is under 100 ms.
+
+        Frame shape (`application/json` text message):
+
+        ```json
+        {
+          "type": "state",
+          "sequence": 7,
+          "timestampMs": 1400.5,
+          "event": { "kind": "pad", "pad": 3, "slot": -1, "pressed": true, "timestampMs": 1400.5 },
+          "pads": [
+            { "index": 0, "pressed": false, "updatedMs": 0.0 },
+            { "index": 3, "pressed": true, "updatedMs": 1400.5 }
+          ],
+          "state": { "schemaVersion": 1, "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
+        }
+        ```
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "101":
+          description: WebSocket upgrade accepted; state frames follow.
         "401":
           $ref: "#/components/responses/Unauthorized"
 
