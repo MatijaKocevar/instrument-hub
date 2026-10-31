@@ -505,3 +505,73 @@ add_test(
     COMMAND ihub-slot-switcher-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Warm pool and preload (T033) -------------------------------------------
+#
+# Eight slots, K = 2, real TestPlugin instances created on the pool's
+# background thread by a counting wrapper:
+#
+# 1. The live-instance counter (updated in the wrapper's constructor and
+#    destructor) peaks at 3 and never reports a violation, including across a
+#    sweep of the active slot over all eight slots and a preload of the set.
+# 2. Arming a warm slot — acquire + Slot::setSource + SlotSwitcher::armSlot —
+#    completes in under 5 ms. A cold PluginInstrument load is printed for
+#    comparison.
+# 3. A pinned instance survives its slot leaving the neighbourhood; the
+#    neighbour that could not fit is warmed after the pin is released.
+# 4. Changing a request id retires and re-warms; a failing factory is reported
+#    without spinning the background thread.
+
+juce_add_console_app(ihub-warm-pool-test
+    PRODUCT_NAME "ihub-warm-pool-test"
+)
+
+target_sources(ihub-warm-pool-test
+    PRIVATE
+        warm_pool/WarmPoolTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+)
+
+target_include_directories(ihub-warm-pool-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-warm-pool-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        # A console host has no running dispatch loop: the test pumps it while
+        # the pool's background thread waits for JUCE to instantiate a plugin
+        # on the message thread.
+        JUCE_MODAL_LOOPS_PERMITTED=1
+        "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+)
+
+target_link_libraries(ihub-warm-pool-test
+    PRIVATE
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_dependencies(ihub-warm-pool-test TestPlugin_VST3)
+
+set_target_properties(ihub-warm-pool-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-warm-pool
+    COMMAND ihub-warm-pool-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
