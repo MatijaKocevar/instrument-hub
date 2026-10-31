@@ -62,6 +62,159 @@ double toDbfs (double linear) noexcept
     return 20.0 * std::log10 (juce::jmax (linear, silenceFloor));
 }
 
+//==============================================================================
+// Per-patch plugin-state sidecar (T130)
+//
+// One `slot-<n>.bin` per patch lives next to `set.yaml`. The file is a small
+// header, a JSON metadata block and the opaque plugin blob, so the plugin
+// chunk itself is never inlined in a JSON document (plan/DECISIONS.md).
+// `replaceWithData()` writes a sibling temporary file and renames it, so an
+// interrupted save cannot truncate a good patch state.
+
+constexpr juce::uint32 pluginStateFileMagic = 0x49485053u; // "IHPS"
+constexpr int pluginStateFileVersion = 1;
+constexpr juce::int64 maximumPluginStateFileBytes = 64 * 1024 * 1024;
+constexpr int maximumPluginStateMetadataBytes = 64 * 1024;
+
+juce::File pluginStateFileFor (const juce::File& directory, int slot)
+{
+    return directory.getChildFile ("slot-" + juce::String (slot) + ".bin");
+}
+
+bool writePluginStateFile (const juce::File& file,
+                           int slot,
+                           const juce::MemoryBlock& data,
+                           const juce::String& pluginPath,
+                           const juce::String& pluginId,
+                           const juce::String& pluginName,
+                           std::uint64_t revision)
+{
+    if (data.getSize() == 0
+        || static_cast<juce::int64> (data.getSize()) > maximumPluginStateFileBytes)
+        return false;
+
+    auto metadata = juce::var (new juce::DynamicObject());
+    auto* fields = metadata.getDynamicObject();
+    fields->setProperty ("slot", slot);
+    fields->setProperty ("revision", static_cast<juce::int64> (revision));
+    fields->setProperty ("path", pluginPath);
+    fields->setProperty ("pluginId", pluginId);
+    fields->setProperty ("pluginName", pluginName);
+
+    const auto json = juce::JSON::toString (metadata, false);
+    const auto metadataSize = json.getNumBytesAsUTF8();
+
+    if (metadataSize <= 0 || metadataSize > maximumPluginStateMetadataBytes)
+        return false;
+
+    juce::MemoryOutputStream stream;
+    stream.writeInt (static_cast<int> (pluginStateFileMagic));
+    stream.writeInt (pluginStateFileVersion);
+    stream.writeInt (static_cast<int> (metadataSize));
+    stream.write (json.toRawUTF8(), metadataSize);
+    stream.writeInt64 (static_cast<juce::int64> (data.getSize()));
+
+    if (data.getSize() > 0)
+        stream.write (data.getData(), data.getSize());
+
+    if (! file.getParentDirectory().createDirectory().wasOk())
+        return false;
+
+    return file.replaceWithData (stream.getData(), stream.getDataSize());
+}
+
+struct PluginStateFile
+{
+    juce::MemoryBlock data;
+    juce::String pluginPath;
+    juce::String pluginId;
+    juce::String pluginName;
+    std::uint64_t revision = 0;
+};
+
+bool readPluginStateFileData (const juce::File& file, int expectedSlot, PluginStateFile& result)
+{
+    if (! file.existsAsFile()
+        || file.getSize() <= 0
+        || file.getSize() > maximumPluginStateFileBytes)
+        return false;
+
+    juce::FileInputStream stream (file);
+
+    if (! stream.openedOk())
+        return false;
+
+    if (stream.readInt() != static_cast<int> (pluginStateFileMagic)
+        || stream.readInt() != pluginStateFileVersion)
+        return false;
+
+    const int metadataSize = stream.readInt();
+
+    if (metadataSize <= 0 || metadataSize > maximumPluginStateMetadataBytes)
+        return false;
+
+    juce::MemoryBlock metadataBlock;
+    metadataBlock.setSize (static_cast<std::size_t> (metadataSize));
+
+    if (stream.read (metadataBlock.getData(), metadataSize) != metadataSize)
+        return false;
+
+    const auto metadata = juce::JSON::parse (
+        juce::String::fromUTF8 (static_cast<const char*> (metadataBlock.getData()),
+                                metadataSize));
+
+    if (! metadata.isObject())
+        return false;
+
+    const auto* fields = metadata.getDynamicObject();
+
+    if (fields == nullptr
+        || static_cast<int> (fields->getProperty ("slot")) != expectedSlot)
+        return false;
+
+    const juce::int64 dataSize = stream.readInt64();
+
+    if (dataSize <= 0 || dataSize > maximumPluginStateFileBytes)
+        return false;
+
+    const auto remaining = file.getSize() - stream.getPosition();
+
+    if (remaining < dataSize)
+        return false;
+
+    result.data.setSize (static_cast<std::size_t> (dataSize));
+
+    if (stream.read (result.data.getData(), static_cast<int> (dataSize))
+        != static_cast<int> (dataSize))
+        return false;
+
+    result.pluginPath = fields->getProperty ("path").toString();
+    result.pluginId = fields->getProperty ("pluginId").toString();
+    result.pluginName = fields->getProperty ("pluginName").toString();
+    result.revision = static_cast<std::uint64_t> (
+        static_cast<juce::int64> (fields->getProperty ("revision")));
+
+    return true;
+}
+
+/** True when a stored blob was written for the plugin now assigned to the
+    slot. An empty metadata field is accepted (older sidecar or a descriptor
+    without a bundle path), but a conflicting value is not. */
+bool pluginStateMatches (const PluginStateFile& stored,
+                         const juce::String& pluginPath,
+                         const juce::String& pluginId)
+{
+    if (stored.pluginPath.isNotEmpty() && pluginPath.isNotEmpty()
+        && stored.pluginPath != pluginPath)
+        return false;
+
+    if (stored.pluginId.isNotEmpty() && pluginId.isNotEmpty()
+        && stored.pluginId != pluginId)
+        return false;
+
+    return true;
+}
+
 /** A phase-continuous sine and a real `Instrument` / `SlotSource`.
 
     This is the default set's stand-in source until a set with plugins or
@@ -448,6 +601,7 @@ struct Session::EditorHost final
                     continue;
 
                 window->onClose = nullptr;
+                window->onBeforeClose = nullptr;
                 window->close();
                 window.reset();
             }
@@ -466,6 +620,40 @@ struct Session::EditorHost final
         auto* manager = juce::MessageManager::getInstanceWithoutCreating();
 
         if (manager != nullptr && ! manager->isThisTheMessageThread())
+            juce::MessageManager::callSync (closeHere);
+        else
+            closeHere();
+    }
+
+    /** Closes every editor whose slot is not `keepSlot` (pass -1 for all).
+
+        Called when the armed patch changes: an editor left open on the old
+        patch would otherwise keep showing (and editing) a patch that is no
+        longer armed. Each window's `onBeforeClose` captures the patch state
+        first, so closing does not lose an edit.
+    */
+    void closeEditorsExcept (int keepSlot)
+    {
+        auto* manager = juce::MessageManager::getInstanceWithoutCreating();
+
+        if (manager == nullptr)
+            return;
+
+        auto closeHere = [this, keepSlot]
+        {
+            for (int slot = 0; slot < static_cast<int> (windows.size()); ++slot)
+            {
+                if (slot == keepSlot)
+                    continue;
+
+                auto& window = windows[static_cast<std::size_t> (slot)];
+
+                if (window != nullptr && window->isOpen())
+                    window->close(); // onBeforeClose captures, onClose clears flags
+            }
+        };
+
+        if (! manager->isThisTheMessageThread())
             juce::MessageManager::callSync (closeHere);
         else
             closeHere();
@@ -522,6 +710,13 @@ private:
         if (window == nullptr)
         {
             window = std::make_unique<plugins::PluginWindow>();
+
+            // Capture the patch state while the editor and processor are still
+            // alive. Closing an editor is a natural save point (T130).
+            window->onBeforeClose = [this, slot]
+            {
+                (void) session.capturePluginState (slot);
+            };
 
             window->onClose = [this, slot]
             {
@@ -647,6 +842,7 @@ struct Session::EditorHost final
     int openCount() const noexcept { return 0; }
     void registerInstrument (int, plugins::PluginInstrument*) {}
     void closeBeforeDestroy (AudioEngine::SlotSource&) noexcept {}
+    void closeEditorsExcept (int) {}
     void closeAll() {}
 };
 #endif
@@ -655,6 +851,7 @@ struct Session::EditorHost final
 Session::Session()
 {
     config.slots = makeDefaultSet();
+    pluginStates.resize (defaultLogicalSlots);
     editorHost = std::make_unique<EditorHost> (*this);
 }
 
@@ -816,8 +1013,18 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     });
     warmPool->setDestroyHook ([this] (AudioEngine::SlotSource& instance)
     {
-        // The pool deletes on the message thread, which is also where the
-        // editor lives: close it before the processor is destroyed.
+        // Capture before the processor is destroyed. The pool may evict a
+        // patch at any time, so this is the last reliable point to store its
+        // state (T130). The editor host then closes the window while the
+        // processor is still alive.
+        auto* instrument = dynamic_cast<plugins::PluginInstrument*> (&instance);
+
+        if (instrument != nullptr)
+        {
+            capturePluginStateForInstance (instance);
+            unregisterPluginInstrument (*instrument);
+        }
+
         if (editorHost != nullptr)
             editorHost->closeBeforeDestroy (instance);
 
@@ -987,10 +1194,21 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
                 return nullptr;
             }
 
+            // Restore this patch's own state before the instance is published
+            // to a slot. The warm pool prepares it afterwards, exactly as if a
+            // fresh preset had been chosen in the plugin.
+            applyStoredPluginState (slotIndex,
+                                    *instrument,
+                                    juce::String (slotConfig.path),
+                                    juce::String (slotConfig.pluginId),
+                                    juce::String (slotConfig.pluginName));
+
             // The editor host resolves this slot to this instance. An older
             // instance stays registered until its own destroy hook forgets it.
             if (editorHost != nullptr)
                 editorHost->registerInstrument (slotIndex, instrument.get());
+
+            registerPluginInstrument (slotIndex, *instrument);
 
             return instrument;
         }
@@ -1074,6 +1292,12 @@ bool Session::finishArmLocked (int slot, AudioEngine::SlotSource* pinnedInstance
 {
     if (warmPool == nullptr || switcher == nullptr || pinnedInstance == nullptr)
         return false;
+
+    // A patch that warmed in the background is restored from its own blob
+    // before it becomes audible. A fresh instance already got the state in
+    // the pool factory; a resident one whose revision moved on is brought up
+    // to date here.
+    applyStoredPluginState (slot);
 
     bindVoice (slot, pinnedInstance);
 
@@ -1373,6 +1597,23 @@ bool Session::setSlotSource (int slot,
                              const SessionSlotConfig& source,
                              std::string& error)
 {
+    if (slot < 0 || slot >= static_cast<int> (config.slots.size()))
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    // Save the outgoing patch before its instance is retired. This covers the
+    // Instrument page's source picker and any API source change.
+    (void) capturePluginState (slot);
+
+    const auto& previousSource = config.slots[static_cast<std::size_t> (slot)];
+    const bool keepsPluginState =
+        previousSource.kind == SessionSlotKind::plugin
+        && source.kind == SessionSlotKind::plugin
+        && previousSource.path == source.path
+        && juce::String (previousSource.pluginId) == juce::String (source.pluginId);
+
     // A source swap retires the hosted processor: close its editor first,
     // while the instance is still alive, instead of waiting for the unload.
     if (editorHost != nullptr)
@@ -1389,6 +1630,9 @@ bool Session::setSlotSource (int slot,
         error = "no audio session is attached";
         return false;
     }
+
+    if (! keepsPluginState)
+        clearPluginState (slot);
 
     // Keep the patch's identity, name, mix and insert chain: only the source
     // fields are taken from the request.
@@ -1520,6 +1764,388 @@ bool Session::isEditorOpen (int slot) const noexcept
 int Session::getOpenEditorCount() const noexcept
 {
     return editorHost != nullptr ? editorHost->openCount() : 0;
+}
+
+//==============================================================================
+// Per-patch plugin state (T130)
+
+void Session::registerPluginInstrument (int slot,
+                                       plugins::PluginInstrument& instrument) noexcept
+{
+    if (slot < 0 || slot >= defaultLogicalSlots)
+        return;
+
+    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+    pluginInstruments[static_cast<std::size_t> (slot)] = &instrument;
+}
+
+void Session::unregisterPluginInstrument (plugins::PluginInstrument& instrument) noexcept
+{
+    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+    for (auto& entry : pluginInstruments)
+        if (entry == &instrument)
+            entry = nullptr;
+}
+
+void Session::capturePluginStateForInstance (AudioEngine::SlotSource& instance)
+{
+    auto* instrument = dynamic_cast<plugins::PluginInstrument*> (&instance);
+
+    if (instrument == nullptr)
+        return;
+
+    int slot = -1;
+
+    {
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+        for (int index = 0; index < static_cast<int> (pluginInstruments.size()); ++index)
+        {
+            if (pluginInstruments[static_cast<std::size_t> (index)] == instrument)
+            {
+                slot = index;
+                break;
+            }
+        }
+    }
+
+    if (slot >= 0)
+        (void) capturePluginState (slot);
+}
+
+bool Session::capturePluginState (int slot)
+{
+    if (slot < 0 || slot >= defaultLogicalSlots)
+        return false;
+
+    // Read the source descriptor without holding pluginStateMutex, so the
+    // lock order is always sourceMutex -> pluginStateMutex (the factory path).
+    juce::String pluginPath;
+    juce::String pluginId;
+    juce::String pluginName;
+
+    {
+        const std::lock_guard<std::mutex> sourceLock (sourceMutex);
+
+        if (slot >= static_cast<int> (sourceConfigs.size())
+            || sourceConfigs[static_cast<std::size_t> (slot)].kind
+                   != SessionSlotKind::plugin)
+            return false;
+
+        const auto& source = sourceConfigs[static_cast<std::size_t> (slot)];
+        pluginPath = source.path;
+        pluginId = juce::String (source.pluginId);
+        pluginName = juce::String (source.pluginName);
+    }
+
+    bool changed = false;
+    bool captured = false;
+    juce::File directory;
+
+    {
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+        directory = pluginStateDirectory;
+
+        if (slot >= static_cast<int> (pluginStates.size())
+            || slot >= static_cast<int> (pluginInstruments.size())
+            || pluginInstruments[static_cast<std::size_t> (slot)] == nullptr)
+            return false;
+
+        auto& state = pluginStates[static_cast<std::size_t> (slot)];
+        auto data = pluginInstruments[static_cast<std::size_t> (slot)]
+                        ->getStateInformation();
+
+        if (data.getSize() > 0)
+        {
+            captured = true;
+
+            if (state.data != data)
+            {
+                state.data = std::move (data);
+                ++state.revision;
+                changed = true;
+            }
+
+            state.pluginPath = pluginPath;
+            state.pluginId = pluginId;
+            state.pluginName = pluginName;
+
+            // The resident instance now holds this revision.
+            state.appliedRevision = state.revision;
+        }
+    }
+
+    if (! captured)
+        return false;
+
+    if (changed && directory != juce::File())
+        return writePluginState (slot);
+
+    return true;
+}
+
+void Session::applyStoredPluginState (int slot,
+                                      plugins::PluginInstrument& instrument,
+                                      const juce::String& pluginPath,
+                                      const juce::String& pluginId,
+                                      const juce::String& pluginName)
+{
+    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+    if (slot < 0 || slot >= static_cast<int> (pluginStates.size()))
+        return;
+
+    auto& state = pluginStates[static_cast<std::size_t> (slot)];
+
+    if (state.data.getSize() == 0)
+        return;
+
+    // A blob belongs to the plugin it was captured from. Never hand an old
+    // patch's state to a different plug-in assigned to the same slot.
+    PluginStateFile stored;
+    stored.pluginPath = state.pluginPath;
+    stored.pluginId = state.pluginId;
+
+    if (! pluginStateMatches (stored, pluginPath, pluginId))
+    {
+        state.appliedRevision = state.revision;
+        return;
+    }
+
+    if (state.appliedRevision == state.revision && state.appliedRevision != 0)
+        return;
+
+    if (! instrument.setStateInformation (state.data))
+    {
+        juce::Logger::writeToLog ("session: slot " + juce::String (slot)
+                                  + " rejected stored plugin state \""
+                                  + (pluginName.isEmpty() ? juce::String ("plugin")
+                                                          : pluginName)
+                                  + "\"");
+    }
+
+    // Mark it applied even after a rejection: retrying a blob the plugin
+    // refuses on every warm-up would only delay arming.
+    state.appliedRevision = state.revision;
+}
+
+void Session::applyStoredPluginState (int slot) noexcept
+{
+    juce::String pluginPath;
+    juce::String pluginId;
+    juce::String pluginName;
+
+    {
+        const std::lock_guard<std::mutex> sourceLock (sourceMutex);
+
+        if (slot < 0 || slot >= static_cast<int> (sourceConfigs.size())
+            || sourceConfigs[static_cast<std::size_t> (slot)].kind
+                   != SessionSlotKind::plugin)
+            return;
+
+        const auto& source = sourceConfigs[static_cast<std::size_t> (slot)];
+        pluginPath = source.path;
+        pluginId = juce::String (source.pluginId);
+        pluginName = juce::String (source.pluginName);
+    }
+
+    plugins::PluginInstrument* instrument = nullptr;
+
+    {
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+        if (slot < 0 || slot >= static_cast<int> (pluginInstruments.size()))
+            return;
+
+        instrument = pluginInstruments[static_cast<std::size_t> (slot)];
+    }
+
+    if (instrument != nullptr)
+        applyStoredPluginState (slot, *instrument, pluginPath, pluginId, pluginName);
+}
+
+void Session::clearPluginState (int slot)
+{
+    if (slot < 0 || slot >= defaultLogicalSlots)
+        return;
+
+    juce::File directory;
+
+    {
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+        directory = pluginStateDirectory;
+
+        if (slot >= static_cast<int> (pluginStates.size()))
+            return;
+
+        auto& state = pluginStates[static_cast<std::size_t> (slot)];
+        state = {};
+    }
+
+    if (directory != juce::File())
+        pluginStateFileFor (directory, slot).deleteFile();
+}
+
+bool Session::writePluginState (int slot)
+{
+    juce::MemoryBlock data;
+    juce::String pluginPath;
+    juce::String pluginId;
+    juce::String pluginName;
+    std::uint64_t revision = 0;
+    juce::File directory;
+
+    {
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+        directory = pluginStateDirectory;
+
+        if (slot < 0 || slot >= static_cast<int> (pluginStates.size()))
+            return false;
+
+        const auto& state = pluginStates[static_cast<std::size_t> (slot)];
+
+        if (state.data.getSize() == 0)
+            return false;
+
+        data = state.data;
+        pluginPath = state.pluginPath;
+        pluginId = state.pluginId;
+        pluginName = state.pluginName;
+        revision = state.revision;
+    }
+
+    if (directory == juce::File())
+        return true; // in-memory only
+
+    return writePluginStateFile (pluginStateFileFor (directory, slot),
+                                 slot,
+                                 data,
+                                 pluginPath,
+                                 pluginId,
+                                 pluginName,
+                                 revision);
+}
+
+bool Session::readPluginStateFile (int slot, const juce::File& file)
+{
+    PluginStateFile stored;
+
+    if (! readPluginStateFileData (file, slot, stored))
+        return false;
+
+    auto& state = pluginStates[static_cast<std::size_t> (slot)];
+    state.data = std::move (stored.data);
+    state.revision = stored.revision;
+    state.appliedRevision = 0;
+    state.pluginPath = stored.pluginPath;
+    state.pluginId = stored.pluginId;
+    state.pluginName = stored.pluginName;
+    return true;
+}
+
+void Session::setPluginStateDirectory (const juce::File& directory)
+{
+    {
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+        pluginStateDirectory = directory;
+    }
+
+    (void) loadPluginStates();
+}
+
+bool Session::loadPluginStates()
+{
+    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+    for (auto& state : pluginStates)
+        state = {};
+
+    if (pluginStateDirectory == juce::File())
+        return false;
+
+    if (! pluginStateDirectory.isDirectory())
+        return true; // nothing captured yet
+
+    bool allRead = true;
+
+    for (int slot = 0; slot < static_cast<int> (pluginStates.size()); ++slot)
+    {
+        const auto file = pluginStateFileFor (pluginStateDirectory, slot);
+
+        if (! file.existsAsFile())
+            continue;
+
+        if (! readPluginStateFile (slot, file))
+        {
+            allRead = false;
+            juce::Logger::writeToLog ("session: unreadable plugin state "
+                                      + file.getFullPathName());
+        }
+    }
+
+    return allRead;
+}
+
+bool Session::savePluginStates()
+{
+    juce::File directory;
+
+    {
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+        directory = pluginStateDirectory;
+    }
+
+    if (directory == juce::File())
+        return false;
+
+    bool saved = true;
+
+    for (int slot = 0; slot < static_cast<int> (pluginStates.size()); ++slot)
+    {
+        bool hasData = false;
+
+        {
+            const std::lock_guard<std::mutex> lock (pluginStateMutex);
+            hasData = pluginStates[static_cast<std::size_t> (slot)].data.getSize() > 0;
+        }
+
+        if (hasData && ! writePluginState (slot))
+            saved = false;
+    }
+
+    return saved;
+}
+
+bool Session::hasPluginState (int slot) const noexcept
+{
+    if (slot < 0 || slot >= static_cast<int> (pluginStates.size()))
+        return false;
+
+    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+    return pluginStates[static_cast<std::size_t> (slot)].data.getSize() > 0;
+}
+
+juce::int64 Session::getPluginStateSize (int slot) const noexcept
+{
+    if (slot < 0 || slot >= static_cast<int> (pluginStates.size()))
+        return 0;
+
+    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+    return static_cast<juce::int64> (
+        pluginStates[static_cast<std::size_t> (slot)].data.getSize());
+}
+
+plugins::PluginInstrument* Session::getPluginInstrument (int slot) const noexcept
+{
+    if (slot < 0 || slot >= static_cast<int> (pluginInstruments.size()))
+        return nullptr;
+
+    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+    return pluginInstruments[static_cast<std::size_t> (slot)];
 }
 
 bool Session::getSlotFxChain (int slot,
@@ -1936,6 +2562,16 @@ void Session::armSlot (int slot)
 
     if (slot < 0)
     {
+        const int previous = activeSlot.load (std::memory_order_relaxed);
+
+        if (previous >= 0)
+            (void) capturePluginState (previous);
+
+        // Nothing is armed any more: no editor should stay bound to the patch
+        // that used to be.
+        if (editorHost != nullptr)
+            editorHost->closeEditorsExcept (-1);
+
         const std::lock_guard<std::mutex> lock (armMutex);
         switcher->disarm();
         requestedSlot.store (-1, std::memory_order_relaxed);
@@ -1946,6 +2582,18 @@ void Session::armSlot (int slot)
 
     if (slot >= getNumSlots())
         return;
+
+    const int previous = activeSlot.load (std::memory_order_relaxed);
+
+    if (previous >= 0 && previous != slot)
+        (void) capturePluginState (previous);
+
+    // Editor follow: only the armed patch may keep a window. The outgoing
+    // editor is closed before the crossfade, so it can never keep showing the
+    // previous patch. The new patch's window is opened explicitly later and
+    // then shows the state restored by the factory/arm path.
+    if (editorHost != nullptr)
+        editorHost->closeEditorsExcept (slot);
 
     const std::lock_guard<std::mutex> lock (armMutex);
 

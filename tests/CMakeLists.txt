@@ -3164,6 +3164,181 @@ else()
     message(STATUS "ihub-session-midi-test: ALSA MIDI forwarding is Linux-only; skipping")
 endif()
 
+# --- Per-patch plugin state and editor follow (T130) ------------------------
+#
+# Two TestPlugin patches get different presets, are switched back and forth so
+# the session captures each patch on the way out, then a fresh session built
+# from the same sidecar directory must restore each patch's parameters and
+# rendered pitch. The editor-follow checks need a display and live in
+# ihub-plugin-editor-api-test.
+
+juce_add_console_app(ihub-session-plugin-state-test
+    PRODUCT_NAME "ihub-session-plugin-state-test"
+)
+
+target_sources(ihub-session-plugin-state-test
+    PRIVATE
+        plugin_state/SessionPluginStateTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+)
+
+target_include_directories(ihub-session-plugin-state-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-session-plugin-state-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
+        "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+)
+
+target_link_libraries(ihub-session-plugin-state-test
+    PRIVATE
+        Threads::Threads
+        juce::juce_audio_devices
+        juce::juce_dsp
+        juce::juce_audio_formats
+        juce::juce_audio_processors_headless
+        juce::juce_core
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_dependencies(ihub-session-plugin-state-test TestPlugin_VST3)
+
+set_target_properties(ihub-session-plugin-state-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-session-plugin-state
+    COMMAND ihub-session-plugin-state-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# The editor-half of T130 needs real native windows, so it links the GUI
+# modules and runs under DISPLAY=:0. Two TestPlugin patches prove that arming a
+# patch closes the non-armed editors and that closing an editor captures the
+# patch state.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-session-editor-follow-test
+        PRODUCT_NAME "ihub-session-editor-follow-test"
+    )
+
+    target_sources(ihub-session-editor-follow-test
+        PRIVATE
+            plugin_state/SessionEditorFollowTest.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginWindow.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+    )
+
+    target_include_directories(ihub-session-editor-follow-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-session-editor-follow-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+    )
+
+    target_link_libraries(ihub-session-editor-follow-test
+        PRIVATE
+            Threads::Threads
+            juce::juce_audio_devices
+            juce::juce_audio_formats
+            juce::juce_audio_processors
+            juce::juce_core
+            juce::juce_dsp
+            juce::juce_events
+            juce::juce_gui_basics
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_dependencies(ihub-session-editor-follow-test TestPlugin_VST3)
+
+    set_target_properties(ihub-session-editor-follow-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-session-editor-follow
+        COMMAND ihub-session-editor-follow-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    set_tests_properties(ihub-session-editor-follow PROPERTIES
+        ENVIRONMENT "DISPLAY=:0"
+    )
+else()
+    message(STATUS "ihub-session-editor-follow-test: Linux-only; skipping")
+endif()
+
 # --- End-to-end pad-to-audio (T117) -----------------------------------------
 #
 # One headless acceptance test for the whole shipped path:

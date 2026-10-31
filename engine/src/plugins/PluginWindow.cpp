@@ -283,6 +283,15 @@ void PluginWindow::close()
 {
     const bool wasOpen = window != nullptr;
 
+    // Catch a final edit while the processor is still alive and the editor
+    // still exists. The callback must not destroy this object (the session
+    // only captures a state blob), but keep the same guarded copy as onClose.
+    if (wasOpen && onBeforeClose && lifetime != nullptr && lifetime->alive)
+    {
+        auto callback = onBeforeClose;
+        callback();
+    }
+
     destroyWindow();
 
     // Detach from the instrument on every close. Re-opening installs a fresh

@@ -855,6 +855,14 @@ juce::File sourceStateFileFor (const std::filesystem::path& setFile)
         .getSiblingFile ("set.sources.json");
 }
 
+/** Per-patch plugin-state sidecar (T130): one binary blob per slot next to the
+    set file, loaded before the warm pool creates the first instance. */
+juce::File pluginStateDirectoryFor (const std::filesystem::path& setFile)
+{
+    return juce::File (juce::String (setFile.string()))
+        .getSiblingFile ("set.plugin-state");
+}
+
 void applySourceKind (const juce::String& kind,
                       ihub::SessionSlotConfig& slot)
 {
@@ -1413,6 +1421,13 @@ private:
         config.device.numInputChannels = 2;
 
         session = std::make_unique<ihub::Session>();
+
+        // Load every patch's own plugin state before `build()` starts warming
+        // the initial slot, so the first resident instance is already restored
+        // (T130).
+        if (! setFile.empty())
+            session->setPluginStateDirectory (pluginStateDirectoryFor (setFile));
+
         juce::String error;
 
         if (! session->build (config, error))

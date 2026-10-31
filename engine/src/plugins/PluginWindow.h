@@ -98,6 +98,11 @@ public:
         touched afterwards. Not called from the destructor. */
     std::function<void()> onClose;
 
+    /** Called at the start of `close()`, while the editor and its processor are
+        still alive. Use it to capture the plugin's state before the editor
+        stops reporting user edits. Not called from the destructor. */
+    std::function<void()> onBeforeClose;
+
     //==============================================================================
     /** Windows currently on screen (diagnostics / leak checks). */
     static int getOpenWindowCount() noexcept;
