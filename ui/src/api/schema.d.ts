@@ -185,6 +185,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pairing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read LAN mode, the pairing code and the QR payload
+         * @description Local management endpoint. It is only served to clients on the
+         *     machine running the engine (loopback), so the live code is never
+         *     exposed to the LAN. The desktop UI uses it to render the QR code.
+         */
+        get: operations["getPairing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pairing/lan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn LAN mode on or off
+         * @description Enabling LAN mode rebinds the control server from loopback to all
+         *     interfaces, makes token authentication mandatory and issues a fresh
+         *     six-digit pairing code. Disabling it returns to loopback-only,
+         *     unauthenticated access and revokes every issued token.
+         *
+         *     Loopback only. The rebind happens on a control thread, so the request
+         *     that triggers it still receives its own response.
+         */
+        post: operations["setLanMode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pairing/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forget every paired client
+         * @description Revokes all pairing tokens. The desktop may call this when a tablet is
+         *     lost or sold. Loopback only.
+         */
+        post: operations["revokePairingTokens"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange a six-digit code for a token
+         * @description Unauthenticated by necessity: this is how a new client gets its first
+         *     token. The code is single-use and expires after five minutes; a
+         *     successful exchange rotates it immediately.
+         */
+        post: operations["pair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -355,6 +446,35 @@ export interface components {
             /** @description Crossfade gain published by the slot switcher. */
             gain: number;
             armed: boolean;
+        };
+        PairingState: {
+            /** @description Whether LAN mode is on. Off by default. */
+            lanEnabled: boolean;
+            /** @description Host/IP advertised in the QR payload. */
+            address: string;
+            port: number;
+            /** @description Six decimal digits, empty when LAN mode is off. */
+            code: string;
+            /** @description Remaining lifetime of the current code. */
+            codeExpiresInMs: number;
+            /** @description URL encoded in the QR code, empty when LAN mode is off. */
+            payload: string;
+            /** @description Number of clients holding a valid pairing token. */
+            pairedClients: number;
+        };
+        LanRequest: {
+            enabled: boolean;
+        };
+        PairRequest: {
+            /** @description The six-digit code shown next to the QR code. */
+            code: string;
+            /** @description Optional label shown in the desktop pairing panel. */
+            clientName?: string;
+        };
+        PairResponse: {
+            /** @description Send as `X-Instrument-Hub-Token` (or `Authorization: Bearer`). */
+            token: string;
+            pairedClients: number;
         };
     };
     responses: {
@@ -638,6 +758,144 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    getPairing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current pairing state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Pairing is not available */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setLanMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanRequest"];
+            };
+        };
+        responses: {
+            /** @description Pairing state after the toggle */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingState"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description Pairing is not available */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    revokePairingTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pairing state after revocation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Pairing is not available */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    pair: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairRequest"];
+            };
+        };
+        responses: {
+            /** @description A token that grants the control API */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description The code is wrong, expired or malformed */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description LAN mode is off, so there is nothing to pair with */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
 }

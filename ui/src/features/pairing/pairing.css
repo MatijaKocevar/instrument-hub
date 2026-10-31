@@ -1,0 +1,313 @@
+/*
+    LAN pairing (desktop card) and the tablet pairing gate.
+
+    The QR keeps a white quiet zone, the code is large enough to read across a
+    desk, and every interactive target clears 44 px.
+*/
+
+.pairing {
+  --pairing-line: #303344;
+  --pairing-card: #171922;
+  --pairing-muted: #9aa3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: clamp(1.1rem, 2.4vw, 1.8rem);
+  border: 1px solid var(--pairing-line);
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(110, 231, 200, 0.08), transparent 45%),
+    var(--pairing-card);
+}
+
+.pairing__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pairing__eyebrow {
+  margin: 0 0 0.2rem;
+  color: #8b93a7;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pairing__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 680;
+}
+
+.pairing__status {
+  border: 1px solid var(--pairing-line);
+  color: var(--pairing-muted);
+}
+
+.pairing__status--on {
+  border-color: rgba(110, 231, 200, 0.5);
+  color: #6ee7c8;
+}
+
+.pairing__lede {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--pairing-muted);
+  line-height: 1.5;
+}
+
+.pairing__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pairing button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid #3a3f52;
+  border-radius: 0.75rem;
+  background: #222532;
+  color: #eef2fb;
+  font: inherit;
+  font-weight: 650;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.pairing button:hover:not(:disabled) {
+  border-color: #59617d;
+  background: #2b3040;
+}
+
+.pairing button:focus-visible {
+  outline: 3px solid #6ee7c8;
+  outline-offset: 3px;
+}
+
+.pairing button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pairing__toggle--on {
+  border-color: rgba(110, 231, 200, 0.5);
+  color: #bff7e8;
+}
+
+.pairing__token-state {
+  color: var(--pairing-muted);
+  font-size: 0.82rem;
+}
+
+.pairing__error,
+.pairing-gate__error {
+  margin: 0;
+  color: #ffb4b4;
+}
+
+.pairing__loading {
+  margin: 0;
+  color: var(--pairing-muted);
+}
+
+.pairing__body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: start;
+}
+
+.pairing__qr-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pairing__qr {
+  display: block;
+  width: min(228px, 52vw);
+  height: auto;
+  border-radius: 0.5rem;
+  background: #ffffff;
+}
+
+.pairing__qr-placeholder {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  border: 1px dashed var(--pairing-line);
+  border-radius: 0.5rem;
+  color: var(--pairing-muted);
+  text-align: center;
+}
+
+.pairing__endpoint {
+  margin: 0;
+  color: var(--pairing-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}
+
+.pairing__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.pairing__label {
+  margin: 0;
+  color: var(--pairing-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pairing__code {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 720;
+  letter-spacing: 0.22em;
+  font-variant-numeric: tabular-nums;
+  color: #bff7e8;
+}
+
+.pairing__meta {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.pairing__meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(48, 51, 68, 0.6);
+  padding-bottom: 0.35rem;
+}
+
+.pairing__meta dt {
+  color: var(--pairing-muted);
+  font-size: 0.8rem;
+}
+
+.pairing__meta dd {
+  margin: 0;
+  text-align: right;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.pairing__forget {
+  align-self: flex-start;
+}
+
+/* --- Tablet gate --------------------------------------------------------- */
+
+.pairing-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  width: min(30rem, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: clamp(1.2rem, 5vw, 2.5rem);
+  justify-content: center;
+}
+
+.pairing-gate__eyebrow {
+  margin: 0 0 0.4rem;
+  color: #8b93a7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pairing-gate__title {
+  margin: 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  background: linear-gradient(100deg, #ffffff 0%, #9fd8ff 55%, #6ee7c8 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.pairing-gate__lede,
+.pairing-gate__hint,
+.pairing-gate__auto {
+  margin: 0;
+  color: #9aa3b8;
+  line-height: 1.5;
+}
+
+.pairing-gate__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pairing-gate__label {
+  color: #9aa3b8;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.pairing-gate__input {
+  width: 100%;
+  min-height: 60px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #3a3f52;
+  border-radius: 0.8rem;
+  background: #171922;
+  color: #eef2fb;
+  font: inherit;
+  font-size: 1.7rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.35em;
+  text-align: center;
+}
+
+.pairing-gate__input:focus-visible {
+  outline: 3px solid #6ee7c8;
+  outline-offset: 3px;
+}
+
+.pairing-gate__submit {
+  min-height: 52px;
+  border: 1px solid rgba(110, 231, 200, 0.55);
+  border-radius: 0.8rem;
+  background: rgba(110, 231, 200, 0.12);
+  color: #bff7e8;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pairing-gate__submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .pairing__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pairing__qr-column {
+    align-items: flex-start;
+  }
+}

@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <limits>
 #include <thread>
 #include <utility>
@@ -21,6 +22,15 @@ constexpr int maximumMeterHz = 120;
 int clampMeterHz (int hz) noexcept
 {
     return juce::jlimit (minimumMeterHz, maximumMeterHz, hz);
+}
+
+bool isLoopbackAddress (const std::string& address)
+{
+    return address == "127.0.0.1"
+        || address == "::1"
+        || address == "[::1]"
+        || address == "::ffff:127.0.0.1"
+        || address.rfind ("127.", 0) == 0;
 }
 } // namespace
 
@@ -307,20 +317,41 @@ struct Server::Impl
         : state (storeToUse),
           options (std::move (optionsToUse)),
           authToken (options.authToken),
-          meterHz (clampMeterHz (options.meterHz))
+          meterHz (clampMeterHz (options.meterHz)),
+          pairing ({}, options.port),
+          nextPort (options.port)
     {
+        if (options.lanMode)
+            pairing.setLanEnabled (true);
+    }
+
+    bool isLoopbackRequest (const httplib::Request& request) const
+    {
+        return isLoopbackAddress (request.remote_addr);
     }
 
     bool authorized (const httplib::Request& request) const
     {
+        // Exchanging a pairing code is how a client obtains its first token, so
+        // it cannot require one. The management endpoints expose the live code
+        // and are therefore loopback-only, even for an already paired client:
+        // a tablet must not be able to mint more tokens for itself.
+        if (request.path == "/pair")
+            return true;
+
+        if (request.path.rfind ("/pairing", 0) == 0)
+            return isLoopbackRequest (request);
+
         std::string expected;
+        bool lanEnabled = false;
 
         {
             const std::lock_guard<std::mutex> lock (configMutex);
             expected = authToken;
+            lanEnabled = pairing.isLanEnabled();
         }
 
-        if (expected.empty())
+        if (expected.empty() && ! lanEnabled)
             return true;
 
         auto supplied = request.get_header_value ("X-Instrument-Hub-Token");
@@ -334,7 +365,16 @@ struct Server::Impl
                 supplied = authorization.substr (std::char_traits<char>::length (bearer));
         }
 
-        return supplied == expected;
+        if (! expected.empty() && supplied == expected)
+            return true;
+
+        return lanEnabled && pairing.validateToken (supplied);
+    }
+
+    /** The address the listener should be bound to right now. */
+    std::string desiredAddress() const
+    {
+        return pairing.isLanEnabled() ? "0.0.0.0" : options.address;
     }
 
     MeterFrame makeDefaultFrame() const
@@ -468,14 +508,219 @@ struct Server::Impl
         });
     }
 
+    /** Creates the HTTP listener on the address LAN mode currently wants.
+
+        Caller holds `lifecycleMutex`.
+    */
+    bool bindListenerLocked()
+    {
+        if (listening.load (std::memory_order_acquire))
+            return true;
+
+        http = std::make_unique<httplib::Server>();
+
+        http->set_pre_routing_handler ([this] (const httplib::Request& request,
+                                               httplib::Response& response)
+        {
+            // A meter WebSocket handler blocks for the life of the connection,
+            // so it must not hold up a LAN rebind. Every other request is
+            // counted until its response has been prepared.
+            const bool meterUpgrade = request.path == "/meters";
+
+            if (! meterUpgrade)
+                requestsInFlight.fetch_add (1, std::memory_order_acq_rel);
+
+            if (rebinding.load (std::memory_order_acquire))
+            {
+                if (! meterUpgrade)
+                    requestsInFlight.fetch_sub (1, std::memory_order_acq_rel);
+
+                setError (response, 503, "the control API is switching LAN mode");
+                return httplib::Server::HandlerResponse::Handled;
+            }
+
+            // Route handlers add the CORS headers through setJson()/setError();
+            // only a pre-flight response needs them before a handler runs.
+            if (request.method == "OPTIONS")
+            {
+                addCorsHeaders (response);
+                response.status = 204;
+                return httplib::Server::HandlerResponse::Handled;
+            }
+
+            if (! authorized (request))
+            {
+                setError (response, 401, "unauthorized");
+                return httplib::Server::HandlerResponse::Handled;
+            }
+
+            return httplib::Server::HandlerResponse::Unhandled;
+        });
+
+        http->set_post_routing_handler ([this] (const httplib::Request& request,
+                                                httplib::Response&)
+        {
+            if (request.path != "/meters")
+                requestsInFlight.fetch_sub (1, std::memory_order_acq_rel);
+        });
+
+        RouteContext context { state, {}, {}, {}, {}, &pairing, {} };
+
+        {
+            const std::lock_guard<std::mutex> lock (configMutex);
+            context.audioProvider = audioProvider;
+            context.audioApply = audioApply;
+            context.audioMeasure = audioMeasure;
+        }
+
+        context.setLanMode = [this] (bool enabled) { return applyLanMode (enabled); };
+
+        registerRoutes (*http, context);
+        registerMeterRoute();
+
+        const auto address = desiredAddress();
+        int port = nextPort;
+
+        if (port > 0)
+        {
+            if (! http->bind_to_port (address, port))
+            {
+                http.reset();
+                return false;
+            }
+        }
+        else
+        {
+            port = http->bind_to_any_port (address);
+
+            if (port <= 0)
+            {
+                http.reset();
+                return false;
+            }
+        }
+
+        boundPort.store (port, std::memory_order_release);
+        nextPort = port;
+        listenerAddress = address;
+        listening.store (true, std::memory_order_release);
+        pairing.setEndpoint ({}, port);
+
+        listenerThread = std::thread ([this] { http->listen_after_bind(); });
+
+        return true;
+    }
+
+    /** Stops the listener only; the meter/control threads keep running.
+
+        Caller holds `lifecycleMutex`.
+    */
+    void stopListenerLocked()
+    {
+        if (! listening.exchange (false, std::memory_order_acq_rel))
+        {
+            if (http != nullptr)
+                http.reset();
+
+            return;
+        }
+
+        if (http != nullptr)
+            http->stop();
+
+        if (listenerThread.joinable())
+            listenerThread.join();
+
+        http.reset();
+        boundPort.store (0, std::memory_order_release);
+    }
+
+    /** Rebind after a LAN-mode change.
+
+        Caller holds `lifecycleMutex`.
+    */
+    bool rebindLocked()
+    {
+        stopListenerLocked();
+        return bindListenerLocked();
+    }
+
+    PairingSnapshot applyLanMode (bool enabled)
+    {
+        const auto changed = pairing.setLanEnabled (enabled);
+        const auto snapshot = pairing.snapshot();
+
+        if (changed)
+        {
+            {
+                const std::lock_guard<std::mutex> lock (controlMutex);
+                rebindRequested = true;
+            }
+
+            controlCv.notify_one();
+        }
+
+        return snapshot;
+    }
+
+    void waitForRequestsToDrain()
+    {
+        const auto deadline = std::chrono::steady_clock::now()
+                              + std::chrono::seconds (2);
+
+        while (requestsInFlight.load (std::memory_order_acquire) > 0
+               && std::chrono::steady_clock::now() < deadline)
+        {
+            std::this_thread::sleep_for (std::chrono::milliseconds (5));
+        }
+
+        // The response that triggered the toggle is written after the handler
+        // returns; give the worker a moment to flush it before its server dies.
+        std::this_thread::sleep_for (std::chrono::milliseconds (100));
+    }
+
+    void controlLoop()
+    {
+        for (;;)
+        {
+            std::unique_lock<std::mutex> lock (controlMutex);
+            controlCv.wait (lock, [this]
+            {
+                return controlStop || rebindRequested;
+            });
+
+            if (controlStop)
+                return;
+
+            rebindRequested = false;
+            lock.unlock();
+
+            rebinding.store (true, std::memory_order_release);
+            waitForRequestsToDrain();
+
+            {
+                const std::lock_guard<std::mutex> life (lifecycleMutex);
+
+                if (running.load (std::memory_order_acquire))
+                    rebindLocked();
+            }
+
+            rebinding.store (false, std::memory_order_release);
+        }
+    }
+
     StateStore& state;
     const Options options;
 
     std::unique_ptr<httplib::Server> http;
     std::thread listenerThread;
     std::thread meterThread;
+    std::thread controlThread;
 
     std::atomic<bool> running { false };
+    std::atomic<bool> listening { false };
+    std::atomic<bool> rebinding { false };
+    std::atomic<int> requestsInFlight { 0 };
     std::atomic<int> boundPort { 0 };
     std::atomic<int> activeWebSockets { 0 };
     std::atomic<std::uint64_t> meterFramesSent { 0 };
@@ -491,6 +736,17 @@ struct Server::Impl
     mutable std::mutex frameMutex;
     std::string latestFrameJson;
     std::uint64_t latestFrameVersion = 0;
+
+    // LAN mode / pairing
+    PairingManager pairing;
+    mutable std::mutex lifecycleMutex;
+    std::string listenerAddress;
+    int nextPort = 0;
+
+    std::mutex controlMutex;
+    std::condition_variable controlCv;
+    bool controlStop = false;
+    bool rebindRequested = false;
 };
 
 Server::Server (StateStore& state)
@@ -511,71 +767,24 @@ Server::~Server()
 bool Server::start()
 {
     auto& self = *impl;
+    const std::lock_guard<std::mutex> life (self.lifecycleMutex);
 
     if (self.running.load (std::memory_order_acquire))
         return true;
 
-    self.http = std::make_unique<httplib::Server>();
-
-    self.http->set_pre_routing_handler ([&self] (const httplib::Request& request,
-                                                 httplib::Response& response)
-    {
-        // Route handlers add the CORS headers through setJson()/setError();
-        // only a pre-flight response needs them before a handler runs.
-        if (request.method == "OPTIONS")
-        {
-            addCorsHeaders (response);
-            response.status = 204;
-            return httplib::Server::HandlerResponse::Handled;
-        }
-
-        if (! self.authorized (request))
-        {
-            setError (response, 401, "unauthorized");
-            return httplib::Server::HandlerResponse::Handled;
-        }
-
-        return httplib::Server::HandlerResponse::Unhandled;
-    });
-
-    RouteContext context { self.state, {}, {}, {}, {} };
-
-    {
-        const std::lock_guard<std::mutex> lock (self.configMutex);
-        context.audioProvider = self.audioProvider;
-        context.audioApply = self.audioApply;
-        context.audioMeasure = self.audioMeasure;
-    }
-
-    registerRoutes (*self.http, context);
-    self.registerMeterRoute();
-
-    int port = self.options.port;
-
-    if (port == 0)
-    {
-        port = self.http->bind_to_any_port (self.options.address);
-
-        if (port <= 0)
-        {
-            self.http.reset();
-            return false;
-        }
-    }
-    else if (! self.http->bind_to_port (self.options.address, port))
-    {
-        self.http.reset();
+    if (! self.bindListenerLocked())
         return false;
-    }
 
-    self.boundPort.store (port, std::memory_order_release);
     self.running.store (true, std::memory_order_release);
 
-    self.meterThread = std::thread ([&self] { self.meterLoop(); });
-    self.listenerThread = std::thread ([&self]
     {
-        self.http->listen_after_bind();
-    });
+        const std::lock_guard<std::mutex> lock (self.controlMutex);
+        self.controlStop = false;
+        self.rebindRequested = false;
+    }
+
+    self.meterThread = std::thread ([&self] { self.meterLoop(); });
+    self.controlThread = std::thread ([&self] { self.controlLoop(); });
 
     return true;
 }
@@ -584,19 +793,22 @@ void Server::stop()
 {
     auto& self = *impl;
 
-    if (! self.running.exchange (false, std::memory_order_acq_rel))
     {
-        if (self.http != nullptr)
-            self.http.reset();
-
-        return;
+        const std::lock_guard<std::mutex> lock (self.controlMutex);
+        self.controlStop = true;
+        self.rebindRequested = false;
     }
 
-    if (self.http != nullptr)
-        self.http->stop();
+    self.controlCv.notify_all();
 
-    if (self.listenerThread.joinable())
-        self.listenerThread.join();
+    if (self.controlThread.joinable())
+        self.controlThread.join();
+
+    {
+        const std::lock_guard<std::mutex> life (self.lifecycleMutex);
+        self.running.store (false, std::memory_order_release);
+        self.stopListenerLocked();
+    }
 
     // WebSocket handlers leave their read loop within one short timeout.
     for (int spin = 0; spin < 200
@@ -609,7 +821,6 @@ void Server::stop()
     if (self.meterThread.joinable())
         self.meterThread.join();
 
-    self.http.reset();
     self.boundPort.store (0, std::memory_order_release);
 }
 
@@ -620,7 +831,7 @@ bool Server::isRunning() const noexcept
 
 bool Server::isListening() const noexcept
 {
-    return isRunning();
+    return impl->listening.load (std::memory_order_acquire);
 }
 
 int Server::getPort() const noexcept
@@ -630,7 +841,8 @@ int Server::getPort() const noexcept
 
 std::string Server::getAddress() const
 {
-    return impl->options.address;
+    const std::lock_guard<std::mutex> life (impl->lifecycleMutex);
+    return impl->listenerAddress.empty() ? impl->options.address : impl->listenerAddress;
 }
 
 void Server::setMeterProvider (MeterProvider provider)
@@ -659,6 +871,26 @@ bool Server::hasAuthToken() const
 {
     const std::lock_guard<std::mutex> lock (impl->configMutex);
     return ! impl->authToken.empty();
+}
+
+PairingManager& Server::getPairing()
+{
+    return impl->pairing;
+}
+
+const PairingManager& Server::getPairing() const
+{
+    return impl->pairing;
+}
+
+PairingSnapshot Server::setLanMode (bool enabled)
+{
+    return impl->applyLanMode (enabled);
+}
+
+bool Server::isLanModeEnabled() const
+{
+    return impl->pairing.isLanEnabled();
 }
 
 std::uint64_t Server::getMeterFrameCount() const noexcept

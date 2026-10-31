@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { ControlState } from "./api/client";
 import { AudioSettingsPanel } from "./features/audio-settings";
 import { GridView, gridFromState, metersUrlFor, useMeters } from "./features/grid";
+import { PairingPanel } from "./features/pairing";
 import { useAppState, useAppStore } from "./state/AppStoreContext";
 import type { ConnectionPhase } from "./state/store";
 
@@ -194,6 +195,17 @@ export default function App ()
                 loading={state === null && app.audio === null}
                 onChange={patch => { void store.updateAudio (patch); }}
                 onMeasure={() => { void store.measureLatency (); }}
+            />
+
+            <PairingPanel
+                pairing={app.pairing}
+                token={store.token}
+                error={app.pairingError}
+                busy={app.pairingBusy}
+                loading={app.pairing === null}
+                onToggleLan={enabled => { void store.toggleLan (enabled); }}
+                onForget={() => { void store.forgetPairing (); }}
+                onPair={code => { void store.pair (code); }}
             />
 
             <GridView

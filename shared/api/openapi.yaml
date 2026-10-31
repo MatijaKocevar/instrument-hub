@@ -37,6 +37,7 @@ tags:
   - name: control
   - name: audio
   - name: meters
+  - name: pairing
 
 paths:
   /state:
@@ -335,6 +336,149 @@ paths:
           description: WebSocket upgrade accepted; meter frames follow.
         "401":
           $ref: "#/components/responses/Unauthorized"
+
+  /pairing:
+    get:
+      tags: [pairing]
+      operationId: getPairing
+      summary: Read LAN mode, the pairing code and the QR payload
+      description: |
+        Local management endpoint. It is only served to clients on the
+        machine running the engine (loopback), so the live code is never
+        exposed to the LAN. The desktop UI uses it to render the QR code.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Current pairing state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PairingState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: Pairing is not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /pairing/lan:
+    post:
+      tags: [pairing]
+      operationId: setLanMode
+      summary: Turn LAN mode on or off
+      description: |
+        Enabling LAN mode rebinds the control server from loopback to all
+        interfaces, makes token authentication mandatory and issues a fresh
+        six-digit pairing code. Disabling it returns to loopback-only,
+        unauthenticated access and revokes every issued token.
+
+        Loopback only. The rebind happens on a control thread, so the request
+        that triggers it still receives its own response.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LanRequest"
+            examples:
+              enable:
+                value: { enabled: true }
+              disable:
+                value: { enabled: false }
+      responses:
+        "200":
+          description: Pairing state after the toggle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PairingState"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: Pairing is not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /pairing/revoke:
+    post:
+      tags: [pairing]
+      operationId: revokePairingTokens
+      summary: Forget every paired client
+      description: |
+        Revokes all pairing tokens. The desktop may call this when a tablet is
+        lost or sold. Loopback only.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Pairing state after revocation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PairingState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: Pairing is not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /pair:
+    post:
+      tags: [pairing]
+      operationId: pair
+      summary: Exchange a six-digit code for a token
+      description: |
+        Unauthenticated by necessity: this is how a new client gets its first
+        token. The code is single-use and expires after five minutes; a
+        successful exchange rotates it immediately.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PairRequest"
+            examples:
+              pairTablet:
+                value: { code: "123456", clientName: "Studio iPad" }
+      responses:
+        "200":
+          description: A token that grants the control API
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PairResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: The code is wrong, expired or malformed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: LAN mode is off, so there is nothing to pair with
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
 components:
   securitySchemes:
@@ -765,3 +909,69 @@ components:
           description: Crossfade gain published by the slot switcher.
         armed:
           type: boolean
+
+    PairingState:
+      type: object
+      required:
+        [lanEnabled, address, port, code, codeExpiresInMs, payload, pairedClients]
+      additionalProperties: false
+      properties:
+        lanEnabled:
+          type: boolean
+          description: Whether LAN mode is on. Off by default.
+        address:
+          type: string
+          description: Host/IP advertised in the QR payload.
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        code:
+          type: string
+          description: Six decimal digits, empty when LAN mode is off.
+          pattern: "^([0-9]{6})?$"
+        codeExpiresInMs:
+          type: number
+          minimum: 0
+          description: Remaining lifetime of the current code.
+        payload:
+          type: string
+          description: URL encoded in the QR code, empty when LAN mode is off.
+        pairedClients:
+          type: integer
+          minimum: 0
+          description: Number of clients holding a valid pairing token.
+
+    LanRequest:
+      type: object
+      required: [enabled]
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+
+    PairRequest:
+      type: object
+      required: [code]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          description: The six-digit code shown next to the QR code.
+          pattern: "^[0-9]{6}$"
+        clientName:
+          type: string
+          description: Optional label shown in the desktop pairing panel.
+          maxLength: 120
+
+    PairResponse:
+      type: object
+      required: [token, pairedClients]
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          description: "Send as `X-Instrument-Hub-Token` (or `Authorization: Bearer`)."
+        pairedClients:
+          type: integer
+          minimum: 1

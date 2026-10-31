@@ -94,6 +94,7 @@ juce_add_gui_app(instrument-hub
 target_sources(instrument-hub
     PRIVATE
         src/Main.cpp
+        src/api/Pairing.cpp
         src/api/Routes.cpp
         src/api/Server.cpp
         src/Bridge/WebView.cpp

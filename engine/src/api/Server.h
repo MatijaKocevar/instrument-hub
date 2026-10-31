@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Pairing.h"
+
 #include <juce_core/juce_core.h>
 
 #include <atomic>
@@ -299,10 +301,21 @@ private:
     - `POST /audio`
     - `POST /audio/measure`
     - `GET  /meters` (WebSocket upgrade)
+    - `GET  /pairing` (loopback only)
+    - `POST /pairing/lan` (loopback only)
+    - `POST /pairing/revoke` (loopback only)
+    - `POST /pair`
 
     Binding defaults to `127.0.0.1:8080` (plan/DECISIONS.md). Authentication is
-    off unless `Options::authToken` is non-empty; when enabled, requests must
-    carry `X-Instrument-Hub-Token: <token>` or `Authorization: Bearer <token>`.
+    off unless `Options::authToken` is non-empty or LAN mode is enabled; when
+    enabled, requests must carry `X-Instrument-Hub-Token: <token>` or
+    `Authorization: Bearer <token>`. A pairing token obtained from `POST /pair`
+    is accepted alongside the configured token.
+
+    LAN mode is off by default. Enabling it rebinds the listener to all
+    interfaces, makes authentication mandatory and starts a pairing code. The
+    QR payload and code are local-only management endpoints; the phone/tablet
+    only needs `POST /pair`.
 
     Meter frames are produced once per `meterHz` on a dedicated thread and
     coalesced for every connected client. The audio buffer rate is irrelevant.
@@ -317,6 +330,9 @@ public:
 
         /** Empty disables authentication. */
         std::string authToken;
+
+        /** Start with LAN mode already enabled (rebinds to all interfaces). */
+        bool lanMode = false;
 
         /** Broadcast rate for `/meters`; clamped to 1..120. */
         int meterHz = 30;
@@ -366,6 +382,24 @@ public:
     /** Enables/disables token auth. Takes effect on the next request. */
     void setAuthToken (std::string token);
     bool hasAuthToken() const;
+
+    //==============================================================================
+    // LAN pairing (T101)
+
+    /** The pairing manager behind `/pairing` and `/pair`. */
+    PairingManager& getPairing();
+    const PairingManager& getPairing() const;
+
+    /** Turn LAN mode on/off.
+
+        Enabling rebinds the listener from loopback to all interfaces, makes
+        token auth mandatory and issues a pairing code. Disabling reverses both
+        and revokes every issued token. Returns the state immediately after the
+        toggle; the rebind itself happens on the server's control thread so the
+        HTTP request that triggered it can finish.
+    */
+    PairingSnapshot setLanMode (bool enabled);
+    bool isLanModeEnabled() const;
 
     /** Number of clients that received at least one meter frame. */
     std::uint64_t getMeterFrameCount() const noexcept;

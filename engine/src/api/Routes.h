@@ -73,6 +73,8 @@ juce::var meterFrameToVar (const MeterFrame& frame);
 juce::var audioStateToVar (const AudioStateSnapshot& audio);
 juce::var audioMeasurementToVar (const AudioMeasurementState& measurement);
 
+juce::var pairingToVar (const PairingSnapshot& pairing);
+
 //==============================================================================
 // Route registration
 //==============================================================================
@@ -89,6 +91,12 @@ struct RouteContext
     AudioStateProvider audioProvider;
     AudioApplyHandler audioApply;
     AudioMeasureHandler audioMeasure;
+
+    /** Optional pairing manager behind `/pairing` and `/pair`. */
+    PairingManager* pairing = nullptr;
+
+    /** Toggles LAN mode (and rebinds the listener). Empty means unavailable. */
+    std::function<PairingSnapshot (bool)> setLanMode;
 };
 
 /** Installs every HTTP route and the WebSocket meter upgrade.

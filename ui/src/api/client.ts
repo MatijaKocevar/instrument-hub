@@ -12,6 +12,8 @@ export type ControlAudioState = components["schemas"]["AudioState"];
 export type ControlAudioMeasurement = components["schemas"]["AudioMeasurement"];
 export type ControlAudioPatch = components["schemas"]["AudioPatch"];
 export type ControlAudioChannel = components["schemas"]["AudioChannel"];
+export type ControlPairingState = components["schemas"]["PairingState"];
+export type ControlPairResponse = components["schemas"]["PairResponse"];
 
 /** Raised for any non-2xx response or an unusable payload. */
 export class ApiError extends Error
@@ -47,6 +49,12 @@ export interface ControlApi
 {
     readonly baseUrl: string;
 
+    /** Pairing token used by every request, or null when unpaired. */
+    readonly token: string | null;
+
+    /** Replace the pairing token; subsequent requests use the new value. */
+    setToken (token: string | null): void;
+
     /** Read one consistent state snapshot. */
     getState (options?: { signal?: AbortSignal }): Promise<ControlState>;
 
@@ -76,6 +84,23 @@ export interface ControlApi
 
     /** Run the loopback latency probe (blocks for a few hundred ms). */
     measureLatency (options?: { signal?: AbortSignal }): Promise<ControlAudioMeasurement>;
+
+    //==========================================================================
+    // LAN pairing (T101)
+
+    /** Read LAN mode, the live 6-digit code and the QR payload. */
+    getPairing (options?: { signal?: AbortSignal }): Promise<ControlPairingState>;
+
+    /** Turn LAN mode on/off (loopback-only management endpoint). */
+    setLanMode (enabled: boolean,
+                options?: { signal?: AbortSignal }): Promise<ControlPairingState>;
+
+    /** Exchange a 6-digit code for a token. */
+    pair (code: string,
+          options?: { signal?: AbortSignal; clientName?: string }): Promise<ControlPairResponse>;
+
+    /** Revoke every issued pairing token. */
+    revokePairing (options?: { signal?: AbortSignal }): Promise<ControlPairingState>;
 }
 
 function describeError (value: unknown): string
@@ -173,19 +198,55 @@ function isAudioMeasurement (value: unknown): value is ControlAudioMeasurement
         && typeof candidate.error === "string";
 }
 
+/** Rejects pairing payloads the panel cannot render. */
+function isPairingState (value: unknown): value is ControlPairingState
+{
+    if (value === null || typeof value !== "object")
+        return false;
+
+    const candidate = value as Partial<ControlPairingState>;
+
+    return typeof candidate.lanEnabled === "boolean"
+        && typeof candidate.address === "string"
+        && typeof candidate.port === "number"
+        && typeof candidate.code === "string"
+        && typeof candidate.codeExpiresInMs === "number"
+        && typeof candidate.payload === "string"
+        && typeof candidate.pairedClients === "number";
+}
+
+function isPairResponse (value: unknown): value is ControlPairResponse
+{
+    if (value === null || typeof value !== "object")
+        return false;
+
+    const candidate = value as Partial<ControlPairResponse>;
+
+    return typeof candidate.token === "string"
+        && candidate.token.length > 0
+        && typeof candidate.pairedClients === "number";
+}
+
 export function createControlApi (options: ControlApiOptions): ControlApi
 {
     const baseUrl = options.baseUrl.replace (/\/+$/, "");
-
-    const headers: Record<string, string> = {};
-
-    if (options.token !== undefined && options.token !== null && options.token.length > 0)
-        headers["X-Instrument-Hub-Token"] = options.token;
+    let tokenValue = options.token ?? null;
 
     const client = createClient<paths> ({
         baseUrl,
-        headers,
         ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
+    });
+
+    // The token changes when the user pairs or forgets a tablet, so it is
+    // injected per request instead of being baked into the client headers.
+    client.use ({
+        onRequest ({ request })
+        {
+            if (tokenValue !== null && tokenValue.length > 0)
+                request.headers.set ("X-Instrument-Hub-Token", tokenValue);
+
+            return request;
+        },
     });
 
     function requireState (data: ControlState | undefined,
@@ -210,6 +271,16 @@ export function createControlApi (options: ControlApiOptions): ControlApi
 
     return {
         baseUrl,
+
+        get token ()
+        {
+            return tokenValue;
+        },
+
+        setToken (token)
+        {
+            tokenValue = token !== null && token.length > 0 ? token : null;
+        },
 
         async getState (requestOptions)
         {
@@ -293,6 +364,77 @@ export function createControlApi (options: ControlApiOptions): ControlApi
 
             throw new ApiError (
                 message.length > 0 ? message : `POST /audio/measure failed with HTTP ${response.status}`,
+                response.status);
+        },
+
+        async getPairing (requestOptions)
+        {
+            const { data, error, response } = await client.GET ("/pairing", {
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            if (data !== undefined && isPairingState (data))
+                return data;
+
+            const message = describeError (error);
+
+            throw new ApiError (
+                message.length > 0 ? message : `GET /pairing failed with HTTP ${response.status}`,
+                response.status);
+        },
+
+        async setLanMode (enabled, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/pairing/lan", {
+                body: { enabled },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            if (data !== undefined && isPairingState (data))
+                return data;
+
+            const message = describeError (error);
+
+            throw new ApiError (
+                message.length > 0 ? message : `POST /pairing/lan failed with HTTP ${response.status}`,
+                response.status);
+        },
+
+        async pair (code, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/pair", {
+                body: {
+                    code,
+                    ...(requestOptions?.clientName !== undefined
+                        ? { clientName: requestOptions.clientName }
+                        : {}),
+                },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            if (data !== undefined && isPairResponse (data))
+                return data;
+
+            const message = describeError (error);
+
+            throw new ApiError (
+                message.length > 0 ? message : `POST /pair failed with HTTP ${response.status}`,
+                response.status);
+        },
+
+        async revokePairing (requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/pairing/revoke", {
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            if (data !== undefined && isPairingState (data))
+                return data;
+
+            const message = describeError (error);
+
+            throw new ApiError (
+                message.length > 0 ? message : `POST /pairing/revoke failed with HTTP ${response.status}`,
                 response.status);
         },
     };

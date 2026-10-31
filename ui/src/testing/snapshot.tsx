@@ -12,17 +12,19 @@
 // Run with: pnpm test:snapshot
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import App from "../App";
 import {
+    ApiError,
     createControlApi,
     type ControlAudioMeasurement,
     type ControlAudioPatch,
     type ControlAudioState,
+    type ControlPairingState,
     type ControlState,
     type ControlTransport,
     type ControlTransportPatch,
@@ -31,6 +33,14 @@ import {
     AudioSettingsPanel,
     bufferSizePatch,
 } from "../features/audio-settings";
+import {
+    codeFromSearch,
+    encodeQr,
+    loadPairingToken,
+    PairingGate,
+    qrPathData,
+    type TokenStorage,
+} from "../features/pairing";
 import {
     createGridModel,
     EMPTY_METERS,
@@ -106,8 +116,30 @@ const AUDIO: ControlAudioState = {
     loadPercent: 7.5,
 };
 
-/** Eight families for the feature-level grid snapshot. */
-const GRID_FAMILIES: GridFamily[] = [
+/**
+    Pairing fixture. LAN mode starts off, exactly like a fresh engine.
+*/
+const PAIRING_OFF: ControlPairingState = {
+    lanEnabled: false,
+    address: "192.168.1.20",
+    port: 8080,
+    code: "",
+    codeExpiresInMs: 0,
+    payload: "",
+    pairedClients: 0,
+};
+
+const PAIRING_ON: ControlPairingState = {
+    lanEnabled: true,
+    address: "192.168.1.20",
+    port: 8080,
+    code: "246810",
+    codeExpiresInMs: 300_000,
+    payload: "http://192.168.1.20:8080/remote?code=246810",
+    pairedClients: 0,
+};
+
+/** Eight families for the feature-level grid snapshot. */const GRID_FAMILIES: GridFamily[] = [
     {
         id: "keys",
         name: "Keys",
@@ -181,6 +213,9 @@ interface FixtureServer
     readonly transportRequests: readonly ControlTransportPatch[];
     readonly measureRequests: number;
     readonly audio: ControlAudioState;
+    readonly pairing: ControlPairingState;
+    readonly pairRequests: readonly string[];
+    readonly lanRequests: readonly boolean[];
     close: () => Promise<void>;
 }
 
@@ -248,12 +283,141 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
     const armRequests: { slot: number | null }[] = [];
     const audioRequests: ControlAudioPatch[] = [];
     const transportRequests: ControlTransportPatch[] = [];
+    const pairRequests: string[] = [];
+    const lanRequests: boolean[] = [];
     let stateRequests = 0;
     let measureRequests = 0;
+    let pairing = { ...PAIRING_OFF };
+    let pairingToken: string | null = null;
+
+    const suppliedToken = (request: IncomingMessage): string | null =>
+    {
+        const value = request.headers["x-instrument-hub-token"];
+
+        return typeof value === "string" ? value : null;
+    };
+
+    const authorized = (request: IncomingMessage): boolean =>
+        ! pairing.lanEnabled || suppliedToken (request) === pairingToken;
+
+    const sendPairing = (response: ServerResponse): void =>
+    {
+        response.statusCode = 200;
+        response.end (JSON.stringify (pairing));
+    };
 
     const server = createServer ((request, response) =>
     {
         response.setHeader ("content-type", "application/json");
+
+        const isPairingManagement = request.url === "/pairing"
+            || request.url === "/pairing/lan"
+            || request.url === "/pairing/revoke";
+
+        if (pairing.lanEnabled && ! isPairingManagement && request.url !== "/pair"
+            && ! authorized (request))
+        {
+            response.statusCode = 401;
+            response.end (JSON.stringify ({ error: "unauthorized" }));
+            return;
+        }
+
+        if (isPairingManagement && pairing.lanEnabled && ! authorized (request))
+        {
+            response.statusCode = 401;
+            response.end (JSON.stringify ({ error: "unauthorized" }));
+            return;
+        }
+
+        if (request.method === "GET" && request.url === "/pairing")
+        {
+            sendPairing (response);
+            return;
+        }
+
+        if (request.method === "POST" && request.url === "/pairing/lan")
+        {
+            let body = "";
+
+            request.on ("data", (chunk: Buffer) => { body += chunk.toString ("utf8"); });
+
+            request.on ("end", () =>
+            {
+                const enabled = (JSON.parse (body) as { enabled?: unknown }).enabled === true;
+
+                lanRequests.push (enabled);
+
+                if (enabled)
+                {
+                    pairing = { ...PAIRING_ON };
+                    pairingToken = null;
+                }
+                else
+                {
+                    pairing = { ...PAIRING_OFF };
+                    pairingToken = null;
+                }
+
+                sendPairing (response);
+            });
+
+            return;
+        }
+
+        if (request.method === "POST" && request.url === "/pairing/revoke")
+        {
+            pairingToken = null;
+            pairing = { ...pairing, pairedClients: 0 };
+            sendPairing (response);
+            return;
+        }
+
+        if (request.method === "POST" && request.url === "/pair")
+        {
+            let body = "";
+
+            request.on ("data", (chunk: Buffer) => { body += chunk.toString ("utf8"); });
+
+            request.on ("end", () =>
+            {
+                const parsed = JSON.parse (body) as { code?: unknown; clientName?: unknown };
+                const code = typeof parsed.code === "string" ? parsed.code : "";
+                pairRequests.push (code);
+
+                if (! pairing.lanEnabled)
+                {
+                    response.statusCode = 403;
+                    response.end (JSON.stringify ({ error: "LAN mode is off" }));
+                    return;
+                }
+
+                if (code !== pairing.code)
+                {
+                    response.statusCode = 401;
+                    response.end (JSON.stringify ({ error: "invalid pairing code" }));
+                    return;
+                }
+
+                pairingToken = "fixture-pairing-token";
+
+                const rotatedCode = pairing.code === "246810" ? "135790" : "246810";
+                pairing = {
+                    ...pairing,
+                    code: rotatedCode,
+                    codeExpiresInMs: 300_000,
+                    payload: `http://192.168.1.20:8080/remote?code=${rotatedCode}`,
+                    pairedClients: pairing.pairedClients + 1,
+                };
+
+                response.statusCode = 200;
+                response.end (JSON.stringify ({
+                    token: pairingToken,
+                    pairedClients: pairing.pairedClients,
+                }));
+            });
+
+            return;
+        }
 
         if (request.method === "GET" && request.url === "/state")
         {
@@ -491,6 +655,9 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         get transportRequests () { return transportRequests; },
         get measureRequests () { return measureRequests; },
         get audio () { return audio; },
+        get pairing () { return pairing; },
+        get pairRequests () { return pairRequests; },
+        get lanRequests () { return lanRequests; },
         close: () => new Promise ((resolve, reject) =>
         {
             server.close (error => { error === undefined ? resolve () : reject (error); });
@@ -561,6 +728,212 @@ function waitFor (predicate: () => boolean, timeoutMs: number): Promise<void>
     });
 }
 
+class MemoryStorage implements TokenStorage
+{
+    private readonly values = new Map<string, string> ();
+
+    getItem (key: string): string | null
+    {
+        return this.values.get (key) ?? null;
+    }
+
+    setItem (key: string, value: string): void
+    {
+        this.values.set (key, value);
+    }
+
+    removeItem (key: string): void
+    {
+        this.values.delete (key);
+    }
+}
+
+/**
+    Reference matrix for
+
+        http://instrument-hub.local:8080/remote?code=987654
+
+    produced with `qrencode -t ASCII -v 4 -l M -m 0 -8` (mask 0, ECC M).
+    Comparing against it proves the encoder's mode/count fields, Reed–Solomon
+    blocks, interleaving, function patterns and format bits are all correct.
+*/
+const QR_GOLDEN = "111111100011100110111111001111111/100000101100110101010111101000001/101110100011000010011000001011101/101110100111010001010001101011101/101110101001100001000101101011101/100000100011010000100111101000001/111111101010101010101010101111111/000000000110010011001111100000000/101010100101111101011100000010010/011001001000001000001000111000001/111001111100110011000010111100111/011111010010100000011110000010001/101001101101100100001110101001010/110101001111110100010110101001001/010110100110001000001000100010011/110101000101101101011111100000010/011110100011010001000100011000000/110101011100011001001000111100011/101101101011100010101010110100101/000101010110110111110101101010010/111101110000101110110110111101001/010111000000010110100010111000011/100110100110110111000100010101111/011101011010100011111100111010001/101110110111001111001101111110001/000000001000101010001110100011001/111111100101101001000101101010101/100000100001110100011110100011010/101110101011101000010110111111000/101110100000000101000110100110101/101110101001101001101000110011101/100000100001000101101101110110010/111111101101011011001111110000011";
+
+function qrTest (): void
+{
+    const golden = QR_GOLDEN.split ("/");
+    const code = encodeQr ("http://instrument-hub.local:8080/remote?code=987654", { mask: 0 });
+
+    check (code.size === 33 && code.version === 4, "QR is version 4 (33×33)");
+    check (code.modules.map (row => row.map (value => value ? "1" : "0").join ("")).join ("/")
+               === golden.join ("/"),
+           "QR matrix matches the qrencode reference (mode, RS, interleave, format)");
+
+    const path = qrPathData (code);
+    check (path.length > 1000 && path.startsWith ("M0 0h1v1h-1z"),
+           "QR path starts with the top-left finder module");
+
+    const fixture = encodeQr (PAIRING_ON.payload);
+    check (fixture.mask >= 0 && fixture.mask <= 7, "QR selects a valid mask");
+    check (fixture.modules[0]!.slice (0, 7).every (Boolean)
+               && fixture.modules[0]![7] === false,
+           "top-left finder pattern is present");
+    check (fixture.modules[fixture.size - 7]!.slice (0, 7).every (Boolean)
+               && fixture.modules[fixture.size - 1]![0] === true,
+           "bottom-left finder pattern is present");
+    check (fixture.modules[0]!.slice (fixture.size - 7).every (Boolean),
+           "top-right finder pattern is present");
+
+    let tooLong = false;
+
+    try
+    {
+        encodeQr ("x".repeat (63));
+    }
+    catch
+    {
+        tooLong = true;
+    }
+
+    check (tooLong, "a payload beyond version 4's capacity is rejected");
+
+    check (codeFromSearch ("?code=123456") === "123456", "the QR link supplies the code");
+    check (codeFromSearch ("?code=12x456") === null, "a malformed link code is ignored");
+    check (codeFromSearch ("?other=1") === null, "a link without a code is ignored");
+}
+
+async function pairingTest (): Promise<void>
+{
+    const storage = new MemoryStorage ();
+    const server = await startFixtureServer ();
+
+    try
+    {
+        const store = new AppStore (
+            createControlApi ({ baseUrl: server.baseUrl }),
+            { storage, pollIntervalMs: 60_000 });
+
+        await store.refresh ();
+
+        check (store.getSnapshot ().pairing?.lanEnabled === false,
+               "the desktop reads LAN mode off from GET /pairing");
+        check (store.token === null, "a fresh desktop has no pairing token");
+
+        const before = renderApp (store);
+
+        check (before.includes ('data-testid="pairing" data-lan="false"'),
+               "pairing card renders with LAN mode off");
+        check (! before.includes ('data-testid="pairing-qr"'),
+               "no QR is rendered before LAN mode is enabled");
+
+        const enabled = await store.toggleLan (true);
+
+        check (enabled, "turning LAN mode on succeeds");
+        check (store.getSnapshot ().pairing?.lanEnabled === true,
+               "the store adopts the LAN-on pairing state");
+        check (store.token === "fixture-pairing-token",
+               "the desktop pairs itself with the issued code");
+        check (server.lanRequests.at (-1) === true, "POST /pairing/lan received enabled: true");
+        check (server.pairRequests.includes ("246810"),
+               "the desktop redeemed the first six-digit code");
+        check (loadPairingToken (storage) === "fixture-pairing-token",
+               "the pairing token is stored client-side");
+
+        const after = renderApp (store);
+
+        check (after.includes ('data-testid="pairing" data-lan="true"'),
+               "pairing card reports LAN mode on");
+        check (after.includes ('data-testid="lan-toggle" aria-pressed="true"'),
+               "the LAN toggle is pressed after enabling");
+        check (after.includes ('data-testid="pairing-code" data-code="135790"'),
+               "the rotated six-digit code reaches the panel");
+        check (after.includes ("135 790"), "the code is readable in three-digit groups");
+        check (after.includes ('data-testid="pairing-qr"')
+                   && after.includes ('data-payload="http://192.168.1.20:8080/remote?code=135790"'),
+               "the QR carries the live remote payload");
+        check (after.includes ('data-version="4"'), "the QR identifies its version");
+        check (after.includes ('data-testid="pairing-expiry">5:00<'),
+               "the panel shows the code lifetime");
+        check (after.includes ('data-testid="pairing-clients">1<'),
+               "the panel counts the paired desktop");
+        check (after.includes ('data-testid="pairing-token-state" data-paired="true"'),
+               "the desktop reports itself as paired");
+
+        // --- The acceptance flow, through a brand-new client --------------
+        const anonymous = createControlApi ({ baseUrl: server.baseUrl });
+        let unpairedStatus = 0;
+
+        try
+        {
+            await anonymous.getState ();
+        }
+        catch (error)
+        {
+            unpairedStatus = error instanceof ApiError ? error.status : 0;
+        }
+
+        check (unpairedStatus === 401, "an unpaired client gets 401");
+
+        let wrongCodeStatus = 0;
+
+        try
+        {
+            await anonymous.pair ("000000");
+        }
+        catch (error)
+        {
+            wrongCodeStatus = error instanceof ApiError ? error.status : 0;
+        }
+
+        check (wrongCodeStatus === 401, "a wrong six-digit code is rejected");
+
+        const paired = await anonymous.pair (server.pairing.code);
+
+        check (paired.token === "fixture-pairing-token", "pairing with the code returns a token");
+
+        anonymous.setToken (paired.token);
+
+        const state = await anonymous.getState ();
+
+        check (state.armedSlot === 3, "the token grants GET /state");
+
+        // --- Tablet gate ---------------------------------------------------
+        const gate = renderToStaticMarkup (
+            <PairingGate pairing={server.pairing} initialCode="246810" onPair={() => {}} />);
+
+        check (gate.includes ('data-testid="pairing-gate"'), "the remote gate renders");
+        check (gate.includes ('data-testid="pairing-code-input"')
+                   && gate.includes ('value="246810"'),
+               "the gate pre-fills the scanned code");
+        check (gate.includes ('data-testid="pairing-submit"'), "the gate has a pair button");
+        check (gate.includes ("stays in this browser"), "the gate explains token storage");
+
+        // --- Forget / turn LAN mode off -----------------------------------
+        check (await store.forgetPairing (), "forgetting paired tablets succeeds");
+        check (store.getSnapshot ().pairing?.pairedClients === 1,
+               "forget revokes others and re-pairs this desktop");
+        check (loadPairingToken (storage) === "fixture-pairing-token",
+               "forgetting keeps this browser's fresh token");
+
+        check (await store.toggleLan (false), "turning LAN mode off succeeds");
+        check (store.getSnapshot ().pairing?.lanEnabled === false,
+               "the store adopts the LAN-off pairing state");
+        check (store.token === null, "turning LAN mode off drops the local token");
+        check (loadPairingToken (storage) === null, "the stored token is removed");
+
+        const off = renderApp (store);
+
+        check (off.includes ('data-testid="pairing" data-lan="false"'),
+               "the card returns to the LAN-off state");
+        check (! off.includes ('data-testid="pairing-qr"'),
+               "the QR disappears when LAN mode is off");
+    }
+    finally
+    {
+        await server.close ();
+    }
+}
+
 async function snapshotTest (): Promise<void>
 {
     const externalUrl = process.argv
@@ -629,6 +1002,15 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     check (html.includes ('data-testid="xrun-count"'), "panel shows the xrun counter");
     check (html.includes ('data-testid="measure-button"'), "panel shows the Measure button");
     check (html.includes ('data-open="true"'), "panel reports the device is open");
+    check (html.includes ('data-testid="pairing"'), "desktop shows the tablet pairing card");
+    check (html.includes ('data-testid="pairing" data-lan="false"'),
+           "LAN mode is off by default");
+    check (html.includes ('data-testid="lan-toggle" aria-pressed="false"'),
+           "the LAN toggle starts off");
+    check (! html.includes ('data-testid="pairing-qr"'),
+           "no QR code is rendered while LAN mode is off");
+    check (html.includes ('data-testid="pairing-token-state" data-paired="false"'),
+           "an unpaired desktop reports no token");
     check (countOf (html, 'data-testid="output-channel"')
                === (store.getSnapshot ().audio?.outputChannels.length ?? 0),
            "panel maps every output channel the engine reports");
@@ -881,6 +1263,8 @@ async function backoffTest (): Promise<void>
 {
     const failingApi = {
         baseUrl: "http://127.0.0.1:1",
+        token: null as string | null,
+        setToken (): void {},
         getState: async (): Promise<ControlState> =>
         {
             throw new Error ("connection refused");
@@ -902,6 +1286,22 @@ async function backoffTest (): Promise<void>
             throw new Error ("connection refused");
         },
         measureLatency: async (): Promise<ControlAudioMeasurement> =>
+        {
+            throw new Error ("connection refused");
+        },
+        getPairing: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        setLanMode: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        pair: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        revokePairing: async () =>
         {
             throw new Error ("connection refused");
         },
@@ -1190,6 +1590,8 @@ async function main (): Promise<void>
     meterTest ();
     loadingTest ();
     await audioSettingsTest ();
+    await pairingTest ();
+    qrTest ();
     remoteSnapshotTest ();
     remoteModelTest ();
     await remoteInteractionTest ();
