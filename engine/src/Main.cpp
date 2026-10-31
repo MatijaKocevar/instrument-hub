@@ -1,13 +1,16 @@
 #include "Bridge/WebView.h"
 #include "audio/AudioEngine.h"
 #include "audio/DeviceManager.h"
+#include "audio/RtGuard.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace
@@ -16,6 +19,213 @@ constexpr int kWindowWidth = 1200;
 constexpr int kWindowHeight = 800;
 constexpr double kUiCheckTimeoutMs = 20000.0;
 
+//==============================================================================
+// --rt-strict (T014)
+
+/** Keeps a deliberately injected allocation observable to the optimiser.
+
+    `void* volatile` is a volatile pointer, so assigning to it is an observable
+    side effect and the allocation cannot be elided at -O2.
+*/
+void* volatile allocationEscapeSink = nullptr;
+
+enum class RtInjection
+{
+    none,
+    allocation,
+    lock,
+    log
+};
+
+const char* toString (RtInjection injection) noexcept
+{
+    switch (injection)
+    {
+        case RtInjection::none:       return "none";
+        case RtInjection::allocation: return "allocation";
+        case RtInjection::lock:       return "lock";
+        case RtInjection::log:        return "log";
+    }
+
+    return "none";
+}
+
+/** A readable source that can deliberately break the audio-thread contract.
+
+    The sine keeps the engine on the real processing path; the injection is
+    performed at the end of `process()`, exactly where a buggy instrument or
+    effect would do it.
+*/
+class RtProbeSource final : public AudioEngine::SlotSource
+{
+public:
+    explicit RtProbeSource (RtInjection injectionToUse)
+        : injection (injectionToUse),
+          logText ("rt-guard injected log message")
+    {
+    }
+
+    void prepare (double newSampleRate, int) override
+    {
+        sampleRate = newSampleRate > 0.0 ? newSampleRate : 48000.0;
+        position = 0;
+    }
+
+    void setArmed (bool shouldBeArmed) noexcept { armed = shouldBeArmed; }
+
+    void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override
+    {
+        const int samples = buffer.getNumSamples();
+        const int channels = buffer.getNumChannels();
+
+        const double phase = juce::MathConstants<double>::twoPi * frequency
+                             * static_cast<double> (position) / sampleRate;
+        const double increment = juce::MathConstants<double>::twoPi * frequency / sampleRate;
+
+        for (int i = 0; i < samples; ++i)
+        {
+            const auto value = static_cast<float> (amplitude
+                                                   * std::sin (phase + increment
+                                                               * static_cast<double> (i)));
+
+            for (int channel = 0; channel < channels; ++channel)
+                buffer.getWritePointer (channel)[i] = value;
+        }
+
+        position += samples;
+
+        if (! armed)
+            return;
+
+        switch (injection)
+        {
+            case RtInjection::none:
+                break;
+
+            case RtInjection::allocation:
+            {
+                auto* scratch = new float[8];
+                scratch[0] = static_cast<float> (position);
+
+                // Publish the pointer through a volatile sink so the optimiser
+                // cannot reduce new/delete to a stack buffer at -O2.
+                allocationEscapeSink = scratch;
+                delete[] scratch;
+                allocationEscapeSink = nullptr;
+                break;
+            }
+
+            case RtInjection::lock:
+            {
+                std::mutex mutex;
+                const std::lock_guard<std::mutex> lock (mutex);
+                break;
+            }
+
+            case RtInjection::log:
+                juce::Logger::writeToLog (logText);
+                break;
+        }
+    }
+
+private:
+    RtInjection injection;
+    juce::String logText;
+
+    double sampleRate = 48000.0;
+    double frequency = 440.0;
+    double amplitude = 0.1;
+    std::int64_t position = 0;
+    bool armed = false;
+};
+
+/** Renders the engine under RtGuard and reports whether it stayed clean.
+
+    In strict mode an injected allocation/lock/log aborts inside the first
+    block, which is exactly what the acceptance check expects.
+*/
+int runRtStrictCheck (const juce::String& commandLine)
+{
+    if (! AudioEngine::RtGuard::isCompiledIn())
+    {
+        std::cerr << "rt-strict: FAILED, the realtime guard is compiled out of this "
+                     "build (configure with -DIHUB_ENABLE_RT_GUARD=ON)" << std::endl;
+        return 2;
+    }
+
+    RtInjection injection = RtInjection::none;
+
+    if (commandLine.contains ("--rt-inject-allocation"))
+        injection = RtInjection::allocation;
+    else if (commandLine.contains ("--rt-inject-lock"))
+        injection = RtInjection::lock;
+    else if (commandLine.contains ("--rt-inject-log"))
+        injection = RtInjection::log;
+
+    constexpr double sampleRate = 48000.0;
+    constexpr int blockSize = 128;
+    constexpr int measuredBlocks = 200;
+
+    AudioEngine::RtGuard::resetCounters();
+    AudioEngine::RtGuard::setEnabled (true);
+    AudioEngine::RtGuard::setStrict (false);
+    AudioEngine::RtGuard::installLogProbe();
+
+    AudioEngine::AudioEngine engine (2, 2);
+    RtProbeSource source (injection);
+
+    engine.getSlot (0).setSource (&source);
+    engine.getSlot (0).activate();
+
+    // prepare() is a setup call: allocations here are expected and legal.
+    engine.prepare (sampleRate, blockSize, 2);
+
+    juce::AudioBuffer<float> output (2, blockSize);
+    juce::MidiBuffer midi;
+
+    // Run the activation ramp with the injection disarmed, then measure from a
+    // clean slate. This also warms every lazily initialised path.
+    for (int block = 0; block < 4; ++block)
+        engine.processBlock (output, midi, blockSize);
+
+    const auto warmupCounters = AudioEngine::RtGuard::getCounters();
+
+    AudioEngine::RtGuard::resetCounters();
+    source.setArmed (true);
+    AudioEngine::RtGuard::setStrict (true);
+
+    if (injection != RtInjection::none)
+        std::cout << "rt-strict: injecting " << toString (injection)
+                  << ", expecting an abort" << std::endl;
+
+    for (int block = 0; block < measuredBlocks; ++block)
+        engine.processBlock (output, midi, blockSize);
+
+    // Unreachable when an injection aborted in strict mode.
+    const auto measuredCounters = AudioEngine::RtGuard::getCounters();
+    const bool balanced = AudioEngine::RtGuard::assertNoOpenScopes();
+    const int openScopes = AudioEngine::RtGuard::getOpenScopeCount();
+
+    AudioEngine::RtGuard::setStrict (false);
+    AudioEngine::RtGuard::uninstallLogProbe();
+
+    const auto total = warmupCounters.total() + measuredCounters.total();
+    const bool passed = total == 0 && balanced && openScopes == 0;
+
+    std::cout << "rt-strict: blocks=" << measuredBlocks
+              << " warmup_violations=" << warmupCounters.total()
+              << " violations=" << measuredCounters.total()
+              << " (alloc=" << measuredCounters.allocations
+              << " lock=" << measuredCounters.locks
+              << " log=" << measuredCounters.logs
+              << " scope=" << measuredCounters.scopeErrors << ")"
+              << " open_scopes=" << openScopes
+              << " " << (passed ? "PASS" : "FAIL") << std::endl;
+
+    return passed ? 0 : 1;
+}
+
+//==============================================================================
 int runLatencyMeasurement()
 {
     constexpr int runs = 5;
@@ -147,6 +357,13 @@ public:
     {
         uiCheckMode = commandLine.contains ("--ui-check");
         selftestMode = commandLine.contains ("--selftest");
+
+        if (commandLine.contains ("--rt-strict"))
+        {
+            setApplicationReturnValue (runRtStrictCheck (commandLine));
+            quit();
+            return;
+        }
 
         if (commandLine.contains ("--list-devices"))
         {

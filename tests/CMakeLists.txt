@@ -243,3 +243,86 @@ add_test(
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-latency-probe PROPERTIES DISABLED TRUE)
 endif()
+
+# --- Realtime safety harness (T014) -----------------------------------------
+#
+# Renders the fixed graph under RtGuard, requires zero violations on the normal
+# path, and forks a child per injected allocation/lock/log to prove that strict
+# mode aborts with SIGABRT and names the violation.
+
+if(IHUB_ENABLE_RT_GUARD)
+    juce_add_console_app(ihub-rt-guard-test
+        PRODUCT_NAME "ihub-rt-guard-test"
+    )
+
+    target_sources(ihub-rt-guard-test
+        PRIVATE
+            rt_guard/RtGuardTest.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+    )
+
+    target_include_directories(ihub-rt-guard-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-rt-guard-test PRIVATE IHUB_RT_GUARD=1)
+
+    target_link_libraries(ihub-rt-guard-test
+        PRIVATE
+            juce::juce_audio_devices
+            juce::juce_core
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_definitions(ihub-rt-guard-test PRIVATE
+            IHUB_RT_GUARD_WRAP_MALLOC=1
+            IHUB_RT_GUARD_WRAP_LOCKS=1
+        )
+
+        target_link_options(ihub-rt-guard-test PRIVATE
+            "-Wl,--wrap=malloc"
+            "-Wl,--wrap=calloc"
+            "-Wl,--wrap=realloc"
+            "-Wl,--wrap=pthread_mutex_lock"
+            "-Wl,--wrap=pthread_mutex_trylock"
+            "-Wl,--wrap=pthread_mutex_timedlock"
+            "-Wl,--wrap=pthread_spin_lock"
+            "-Wl,--wrap=pthread_spin_trylock"
+            "-Wl,--wrap=pthread_rwlock_rdlock"
+            "-Wl,--wrap=pthread_rwlock_wrlock"
+            "-Wl,--wrap=pthread_rwlock_tryrdlock"
+            "-Wl,--wrap=pthread_rwlock_trywrlock"
+        )
+
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(ihub-rt-guard-test PRIVATE
+                $<$<COMPILE_LANGUAGE:CXX>:-Wno-mismatched-new-delete>)
+        endif()
+    endif()
+
+    set_target_properties(ihub-rt-guard-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-rt-guard
+        COMMAND ihub-rt-guard-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-rt-guard-test: disabled (IHUB_ENABLE_RT_GUARD=OFF)")
+endif()

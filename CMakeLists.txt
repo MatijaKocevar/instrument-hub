@@ -12,6 +12,27 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 enable_testing()
 
+# --- Realtime safety harness (T014) ------------------------------------------
+#
+# RtGuard is a debug-time assertion layer: it replaces operator new and wraps
+# malloc/pthread so that allocation, locking or logging inside a
+# processBlock() scope is caught (and aborts in --rt-strict mode). Release
+# builds compile it out unless explicitly requested.
+
+if(NOT DEFINED IHUB_ENABLE_RT_GUARD)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+        set(IHUB_ENABLE_RT_GUARD_DEFAULT OFF)
+    else()
+        set(IHUB_ENABLE_RT_GUARD_DEFAULT ON)
+    endif()
+else()
+    set(IHUB_ENABLE_RT_GUARD_DEFAULT ${IHUB_ENABLE_RT_GUARD})
+endif()
+
+option(IHUB_ENABLE_RT_GUARD
+       "Compile the realtime safety guard (allocation/lock/log assertions)"
+       ${IHUB_ENABLE_RT_GUARD_DEFAULT})
+
 add_subdirectory(third_party/JUCE)
 add_subdirectory(engine)
 add_subdirectory(tests)

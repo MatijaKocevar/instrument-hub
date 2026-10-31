@@ -95,6 +95,32 @@ scripts/build.sh                       # configure + build
 ./build/engine/instrument-hub --list-devices
 ./build/engine/instrument-hub --measure-latency
 ./build/engine/instrument-hub --snapshot out.png
+./build/engine/instrument-hub --rt-strict
 ./build/tests/ihub-selftest --midi-probe
 ctest --test-dir build --output-on-failure
 ```
+
+## Realtime safety harness (T014)
+
+`RtGuard` is compiled into Debug and RelWithDebInfo builds. It replaces
+`operator new`, wraps `malloc`/`pthread_mutex_*` at link time and installs a
+`juce::Logger` probe, so allocation, locking or logging inside a
+`processBlock()` scope is counted and — in strict mode — aborts with a
+diagnostic naming the violation.
+
+```bash
+# Normal path: must print PASS and exit 0
+./build/engine/instrument-hub --rt-strict
+
+# Deliberate violations: each must abort (exit 134 / SIGABRT)
+./build/engine/instrument-hub --rt-strict --rt-inject-allocation
+./build/engine/instrument-hub --rt-strict --rt-inject-lock
+./build/engine/instrument-hub --rt-strict --rt-inject-log
+
+# Same checks, fork-isolated, as part of the normal test run
+./build/tests/ihub-rt-guard-test
+```
+
+Release builds compile the harness out by default; configure with
+`-DIHUB_ENABLE_RT_GUARD=ON` to keep it, or `OFF` to drop it from a development
+build.

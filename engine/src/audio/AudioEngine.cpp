@@ -1,4 +1,5 @@
 #include "AudioEngine.h"
+#include "RtGuard.h"
 
 #include <cmath>
 
@@ -101,6 +102,10 @@ void AudioEngine::processBlock (juce::AudioBuffer<float>& output,
                                 juce::MidiBuffer& midi,
                                 int numSamples) noexcept
 {
+    // T014: every violation of the audio-thread contract inside this call
+    // (allocation, lock or log) aborts in --rt-strict mode.
+    const RtGuard::Scope rtScope;
+
     if (! prepared || numSamples <= 0)
     {
         output.clear();
@@ -189,6 +194,7 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const*,
                                                     int numSamples,
                                                     const juce::AudioIODeviceCallbackContext&)
 {
+    const RtGuard::Scope rtScope;
     const auto timingToken = timingMonitor.beginCallback();
 
     if (outputChannelData == nullptr)
