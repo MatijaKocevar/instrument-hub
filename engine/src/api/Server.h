@@ -25,6 +25,11 @@ struct SlotSnapshot
     int index = 0;
     std::string name;
     bool armed = false;
+
+    /** Instrument + FX latency of this slot's chain. */
+    int latencySamples = 0;
+    /** The same total at the sample rate it was measured at. */
+    double latencyMs = 0.0;
 };
 
 /** Mutable settings exposed by `GET /settings` and `POST /settings`.
@@ -243,6 +248,15 @@ public:
     int getNumSlots() const noexcept;
     void setSlotName (int slot, std::string name);
 
+    /** Publishes the latency of one slot's instrument + FX chain.
+
+        Pass the slot's current sample rate; it is used for the millisecond
+        readout. Values are clamped to zero and ignored for an invalid slot.
+        Call from the control/message thread after a chain change, never from
+        the audio callback.
+    */
+    void setSlotLatency (int slot, int samples, double sampleRate);
+
     //==============================================================================
     // Inspection
 
@@ -255,6 +269,8 @@ private:
     const int numSlots;
     int armedSlot = -1;
     std::vector<std::string> slotNames;
+    std::vector<int> slotLatencySamples;
+    std::vector<double> slotLatencyMs;
     SettingsState settings;
     TransportState transport;
 

@@ -49,14 +49,14 @@ const FIXTURE: ControlState = {
     armedSlot: 3,
     uptimeMs: 128_000,
     slots: [
-        { index: 0, name: "Studio Grand", armed: false },
-        { index: 1, name: "Warm Pad", armed: false },
-        { index: 2, name: "Electric Keys", armed: false },
-        { index: 3, name: "Sub Bass", armed: true },
-        { index: 4, name: "Drum Kit", armed: false },
-        { index: 5, name: "Analog Brass", armed: false },
-        { index: 6, name: "Vocal Chop", armed: false },
-        { index: 7, name: "Empty Slot", armed: false },
+        { index: 0, name: "Studio Grand", armed: false, latencySamples: 0, latencyMs: 0 },
+        { index: 1, name: "Warm Pad", armed: false, latencySamples: 72, latencyMs: 1.5 },
+        { index: 2, name: "Electric Keys", armed: false, latencySamples: 0, latencyMs: 0 },
+        { index: 3, name: "Sub Bass", armed: true, latencySamples: 240, latencyMs: 5 },
+        { index: 4, name: "Drum Kit", armed: false, latencySamples: 120, latencyMs: 2.5 },
+        { index: 5, name: "Analog Brass", armed: false, latencySamples: 0, latencyMs: 0 },
+        { index: 6, name: "Vocal Chop", armed: false, latencySamples: 96, latencyMs: 2 },
+        { index: 7, name: "Empty Slot", armed: false, latencySamples: 0, latencyMs: 0 },
     ],
     settings: { masterGain: 0.82, inputGain: 1.0, midiChannel: 2, metronome: true },
     transport: { playing: true, bpm: 128, ppq: 16.5, positionSamples: 384_512 },
@@ -103,17 +103,45 @@ const GRID_FAMILIES: GridFamily[] = [
         id: "keys",
         name: "Keys",
         patches: [
-            { id: "piano", name: "Grand Piano", slot: 0 },
-            { id: "strings", name: "Warm Strings", slot: 1 },
+            { id: "piano", name: "Grand Piano", slot: 0, latencySamples: 0, latencyMs: 0 },
+            { id: "strings", name: "Warm Strings", slot: 1, latencySamples: 72, latencyMs: 1.5 },
         ],
     },
-    { id: "drums", name: "Drums", patches: [{ id: "kit", name: "Acoustic Kit", slot: 2 }] },
-    { id: "bass", name: "Bass", patches: [{ id: "sub", name: "Sub Bass", slot: 3 }] },
-    { id: "pads", name: "Pads", patches: [{ id: "air", name: "Air Pad", slot: 4 }] },
-    { id: "lead", name: "Lead", patches: [{ id: "saw", name: "Saw Lead", slot: 5 }] },
-    { id: "fx", name: "FX", patches: [{ id: "riser", name: "Riser", slot: 6 }] },
-    { id: "vocal", name: "Vocal", patches: [{ id: "chop", name: "Vocal Chop", slot: 7 }] },
-    { id: "perc", name: "Percussion", patches: [{ id: "shaker", name: "Shaker", slot: null }] },
+    {
+        id: "drums",
+        name: "Drums",
+        patches: [{ id: "kit", name: "Acoustic Kit", slot: 2, latencySamples: 0, latencyMs: 0 }],
+    },
+    {
+        id: "bass",
+        name: "Bass",
+        patches: [{ id: "sub", name: "Sub Bass", slot: 3, latencySamples: 240, latencyMs: 5 }],
+    },
+    {
+        id: "pads",
+        name: "Pads",
+        patches: [{ id: "air", name: "Air Pad", slot: 4, latencySamples: 120, latencyMs: 2.5 }],
+    },
+    {
+        id: "lead",
+        name: "Lead",
+        patches: [{ id: "saw", name: "Saw Lead", slot: 5, latencySamples: 48, latencyMs: 1 }],
+    },
+    {
+        id: "fx",
+        name: "FX",
+        patches: [{ id: "riser", name: "Riser", slot: 6, latencySamples: 96, latencyMs: 2 }],
+    },
+    {
+        id: "vocal",
+        name: "Vocal",
+        patches: [{ id: "chop", name: "Vocal Chop", slot: 7, latencySamples: 24, latencyMs: 0.5 }],
+    },
+    {
+        id: "perc",
+        name: "Percussion",
+        patches: [{ id: "shaker", name: "Shaker", slot: null }],
+    },
 ];
 
 const GRID_MODEL = createGridModel (GRID_FAMILIES, 2);
@@ -523,6 +551,10 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     check (countOf (html, 'data-testid="grid-column"') === 8, "snapshot shows 8 patch columns");
     check (countOf (html, 'data-testid="grid-cell"') === 64, "snapshot shows a full 8×8 grid");
     check (countOf (html, 'data-testid="slot-meter"') === 8, "every slot has a level meter");
+    check (countOf (html, 'data-testid="slot-latency"') === 8,
+           "every fetched slot shows its chain latency");
+    check (html.includes ('data-testid="slot-latency" data-slot="3" data-latency-samples="240" data-latency-ms="5.000"'),
+           "the API chain latency reaches the grid");
     check (html.includes ('data-phase="ready"'), "connection is ready");
     check (html.includes ("Connected"), "snapshot shows the connected status");
     check (html.includes ("Instrument Hub"), "snapshot shows the application name");
@@ -578,6 +610,11 @@ async function gridSnapshotTest (): Promise<void>
     check (countOf (html, 'data-testid="grid-cell"') === 64, "grid snapshot is 8×8 capable");
     check (countOf (html, 'data-empty="true"') === 55, "unused patches render as disabled cells");
     check (countOf (html, 'data-testid="slot-meter"') === 9, "each assigned patch owns a meter");
+    check (countOf (html, 'data-testid="slot-latency"') === 8,
+           "each assigned patch shows its chain latency");
+    check (html.includes ('data-testid="slot-latency" data-slot="3" data-latency-samples="240" data-latency-ms="5.000"'),
+           "the 5 ms chain latency is published into the grid markup");
+    check (html.includes (">5.00 ms<"), "the grid renders the latency in milliseconds");
     check (html.includes (">Keys<"), "grid names the first family");
     check (html.includes ("Grand Piano") && html.includes ("Warm Strings"),
            "a family renders more than one patch");

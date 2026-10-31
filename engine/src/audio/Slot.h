@@ -167,6 +167,13 @@ public:
     /** Latency reported by the current source plus the FX chain, in samples. */
     int latencySamples() const noexcept;
 
+    /** The same total expressed in milliseconds at the prepared sample rate.
+
+        Returns 0 before the slot has been prepared, so a control-thread reader
+        never divides by a zero sample rate.
+    */
+    double latencyMilliseconds() const noexcept;
+
 private:
     bool renderSource (int numSamples, juce::MidiBuffer& midi) noexcept;
     void applyGains (int numSamples, bool applyFade) noexcept;

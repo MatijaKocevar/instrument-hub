@@ -206,6 +206,10 @@ export interface components {
             name: string;
             /** @description True for the slot that keys and MIDI currently drive. */
             armed: boolean;
+            /** @description Instrument + FX latency of this slot's chain, in samples. */
+            latencySamples: number;
+            /** @description The same chain latency in milliseconds at the engine sample rate. */
+            latencyMs: number;
         };
         Settings: {
             /**

@@ -30,6 +30,14 @@ function pad2 (value: number): string
     return value.toString ().padStart (2, "0");
 }
 
+/** A compact, fixed-width chain latency readout for a patch cell. */
+function formatLatency (milliseconds: number): string
+{
+    const clamped = Math.max (0, Number.isFinite (milliseconds) ? milliseconds : 0);
+
+    return `${clamped.toFixed (2)} ms`;
+}
+
 function LoadingGrid (): ReactElement
 {
     return (
@@ -185,6 +193,8 @@ export function GridView ({
                                           const peak = slot === null
                                               ? 0
                                               : (meters.slots[slot]?.peak ?? 0);
+                                          const latencyMs = patch.latencyMs;
+                                          const latencySamples = patch.latencySamples;
 
                                           return (
                                               <button
@@ -214,6 +224,19 @@ export function GridView ({
                                                           ? <span className="grid__cell-badge">Armed</span>
                                                           : null}
                                                   </span>
+
+                                                  {latencyMs !== undefined
+                                                      ? <span
+                                                            className="grid__cell-latency"
+                                                            data-testid="slot-latency"
+                                                            data-slot={slot ?? -1}
+                                                            data-latency-samples={latencySamples ?? 0}
+                                                            data-latency-ms={latencyMs.toFixed (3)}
+                                                            title="Instrument + FX chain latency"
+                                                        >
+                                                            {formatLatency (latencyMs)}
+                                                        </span>
+                                                      : null}
 
                                                   <span
                                                       className="grid__cell-meter"

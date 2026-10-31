@@ -390,7 +390,7 @@ components:
 
     Slot:
       type: object
-      required: [index, name, armed]
+      required: [index, name, armed, latencySamples, latencyMs]
       additionalProperties: false
       properties:
         index:
@@ -403,6 +403,14 @@ components:
         armed:
           type: boolean
           description: True for the slot that keys and MIDI currently drive.
+        latencySamples:
+          type: integer
+          minimum: 0
+          description: Instrument + FX latency of this slot's chain, in samples.
+        latencyMs:
+          type: number
+          minimum: 0.0
+          description: The same chain latency in milliseconds at the engine sample rate.
 
     Settings:
       type: object

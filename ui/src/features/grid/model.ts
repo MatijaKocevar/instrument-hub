@@ -11,6 +11,10 @@ export interface GridPatch
     readonly name: string;
     /** Engine slot index, or `null` when the cell is defined but not playable yet. */
     readonly slot: number | null;
+    /** Instrument + FX latency of the slot's chain, in samples. */
+    readonly latencySamples?: number;
+    /** The same chain latency in milliseconds at the engine sample rate. */
+    readonly latencyMs?: number;
 }
 
 /** One family row: a named group of patches. */
@@ -69,6 +73,8 @@ export function gridFromState (state: ControlState | null): GridModel
                 id: `slot-${String (slot.index)}`,
                 name: slot.name,
                 slot: slot.index,
+                latencySamples: slot.latencySamples,
+                latencyMs: slot.latencyMs,
             },
         ],
     }));

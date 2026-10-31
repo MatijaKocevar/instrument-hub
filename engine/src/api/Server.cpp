@@ -33,6 +33,8 @@ StateStore::StateStore (int numSlotsToUse)
       startedAt (std::chrono::steady_clock::now())
 {
     slotNames.reserve (static_cast<std::size_t> (numSlots));
+    slotLatencySamples.assign (static_cast<std::size_t> (numSlots), 0);
+    slotLatencyMs.assign (static_cast<std::size_t> (numSlots), 0.0);
 
     for (int index = 0; index < numSlots; ++index)
         slotNames.push_back ("Slot " + std::to_string (index + 1));
@@ -243,6 +245,22 @@ void StateStore::setSlotName (int slot, std::string name)
     slotNames[static_cast<std::size_t> (slot)] = std::move (name);
 }
 
+void StateStore::setSlotLatency (int slot, int samples, double sampleRate)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+
+    if (slot < 0 || slot >= numSlots)
+        return;
+
+    const int clampedSamples = juce::jmax (0, samples);
+    const auto index = static_cast<std::size_t> (slot);
+
+    slotLatencySamples[index] = clampedSamples;
+    slotLatencyMs[index] = sampleRate > 0.0
+                               ? static_cast<double> (clampedSamples) * 1000.0 / sampleRate
+                               : 0.0;
+}
+
 StateSnapshot StateStore::snapshot() const
 {
     StateSnapshot result;
@@ -257,10 +275,14 @@ StateSnapshot StateStore::snapshot() const
 
         for (int index = 0; index < numSlots; ++index)
         {
+            const auto position = static_cast<std::size_t> (index);
+
             SlotSnapshot slot;
             slot.index = index;
-            slot.name = slotNames[static_cast<std::size_t> (index)];
+            slot.name = slotNames[position];
             slot.armed = index == armedSlot;
+            slot.latencySamples = slotLatencySamples[position];
+            slot.latencyMs = slotLatencyMs[position];
             result.slots.push_back (std::move (slot));
         }
     }

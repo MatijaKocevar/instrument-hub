@@ -221,6 +221,19 @@
   letter-spacing: 0.06em;
 }
 
+.grid__cell-latency {
+    color: #8d95aa;
+    font-size: 0.58rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.grid__cell--armed .grid__cell-latency {
+    color: #a8dfd0;
+}
+
 .grid__cell-badge {
   margin-left: auto;
   padding: 0.05rem 0.35rem;
