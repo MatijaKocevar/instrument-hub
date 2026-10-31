@@ -128,6 +128,7 @@ target_sources(instrument-hub
         src/plugins/PluginInstrument.cpp
         src/plugins/PluginCache.cpp
         src/plugins/PluginWindow.cpp
+        src/plugins/SandboxHost.cpp
         src/plugins/Scanner.cpp
         src/plugins/ScannerProcess.cpp
         src/project/Migrations.cpp
@@ -286,3 +287,58 @@ set_target_properties(ihub-scanner PROPERTIES
 
 # The app shells out to the helper; building the app should always produce it.
 add_dependencies(instrument-hub ihub-scanner)
+
+# --- Out-of-process plugin sandbox (T110) -----------------------------------
+#
+# Optional crash isolation for one instrument slot. SandboxHost creates a
+# shared-memory file and launches this helper, which is the only process that
+# loads the plugin:
+#
+#     ihub-sandbox --map <file> --plugin <bundle.vst3>
+#     ihub-sandbox --map <file> --fake-tone <hz> [--abort-after <blocks>]
+#
+# The second form is the test seam: a fake plugin that can take the sandbox
+# down on purpose. A plugin abort, segfault or hang can only end this helper;
+# the host watchdog marks the slot failed and audio keeps running.
+
+juce_add_console_app(ihub-sandbox
+    PRODUCT_NAME "ihub-sandbox"
+)
+
+target_sources(ihub-sandbox
+    PRIVATE
+        src/plugins/sandbox_main.cpp
+        src/plugins/SandboxClient.cpp
+        src/plugins/PluginInstrument.cpp
+        src/instruments/Instrument.cpp
+)
+
+target_include_directories(ihub-sandbox
+    PRIVATE
+        src
+)
+
+target_compile_definitions(ihub-sandbox
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+)
+
+target_link_libraries(ihub-sandbox
+    PRIVATE
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-sandbox PROPERTIES
+    OUTPUT_NAME "ihub-sandbox"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_dependencies(instrument-hub ihub-sandbox)
