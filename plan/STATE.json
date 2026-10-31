@@ -186,8 +186,8 @@
       "status": "done"
     },
     "T100": {
-      "attempts": 0,
-      "status": "todo"
+      "attempts": 1,
+      "status": "done"
     },
     "T101": {
       "attempts": 0,

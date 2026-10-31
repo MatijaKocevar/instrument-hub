@@ -13,6 +13,7 @@
 // written. A plugin crash therefore shows up as a signal, not an exit code.
 
 #include "ScannerProcess.h"
+#include "ProcessLimits.h"
 
 #include <juce_audio_processors_headless/juce_audio_processors_headless.h>
 
@@ -112,6 +113,7 @@ void printUsage()
 
 int main (int argc, char** argv)
 {
+    ihub::plugins::capFileDescriptorLimit();
     disableCoreDumps();
 
     juce::ScopedJuceInitialiser_GUI juceInitialiser;

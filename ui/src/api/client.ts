@@ -7,6 +7,7 @@ export type ControlState = components["schemas"]["State"];
 export type ControlSlot = components["schemas"]["Slot"];
 export type ControlSettings = components["schemas"]["Settings"];
 export type ControlTransport = components["schemas"]["Transport"];
+export type ControlTransportPatch = components["schemas"]["TransportPatch"];
 export type ControlAudioState = components["schemas"]["AudioState"];
 export type ControlAudioMeasurement = components["schemas"]["AudioMeasurement"];
 export type ControlAudioPatch = components["schemas"]["AudioPatch"];
@@ -56,6 +57,10 @@ export interface ControlApi
         its optimistic highlight with the engine.
     */
     armSlot (slot: number | null, options?: { signal?: AbortSignal }): Promise<ControlState>;
+
+    /** Start/stop or reposition the transport. */
+    controlTransport (patch: ControlTransportPatch,
+                      options?: { signal?: AbortSignal }): Promise<ControlTransport>;
 
     /** Read the audio device settings and live latency readout. */
     getAudio (options?: { signal?: AbortSignal }): Promise<ControlAudioState>;
@@ -109,6 +114,20 @@ function isControlState (value: unknown): value is ControlState
                && typeof slot.latencyMs === "number")
         && typeof candidate.settings?.masterGain === "number"
         && typeof candidate.transport?.bpm === "number";
+}
+
+/** Rejects transport payloads the remote cannot render. */
+function isTransport (value: unknown): value is ControlTransport
+{
+    if (value === null || typeof value !== "object")
+        return false;
+
+    const candidate = value as Partial<ControlTransport>;
+
+    return typeof candidate.playing === "boolean"
+        && typeof candidate.bpm === "number"
+        && typeof candidate.ppq === "number"
+        && typeof candidate.positionSamples === "number";
 }
 
 /** Rejects audio payloads the panel cannot render. */
@@ -209,6 +228,23 @@ export function createControlApi (options: ControlApiOptions): ControlApi
             });
 
             return requireState (data, error, response.status, "POST /arm");
+        },
+
+        async controlTransport (patch, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/transport", {
+                body: patch,
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            if (data !== undefined && isTransport (data))
+                return data;
+
+            const message = describeError (error);
+
+            throw new ApiError (
+                message.length > 0 ? message : `POST /transport failed with HTTP ${response.status}`,
+                response.status);
         },
 
         async getAudio (requestOptions)

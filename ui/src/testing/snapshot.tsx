@@ -24,6 +24,8 @@ import {
     type ControlAudioPatch,
     type ControlAudioState,
     type ControlState,
+    type ControlTransport,
+    type ControlTransportPatch,
 } from "../api/client";
 import {
     AudioSettingsPanel,
@@ -40,6 +42,13 @@ import {
     type MeterSocketEventLike,
     type MeterSocketLike,
 } from "../features/grid";
+import {
+    formatPosition,
+    isRemotePath,
+    RemoteView,
+    remoteFromState,
+    stepPatch,
+} from "../features/remote";
 import { AppStoreProvider } from "../state/AppStoreContext";
 import { AppStore } from "../state/store";
 
@@ -169,6 +178,7 @@ interface FixtureServer
     readonly stateRequests: number;
     readonly armRequests: readonly { slot: number | null }[];
     readonly audioRequests: readonly ControlAudioPatch[];
+    readonly transportRequests: readonly ControlTransportPatch[];
     readonly measureRequests: number;
     readonly audio: ControlAudioState;
     close: () => Promise<void>;
@@ -237,6 +247,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
     const audio = cloneAudio (AUDIO);
     const armRequests: { slot: number | null }[] = [];
     const audioRequests: ControlAudioPatch[] = [];
+    const transportRequests: ControlTransportPatch[] = [];
     let stateRequests = 0;
     let measureRequests = 0;
 
@@ -318,6 +329,48 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
                     setTimeout (apply, armDelayMs);
                 else
                     apply ();
+            });
+
+            return;
+        }
+
+        if (request.method === "POST" && request.url === "/transport")
+        {
+            let body = "";
+
+            request.on ("data", (chunk: Buffer) => { body += chunk.toString ("utf8"); });
+
+            request.on ("end", () =>
+            {
+                let parsed: ControlTransportPatch;
+
+                try
+                {
+                    parsed = JSON.parse (body) as ControlTransportPatch;
+                }
+                catch
+                {
+                    response.statusCode = 400;
+                    response.end (JSON.stringify ({ error: "body must be a JSON object" }));
+                    return;
+                }
+
+                transportRequests.push (parsed);
+
+                if (parsed.playing !== undefined)
+                    state.transport.playing = parsed.playing;
+
+                if (parsed.bpm !== undefined)
+                    state.transport.bpm = parsed.bpm;
+
+                if (parsed.ppq !== undefined)
+                    state.transport.ppq = parsed.ppq;
+
+                if (parsed.positionSamples !== undefined)
+                    state.transport.positionSamples = parsed.positionSamples;
+
+                response.statusCode = 200;
+                response.end (JSON.stringify (state.transport));
             });
 
             return;
@@ -435,6 +488,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         get stateRequests () { return stateRequests; },
         get armRequests () { return armRequests; },
         get audioRequests () { return audioRequests; },
+        get transportRequests () { return transportRequests; },
         get measureRequests () { return measureRequests; },
         get audio () { return audio; },
         close: () => new Promise ((resolve, reject) =>
@@ -835,6 +889,10 @@ async function backoffTest (): Promise<void>
         {
             throw new Error ("connection refused");
         },
+        controlTransport: async (): Promise<ControlTransport> =>
+        {
+            throw new Error ("connection refused");
+        },
         getAudio: async (): Promise<ControlAudioState> =>
         {
             throw new Error ("connection refused");
@@ -960,6 +1018,170 @@ async function audioSettingsTest (): Promise<void>
     }
 }
 
+function remoteSnapshotTest (): void
+{
+    const model = remoteFromState (FIXTURE);
+    const html = renderToStaticMarkup (
+        <RemoteView model={model} connection="ready" />);
+
+    writeArtifact ("ui-remote-snapshot.html", html);
+
+    check (html.length > 2000, "remote snapshot is non-blank");
+    check (html.includes ('data-testid="remote"'), "remote renders its root");
+    check (html.includes ('data-testid="remote-set-count">8 patches<'),
+           "remote set list reports eight patches");
+    check (countOf (html, 'data-testid="remote-set-item"') === 8,
+           "remote renders one large target per patch");
+    check (countOf (html, 'data-armed="true"') === 1, "exactly one remote patch is armed");
+    check (html.includes ('data-testid="remote-set-item" data-slot="3" data-armed="true"'),
+           "the remote highlights the armed slot");
+    check (html.includes ('data-testid="remote-current-name">Sub Bass<'),
+           "the now-playing card shows the armed patch");
+    check (html.includes ("chain 5.0 ms"), "the now-playing card shows chain latency");
+    check (html.includes ('data-testid="remote-prev"'), "remote has a previous-patch control");
+    check (html.includes ('data-testid="remote-next"'), "remote has a next-patch control");
+    check (html.includes ('data-testid="remote-play"'), "remote has a play/pause control");
+    check (html.includes ('data-testid="remote-stop"'), "remote has a transport stop control");
+    check (html.includes ('data-testid="remote-panic"'), "remote has a panic control");
+    check (html.includes ('data-testid="remote-bpm">128 BPM<'),
+           "remote shows the fetched tempo");
+    check (html.includes ('data-testid="remote-transport-state">Playing<'),
+           "remote shows the fetched transport state");
+    check (html.includes ('data-playing="true"'), "remote root reports playing state");
+    check (html.includes ('data-testid="remote-position">Bar 5.1'),
+           "remote shows the musical position");
+
+    const css = readFileSync (
+        fileURLToPath (new URL ("../src/features/remote/remote.css", import.meta.url)), "utf8");
+
+    check (/\.remote button\s*\{[^}]*min-height:\s*44px/s.test (css),
+           "every remote button has a 44 px minimum height");
+    check (/button\.remote__set-item\s*\{[^}]*min-height:\s*56px/s.test (css),
+           "set-list rows are larger than the 44 px minimum");
+    check (/button\.remote__step-button\s*\{[^}]*min-height:\s*clamp\(56px/s.test (css),
+           "previous/next buttons are at least 56 px high");
+    check (/button\.remote__panic-button\s*\{[^}]*min-height:\s*64px/s.test (css),
+           "panic is a 64 px target");
+    check (/overflow-x:\s*clip/.test (css), "the remote clamps horizontal overflow");
+    check (/grid-template-columns:\s*minmax\(0, 1\.5fr\) minmax\(0, 1fr\)/.test (css),
+           "the 1024 px layout uses two shrinkable columns");
+    check (/@media \(max-width: 820px\)/.test (css), "the remote is responsive below 820 px");
+    check (/(width|min-width):\s*(?:[5-9]\d|\d{3,})rem/.test (css) === false,
+           "no fixed layout width exceeds the viewport");
+
+    const minWidths = [...css.matchAll (/min-width:\s*(\d+)px/g)]
+        .map (match => Number (match[1]));
+
+    check (minWidths.length > 0 && minWidths.every (value => value === 0 || value >= 44),
+           "every pixel min-width is either zero or a 44 px+ touch target");
+
+    const loadingHtml = renderToStaticMarkup (
+        <RemoteView model={remoteFromState (null)} connection="connecting" loading />);
+
+    check (loadingHtml.includes ('aria-busy="true"'), "remote loading state is marked busy");
+    check (loadingHtml.includes ("Loading the set"), "remote loading state names the set");
+}
+
+function remoteModelTest (): void
+{
+    const model = remoteFromState (FIXTURE);
+
+    check (model.patches.length === 8, "remote model keeps every set-list patch");
+    check (model.armedSlot === 3, "remote model keeps the armed slot");
+    check (stepPatch (model, 1) === 4, "next moves one patch forward in set order");
+    check (stepPatch (model, -1) === 2, "previous moves one patch back in set order");
+
+    const last = { ...model, armedSlot: 7 };
+    const first = { ...model, armedSlot: 0 };
+    const none = { ...model, armedSlot: -1 };
+
+    check (stepPatch (last, 1) === 0, "next wraps from the last patch to the first");
+    check (stepPatch (first, -1) === 7, "previous wraps from the first patch to the last");
+    check (stepPatch (none, 1) === 0, "next from a disarmed set starts at the first patch");
+    check (stepPatch (none, -1) === 7, "previous from a disarmed set starts at the last patch");
+
+    const sparse = {
+        ...model,
+        patches: [
+            { id: "slot-1", name: "One", slot: 1, latencyMs: 0 },
+            { id: "slot-5", name: "Five", slot: 5, latencyMs: 0 },
+            { id: "slot-9", name: "Nine", slot: 9, latencyMs: 0 },
+        ],
+        armedSlot: 5,
+    };
+
+    check (stepPatch (sparse, 1) === 9 && stepPatch (sparse, -1) === 1,
+           "next/previous follow set order across non-contiguous slot numbers");
+    check (stepPatch ({ ...model, patches: [] }, 1) === null,
+           "stepping an empty set produces no slot");
+    check (formatPosition (16.5) === "5.1", "position 16.5 PPQ is bar 5 beat 1");
+    check (isRemotePath ("/remote") && isRemotePath ("/remote/")
+               && ! isRemotePath ("/") && ! isRemotePath ("/remote/extra"),
+           "only the /remote path selects the remote route");
+}
+
+async function remoteInteractionTest (): Promise<void>
+{
+    const server = await startFixtureServer ();
+
+    try
+    {
+        const store = new AppStore (
+            createControlApi ({ baseUrl: server.baseUrl }),
+            { pollIntervalMs: 60_000 });
+
+        await store.refresh ();
+
+        const initial = remoteFromState (store.getSnapshot ().state);
+        const next = stepPatch (initial, 1);
+
+        check (next === 4, "remote Next resolves to slot 4");
+        check (await store.armSlot (next), "remote Next arms the patch through POST /arm");
+
+        const afterNext = renderToStaticMarkup (
+            <RemoteView model={remoteFromState (store.getSnapshot ().state)} connection="ready" />);
+
+        check (afterNext.includes ('data-testid="remote-set-item" data-slot="4" data-armed="true"'),
+               "the remote highlight follows Next");
+        check (afterNext.includes ('data-testid="remote-current-name">Drum Kit<'),
+               "the now-playing card follows Next");
+
+        check (await store.updateTransport ({ playing: false }),
+               "remote transport control reaches POST /transport");
+        check (server.transportRequests.length === 1
+                   && server.transportRequests[0]?.playing === false,
+               "the engine received playing: false");
+
+        const paused = renderToStaticMarkup (
+            <RemoteView model={remoteFromState (store.getSnapshot ().state)} connection="ready" />);
+
+        check (paused.includes ('data-testid="remote-transport-state">Stopped<'),
+               "the remote renders the paused transport");
+        check (paused.includes ('data-testid="remote-play"') && paused.includes (">Play<"),
+               "the play button flips to Play");
+
+        check (await store.panic (), "panic stops the transport and disarms the set");
+        check (store.getSnapshot ().state?.armedSlot === -1, "panic leaves no armed slot");
+        check (server.armRequests.at (-1)?.slot === null, "panic sent a disarm request");
+        check (server.transportRequests.at (-1)?.playing === false,
+               "panic stopped the transport");
+        check (server.transportRequests.at (-1)?.ppq === 0,
+               "panic rewound the transport");
+
+        const panicked = renderToStaticMarkup (
+            <RemoteView model={remoteFromState (store.getSnapshot ().state)} connection="ready" />);
+
+        check (panicked.includes ('data-testid="remote-current-name">Nothing armed<'),
+               "the remote shows nothing armed after panic");
+        check (countOf (panicked, 'data-armed="true"') === 0,
+               "no set-list row stays highlighted after panic");
+    }
+    finally
+    {
+        await server.close ();
+    }
+}
+
 async function main (): Promise<void>
 {
     await snapshotTest ();
@@ -968,6 +1190,9 @@ async function main (): Promise<void>
     meterTest ();
     loadingTest ();
     await audioSettingsTest ();
+    remoteSnapshotTest ();
+    remoteModelTest ();
+    await remoteInteractionTest ();
     await reconnectTest ();
     await backoffTest ();
 

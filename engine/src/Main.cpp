@@ -4,6 +4,7 @@
 #include "audio/AudioSettings.h"
 #include "audio/DeviceManager.h"
 #include "audio/RtGuard.h"
+#include "plugins/ProcessLimits.h"
 #include "plugins/Scanner.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -656,6 +657,8 @@ public:
 
     void initialise (const juce::String& commandLine) override
     {
+        ihub::plugins::capFileDescriptorLimit();
+
         uiCheckMode = commandLine.contains ("--ui-check");
         selftestMode = commandLine.contains ("--selftest");
         serveMode = commandLine.contains ("--serve");

@@ -80,3 +80,25 @@ be replaced when `/state` carries families.
 The grid-specific snapshot (`tests/artifacts/ui-grid-snapshot.html`) renders
 8 families × 8 columns with live meter values, and the arm test proves the
 highlight changes before the delayed HTTP response arrives.
+
+## Stage remote (`/remote`)
+
+`src/features/remote/` is the tablet route. Open `http://<engine>:8080/remote`
+(or `http://localhost:5173/remote` in development); `main.tsx` picks the route
+from the pathname without shipping a router.
+
+- **Touch first** — every button has a 44 px floor; patch rows are 56 px,
+  previous/next 56 px+, panic 64 px.
+- **Set list** — the engine's slot order, one large target per patch. Tapping
+  a row arms it through the same optimistic `AppStore.armSlot()` as the grid.
+- **Next / previous** — walks the set order and wraps at both ends. A sparse
+  slot list still steps patch-to-patch rather than to a missing slot.
+- **Transport** — Play/Pause and Stop (stop rewinds) go through `POST
+  /transport`; the buttons update optimistically and roll back on failure.
+- **Panic** — stops the transport, rewinds it and disarms every patch.
+- **Responsive** — two columns at 820 px and wider, one column below; the set
+  list scrolls inside its card and the document never scrolls sideways.
+
+The remote-specific snapshot is `tests/artifacts/ui-remote-snapshot.html`; the
+1024×768 browser snapshot is `tests/artifacts/t100-remote-1024x768.png`.
+
