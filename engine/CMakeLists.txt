@@ -140,6 +140,7 @@ target_sources(instrument-hub
         src/project/PluginStateStore.cpp
         src/project/SetFile.cpp
         src/project/Serializer.cpp
+        src/Session.cpp
         src/sampler/Kit.cpp
         src/sampler/KitLoader.cpp
         src/sampler/SampleLoader.cpp
