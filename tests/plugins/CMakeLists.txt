@@ -95,3 +95,87 @@ add_test(
     COMMAND ihub-testplugin-scan-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Plugin scanner acceptance (T021) ---------------------------------------
+#
+# The scanner must survive a plugin that crashes while being loaded. The fake
+# bundle below is a shared library whose ELF constructor raises SIGSEGV inside
+# dlopen(); JUCE's VST3 fast path is disabled by simply not writing a
+# moduleinfo.json, so the helper really loads it.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    execute_process(
+        COMMAND uname -m
+        OUTPUT_VARIABLE IHUB_MACHINE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    set(IHUB_CRASHING_BUNDLE
+        "${CMAKE_CURRENT_BINARY_DIR}/fake/CrashingPlugin.vst3")
+
+    add_library(ihub-crashing-vst3 MODULE
+        CrashingPlugin/CrashingPlugin.cpp
+    )
+
+    set_target_properties(ihub-crashing-vst3 PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME "CrashingPlugin"
+        LIBRARY_OUTPUT_DIRECTORY
+            "${IHUB_CRASHING_BUNDLE}/Contents/${IHUB_MACHINE}-linux"
+    )
+
+    juce_add_console_app(ihub-plugin-scanner-test
+        PRODUCT_NAME "ihub-plugin-scanner-test"
+    )
+
+    target_sources(ihub-plugin-scanner-test
+        PRIVATE
+            ScannerTest.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/Scanner.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/ScannerProcess.cpp"
+    )
+
+    target_include_directories(ihub-plugin-scanner-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src"
+    )
+
+    target_compile_definitions(ihub-plugin-scanner-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+            "IHUB_CRASHING_VST3=\"${IHUB_CRASHING_BUNDLE}\""
+            "IHUB_SCANNER_HELPER=\"$<TARGET_FILE:ihub-scanner>\""
+    )
+
+    target_link_libraries(ihub-plugin-scanner-test
+        PRIVATE
+            juce::juce_audio_processors
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_dependencies(ihub-plugin-scanner-test
+        TestPlugin_VST3
+        ihub-crashing-vst3
+        ihub-scanner
+    )
+
+    set_target_properties(ihub-plugin-scanner-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-plugin-scanner
+        COMMAND ihub-plugin-scanner-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-plugin-scanner-test: Linux-only; skipping")
+endif()
