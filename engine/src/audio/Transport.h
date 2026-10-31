@@ -1,5 +1,7 @@
 #pragma once
 
+#include "TapTempo.h"
+
 #include <atomic>
 #include <cstdint>
 
@@ -98,7 +100,7 @@ public:
     static constexpr int ppqTicksPerQuarterNote = 960;
 
     /** How many tap intervals the tap-tempo median keeps. */
-    static constexpr int tapHistorySize = 8;
+    static constexpr int tapHistorySize = TapTempo::defaultHistorySize;
 
     Transport() = default;
     ~Transport() = default;
@@ -188,11 +190,12 @@ public:
     /** Records a tap at a monotonic timestamp in seconds and returns the
         estimate in BPM, or 0 until two valid taps have arrived.
 
-        The estimate is the median of the last `tapHistorySize` intervals, so a
-        single late tap does not move the tempo. A gap outside the
-        `minBpm`..`maxBpm` range (or a non-increasing timestamp) starts a new
-        tap sequence. When the sync source is internal, a successful estimate
-        also sets the tempo.
+        Taps are delegated to the shared `TapTempo` estimator, so the controller
+        button and `POST /transport` can tap the same sequence. The estimate is
+        the median of the last `tapHistorySize` intervals, so a single late tap
+        does not move the tempo. A gap outside the `minBpm`..`maxBpm` range (or
+        a non-increasing timestamp) starts a new tap sequence. When the sync
+        source is internal, a successful estimate also sets the tempo.
     */
     double tapAt (double timestampSeconds) noexcept;
 
@@ -241,17 +244,8 @@ private:
     std::atomic<SyncSource> syncSource { SyncSource::internal };
     std::atomic<bool> externalClockLocked { false };
 
-    std::atomic<double> tapTempoBpm { 0.0 };
-
-    // Tap state is touched only by the control thread.
-    static constexpr double minTapIntervalSeconds = 60.0 / maxBpm;
-    static constexpr double maxTapIntervalSeconds = 60.0 / minBpm;
-
-    int tapCount = 0;
-    double lastTapTime = 0.0;
-    double tapIntervals[tapHistorySize] {};
-    int tapIntervalCount = 0;
-    int tapIntervalHead = 0;
+    /** Shared with the controller and API tap entry points (T074). */
+    TapTempo tapTempo;
 };
 
 } // namespace AudioEngine
