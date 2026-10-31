@@ -611,6 +611,7 @@ interface FixtureServer
     readonly fxRequests: readonly { method: string; slot: number; index: number; body: Record<string, unknown> }[];
     readonly sourceRequests: readonly { slot: number; body: Record<string, unknown> }[];
     readonly editorRequests: readonly { slot: number; open: boolean }[];
+    readonly stateCaptureRequests: readonly { slot: number }[];
     readonly pluginRequests: readonly string[];
     readonly midiRequests: readonly { id: string; enabled: boolean }[];
     readonly padTestRequests: number;
@@ -694,6 +695,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
     const fxRequests: { method: string; slot: number; index: number; body: Record<string, unknown> }[] = [];
     const sourceRequests: { slot: number; body: Record<string, unknown> }[] = [];
     const editorRequests: { slot: number; open: boolean }[] = [];
+    const stateCaptureRequests: { slot: number }[] = [];
     const pluginRequests: string[] = [];
     const midi = cloneMidi (MIDI);
     const midiRequests: { id: string; enabled: boolean }[] = [];
@@ -870,6 +872,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         const fxIndexMatch = /^\/patches\/(\d+)\/fx\/(\d+)$/.exec (url);
         const sourceMatch = /^\/patches\/(\d+)\/source$/.exec (url);
         const editorMatch = /^\/patches\/(\d+)\/editor$/.exec (url);
+        const stateCaptureMatch = /^\/patches\/(\d+)\/state\/capture$/.exec (url);
 
         const readBody = (done: (parsed: Record<string, unknown>) => void): void =>
         {
@@ -1117,6 +1120,38 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
                 slot,
                 open,
                 ...(open ? { reused: wasOpen, wasOpen } : { wasOpen }),
+            }));
+            return;
+        }
+
+        if (stateCaptureMatch !== null && request.method === "POST")
+        {
+            const slot = Number.parseInt (stateCaptureMatch[1] ?? "", 10);
+            const target = findPatch (slot);
+
+            stateCaptureRequests.push ({ slot });
+
+            if (target === null)
+            {
+                response.statusCode = 404;
+                response.end (JSON.stringify ({ error: "patch slot is out of range" }));
+                return;
+            }
+
+            if (target.instrument.kind !== "plugin")
+            {
+                response.statusCode = 400;
+                response.end (JSON.stringify ({
+                    error: "the patch has no resident plugin sound to save",
+                }));
+                return;
+            }
+
+            response.statusCode = 200;
+            response.end (JSON.stringify ({
+                slot,
+                captured: true,
+                sizeBytes: 4096 + slot,
             }));
             return;
         }
@@ -1646,6 +1681,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         get fxRequests () { return fxRequests; },
         get sourceRequests () { return sourceRequests; },
         get editorRequests () { return editorRequests; },
+        get stateCaptureRequests () { return stateCaptureRequests; },
         get pluginRequests () { return pluginRequests; },
         get midiRequests () { return midiRequests; },
         get padTestRequests () { return padTestRequests; },
@@ -2525,6 +2561,10 @@ async function backoffTest (): Promise<void>
             throw new Error ("connection refused");
         },
         closePatchEditor: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        capturePatchState: async () =>
         {
             throw new Error ("connection refused");
         },
@@ -3466,6 +3506,12 @@ async function instrumentPageTest (): Promise<void>
                "the page names the declared instrument source");
         check (initial.includes ('data-testid="source-open-editor"'),
                "the source has an editor control");
+        check (initial.includes ('data-testid="source-save-state"'),
+               "the page offers an explicit save-sound action");
+        check (/data-testid="source-save-state"[^>]*disabled/.test (initial),
+               "a generated source cannot save a plug-in sound");
+        check (initial.includes ("Only plug-in sources have a sound state to save"),
+               "the disabled save explains why");
         check (initial.includes ('data-testid="source-change"'), "the source can be changed");
         check (initial.includes ('value="/usr/lib/vst3/TestPlugin.vst3"'),
                "the source picker lists installed instrument plug-ins");
@@ -3591,6 +3637,24 @@ async function instrumentPageTest (): Promise<void>
                "a plug-in source offers its native window");
         check (! pluginPage.includes ("hosted headlessly"),
                "the page no longer claims plug-ins are hosted headlessly");
+        check (/data-testid="source-save-state"[^>]*data-slot="3"/.test (pluginPage)
+                   && ! /data-testid="source-save-state"[^>]*disabled/.test (pluginPage),
+               "a plug-in source offers an enabled save-sound action");
+
+        check (await store.savePatchSound (3),
+               "the explicit Save sound to patch action calls the API");
+        check (server.stateCaptureRequests.at (-1)?.slot === 3,
+               "POST /patches/3/state/capture saves the running sound");
+        check (store.getSnapshot ().capture?.sizeBytes === 4099,
+               "the store keeps the engine's capture confirmation");
+
+        const savedPage = renderApp (store, "/instrument?slot=3");
+
+        check (savedPage.includes ('data-testid="source-save-status"')
+                   && savedPage.includes ("Saved to patch · 4.0 kB"),
+               "the page confirms the saved patch in place");
+        check (savedPage.includes ('data-size-bytes="4099"'),
+               "the confirmation publishes the stored blob size");
 
         check (await store.openInstrumentEditor (3),
                "the explicit Open editor action calls the API");
@@ -3657,6 +3721,9 @@ async function instrumentPageTest (): Promise<void>
 
         check (! await failing.loadFxChain (3), "a chain failure is reported");
         check (failing.getSnapshot ().fxError !== null, "the page can show the chain error");
+        check (! await failing.savePatchSound (3), "a save-sound failure is reported");
+        check (failing.getSnapshot ().captureError !== null,
+               "the page can show the save-sound error");
     }
     finally
     {
@@ -3701,11 +3768,15 @@ function instrumentPluginEditorTest (): void
             following={false}
             chain={null}
             plugins={PLUGIN_FIXTURE.plugins}
+            onCaptureState={() => {}}
         />);
 
     check (html.includes ('data-testid="instrument-source" data-kind="plugin"'),
            "a plugin patch renders its source");
     check (html.includes ('data-testid="source-open-editor"'), "a plugin patch offers its editor");
+    check (html.includes ('data-testid="source-save-state"'), "a plugin patch offers an explicit sound save");
+    check (! /data-testid="source-save-state"[^>]*disabled/.test (html),
+           "the plugin sound save is enabled");
     check (html.includes ("native window on the engine desktop"),
            "the plugin editor offers the native window");
     check (html.includes ('data-testid="fx-loading"') && html.includes ('aria-busy="true"'),

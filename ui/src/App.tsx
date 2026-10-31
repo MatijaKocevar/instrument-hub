@@ -337,6 +337,9 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
                               editorOpen={instrumentPatch?.editorOpen === true}
                               editorBusy={app.editorBusy}
                               editorError={app.editorError}
+                              captureBusy={app.captureBusy}
+                              capture={app.captureSlot === instrumentSlot ? app.capture : null}
+                              captureError={app.captureSlot === instrumentSlot ? app.captureError : null}
                               plugins={app.plugins?.plugins ?? null}
                               pluginError={app.pluginError}
                               loading={state === null}
@@ -359,6 +362,7 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
                               }}
                               onOpenEditor={slot => { void store.openInstrumentEditor (slot); }}
                               onCloseEditor={slot => { void store.closeInstrumentEditor (slot); }}
+                              onCaptureState={slot => { void store.savePatchSound (slot); }}
                               onAddInsert={(slot, insert) => {
                                   void store.addFxInsert (slot, insert);
                               }}

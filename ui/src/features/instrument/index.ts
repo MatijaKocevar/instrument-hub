@@ -13,6 +13,7 @@ export {
     followsArmedSlot,
     formatDb,
     formatPan,
+    formatStateSize,
     gainFromDb,
     instrumentPlugins,
     instrumentSlotForRoute,

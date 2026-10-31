@@ -149,6 +149,16 @@ struct FamilyState
     std::vector<PatchState> patches;
 };
 
+/** Result of an explicit save of the running plugin's sound into a patch. */
+struct PatchStateCapture
+{
+    int slot = -1;
+    bool captured = false;
+
+    /** Size of the patch's opaque state blob after the capture, in bytes. */
+    juce::int64 sizeBytes = 0;
+};
+
 //==============================================================================
 // Per-patch insert chain (T121)
 
@@ -741,6 +751,24 @@ public:
     /** Applies `DELETE /patches/{slot}/editor`. Idempotent. */
     bool closePatchEditor (int slot, std::string& error);
 
+    //==========================================================================
+    // Explicit patch-state capture (T132)
+
+    /** Saves the running plugin's current sound into its patch.
+
+        The handler captures the resident instance's state and writes the
+        patch's sidecar blob immediately. It runs on an HTTP thread, never the
+        audio thread. Empty means no audio session is attached.
+    */
+    using PatchStateCaptureHandler =
+        std::function<bool (int slot, PatchStateCapture& capture, std::string& error)>;
+    void setPatchStateCaptureHandler (PatchStateCaptureHandler handler);
+
+    /** Applies `POST /patches/{slot}/state/capture`. */
+    bool capturePatchState (int slot,
+                            PatchStateCapture& capture,
+                            std::string& error);
+
     /** Applies a patch's effective linear gain to the audio graph.
 
         `gain` already includes the mute/solo decision, so the handler only has
@@ -819,6 +847,7 @@ private:
     PatchSourceHandler patchSourceHandler;
     PatchEditorHandler patchEditorHandler;
     PatchEditorHandler patchEditorCloseHandler;
+    PatchStateCaptureHandler patchStateCaptureHandler;
     FxChainProvider fxProvider;
     FxCommandHandler fxHandler;
     TransportProvider transportProvider;
@@ -846,6 +875,7 @@ private:
     - `POST /patches/{slot}/source`
     - `POST /patches/{slot}/editor`
     - `DELETE /patches/{slot}/editor`
+    - `POST /patches/{slot}/state/capture`
     - `GET  /patches/{slot}/fx`
     - `POST /patches/{slot}/fx`
     - `PUT  /patches/{slot}/fx`

@@ -797,6 +797,56 @@ bool StateStore::closePatchEditor (int slot, std::string& error)
 }
 
 //==============================================================================
+// Explicit patch-state capture (T132)
+
+void StateStore::setPatchStateCaptureHandler (PatchStateCaptureHandler handler)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    patchStateCaptureHandler = std::move (handler);
+}
+
+bool StateStore::capturePatchState (int slot,
+                                    PatchStateCapture& capture,
+                                    std::string& error)
+{
+    if (slot < 0 || slot >= numSlots)
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    PatchStateCaptureHandler handler;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        handler = patchStateCaptureHandler;
+    }
+
+    if (handler == nullptr)
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    PatchStateCapture result;
+    result.slot = slot;
+    std::string handlerError;
+
+    if (! handler (slot, result, handlerError))
+    {
+        error = handlerError.empty() ? "could not save the patch sound"
+                                     : handlerError;
+        return false;
+    }
+
+    result.slot = slot;
+    result.captured = true;
+    capture = result;
+    error.clear();
+    return true;
+}
+
+//==============================================================================
 // Per-patch insert chain (T121)
 
 void StateStore::setFxHandlers (FxChainProvider provider, FxCommandHandler handler)

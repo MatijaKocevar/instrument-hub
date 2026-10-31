@@ -268,6 +268,25 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
             return session.closeEditor (slot, error);
         });
 
+    // POST /patches/{slot}/state/capture -> an explicit save of the running
+    // plugin's sound. Unlike the automatic captures on switch-away, editor
+    // close and eviction, this writes the patch sidecar while the instance is
+    // still armed, so a tweak can be kept without changing patches.
+    state.setPatchStateCaptureHandler (
+        [&session] (int slot, PatchStateCapture& capture, std::string& error)
+        {
+            if (! session.capturePluginState (slot))
+            {
+                error = "the patch has no resident plugin sound to save";
+                return false;
+            }
+
+            capture.slot = slot;
+            capture.captured = true;
+            capture.sizeBytes = session.getPluginStateSize (slot);
+            return true;
+        });
+
     // GET/POST/PUT/PATCH/DELETE /patches/{slot}/fx -> the live insert rack.
     // The session owns the processors, gates the slot for one block while it
     // rebuilds the chain, and publishes fresh latency into the store.

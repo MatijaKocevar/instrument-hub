@@ -147,6 +147,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/patches/{slot}/state/capture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save the running plugin's sound into its patch
+         * @description Immediately captures the resident plug-in instance's state into the
+         *     patch's opaque sidecar blob and answers with the stored size. Use it
+         *     after tweaking a sound to keep it without switching away.
+         *
+         *     Automatic captures on switch-away, editor close and warm-pool eviction
+         *     remain unchanged. A generated, sampler or cold patch has no resident
+         *     plug-in state and is rejected with a readable error.
+         */
+        post: operations["capturePatchState"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/patches/{slot}/fx": {
         parameters: {
             query?: never;
@@ -790,6 +819,17 @@ export interface components {
             /** @description State before the request was applied. */
             wasOpen?: boolean;
         };
+        PatchStateCapture: {
+            /** @description Fixed audio-graph slot that hosts this patch. */
+            slot: number;
+            /** @description True when the running plug-in's state was written to the patch. */
+            captured: boolean;
+            /**
+             * Format: int64
+             * @description Size of the patch's opaque state blob after the capture.
+             */
+            sizeBytes: number;
+        };
         PatchUpdate: {
             volumeDb?: number;
             pan?: number;
@@ -1388,6 +1428,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PatchEditor"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    capturePatchState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The patch state that was captured */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatchStateCapture"];
+                };
+            };
+            /** @description The patch has no resident plugin instance or the capture failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             401: components["responses"]["Unauthorized"];

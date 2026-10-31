@@ -81,6 +81,21 @@ export function wetPercent (wet: number): number
     return Math.round (Math.min (1, Math.max (0, Number.isFinite (wet) ? wet : 0)) * 100);
 }
 
+/** Compact byte count for the patch-state confirmation. */
+export function formatStateSize (bytes: number): string
+{
+    if (! Number.isFinite (bytes) || bytes <= 0)
+        return "0 B";
+
+    if (bytes < 1024)
+        return `${String (Math.round (bytes))} B`;
+
+    if (bytes < 1024 * 1024)
+        return `${(bytes / 1024).toFixed (1)} kB`;
+
+    return `${(bytes / (1024 * 1024)).toFixed (1)} MB`;
+}
+
 /**
     The slot the instrument page should show.
 

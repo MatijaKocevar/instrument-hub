@@ -1226,6 +1226,48 @@ void registerRoutes (httplib::Server& server, RouteContext context)
         respondEditor (request, response, false);
     });
 
+    // --- Explicit patch-state capture (T132) -------------------------------
+    //
+    // POST saves the running plugin's current sound into the patch sidecar
+    // immediately, without switching away. Automatic capture on switch, editor
+    // close and eviction is unchanged.
+
+    server.Post (R"(/patches/(\d+)/state/capture)",
+                 [context, readPatchSlot] (const httplib::Request& request,
+                                           httplib::Response& response)
+    {
+        const int slot = readPatchSlot (request);
+
+        if (slot < 0)
+        {
+            setError (response, 404, "patch slot is out of range");
+            return;
+        }
+
+        PatchStateCapture capture;
+        std::string error;
+
+        if (! context.state.capturePatchState (slot, capture, error))
+        {
+            const int status = error.find ("no audio session") != std::string::npos
+                                   ? 503
+                                   : 400;
+            setError (response, status, error);
+            return;
+        }
+
+        auto body = makeObject();
+        body.getDynamicObject()->setProperty ("slot", capture.slot);
+        body.getDynamicObject()->setProperty ("captured", capture.captured);
+        body.getDynamicObject()->setProperty ("sizeBytes",
+                                              static_cast<juce::int64> (capture.sizeBytes));
+
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        setJson (response, 200, body);
+    });
+
     // --- Per-patch insert chain (T121) -------------------------------------
 
     const auto readFxSlot = [context] (const httplib::Request& request) -> int

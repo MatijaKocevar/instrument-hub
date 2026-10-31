@@ -5,6 +5,7 @@ import type {
     ControlFxInsertRequest,
     ControlPatch,
     ControlPatchSourceRequest,
+    ControlPatchStateCapture,
     ControlPlugin,
 } from "../../api/client";
 import { colourForIndex, nextColourIndex } from "../grid";
@@ -18,6 +19,7 @@ import {
     effectPlugins,
     formatDb,
     formatPan,
+    formatStateSize,
     gainFromDb,
     instrumentPlugins,
     insertLabel,
@@ -54,6 +56,12 @@ export interface InstrumentPageProps
     readonly editorBusy?: boolean;
     /** Message from the most recent editor failure. */
     readonly editorError?: string | null;
+    /** True while an explicit save of the patch's sound is in flight. */
+    readonly captureBusy?: boolean;
+    /** Confirmation of the most recent explicit save for this patch. */
+    readonly capture?: ControlPatchStateCapture | null;
+    /** Message from the most recent failed explicit save. */
+    readonly captureError?: string | null;
     /** Installed plugins used by the source and insert pickers. */
     readonly plugins?: readonly ControlPlugin[] | null;
     readonly pluginError?: string | null;
@@ -67,6 +75,7 @@ export interface InstrumentPageProps
     readonly onSourceChange?: (slot: number, source: ControlPatchSourceRequest) => void;
     readonly onOpenEditor?: (slot: number) => void;
     readonly onCloseEditor?: (slot: number) => void;
+    readonly onCaptureState?: (slot: number) => void;
     readonly onAddInsert?: (slot: number, insert: ControlFxInsertRequest) => void;
     readonly onRemoveInsert?: (slot: number, index: number) => void;
     readonly onToggleBypass?: (slot: number, index: number, bypassed: boolean) => void;
@@ -182,7 +191,7 @@ function MixSection ({ patch, onVolumeChange, onPanChange, onMuteChange, onSoloC
     );
 }
 
-function SourceSection ({ patch, plugins, pluginError, sourceBusy, editorOpen, editorBusy, editorError, onSourceChange, onOpenEditor, onCloseEditor }: {
+function SourceSection ({ patch, plugins, pluginError, sourceBusy, editorOpen, editorBusy, editorError, captureBusy, capture, captureError, onSourceChange, onOpenEditor, onCloseEditor, onCaptureState }: {
     readonly patch: ControlPatch;
     readonly plugins?: readonly ControlPlugin[] | null;
     readonly pluginError?: string | null;
@@ -190,9 +199,13 @@ function SourceSection ({ patch, plugins, pluginError, sourceBusy, editorOpen, e
     readonly editorOpen?: boolean;
     readonly editorBusy?: boolean;
     readonly editorError?: string | null;
+    readonly captureBusy?: boolean;
+    readonly capture?: ControlPatchStateCapture | null;
+    readonly captureError?: string | null;
     readonly onSourceChange?: (slot: number, source: ControlPatchSourceRequest) => void;
     readonly onOpenEditor?: (slot: number) => void;
     readonly onCloseEditor?: (slot: number) => void;
+    readonly onCaptureState?: (slot: number) => void;
 }): ReactElement
 {
     const instrument = patch.instrument;
@@ -306,6 +319,55 @@ function SourceSection ({ patch, plugins, pluginError, sourceBusy, editorOpen, e
                           role="alert"
                           data-testid="source-editor-error">
                           {editorError}
+                      </p>
+                    : null}
+            </div>
+
+            <div className="instrument__save"
+                 data-testid="patch-state-save"
+                 data-slot={patch.slot}
+                 data-enabled={isPlugin ? "true" : "false"}
+                 data-busy={captureBusy === true ? "true" : "false"}>
+                <button
+                    className="instrument__button instrument__button--save"
+                    type="button"
+                    data-testid="source-save-state"
+                    data-slot={patch.slot}
+                    disabled={! isPlugin || captureBusy === true || onCaptureState === undefined}
+                    onClick={() => { onCaptureState?.(patch.slot); }}
+                >
+                    Save sound to patch
+                </button>
+
+                <p className="instrument__field-hint" data-testid="source-save-hint">
+                    {isPlugin
+                        ? "Captures the running plug-in's current sound into this patch without switching away."
+                        : "Only plug-in sources have a sound state to save."}
+                </p>
+
+                {captureBusy === true
+                    ? <p className="instrument__field-hint"
+                          data-testid="source-save-busy"
+                          aria-busy="true">
+                          Saving the running sound…
+                      </p>
+                    : null}
+
+                {captureError !== null && captureError !== undefined && captureError.length > 0
+                    ? <p className="instrument__error"
+                          role="alert"
+                          data-testid="source-save-error">
+                          {captureError}
+                      </p>
+                    : null}
+
+                {capture !== null && capture !== undefined && capture.slot === patch.slot
+                    ? <p className="instrument__field-hint instrument__save-status"
+                          role="status"
+                          data-testid="source-save-status"
+                          data-size-bytes={capture.sizeBytes}
+                          data-slot={capture.slot}>
+                          Saved to patch · {formatStateSize (capture.sizeBytes)}
                       </p>
                     : null}
             </div>
@@ -588,6 +650,9 @@ export function InstrumentPage ({
     editorOpen = false,
     editorBusy = false,
     editorError = null,
+    captureBusy = false,
+    capture = null,
+    captureError = null,
     plugins = null,
     pluginError = null,
     loading = false,
@@ -599,6 +664,7 @@ export function InstrumentPage ({
     onSourceChange,
     onOpenEditor,
     onCloseEditor,
+    onCaptureState,
     onAddInsert,
     onRemoveInsert,
     onToggleBypass,
@@ -717,9 +783,13 @@ export function InstrumentPage ({
                     editorOpen={editorOpen}
                     editorBusy={editorBusy}
                     editorError={editorError}
+                    captureBusy={captureBusy}
+                    capture={capture}
+                    captureError={captureError}
                     {...(onSourceChange !== undefined ? { onSourceChange } : {})}
                     {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
                     {...(onCloseEditor !== undefined ? { onCloseEditor } : {})}
+                    {...(onCaptureState !== undefined ? { onCaptureState } : {})}
                 />
             </div>
 
