@@ -1019,6 +1019,67 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-audio-settings PROPERTIES DISABLED TRUE)
 endif()
 
+# --- Built-in compressor (T061) ---------------------------------------------
+#
+# Steady tones 3/6/12 dB over threshold at ratios 2:1, 4:1 and 8:1 must settle
+# to the textbook static curve within 1 dB (the acceptance check), and an
+# impulse must arrive exactly at the reported lookahead latency. Also checks
+# makeup gain, bit-exact bypass with unchanged latency, stereo linking,
+# attack/release direction, allocation-free processing, and state round-trip.
+
+juce_add_console_app(ihub-compressor-test
+    PRODUCT_NAME "ihub-compressor-test"
+)
+
+target_sources(ihub-compressor-test
+    PRIVATE
+        dsp/CompressorTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+)
+
+target_include_directories(ihub-compressor-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+# Same non-counting pairing note as the other allocation-counting tests.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-compressor-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_link_options(ihub-compressor-test PRIVATE
+        "-Wl,--wrap=malloc"
+        "-Wl,--wrap=calloc"
+        "-Wl,--wrap=realloc"
+    )
+endif()
+
+target_link_libraries(ihub-compressor-test
+    PRIVATE
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-compressor-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-compressor
+    COMMAND ihub-compressor-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- Built-in 3-band EQ (T060) ----------------------------------------------
 #
 # An impulse is pushed through the juce::dsp::IIR cascade and its DFT is
