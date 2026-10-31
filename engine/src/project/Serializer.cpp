@@ -1,5 +1,7 @@
 #include "Serializer.h"
 
+#include "Migrations.h"
+
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -335,6 +337,7 @@ var slotToVar (const SlotConfig& slot)
     object->setProperty ("index", slot.index);
     object->setProperty ("name", juce::String (slot.name));
     object->setProperty ("gain", static_cast<double> (slot.gain));
+    object->setProperty ("colour", juce::String (slot.colour));
     object->setProperty ("active", slot.active);
     object->setProperty ("muted", slot.muted);
     object->setProperty ("instrument", instrumentToVar (slot.instrument));
@@ -371,6 +374,7 @@ juce::String makeManifest (const SetFile& set)
 
     object->setProperty ("schemaVersion", set.schemaVersion);
     object->setProperty ("name", juce::String (set.name));
+    object->setProperty ("notes", juce::String (set.notes));
 
     auto transport = makeObject();
     transport.getDynamicObject()->setProperty ("bpm", set.transport.bpm);
@@ -575,6 +579,7 @@ bool parseSlot (const var& value,
     if (! readInteger (value, "index", context, slot.index, 0, 63, error)
         || ! readString (value, "name", context, slot.name, error, false)
         || ! readNumber (value, "gain", context, gain, error, false)
+        || ! readString (value, "colour", context, slot.colour, error, false)
         || ! readBool (value, "active", context, slot.active, error, false)
         || ! readBool (value, "muted", context, slot.muted, error, false))
         return false;
@@ -657,7 +662,7 @@ bool parseManifest (const juce::MemoryBlock& manifest,
 
     const auto text = juce::String::fromUTF8 (static_cast<const char*> (manifest.getData()),
                                               static_cast<int> (manifest.getSize()));
-    const auto root = juce::JSON::parse (text);
+    auto root = juce::JSON::parse (text);
 
     if (! root.isObject())
     {
@@ -665,21 +670,15 @@ bool parseManifest (const juce::MemoryBlock& manifest,
         return false;
     }
 
-    int version = 0;
-
-    if (! readInteger (root, "schemaVersion", "set", version, 0, 1000000, error))
+    if (! migrateManifest (root, error))
         return false;
 
-    if (version != currentSetSchemaVersion)
-    {
-        error = "unsupported set schema version " + juce::String (version)
-                + " (expected " + juce::String (currentSetSchemaVersion) + ")";
-        return false;
-    }
-
-    set.schemaVersion = version;
+    set.schemaVersion = currentSetSchemaVersion;
 
     if (! readString (root, "name", "set", set.name, error))
+        return false;
+
+    if (! readString (root, "notes", "set", set.notes, error, false))
         return false;
 
     var transport;

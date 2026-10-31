@@ -36,6 +36,25 @@ std::string makePluginStateId()
     return juce::Uuid().toString().toStdString();
 }
 
+bool isValidSlotColour (std::string_view colour) noexcept
+{
+    if (colour.size() != 7 || colour.front() != '#')
+        return false;
+
+    for (std::size_t i = 1; i < colour.size(); ++i)
+    {
+        const auto character = colour[i];
+        const auto isDigit = character >= '0' && character <= '9';
+        const auto isLower = character >= 'a' && character <= 'f';
+        const auto isUpper = character >= 'A' && character <= 'F';
+
+        if (! isDigit && ! isLower && ! isUpper)
+            return false;
+    }
+
+    return true;
+}
+
 const char* toString (SourceKind kind) noexcept
 {
     switch (kind)
@@ -111,6 +130,11 @@ bool SetFile::validate (juce::String& error) const
     if (name.empty())
         return fail ("set name must not be empty");
 
+    if (notes.size() > maximumSetNotesBytes)
+        return fail ("set notes are longer than "
+                     + juce::String (static_cast<juce::int64> (maximumSetNotesBytes))
+                     + " bytes");
+
     if (slots.size() > 64)
         return fail ("a set can have at most 64 slots");
 
@@ -163,6 +187,9 @@ bool SetFile::validate (juce::String& error) const
 
         if (! std::isfinite (slot.gain) || slot.gain < 0.0f || slot.gain > 4.0f)
             return fail (slotName + ": gain must be between 0 and 4");
+
+        if (! isValidSlotColour (slot.colour))
+            return fail (slotName + ": colour must be a #rrggbb hex string");
 
         if (! std::isfinite (slot.instrument.gain)
             || slot.instrument.gain < 0.0f || slot.instrument.gain > 4.0f)
