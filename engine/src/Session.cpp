@@ -1201,7 +1201,8 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
                                     *instrument,
                                     juce::String (slotConfig.path),
                                     juce::String (slotConfig.pluginId),
-                                    juce::String (slotConfig.pluginName));
+                                    juce::String (slotConfig.pluginName),
+                                    true); // a brand-new instance
 
             // The editor host resolves this slot to this instance. An older
             // instance stays registered until its own destroy hook forgets it.
@@ -1890,34 +1891,54 @@ void Session::applyStoredPluginState (int slot,
                                       plugins::PluginInstrument& instrument,
                                       const juce::String& pluginPath,
                                       const juce::String& pluginId,
-                                      const juce::String& pluginName)
+                                      const juce::String& pluginName,
+                                      bool force)
 {
-    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+    juce::MemoryBlock data;
+    std::uint64_t revision = 0;
 
-    if (slot < 0 || slot >= static_cast<int> (pluginStates.size()))
-        return;
-
-    auto& state = pluginStates[static_cast<std::size_t> (slot)];
-
-    if (state.data.getSize() == 0)
-        return;
-
-    // A blob belongs to the plugin it was captured from. Never hand an old
-    // patch's state to a different plug-in assigned to the same slot.
-    PluginStateFile stored;
-    stored.pluginPath = state.pluginPath;
-    stored.pluginId = state.pluginId;
-
-    if (! pluginStateMatches (stored, pluginPath, pluginId))
     {
-        state.appliedRevision = state.revision;
-        return;
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+        if (slot < 0 || slot >= static_cast<int> (pluginStates.size()))
+            return;
+
+        auto& state = pluginStates[static_cast<std::size_t> (slot)];
+
+        if (state.data.getSize() == 0)
+            return;
+
+        // A blob belongs to the plugin it was captured from. Never hand an old
+        // patch's state to a different plug-in assigned to the same slot.
+        PluginStateFile stored;
+        stored.pluginPath = state.pluginPath;
+        stored.pluginId = state.pluginId;
+
+        if (! pluginStateMatches (stored, pluginPath, pluginId))
+        {
+            state.appliedRevision = state.revision;
+            return;
+        }
+
+        // `appliedRevision` describes the resident instance. A fresh instance
+        // from the warm-pool factory must be restored even when the slot
+        // revision has not moved: after an eviction the old instance is gone,
+        // so its applied marker says nothing about the replacement.
+        if (! force && state.appliedRevision == state.revision
+            && state.appliedRevision != 0)
+            return;
+
+        data = state.data;
+        revision = state.revision;
     }
 
-    if (state.appliedRevision == state.revision && state.appliedRevision != 0)
-        return;
+    // VST3 state restoration takes the message-manager lock on some formats,
+    // so never hold `pluginStateMutex` across it: the message thread may be
+    // waiting for that same mutex (for example in getPluginInstrument()) and
+    // could not pump the lock the plugin needs.
+    const bool accepted = instrument.setStateInformation (data);
 
-    if (! instrument.setStateInformation (state.data))
+    if (! accepted)
     {
         juce::Logger::writeToLog ("session: slot " + juce::String (slot)
                                   + " rejected stored plugin state \""
@@ -1927,8 +1948,14 @@ void Session::applyStoredPluginState (int slot,
     }
 
     // Mark it applied even after a rejection: retrying a blob the plugin
-    // refuses on every warm-up would only delay arming.
-    state.appliedRevision = state.revision;
+    // refuses on every warm-up would only delay arming. If a capture changed
+    // the revision while the plugin was restoring, leave the newer blob for
+    // the next arm instead of claiming it was applied.
+    const std::lock_guard<std::mutex> lock (pluginStateMutex);
+
+    if (slot >= 0 && slot < static_cast<int> (pluginStates.size())
+        && pluginStates[static_cast<std::size_t> (slot)].revision == revision)
+        pluginStates[static_cast<std::size_t> (slot)].appliedRevision = revision;
 }
 
 void Session::applyStoredPluginState (int slot) noexcept
