@@ -72,6 +72,8 @@ void Slot::prepare (double newSampleRate, int newMaximumBlockSize, int newNumCha
     // the first block rather than silently going quiet.
     if (source != nullptr)
         source->prepare (sampleRate, maximumBlockSize);
+
+    fxChain.prepare (sampleRate, maximumBlockSize, numChannels);
 }
 
 void Slot::reset() noexcept
@@ -83,6 +85,7 @@ void Slot::reset() noexcept
     activated.store (false, std::memory_order_relaxed);
     publishedState.store (SlotState::idle, std::memory_order_relaxed);
     storage.clear();
+    fxChain.reset();
 }
 
 void Slot::setSource (SlotSource* newSource) noexcept
@@ -170,6 +173,11 @@ bool Slot::process (int numSamples, juce::MidiBuffer& midi) noexcept
     view.setDataToReferTo (storage.getArrayOfWritePointers(), numChannels, samples);
     view.clear();
     source->process (view, midi);
+
+    // instrument -> ordered FX chain -> bus. An empty chain returns without
+    // touching the buffer, so this stays a bit-exact passthrough.
+    fxChain.process (view, midi);
+
     applyGains (samples);
 
     publishedState.store (state, std::memory_order_relaxed);
@@ -227,7 +235,8 @@ void Slot::applyGains (int numSamples) noexcept
 
 int Slot::latencySamples() const noexcept
 {
-    return source != nullptr ? source->latencySamples() : 0;
+    const int sourceLatency = source != nullptr ? source->latencySamples() : 0;
+    return sourceLatency + fxChain.latencySamples();
 }
 
 } // namespace AudioEngine
