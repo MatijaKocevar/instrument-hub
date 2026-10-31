@@ -32,9 +32,12 @@
 // does. No wall-clock sleep decides a measurement.
 
 #include "Session.h"
+#include "api/Server.h"
+#include "api/SessionBridge.h"
 #include "controller/LaunchpadDriver.h"
 #include "controller/Mapping.h"
 
+#include <httplib.h>
 #include <juce_events/juce_events.h>
 
 #include <algorithm>
@@ -42,6 +45,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -77,6 +81,14 @@ constexpr int kLoopbackArmFirstBlock = 12;
 constexpr int kLoopbackArmSecondBlock = 60;
 constexpr int kLoopbackBlocks = 140;
 constexpr int kLoopbackWarmupBlocks = 4;
+
+// T127 page acceptance. Pad 10 is Drums / Acoustic Kit (slot 10); pad 16 is
+// Bass / Sub Bass (slot 16). Two different rows prove the idle LED shows the
+// patch colour while the armed pad is overridden to red.
+constexpr int kPagePad = 10;
+constexpr int kPageIdlePad = 16;
+constexpr int kPageSettleBlocks = 8;
+constexpr int kPageRmsBlocks = 8;
 
 int failures = 0;
 
@@ -312,6 +324,296 @@ PadRender runPadRender (float fadeMilliseconds)
     result.switchMaxDelta = maxDelta (result.samples,
                                       switchStart,
                                       switchStart + 4 * kBlockSize);
+    return result;
+}
+
+//==============================================================================
+/** Renders the armed slot and returns the RMS of the settled window. */
+double renderRms (ihub::Session& session, int settleBlocks, int rmsBlocks)
+{
+    juce::AudioBuffer<float> buffer (kChannels, kBlockSize);
+    buffer.clear();
+
+    std::vector<float> samples;
+    samples.reserve (static_cast<std::size_t> ((settleBlocks + rmsBlocks) * kBlockSize));
+
+    for (int block = 0; block < settleBlocks + rmsBlocks; ++block)
+        renderBlock (session, buffer, samples);
+
+    return rmsDbfs (samples,
+                    settleBlocks * kBlockSize,
+                    (settleBlocks + rmsBlocks) * kBlockSize);
+}
+
+struct LedHit
+{
+    bool seen = false;
+    std::uint8_t velocity = 0;
+    int mode = -1;
+};
+
+/** Applies the Grid page's LED policy and captures the emitted MIDI.
+
+    This is the exact policy `Main::refreshControllerLeds()` applies on every
+    API change and 100 ms poll: the armed pad is red, a warming pad yellow, an
+    error flashes red, and every other pad shows its patch colour.
+*/
+std::map<int, LedHit> captureGridLeds (const Api::StateSnapshot& snapshot,
+                                       Controller::LaunchpadDriver& driver)
+{
+    std::map<int, LedHit> hits;
+
+    driver.setMessageSink ([&hits] (const juce::MidiMessage& message)
+    {
+        if (! message.isNoteOn())
+            return;
+
+        const int pad = Launchpad::padIndexForNote (message.getNoteNumber());
+
+        if (pad < 0)
+            return;
+
+        LedHit& hit = hits[pad];
+        hit.seen = true;
+        hit.velocity = static_cast<std::uint8_t> (message.getVelocity());
+        hit.mode = message.getChannel() - 1;
+    });
+
+    std::map<int, const Api::PatchState*> patches;
+
+    for (const auto& family : snapshot.families)
+        for (const auto& patch : family.patches)
+            if (patch.slot >= 0 && patch.slot < Launchpad::padCount)
+                patches[patch.slot] = &patch;
+
+    for (int pad = 0; pad < Launchpad::padCount; ++pad)
+    {
+        const auto found = patches.find (pad);
+
+        if (found == patches.end())
+        {
+            driver.setPadLed (pad, {});
+            continue;
+        }
+
+        const auto& patch = *found->second;
+        driver.setPatchLed (pad,
+                            patch.colorIndex,
+                            pad == snapshot.armedSlot,
+                            patch.warmState == "warming",
+                            patch.warmState == "error");
+    }
+
+    driver.setMessageSink (nullptr);
+    return hits;
+}
+
+struct PagesResult
+{
+    bool ran = false;
+    std::string error;
+    int clickSlot = -1;
+    int clickArmed = -1;
+    int pad = -1;
+    int padArmed = -1;
+    int patchColorIndex = -1;
+    double clickRmsDbfs = -1000.0;
+    double padRmsDbfs = -1000.0;
+    LedHit armedLed;
+    LedHit idleLed;
+    std::uint8_t idleExpected = 0;
+    bool samePatch = false;
+};
+
+/** T127: a Grid click (POST /arm) and a Launchpad pad arm the same patch,
+    that patch renders non-silent audio, and the LED mirror matches. */
+PagesResult runPagesAcceptance()
+{
+    PagesResult result;
+
+    // The default init-tone set leaves every colour at 0. Give the two page
+    // slots the palette indices the shipped set.yaml assigns to those rows
+    // (Drums 1, Bass 2) so the LED assertion exercises a real patch colour.
+    auto config = makeConfig (3.0f);
+    config.slots[static_cast<std::size_t> (kPagePad)].colorIndex = 1;
+    config.slots[static_cast<std::size_t> (kPageIdlePad)].colorIndex = 2;
+
+    ihub::Session session;
+    juce::String buildError;
+
+    if (! session.build (config, buildError))
+    {
+        result.error = "session: " + buildError.toStdString();
+        return result;
+    }
+
+    PadRig rig (session);
+    std::string mappingError;
+
+    if (! rig.load (IHUB_SET_YAML, mappingError))
+    {
+        result.error = "set.yaml: " + mappingError;
+        return result;
+    }
+
+    session.armSlot (0);
+
+    if (! session.waitForSlotActive (0, 5000))
+    {
+        result.error = "slot 0 did not become active";
+        return result;
+    }
+
+    Api::StateStore state (session.getNumSlots());
+    Api::Server::Options options;
+    options.address = "127.0.0.1";
+    options.port = 0;
+    Api::Server server (state, options);
+    Api::attachSession (state, server, session);
+
+    if (! server.start())
+    {
+        result.error = "the control API did not start";
+        return result;
+    }
+
+    httplib::Client client ("127.0.0.1", server.getPort());
+
+    // 1. The Grid page's click path: one POST /arm, exactly what
+    //    AppStore::armSlot() sends after a cell is clicked.
+    const auto click = client.Post ("/arm",
+                                    R"({"slot":10})",
+                                    "application/json");
+
+    result.clickSlot = kPagePad;
+
+    if (! click)
+    {
+        result.error = "POST /arm did not answer";
+        return result;
+    }
+
+    auto clickBody = juce::JSON::parse (juce::String (click->body));
+    const auto* clickObject = clickBody.getDynamicObject();
+    const int echoedSlot = clickObject != nullptr
+                               ? static_cast<int> (clickObject->getProperty (
+                                     juce::Identifier ("armedSlot")))
+                               : -1;
+
+    result.clickArmed = session.getArmedSlot();
+
+    check (click->status == 200, "the grid click's POST /arm answers 200");
+    check (echoedSlot == kPagePad,
+           "POST /arm echoes the clicked slot " + std::to_string (kPagePad));
+    check (result.clickArmed == kPagePad,
+           "the grid click arms slot " + std::to_string (kPagePad));
+    check (state.getArmedSlot() == kPagePad,
+           "the API state mirrors the grid click's arm");
+
+    if (! session.waitForSlotActive (kPagePad, 5000))
+    {
+        result.error = "the clicked slot did not become active";
+        return result;
+    }
+
+    result.clickRmsDbfs = renderRms (session, kPageSettleBlocks, kPageRmsBlocks);
+    check (result.clickRmsDbfs > kMinimumRmsDbfs,
+           "the clicked patch renders non-silent audio");
+
+    // 2. The same patch through the Launchpad. Move away first (pad 0) so the
+    //    pad press really is what re-arms slot 10, then press pad 10.
+    rig.press (0);
+    check (session.waitForSlotActive (0, 5000),
+           "pad 0 arms slot 0 before the page pad press");
+    (void) renderRms (session, 2, 2);
+
+    rig.press (kPagePad);
+    result.pad = kPagePad;
+    result.padArmed = session.getArmedSlot();
+
+    check (result.padArmed == kPagePad,
+           "the Launchpad pad arms the same slot " + std::to_string (kPagePad));
+
+    if (! session.waitForSlotActive (kPagePad, 5000))
+    {
+        result.error = "the pad-armed slot did not become active";
+        return result;
+    }
+
+    result.padRmsDbfs = renderRms (session, kPageSettleBlocks, kPageRmsBlocks);
+    check (result.padRmsDbfs > kMinimumRmsDbfs,
+           "the pad-armed patch renders non-silent audio");
+
+    result.samePatch = result.clickArmed == result.padArmed;
+    check (result.samePatch, "the grid click and the Launchpad pad armed one patch");
+
+    // 3. The LED mirror: the armed pad is red, the idle pad shows its patch
+    //    colour. The patch colour index comes from the same /state document
+    //    the Grid page renders.
+    const auto snapshot = state.snapshot();
+    const Api::PatchState* armedPatch = nullptr;
+    const Api::PatchState* idlePatch = nullptr;
+
+    for (const auto& family : snapshot.families)
+    {
+        for (const auto& patch : family.patches)
+        {
+            if (patch.slot == kPagePad)
+                armedPatch = &patch;
+
+            if (patch.slot == kPageIdlePad)
+                idlePatch = &patch;
+        }
+    }
+
+    Controller::LaunchpadDriver ledDriver;
+    const auto leds = captureGridLeds (snapshot, ledDriver);
+
+    if (const auto found = leds.find (kPagePad); found != leds.end())
+        result.armedLed = found->second;
+
+    if (const auto found = leds.find (kPageIdlePad); found != leds.end())
+        result.idleLed = found->second;
+
+    result.patchColorIndex = idlePatch != nullptr ? idlePatch->colorIndex : -1;
+    result.idleExpected = Launchpad::velocityForPatchColour (result.patchColorIndex);
+
+    if (armedPatch != nullptr)
+        check (armedPatch->colorIndex != -1, "the armed patch publishes a colour index");
+
+    check (result.armedLed.seen, "the armed pad received an LED message");
+    check (result.armedLed.velocity
+               == Launchpad::velocityFor (Launchpad::Colour::Red),
+           "the armed pad LED is red");
+    check (result.armedLed.mode == static_cast<int> (Launchpad::LedMode::Static),
+           "the armed pad LED is static");
+
+    check (result.idleLed.seen, "an idle pad received an LED message");
+    check (result.idleLed.velocity == result.idleExpected,
+           "the idle pad LED matches its patch colour (velocity "
+               + std::to_string (static_cast<int> (result.idleExpected)) + ")");
+    check (result.idleLed.velocity
+               != Launchpad::velocityFor (Launchpad::Colour::Red),
+           "the idle pad is not painted as the armed pad");
+
+    std::cout << "  pages: click_slot=" << result.clickSlot
+              << " click_armed=" << result.clickArmed
+              << " pad=" << result.pad
+              << " pad_armed=" << result.padArmed
+              << " same_patch=" << (result.samePatch ? "true" : "false")
+              << " click_rms_dbfs=" << result.clickRmsDbfs
+              << " pad_rms_dbfs=" << result.padRmsDbfs
+              << " armed_led_velocity="
+              << static_cast<int> (result.armedLed.velocity)
+              << " armed_led_mode=" << result.armedLed.mode
+              << " idle_pad=" << kPageIdlePad
+              << " idle_colour_index=" << result.patchColorIndex
+              << " idle_led_velocity="
+              << static_cast<int> (result.idleLed.velocity)
+              << " idle_led_expected=" << static_cast<int> (result.idleExpected)
+              << std::endl;
+
+    result.ran = true;
     return result;
 }
 
@@ -914,6 +1216,52 @@ int main()
                 }
             }
         }
+    }
+
+    //==========================================================================
+    // 5. T127 page acceptance: the Grid click and the Launchpad pad arm the
+    //    same patch, that patch is non-silent, and the LED mirror is correct.
+    const auto pages = runPagesAcceptance();
+
+    check (pages.ran,
+           "the page acceptance pass ran"
+               + (pages.ran ? std::string() : ": " + pages.error));
+
+    if (pages.ran)
+    {
+        std::ofstream pagesRecord ("ihub-e2e-pages-record.txt");
+        pagesRecord << "test=ihub-e2e-pages\n"
+                    << "pages=grid,instrument,plugins,audio\n"
+                    << "click_path=POST /arm\n"
+                    << "click_slot=" << pages.clickSlot << "\n"
+                    << "click_armed=" << pages.clickArmed << "\n"
+                    << "click_audio_rms_dbfs=" << pages.clickRmsDbfs << "\n"
+                    << "pad=" << pages.pad << "\n"
+                    << "pad_armed=" << pages.padArmed << "\n"
+                    << "pad_audio_rms_dbfs=" << pages.padRmsDbfs << "\n"
+                    << "same_patch=" << (pages.samePatch ? "true" : "false") << "\n"
+                    << "armed_pad=" << kPagePad << "\n"
+                    << "armed_led_velocity="
+                    << static_cast<int> (pages.armedLed.velocity) << "\n"
+                    << "armed_led_mode=" << pages.armedLed.mode << "\n"
+                    << "armed_led_red="
+                    << (pages.armedLed.velocity
+                            == Launchpad::velocityFor (Launchpad::Colour::Red)
+                        ? "true" : "false") << "\n"
+                    << "idle_pad=" << kPageIdlePad << "\n"
+                    << "idle_colour_index=" << pages.patchColorIndex << "\n"
+                    << "idle_led_velocity="
+                    << static_cast<int> (pages.idleLed.velocity) << "\n"
+                    << "idle_led_expected="
+                    << static_cast<int> (pages.idleExpected) << "\n"
+                    << "idle_led_matches_patch_colour="
+                    << (pages.idleLed.velocity == pages.idleExpected
+                        ? "true" : "false") << "\n"
+                    << "status=" << (failures == 0 ? "PASS" : "FAIL") << "\n";
+
+        check (pagesRecord.good(),
+               "the page acceptance record was written "
+               "(ihub-e2e-pages-record.txt)");
     }
 
     std::cout << "  record: pads=" << kFirstPad << "->" << kSecondPad

@@ -141,13 +141,28 @@ that slot to `Session::armSlot()`. The audio graph is never rewired: all slots
 are already wired in parallel and arming only changes which slot is faded up
 over 3 ms.
 
-The shipped mapping declares 64 pads and 64 slots (8 families × 8 patches).
-The composed application currently builds **eight** slots from the default
-init-tone set, so pads 0..7 (the Keys row) are the ones that arm audible audio.
-Pads 8..63 resolve correctly in the mapping but their slot numbers are outside
-the eight-slot graph and are ignored. Opening a 64-slot `.ihub` set, or raising
-the default slot count, is the remaining composition work; it is called out in
-`HANDOVER.md`.
+The shipped mapping declares 64 pads and 64 slots (8 families × 8 patches),
+and the composed application now builds all **64** logical slots. Every pad
+0..63 resolves to its own slot and arms audible audio; the warm pool keeps the
+armed slot plus its neighbours instantiated, so a cold pad reports `warming`
+before it crossfades in.
+
+### Grid page and the same-patch contract
+
+The Grid page and the Launchpad are two views of the same arm:
+
+- clicking a grid cell calls `POST /arm` with the patch slot and opens
+  `/instrument?slot=N`;
+- pressing the matching Launchpad pad goes `pad -> mapping -> Session::armSlot`;
+- both paths publish the same `armedSlot`, the same non-silent source, and the
+  same LED (armed pad red, other pads their patch colour).
+
+`ihub-e2e` proves this headlessly: it arms slot 10 through the HTTP route,
+moves away with pad 0, re-arms slot 10 with the physical pad path, renders both
+windows non-silent, and captures the LED stream (armed velocity 5 / static,
+idle patch velocity 13). See `ihub-e2e-pages-record.txt` beside the test
+binary. `ihub-ui-pages` renders the Grid, Instrument, Plugins and Audio pages
+and checks the snapshots in `tests/artifacts/`.
 
 ## Hardware status
 
@@ -157,8 +172,10 @@ the full pad → mapping → LED path are covered by:
 - `ihub-launchpad-protocol` — frame bytes, grid notes, palette.
 - `ihub-launchpad-mapping` — all 64 pads, CC 91..98 banks, CC 89..19 scenes.
 - `ihub-launchpad-driver` — scripted event sequence and the exact LED stream.
-- `ihub-e2e` — pad event through the mapping into the composed session, with
-  audio rendered and captured on the ALSA Loopback.
+- `ihub-ui-pages` — Grid, Instrument, Plugins and Audio page snapshots.
+- `ihub-e2e` — Grid click plus pad event through the mapping into the composed
+  session, non-silent audio rendered and captured on the ALSA Loopback, and
+  the armed-red / patch-colour LED stream.
 
 Physical verification (programmer-mode entry, real LED colours, font/brightness,
 firmware quirks) is tracked in `plan/BLOCKERS.md` as **B009**, which supersedes

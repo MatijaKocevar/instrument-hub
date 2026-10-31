@@ -4,25 +4,30 @@
 controlled by a Novation **Launchpad Mini MK3** and a local HTTP + WebSocket
 API.
 
-**State at handover:** the application is **composed**. At startup `Main`
-builds an eight-slot `Session` (fixed `AudioEngine` + `SlotSwitcher`), loads
-the default init-tone set, opens the configured audio device and arms slot 0.
-The control API is wired to the live session, and the Launchpad driver plus
-`shared/set.yaml` mapping are started when a controller is present. A pad press
-now reaches audio; `tests/e2e/` proves it end to end on the ALSA Loopback.
+**State at handover:** the application is **composed and has routed pages**.
+At startup `Main` builds a 64-slot `Session` (fixed `AudioEngine` +
+`SlotSwitcher`), loads the default 64-patch set, opens the configured audio
+device and arms slot 0. The control API is wired to the live session, and the
+Launchpad driver plus `shared/set.yaml` mapping are started when a controller
+is present. A pad press reaches audio and the LED mirror.
 
-The remaining gaps are about breadth, not composition: the shipped mapping
-declares 64 pads/slots while the default session has eight, the `.ihub` set and
-sampler/plugin browsers still have no UI, and no physical Launchpad or audio
-interface has been tested. Section 2 is the blunt list.
+The React shell now has four workspace pages — **Grid**, **Instrument**,
+**Plugins** and **Audio** — plus the existing `/remote` stage route. The Grid
+page arms a patch and opens its Instrument page; the Launchpad arms the same
+patch and mirrors the grid LEDs (patch colour, armed red, warming yellow,
+error flashing). `tests/e2e/` and `tests/ui/` prove the two arm paths, the
+LEDs, non-silent audio and the page snapshots headlessly.
+
+The remaining gaps are `.ihub` open/save, kit/plugin assignment actions, and
+physical hardware validation. Section 2 is the blunt list.
 
 | | |
 |---|---|
 | Repository | `/home/mkocevar/Projects/instrument-hub` |
-| Commit at handover | T117 checkpoint (this commit) |
+| Commit at handover | T127 checkpoint (this commit) |
 | Date | 2026-10-31 |
 | Host verified on | Ubuntu 25.04, Linux 6.14.0-37, x86_64 |
-| Test result | `100% tests passed, 0 tests failed out of 51` |
+| Test result | `100% tests passed, 0 tests failed out of 58` |
 | Product / binary | Instrument Hub / `instrument-hub` |
 | Controller | Novation Launchpad Mini MK3 (64 pads, no keys, no encoders) |
 | Licence | JUCE AGPLv3 unless a commercial licence is bought (B006) |
@@ -39,25 +44,46 @@ the hardware-free recipes, and `plan/BLOCKERS.md` for the live human queue.
 - Native 1200×800 JUCE window. Release builds embed the React bundle through
   `juce::WebBrowserComponent` and serve it from a custom resource provider;
   Debug builds load the Vite dev server (`scripts/dev.sh`).
-- React + TypeScript + Vite UI with:
-  - 8×8 instrument grid, armed highlighting, per-slot and master meters,
-    loading skeleton, 44 px+ touch targets;
-  - audio settings panel (device type/device, sample rate, buffer size,
-    channel mapping, latency readout, xrun counter, Measure button);
-  - LAN pairing panel with a real QR code, 6-digit code and token storage;
+- React + TypeScript + Vite UI with a routed shell (`/grid`, `/instrument`,
+  `/plugins`, `/audio`, `/remote`):
+  - **Grid page**: 8 families × 8 patches, per-patch colour, armed cell in
+    bright red, per-slot and master meters, chain latency, loading skeleton,
+    44 px+ touch targets. Clicking a cell arms it and routes to
+    `/instrument?slot=N`; per-patch and per-family colours are editable.
+  - **Instrument page**: the armed or selected patch's name/family/colour,
+    warm state and latency, volume fader, balance, mute/solo, the instrument
+    source card with picker/editor, and an insert-chain editor
+    (add/remove/move/bypass with instrument + FX latency). It follows the
+    controller selection without pulling the user off other pages.
+  - **Plugins page**: searchable VST3 inventory with vendor, version,
+    category, format, path, instrument/effect badge, "used by" hints, and a
+    rescan control that polls until the scan settles. Assignment stays on the
+    patch, not here.
+  - **Audio page**: the existing audio settings panel (device type/device,
+    sample rate, buffer size, channel mapping, latency readout, xrun counter,
+    Measure button) plus the MIDI panel (ALSA input switches, Launchpad MI
+    status/handshake, Keystation port, 64-pad device test) and the LAN pairing
+    card (real QR code, 6-digit code, token storage).
   - `/remote` stage route: set list, previous/next patch, play/pause/stop,
-    panic, reconnect banner, wake lock, high-contrast theme;
-  - polling state store with exponential-backoff reconnect and optimistic arm.
-- Screenshot/snapshot harness: `--snapshot out.png` captures the real native
-  window, validates 1200×800 and non-blank content, and is covered by the
-  `ihub-ui-snapshot` test.
+    panic, reconnect banner, wake lock, high-contrast theme.
+  - Polling state store with exponential-backoff reconnect and optimistic arm.
+- Snapshot harnesses: `--snapshot out.png` captures the real native window,
+  validates 1200×800 and non-blank content (`ihub-ui-snapshot`); the
+  server-rendered page harness (`ui/src/testing/snapshot.tsx`) writes Grid,
+  Instrument, Plugins and Audio snapshots to `tests/artifacts/` and is run by
+  `ihub-ui-pages` with no browser or display.
 
 ### 1.2 Control API
 
 Runs on `127.0.0.1:8080` by default; `--serve` runs it headless.
 
 - `GET /state`, `POST /arm`, `GET/POST /settings`, `GET/POST /transport`
+- `PATCH /patches/{slot}` (mix, mute/solo, colour),
+  `POST /patches/{slot}/source`, and `GET/POST/PUT/PATCH/DELETE
+  /patches/{slot}/fx` (insert chain)
 - `GET /audio`, `POST /audio`, `POST /audio/measure`
+- `GET /plugins`, `POST /plugins/rescan`
+- `GET /midi`, `POST /midi/inputs`, `POST /midi/pad-test`
 - `GET /meters` (WebSocket, ~30 Hz), `GET /events` (WebSocket state mirror)
 - `GET /pairing`, `POST /pairing/lan`, `POST /pairing/revoke`, `POST /pair`
 - Token auth (`X-Instrument-Hub-Token` or bearer) and loopback-only management
@@ -71,9 +97,10 @@ Runs on `127.0.0.1:8080` by default; `--serve` runs it headless.
 
 ### 1.3 Audio path and DSP
 
-- `Session`: eight fixed slots, all wired in parallel into a summing bus at
-  startup. Arming changes which slots process and applies a 3 ms equal-power
-  gain ramp; nothing is rewired at runtime.
+- `Session`: 64 fixed logical slots, all wired in parallel into a summing bus
+  at startup. The warm pool keeps the armed slot plus its neighbours
+  instantiated; arming changes which slots process and applies a 3 ms
+  equal-power gain ramp. Nothing is rewired at runtime.
 - `AudioEngine`: master limiter, no allocation/locks/logging in
   `processBlock()`.
 - `Slot` / `FxChain` / `SlotSwitcher` / `WarmPool`: instruments → ordered FX →
@@ -110,10 +137,12 @@ Runs on `127.0.0.1:8080` by default; `--serve` runs it headless.
   loaded instruments, the `DeviceManager` and the session `Transport`.
 - `Session::build()` creates the graph from `SessionSlotConfig` entries
   (init tone, sampler, plugin or audio input) and prepares every buffer once.
-- `Main::startSession()` builds the default eight-slot set, opens the device
-  (`--audio-type`, `--audio-device`, `--audio-sample-rate`,
+- `Main::startSession()` builds the default 64-slot, 8-family set, opens the
+  device (`--audio-type`, `--audio-device`, `--audio-sample-rate`,
   `--audio-buffer-size`) and arms slot 0. The app makes sound on a fresh
-  checkout with no samples or plugins.
+  checkout with no samples or plugins. `shared/set.yaml` supplies the 64
+  family/patch descriptors, colours, mix and insert chains; the `.ihub`
+  container is still loaded by tests and the project layer, not by the app.
 - `Session::measureSwitch()` renders the armed slot, switches, and compares the
   result with the ideal 3 ms equal-power crossfade. `--session-smoke` runs it
   and then streams the same graph through the ALSA Loopback.
@@ -137,8 +166,13 @@ Runs on `127.0.0.1:8080` by default; `--serve` runs it headless.
 - `Main::startController()` starts the driver and the mapping; pads arm slots,
   and the API/UI mirror the selection. Top-row and right-column selections
   light their buttons.
-- Tests: protocol tables, all 64 pad bindings, scripted driver event/LED stream,
-  hot reload, and the pad → session end-to-end path.
+- LED mirror: the armed pad is bright red, a warming pad yellow, a load error
+  flashes red, and every other pad shows its patch's palette colour. The
+  100 ms poll repaints after an HTTP colour edit, so the hardware follows the
+  Grid page.
+- Tests: protocol tables, all 64 pad bindings, scripted driver event/LED
+  stream, hot reload, the pad → session end-to-end path, and the T127
+  click/pad/LED acceptance.
 
 Full reference: `docs/launchpad-mini-mk3.md`. The old Launchkey document is
 kept only as a superseded historical note.
@@ -158,35 +192,47 @@ kept only as a superseded historical note.
 
 ### 1.8 Test suite
 
-`ctest --test-dir build --output-on-failure` runs 51 tests. They cover audio
+`ctest --test-dir build --output-on-failure` runs 58 tests. They cover audio
 smoke and loopback latency, device hot-swap, graph mixing, RT guard, switch
 continuity, warm pool, EQ/compressor/delay/reverb, transport/clock/tap, plugin
 scan/cache/instance/editor/FX/sandbox, Launchpad protocol/mapping/driver,
 the composed session and the API behind it, `.ihub` set/migration/plugin state,
-sample loader/kit/sampler, diagnostics, the UI snapshot, and `ihub-e2e`.
+sample loader/kit/sampler, diagnostics, the UI snapshot, the four page
+snapshots, and `ihub-e2e`.
 
-`ihub-e2e` is the T117 acceptance check. It sends a Launchpad pad event through
-`LaunchpadDriver` → `Mapping` → `Session::armSlot` into both the offline render
-and a live ALSA Loopback stream, and records:
+`ihub-e2e` is the T117/T127 acceptance check. It sends a Launchpad pad event
+through `LaunchpadDriver` → `Mapping` → `Session::armSlot` into both the offline
+render and a live ALSA Loopback stream, then repeats the same arm through
+`POST /arm` (the Grid page's click path), checks the LED mirror and records the
+page evidence:
 
 ```console
-$ ctest --test-dir build -R ihub-e2e --output-on-failure
+$ ctest --test-dir build -R 'ihub-e2e|ihub-ui' --output-on-failure
 ...
-  switch measurement: rms=0.082524 rms_dbfs=-21.6684 discontinuity_dbfs=-154.609 ...
-  loopback: playback="hw:CARD=Loopback,DEV=0" capture="hw:CARD=Loopback,DEV=1" \
-            captured_first_rms_dbfs=-21.5549 captured_second_rms_dbfs=-21.4595 ...
+  pages: click_slot=10 click_armed=10 pad=10 pad_armed=10 same_patch=true \
+         click_rms_dbfs=-21.2768 pad_rms_dbfs=-21.466 armed_led_velocity=5 \
+         armed_led_mode=0 idle_pad=16 idle_colour_index=2 idle_led_velocity=13 \
+         idle_led_expected=13
   record: pads=0->3 render_rms=0.082524 render_rms_dbfs=-21.6684 \
-          switch_discontinuity_dbfs=-154.609 loopback_rms_dbfs_first=-21.5549 \
-          loopback_rms_dbfs_second=-21.4595
-100% tests passed, 0 tests failed out of 1
+          switch_discontinuity_dbfs=-154.609 loopback_rms_dbfs_first=-21.3936 \
+          loopback_rms_dbfs_second=-21.4035
+100% tests passed, 0 tests failed out of 3
 ```
 
 The rendered RMS is non-silent, the switch residual is far below -60 dBFS, and
 a hard-switch control with the ramp disabled (0 ms) produces a 0.11186 step, so
 the click detector is proven able to fail. The test also identifies the audible
 tone in each window (slot 0 is 110 Hz, slot 3 is 146.83 Hz), so the slot the pad
-armed is demonstrably the slot that is heard. All 51 tests passed on this host
-at the T117 checkpoint.
+armed is demonstrably the slot that is heard.
+
+`ihub-e2e` writes `ihub-e2e-pages-record.txt` beside the test binary:
+`click_armed=10`, `pad_armed=10`, `same_patch=true`, two non-silent RMS
+figures, `armed_led_velocity=5` (red, static) and `idle_led_velocity=13`
+(colour index 2), so the armed pad and the patch colour are both recorded.
+`ihub-ui-pages` runs the server-rendered UI harness and writes the Grid,
+Instrument, Plugins and Audio snapshots to `tests/artifacts/` plus
+`ihub-ui-pages-record.txt`. All 58 tests passed on this host at the T127
+checkpoint.
 
 ---
 
@@ -195,25 +241,29 @@ at the T117 checkpoint.
 The app now composes and plays a session. These are the remaining gaps, in the
 order that matters for a usable instrument.
 
-1. **The mapping is 64 pads; the session is 8 slots.** `shared/set.yaml`
-   declares 64 pads and 64 slots (8 families × 8 patches), but
-   `Session::makeDefaultSet()` builds eight init tones, and `Main` gives the
-   API an eight-slot `StateStore`. Pads 0..7 (the Keys row) arm audible audio;
-   pads 8..63 resolve in the mapping and are then ignored because their slot is
-   outside the graph. Fix by building a 64-slot session (a 64-slot `.ihub` set
-   or a larger default set) and sizing `StateStore` from the session.
-2. **The default set is eight init tones.** Sampler, plugin and audio-input
-   slots are implemented in `Session::build()`, but the app never chooses one.
-   Loading a real kit or VST3 into a slot is a code/CLI path, not a UI action.
-3. **The set/project layer has no UI or API.** There is no Open/Save `.ihub`
-   action, no set browser, and no `GET/POST /set` endpoint. The serializer and
-   migration are exercised by tests only.
-4. **Sampler and plugin browsers have no UI.** Kits can be loaded by
-   code/tests; the running UI exposes only the slot grid. Plugin scanning is a
-   CLI (`--scan-plugins`), not a user-facing browser.
-5. **The grid is flat.** `ui/README.md` documents that `/state` carries flat
-   slots, so `gridFromState()` maps each slot to a one-patch family. The view
-   is family/patch-shaped, but the real family tree is not in the API yet.
+1. **The set/project layer has no open/save UI or API.** There is no Open/Save
+   `.ihub` action, no set browser, and no `GET/POST /set` endpoint. The
+   serializer and migration are exercised by tests only, so Grid edits live in
+   memory for the life of the process.
+2. **The default source is still an init tone.** `shared/set.yaml` supplies the
+   64 family/patch descriptors, colours, mix and insert chains, but the app
+   does not instantiate a kit or VST3 from those descriptors. Sampler, plugin
+   and audio-input slots are implemented in `Session::build()` and reachable
+   through `POST /patches/{slot}/source`, but choosing one is not yet a UI
+   action.
+3. **Sampler and plugin browsers have no assignment UI.** The Plugins page is a
+   read-only inventory with search/rescan (as specified); it deliberately has
+   no assignment control. Kit selection has no page. Assignment stays a
+   code/API path.
+4. **The Grid is the real 8×8 tree.** `/state` now publishes families →
+   patches with names, colours, warm state and latency, and the Grid page
+   renders 64 cells. The remaining persistence gap is item 1: a colour, mix or
+   source edit is not written back to a `.ihub` container yet.
+5. **Page interaction is verified headlessly.** `ihub-ui-pages` renders the
+   real React tree under `react-dom/server` and checks the markup; the native
+   `--snapshot` test captures the Grid route as a PNG. The Instrument, Plugins
+   and Audio pages are not yet captured as native web-view frames, and no
+   browser/tablet has driven the pages. B007/B009 cover the physical checks.
 6. **mDNS is POSIX-only.** `Discovery::start()` returns
    "mDNS discovery is not implemented on this platform" on Windows. Linux has
    been verified against Avahi; macOS is untested.
@@ -230,15 +280,16 @@ order that matters for a usable instrument.
     from the ALSA Loopback; all controller tests use the driver's injection
     seam. See section 4 and B004/B009.
 
-### The shortest path to the full 8×8 set
+### The shortest path to a saved, editable set
 
-1. Make the composed session own the 64 slots the mapping names (default set
-   or loaded `.ihub`), and let `StateStore` follow `Session::getNumSlots()`.
-2. Load the mapping's family/instrument names into the session slots so
-   `/state`, the grid and the remote show the real 8×8 tree.
-3. Expose `.ihub` open/save through the API and add the UI actions.
-4. Add kit and plugin selection per slot (the factories already exist).
-5. Run the hardware checks in section 4.
+1. Expose `.ihub` open/save through the API (`GET/POST /set`) and add the UI
+   actions; persist the Grid/Instrument edits that already flow through the
+   API.
+2. Let the set descriptors instantiate their real source (kit or VST3) instead
+   of an init tone, using the existing `POST /patches/{slot}/source` path.
+3. Add kit and plugin selection per patch (the factories and the plugin
+   inventory already exist).
+4. Run the hardware checks in section 4.
 
 ---
 
@@ -468,26 +519,34 @@ Test suite:
 ```console
 $ ctest --test-dir build --output-on-failure
 ...
-100% tests passed, 0 tests failed out of 51
-Total Test time (real) =  34.30 sec
+100% tests passed, 0 tests failed out of 58
+Total Test time (real) =  47.51 sec
 ```
 
-End-to-end acceptance:
+Page and pad acceptance:
 
 ```console
-$ ctest --test-dir build -R ihub-e2e --output-on-failure
-...
-  record: pads=0->3 render_rms=0.082524 render_rms_dbfs=-21.6684 \
-          switch_discontinuity_dbfs=-154.609 loopback_rms_dbfs_first=-21.5549 \
-          loopback_rms_dbfs_second=-21.4595
-1/1 Test #45: ihub-e2e .........................   Passed
+$ ctest --test-dir build -R 'ihub-e2e|ihub-ui' --output-on-failure
+    Start 49: ihub-ui-snapshot
+1/3 Test #49: ihub-ui-snapshot .................   Passed    2.13 sec
+    Start 50: ihub-ui-pages
+2/3 Test #50: ihub-ui-pages ....................   Passed    2.14 sec
+    Start 51: ihub-e2e
+3/3 Test #51: ihub-e2e .........................   Passed    5.61 sec
+
+100% tests passed, 0 tests failed out of 3
+Total Test time (real) =   9.89 sec
 ```
+
+`ihub-e2e` records the click/pad/LED/audio evidence in
+`ihub-e2e-pages-record.txt`; `ihub-ui-pages` records the four page snapshots in
+`tests/artifacts/` and `ihub-ui-pages-record.txt`.
 
 Device path:
 
 ```console
 $ ./build/engine/instrument-hub --session-smoke
-session-smoke: built 8 slots
+session-smoke: built 64 slots
 session-smoke: armed_slot=0 rms=0.082524 rms_dbfs=-21.6684 switch_to=1 \
                discontinuity_dbfs=-154.196 ...
 session-smoke: device="Loopback, Loopback PCM; Direct hardware device without \
@@ -518,8 +577,8 @@ does exactly that.
 engine/src/
   Main.cpp              application shell, CLI modes, web view, API, session,
                         Launchpad + mapping startup
-  Session.{h,cpp}       composed eight-slot session, device ownership, switch
-                        measurement, real meters
+  Session.{h,cpp}       composed 64-slot session, warm pool, device ownership,
+                        switch measurement, real meters
   api/                  HTTP + WebSocket server, state store, session bridge,
                         pairing, mDNS
   audio/                engine, slots, bus, device manager, transport, clocks,
@@ -534,9 +593,9 @@ engine/src/
   diag/                 log ring, crash dump, diagnostics report
   Bridge/               web view and embedded-asset provider
 shared/                 openapi.yaml, schemas, set.yaml
-ui/                     React app (grid, audio settings, pairing, /remote)
-tests/                  51 ctest targets; tests/e2e/ is the pad-to-audio
-                        acceptance
+ui/                     React app (Grid, Instrument, Plugins, Audio, /remote)
+tests/                  58 ctest targets; tests/e2e/ is the pad/click/LED/audio
+                        acceptance and tests/ui/ holds the snapshot checks
 scripts/                build.sh, dev.sh, bootstrap.sh
 plan/                   roadmap, decisions, testing, blockers, autopilot
 docs/                   Launchpad reference, new-machine setup
