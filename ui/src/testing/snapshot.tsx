@@ -17,7 +17,7 @@ import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import App from "../App";
+import App, { armAndOpenInstrument } from "../App";
 import {
     ApiError,
     createControlApi,
@@ -46,6 +46,7 @@ import {
     EMPTY_METERS,
     GridView,
     MeterStore,
+    PATCH_COLOURS,
     type GridFamily,
     type MeterSnapshot,
     type MeterSocketEvent,
@@ -72,7 +73,162 @@ import {
     type WakeLockStatus,
 } from "../features/remote";
 import { AppStoreProvider } from "../state/AppStoreContext";
+import {
+    instrumentPathForSlot,
+    pathForRoute,
+    routeFromPath,
+    SHELL_ROUTES,
+    slotFromSearch,
+} from "../state/router";
 import { AppStore } from "../state/store";
+
+type FixturePatch = ControlState["families"][number]["patches"][number];
+
+const FIXTURE_FAMILIES: readonly { id: string; name: string; patches: readonly [string, string][] }[] = [
+    {
+        id: "keys",
+        name: "Keys",
+        patches: [
+            ["piano", "Studio Grand"],
+            ["strings", "Warm Pad"],
+            ["rhodes", "Electric Keys"],
+            ["organ", "Drawbar Organ"],
+            ["harp", "Concert Harp"],
+            ["choir", "Choir Keys"],
+            ["celesta", "Celesta"],
+            ["clav", "Clavinet"],
+        ],
+    },
+    {
+        id: "drums",
+        name: "Drums",
+        patches: [
+            ["kit", "Acoustic Kit"],
+            ["snare", "Snare Stack"],
+            ["hihats", "Hi-Hats"],
+            ["toms", "Toms"],
+            ["clap", "Clap"],
+            ["rimshot", "Rimshot"],
+            ["cymbals", "Cymbals"],
+            ["kick", "Kick"],
+        ],
+    },
+    {
+        id: "bass",
+        name: "Bass",
+        patches: [
+            ["sub", "Sub Bass"],
+            ["finger", "Finger Bass"],
+            ["pick", "Pick Bass"],
+            ["fretless", "Fretless Bass"],
+            ["synth", "Synth Bass"],
+            ["upright", "Upright Bass"],
+            ["growl", "Growl Bass"],
+            ["octave", "Octave Bass"],
+        ],
+    },
+    {
+        id: "pads",
+        name: "Pads",
+        patches: [
+            ["air", "Air Pad"],
+            ["warm", "Warm Pad"],
+            ["glass", "Glass Pad"],
+            ["choir", "Choir Pad"],
+            ["motion", "Motion Pad"],
+            ["dark", "Dark Pad"],
+            ["shimmer", "Shimmer"],
+            ["tape", "Tape Pad"],
+        ],
+    },
+    {
+        id: "lead",
+        name: "Lead",
+        patches: [
+            ["saw", "Saw Lead"],
+            ["square", "Square Lead"],
+            ["sine", "Sine Lead"],
+            ["sync", "Sync Lead"],
+            ["fifth", "Fifth Lead"],
+            ["soft", "Soft Lead"],
+            ["hard", "Hard Lead"],
+            ["pulse", "Pulse Lead"],
+        ],
+    },
+    {
+        id: "fx",
+        name: "FX",
+        patches: [
+            ["riser", "Riser"],
+            ["down", "Downlifter"],
+            ["impact", "Impact"],
+            ["noise", "Noise Sweep"],
+            ["sweep", "Sweep"],
+            ["reverse", "Reverse"],
+            ["texture", "Texture"],
+            ["drone", "Drone"],
+        ],
+    },
+    {
+        id: "perc",
+        name: "Percussion",
+        patches: [
+            ["shaker", "Shaker"],
+            ["tamb", "Tambourine"],
+            ["conga", "Conga"],
+            ["bongo", "Bongo"],
+            ["cowbell", "Cowbell"],
+            ["clave", "Clave"],
+            ["woodblock", "Woodblock"],
+            ["triangle", "Triangle"],
+        ],
+    },
+    {
+        id: "vox",
+        name: "Vox",
+        patches: [
+            ["chop", "Vocal Chop"],
+            ["ooh", "Vocal Ooh"],
+            ["aah", "Vocal Aah"],
+            ["stack", "Vocal Stack"],
+            ["phrase", "Vocal Phrase"],
+            ["whisper", "Whisper"],
+            ["shout", "Shout"],
+            ["robot", "Robot Vox"],
+        ],
+    },
+];
+
+let fixtureSlot = 0;
+
+const FIXTURE_PATCHES: ControlState["families"] = FIXTURE_FAMILIES.map (
+    (family, familyIndex) => ({
+        id: family.id,
+        name: family.name,
+        patches: family.patches.map (([id, name]): FixturePatch =>
+        {
+            const slot = fixtureSlot;
+            fixtureSlot += 1;
+
+            return {
+                slot,
+                id,
+                name,
+                family: family.id,
+                familyName: family.name,
+                instrument: { id, name, kind: "init-tone" },
+                volumeDb: 0,
+                pan: 0,
+                mute: false,
+                solo: false,
+                colorIndex: familyIndex,
+                warmState: slot === 3 ? "active" : "warm",
+                warm: true,
+                latencySamples: slot === 3 ? 240 : 0,
+                latencyMs: slot === 3 ? 5 : 0,
+            };
+        }),
+    }));
 
 const FIXTURE: ControlState = {
     schemaVersion: 1,
@@ -89,88 +245,7 @@ const FIXTURE: ControlState = {
         { index: 6, name: "Vocal Chop", armed: false, latencySamples: 96, latencyMs: 2 },
         { index: 7, name: "Empty Slot", armed: false, latencySamples: 0, latencyMs: 0 },
     ],
-    families: [
-        {
-            id: "keys",
-            name: "Keys",
-            patches: [
-                {
-                    slot: 0,
-                    id: "piano",
-                    name: "Studio Grand",
-                    family: "keys",
-                    familyName: "Keys",
-                    instrument: { id: "piano", name: "Studio Grand", kind: "init-tone" },
-                    volumeDb: 0,
-                    pan: -0.15,
-                    mute: false,
-                    solo: false,
-                    colorIndex: 1,
-                    warmState: "warm",
-                    warm: true,
-                    latencySamples: 0,
-                    latencyMs: 0,
-                },
-                {
-                    slot: 1,
-                    id: "strings",
-                    name: "Warm Pad",
-                    family: "keys",
-                    familyName: "Keys",
-                    instrument: { id: "strings", name: "Warm Pad", kind: "init-tone" },
-                    volumeDb: -3,
-                    pan: 0,
-                    mute: false,
-                    solo: false,
-                    colorIndex: 1,
-                    warmState: "warm",
-                    warm: true,
-                    latencySamples: 72,
-                    latencyMs: 1.5,
-                },
-                {
-                    slot: 2,
-                    id: "rhodes",
-                    name: "Electric Keys",
-                    family: "keys",
-                    familyName: "Keys",
-                    instrument: { id: "rhodes", name: "Electric Keys", kind: "init-tone" },
-                    volumeDb: 0,
-                    pan: 0,
-                    mute: false,
-                    solo: false,
-                    colorIndex: 1,
-                    warmState: "cold",
-                    warm: false,
-                    latencySamples: 0,
-                    latencyMs: 0,
-                },
-            ],
-        },
-        {
-            id: "bass",
-            name: "Bass",
-            patches: [
-                {
-                    slot: 3,
-                    id: "sub",
-                    name: "Sub Bass",
-                    family: "bass",
-                    familyName: "Bass",
-                    instrument: { id: "sub", name: "Sub Bass", kind: "init-tone" },
-                    volumeDb: -2,
-                    pan: 0,
-                    mute: false,
-                    solo: false,
-                    colorIndex: 2,
-                    warmState: "active",
-                    warm: true,
-                    latencySamples: 240,
-                    latencyMs: 5,
-                },
-            ],
-        },
-    ],
+    families: FIXTURE_PATCHES,
     settings: { masterGain: 0.82, inputGain: 1.0, midiChannel: 2, metronome: true },
     transport: { playing: true, bpm: 128, ppq: 16.5, positionSamples: 384_512 },
 };
@@ -238,44 +313,44 @@ const PAIRING_ON: ControlPairingState = {
         id: "keys",
         name: "Keys",
         patches: [
-            { id: "piano", name: "Grand Piano", slot: 0, latencySamples: 0, latencyMs: 0 },
-            { id: "strings", name: "Warm Strings", slot: 1, latencySamples: 72, latencyMs: 1.5 },
+            { id: "piano", name: "Grand Piano", slot: 0, colorIndex: 0, warmState: "warm", latencySamples: 0, latencyMs: 0 },
+            { id: "strings", name: "Warm Strings", slot: 1, colorIndex: 0, warmState: "warm", latencySamples: 72, latencyMs: 1.5 },
         ],
     },
     {
         id: "drums",
         name: "Drums",
-        patches: [{ id: "kit", name: "Acoustic Kit", slot: 2, latencySamples: 0, latencyMs: 0 }],
+        patches: [{ id: "kit", name: "Acoustic Kit", slot: 2, colorIndex: 1, warmState: "active", latencySamples: 0, latencyMs: 0 }],
     },
     {
         id: "bass",
         name: "Bass",
-        patches: [{ id: "sub", name: "Sub Bass", slot: 3, latencySamples: 240, latencyMs: 5 }],
+        patches: [{ id: "sub", name: "Sub Bass", slot: 3, colorIndex: 2, warmState: "warm", latencySamples: 240, latencyMs: 5 }],
     },
     {
         id: "pads",
         name: "Pads",
-        patches: [{ id: "air", name: "Air Pad", slot: 4, latencySamples: 120, latencyMs: 2.5 }],
+        patches: [{ id: "air", name: "Air Pad", slot: 4, colorIndex: 3, warmState: "warm", latencySamples: 120, latencyMs: 2.5 }],
     },
     {
         id: "lead",
         name: "Lead",
-        patches: [{ id: "saw", name: "Saw Lead", slot: 5, latencySamples: 48, latencyMs: 1 }],
+        patches: [{ id: "saw", name: "Saw Lead", slot: 5, colorIndex: 4, warmState: "warm", latencySamples: 48, latencyMs: 1 }],
     },
     {
         id: "fx",
         name: "FX",
-        patches: [{ id: "riser", name: "Riser", slot: 6, latencySamples: 96, latencyMs: 2 }],
+        patches: [{ id: "riser", name: "Riser", slot: 6, colorIndex: 5, warmState: "warm", latencySamples: 96, latencyMs: 2 }],
     },
     {
         id: "vocal",
         name: "Vocal",
-        patches: [{ id: "chop", name: "Vocal Chop", slot: 7, latencySamples: 24, latencyMs: 0.5 }],
+        patches: [{ id: "chop", name: "Vocal Chop", slot: 7, colorIndex: 6, warmState: "warm", latencySamples: 24, latencyMs: 0.5 }],
     },
     {
         id: "perc",
         name: "Percussion",
-        patches: [{ id: "shaker", name: "Shaker", slot: null }],
+        patches: [{ id: "shaker", name: "Shaker", slot: null, colorIndex: 7, warmState: "cold" }],
     },
 ];
 
@@ -310,6 +385,7 @@ interface FixtureServer
     readonly pairing: ControlPairingState;
     readonly pairRequests: readonly string[];
     readonly lanRequests: readonly boolean[];
+    readonly patchRequests: readonly { slot: number; patch: Record<string, unknown> }[];
     close: () => Promise<void>;
 }
 
@@ -379,6 +455,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
     const transportRequests: ControlTransportPatch[] = [];
     const pairRequests: string[] = [];
     const lanRequests: boolean[] = [];
+    const patchRequests: { slot: number; patch: Record<string, unknown> }[] = [];
     let stateRequests = 0;
     let measureRequests = 0;
     let pairing = { ...PAIRING_OFF };
@@ -508,6 +585,86 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
                     token: pairingToken,
                     pairedClients: pairing.pairedClients,
                 }));
+            });
+
+            return;
+        }
+
+        if (request.method === "PATCH" && request.url?.startsWith ("/patches/") === true)
+        {
+            let body = "";
+
+            request.on ("data", (chunk: Buffer) => { body += chunk.toString ("utf8"); });
+
+            request.on ("end", () =>
+            {
+                const slot = Number.parseInt (request.url?.slice ("/patches/".length) ?? "", 10);
+
+                let parsed: Record<string, unknown>;
+
+                try
+                {
+                    parsed = JSON.parse (body) as Record<string, unknown>;
+                }
+                catch
+                {
+                    response.statusCode = 400;
+                    response.end (JSON.stringify ({ error: "body must be a JSON object" }));
+                    return;
+                }
+
+                patchRequests.push ({ slot, patch: parsed });
+
+                if (! Number.isInteger (slot) || slot < 0)
+                {
+                    response.statusCode = 404;
+                    response.end (JSON.stringify ({ error: "patch slot is out of range" }));
+                    return;
+                }
+
+                let target: ControlState["families"][number]["patches"][number] | null = null;
+
+                for (const family of state.families)
+                    for (const patch of family.patches)
+                        if (patch.slot === slot)
+                            target = patch;
+
+                if (target === null)
+                {
+                    response.statusCode = 404;
+                    response.end (JSON.stringify ({ error: "patch slot is out of range" }));
+                    return;
+                }
+
+                if (parsed.colorIndex !== undefined)
+                {
+                    const colour = parsed.colorIndex;
+
+                    if (typeof colour !== "number" || ! Number.isInteger (colour)
+                        || colour < 0 || colour > 15)
+                    {
+                        response.statusCode = 400;
+                        response.end (JSON.stringify ({ error: "colorIndex must be 0..15" }));
+                        return;
+                    }
+
+                    target.colorIndex = colour;
+                }
+
+                if (parsed.volumeDb !== undefined && typeof parsed.volumeDb === "number")
+                    target.volumeDb = parsed.volumeDb;
+
+                if (parsed.pan !== undefined && typeof parsed.pan === "number")
+                    target.pan = parsed.pan;
+
+                if (parsed.mute !== undefined && typeof parsed.mute === "boolean")
+                    target.mute = parsed.mute;
+
+                if (parsed.solo !== undefined && typeof parsed.solo === "boolean")
+                    target.solo = parsed.solo;
+
+                response.statusCode = 200;
+                response.end (JSON.stringify (state));
             });
 
             return;
@@ -752,6 +909,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         get pairing () { return pairing; },
         get pairRequests () { return pairRequests; },
         get lanRequests () { return lanRequests; },
+        get patchRequests () { return patchRequests; },
         close: () => new Promise ((resolve, reject) =>
         {
             server.close (error => { error === undefined ? resolve () : reject (error); });
@@ -787,11 +945,11 @@ function writeArtifact (name: string, html: string): void
     console.log (`snapshot: wrote ${String (html.length)} bytes to ${artifactPath (name)}`);
 }
 
-function renderApp (store: AppStore): string
+function renderApp (store: AppStore, initialPath?: string): string
 {
     return renderToStaticMarkup (
         <AppStoreProvider store={store}>
-            <App />
+            <App {...(initialPath === undefined ? {} : { initialPath })} />
         </AppStoreProvider>);
 }
 
@@ -913,7 +1071,7 @@ async function pairingTest (): Promise<void>
                "the desktop reads LAN mode off from GET /pairing");
         check (store.token === null, "a fresh desktop has no pairing token");
 
-        const before = renderApp (store);
+        const before = renderApp (store, "/audio");
 
         check (before.includes ('data-testid="pairing" data-lan="false"'),
                "pairing card renders with LAN mode off");
@@ -933,7 +1091,7 @@ async function pairingTest (): Promise<void>
         check (loadPairingToken (storage) === "fixture-pairing-token",
                "the pairing token is stored client-side");
 
-        const after = renderApp (store);
+        const after = renderApp (store, "/audio");
 
         check (after.includes ('data-testid="pairing" data-lan="true"'),
                "pairing card reports LAN mode on");
@@ -1015,7 +1173,7 @@ async function pairingTest (): Promise<void>
         check (store.token === null, "turning LAN mode off drops the local token");
         check (loadPairingToken (storage) === null, "the stored token is removed");
 
-        const off = renderApp (store);
+        const off = renderApp (store, "/audio");
 
         check (off.includes ('data-testid="pairing" data-lan="false"'),
                "the card returns to the LAN-off state");
@@ -1064,18 +1222,28 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     check (loaded, "GET /state succeeds over HTTP");
 
     const html = renderApp (store);
+    const audioHtml = renderApp (store, "/audio");
+    const instrumentHtml = renderApp (store, "/instrument?slot=3");
+    const pluginsHtml = renderApp (store, "/plugins");
 
     writeArtifact (fromFixture ? "ui-state-snapshot.html" : "ui-state-live.html", html);
+    writeArtifact ("ui-audio-snapshot.html", audioHtml);
+    writeArtifact ("ui-instrument-snapshot.html", instrumentHtml);
+    writeArtifact ("ui-plugins-snapshot.html", pluginsHtml);
 
     check (html.length > 2000, "snapshot is non-blank");
     check (countOf (html, 'data-testid="family"') === 8, "snapshot shows 8 families");
     check (countOf (html, 'data-testid="grid-column"') === 8, "snapshot shows 8 patch columns");
     check (countOf (html, 'data-testid="grid-cell"') === 64, "snapshot shows a full 8×8 grid");
-    check (countOf (html, 'data-testid="slot-meter"') === 8, "every slot has a level meter");
-    check (countOf (html, 'data-testid="slot-latency"') === 8,
-           "every fetched slot shows its chain latency");
+    check (countOf (html, 'data-fill="') === 64, "every one of the 64 cells carries a colour");
+    check (countOf (html, 'data-testid="slot-meter"') === 64, "every patch has a level meter");
+    check (countOf (html, 'data-testid="slot-latency"') === 64,
+           "every patch shows its chain latency");
     check (html.includes ('data-testid="slot-latency" data-slot="3" data-latency-samples="240" data-latency-ms="5.000"'),
            "the API chain latency reaches the grid");
+    check (countOf (html, 'data-armed="true"') === 1, "exactly one cell is armed");
+    check (html.includes ('data-slot="3" data-armed="true"'), "the armed cell is slot 3");
+    check (countOf (html, 'data-fill="#ff1f2f"') === 1, "the armed cell is painted bright red");
     check (html.includes ('data-phase="ready"'), "connection is ready");
     check (html.includes ("Connected"), "snapshot shows the connected status");
     check (html.includes ("Instrument Hub"), "snapshot shows the application name");
@@ -1084,30 +1252,41 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     check (html.includes ('data-testid="connection-status"'), "snapshot shows the connection widget");
     check (html.includes ('data-testid="transport-bpm"'), "snapshot shows the transport widget");
     check (html.includes ('data-testid="instrument-grid"'), "snapshot shows the instrument grid");
-    check (html.includes ('data-testid="audio-settings"'), "snapshot shows the audio settings panel");
-    check (html.includes ('data-testid="device-type-select"'), "panel shows the device type control");
-    check (html.includes ('data-testid="device-select"'), "panel shows the device control");
-    check (html.includes ('data-testid="sample-rate-select"'), "panel shows the sample rate control");
-    check (html.includes ('data-testid="buffer-size-select"'), "panel shows the buffer size control");
-    check (html.includes ('data-testid="latency-buffer"'), "panel shows the buffer latency");
-    check (html.includes ('data-testid="latency-device"'), "panel shows the device latency");
-    check (html.includes ('data-testid="latency-chain"'), "panel shows the chain latency");
-    check (html.includes ('data-testid="latency-total"'), "panel shows the total latency");
-    check (html.includes ('data-testid="xrun-count"'), "panel shows the xrun counter");
-    check (html.includes ('data-testid="measure-button"'), "panel shows the Measure button");
-    check (html.includes ('data-open="true"'), "panel reports the device is open");
-    check (html.includes ('data-testid="pairing"'), "desktop shows the tablet pairing card");
-    check (html.includes ('data-testid="pairing" data-lan="false"'),
+    check (html.includes ('data-testid="app-nav"'), "snapshot shows the page navigation");
+    check (html.includes ('data-testid="nav-grid" data-active="true"'),
+           "the Grid tab is active on /grid");
+
+    check (audioHtml.includes ('data-testid="audio-page"'), "the /audio route resolves to its page");
+    check (audioHtml.includes ('data-testid="audio-settings"'), "audio page shows the audio settings panel");
+    check (audioHtml.includes ('data-testid="device-type-select"'), "panel shows the device type control");
+    check (audioHtml.includes ('data-testid="device-select"'), "panel shows the device control");
+    check (audioHtml.includes ('data-testid="sample-rate-select"'), "panel shows the sample rate control");
+    check (audioHtml.includes ('data-testid="buffer-size-select"'), "panel shows the buffer size control");
+    check (audioHtml.includes ('data-testid="latency-buffer"'), "panel shows the buffer latency");
+    check (audioHtml.includes ('data-testid="latency-device"'), "panel shows the device latency");
+    check (audioHtml.includes ('data-testid="latency-chain"'), "panel shows the chain latency");
+    check (audioHtml.includes ('data-testid="latency-total"'), "panel shows the total latency");
+    check (audioHtml.includes ('data-testid="xrun-count"'), "panel shows the xrun counter");
+    check (audioHtml.includes ('data-testid="measure-button"'), "panel shows the Measure button");
+    check (audioHtml.includes ('data-open="true"'), "panel reports the device is open");
+    check (audioHtml.includes ('data-testid="pairing"'), "desktop shows the tablet pairing card");
+    check (audioHtml.includes ('data-testid="pairing" data-lan="false"'),
            "LAN mode is off by default");
-    check (html.includes ('data-testid="lan-toggle" aria-pressed="false"'),
+    check (audioHtml.includes ('data-testid="lan-toggle" aria-pressed="false"'),
            "the LAN toggle starts off");
-    check (! html.includes ('data-testid="pairing-qr"'),
+    check (! audioHtml.includes ('data-testid="pairing-qr"'),
            "no QR code is rendered while LAN mode is off");
-    check (html.includes ('data-testid="pairing-token-state" data-paired="false"'),
+    check (audioHtml.includes ('data-testid="pairing-token-state" data-paired="false"'),
            "an unpaired desktop reports no token");
-    check (countOf (html, 'data-testid="output-channel"')
+    check (countOf (audioHtml, 'data-testid="output-channel"')
                === (store.getSnapshot ().audio?.outputChannels.length ?? 0),
            "panel maps every output channel the engine reports");
+
+    check (instrumentHtml.includes ('data-testid="instrument-page" data-slot="3"'),
+           "the /instrument route resolves to the armed patch");
+    check (instrumentHtml.includes ('data-testid="instrument-name">Drawbar Organ<'),
+           "the instrument page shows the patch at the queried slot");
+    check (pluginsHtml.includes ('data-testid="plugins-page"'), "the /plugins route resolves");
 
     // The markup must agree with the state the API actually returned.
     const armedSlot = store.getSnapshot ().state?.armedSlot ?? -1;
@@ -1118,9 +1297,7 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
 
     if (fromFixture)
     {
-        check (countOf (html, 'data-armed="true"') === 1, "exactly one cell is armed");
-        check (html.includes ('data-slot="3" data-armed="true"'), "the armed cell is slot 3");
-        check (html.includes ("Sub Bass"), "snapshot shows the armed slot name");
+        check (html.includes ("Drawbar Organ"), "snapshot shows the armed patch name");
         check (html.includes ("Studio Grand"), "snapshot shows the first slot name");
         check (html.includes ("128 BPM"), "snapshot shows the fetched tempo");
         check (html.includes ("Playing"), "snapshot shows the fetched transport state");
@@ -1150,6 +1327,11 @@ async function gridSnapshotTest (): Promise<void>
            "a family renders more than one patch");
     check (countOf (html, 'data-armed="true"') === 1, "exactly one grid cell is armed");
     check (html.includes ('data-slot="2" data-armed="true"'), "the armed cell is highlighted");
+    check (countOf (html, 'data-fill="') === 64, "every grid cell carries a colour");
+    check (countOf (html, 'data-fill="#ff1f2f"') === 1, "the armed cell is bright red");
+    check (html.includes ('data-slot="4" data-armed="false" data-empty="false"')
+               && html.includes ('data-colour-index="3"'),
+           "an unarmed cell keeps its patch colour");
     check (html.includes ('data-testid="slot-meter" data-slot="2" data-peak="0.500"'),
            "per-slot meter carries the latest peak");
     check (html.includes ('data-testid="master-meter" data-peak="0.310"'),
@@ -1176,6 +1358,8 @@ async function gridSnapshotTest (): Promise<void>
 
     check (/min-width:\s*44px/.test (css) && /touch-action:\s*manipulation/.test (css),
            "grid cells are touch-friendly (44 px targets, manipulation gestures)");
+    check (/\.grid__cell--armed\s*\{[^}]*background:\s*#ff1f2f/s.test (css),
+           "the armed cell's CSS background is bright red");
 }
 
 async function armTest (): Promise<void>
@@ -1228,6 +1412,129 @@ async function armTest (): Promise<void>
                "an out-of-range slot never reaches the API");
         check (store.getSnapshot ().state?.armedSlot === 5,
                "a rejected arm leaves the highlight alone");
+    }
+    finally
+    {
+        await server.close ();
+    }
+}
+
+function routeTest (): void
+{
+    check (SHELL_ROUTES.includes ("grid") && SHELL_ROUTES.includes ("instrument")
+               && SHELL_ROUTES.includes ("plugins") && SHELL_ROUTES.includes ("audio")
+               && SHELL_ROUTES.includes ("remote"),
+           "the shell declares every page route");
+
+    for (const route of SHELL_ROUTES)
+        check (routeFromPath (pathForRoute (route)) === route,
+               `/${route} resolves to itself`);
+
+    check (routeFromPath ("/") === "grid" && routeFromPath ("/nope") === "grid",
+           "the root and unknown paths land on the grid");
+    check (routeFromPath ("/audio/") === "audio", "a trailing slash still resolves");
+    check (instrumentPathForSlot (3) === "/instrument?slot=3",
+           "an instrument selection is encoded in the URL");
+    check (instrumentPathForSlot (null) === "/instrument",
+           "no selection still resolves the instrument page");
+    check (slotFromSearch ("?slot=12") === 12, "the instrument page reads its slot");
+    check (slotFromSearch ("?code=123456") === null, "an unrelated query selects no patch");
+    check (slotFromSearch ("?slot=-1") === null, "a negative slot is not a selection");
+
+    const actions: string[] = [];
+
+    armAndOpenInstrument (
+        5,
+        slot => { actions.push (`arm:${String (slot)}`); },
+        path => { actions.push (`nav:${path}`); });
+
+    check (actions.join ("|") === "arm:5|nav:/instrument?slot=5",
+           "one click arms the patch and routes to its instrument page");
+}
+
+async function clickArmsAndRoutesTest (): Promise<void>
+{
+    const server = await startFixtureServer ();
+
+    try
+    {
+        const store = new AppStore (
+            createControlApi ({ baseUrl: server.baseUrl }),
+            { pollIntervalMs: 60_000 });
+
+        await store.refresh ();
+
+        let navigated = "";
+        let armResult: Promise<boolean> = Promise.resolve (false);
+
+        armAndOpenInstrument (
+            5,
+            slot => { armResult = store.armSlot (slot); },
+            path => { navigated = path; });
+
+        check (navigated === "/instrument?slot=5",
+               "clicking a cell routes to /instrument?slot=5");
+        check (store.getSnapshot ().state?.armedSlot === 5,
+               "clicking a cell arms the patch immediately");
+
+        const optimistic = renderApp (store);
+        check (optimistic.includes ('data-slot="5" data-armed="true"'),
+               "the clicked cell is red on the next render");
+
+        check (await armResult, "POST /arm confirms the clicked patch");
+        check (server.armRequests.length === 1 && server.armRequests[0]?.slot === 5,
+               "the engine received the clicked slot");
+    }
+    finally
+    {
+        await server.close ();
+    }
+}
+
+async function colourEditTest (): Promise<void>
+{
+    const server = await startFixtureServer ();
+
+    try
+    {
+        const store = new AppStore (
+            createControlApi ({ baseUrl: server.baseUrl }),
+            { pollIntervalMs: 60_000 });
+
+        await store.refresh ();
+
+        const initial = renderApp (store);
+        check (/data-slot="3"[^>]*data-colour-index="0"/.test (initial),
+               "slot 3 starts on palette colour 0");
+
+        const pending = store.updatePatch (3, { colorIndex: 5 });
+        const optimistic = renderApp (store);
+        check (/data-slot="3"[^>]*data-colour-index="5"/.test (optimistic),
+               "the cell recolours before PATCH answers");
+
+        check (await pending, "PATCH /patches/3 accepts the colour");
+        check (server.patchRequests.length === 1
+                   && server.patchRequests[0]?.slot === 3
+                   && server.patchRequests[0]?.patch.colorIndex === 5,
+               "the engine received colorIndex 5 for slot 3");
+
+        const recoloured = renderApp (store);
+        check (recoloured.includes (`data-slot="3" data-armed="true" data-empty="false"`)
+                   && recoloured.includes (`data-colour-index="5" data-colour="${PATCH_COLOURS[5]}"`),
+               "the recoloured armed cell shows the new palette colour");
+
+        const familyChanged = await store.updateFamilyColour ("drums", 12);
+        const drums = store.getSnapshot ().state?.families.find (family => family.id === "drums");
+
+        check (familyChanged && drums?.patches.every (patch => patch.colorIndex === 12) === true,
+               "a family colour change reaches every patch in the row");
+        check (server.patchRequests.slice (1).map (request => request.slot).join (",")
+                   === "8,9,10,11,12,13,14,15",
+               "the family change PATCHes all eight patches");
+
+        const familyHtml = renderApp (store);
+        check (/data-family="drums"[^>]*data-colour-index="12"/.test (familyHtml),
+               "the family header reflects the new colour");
     }
     finally
     {
@@ -1367,6 +1674,10 @@ async function backoffTest (): Promise<void>
         {
             throw new Error ("connection refused");
         },
+        updatePatch: async (): Promise<ControlState> =>
+        {
+            throw new Error ("connection refused");
+        },
         controlTransport: async (): Promise<ControlTransport> =>
         {
             throw new Error ("connection refused");
@@ -1433,7 +1744,7 @@ async function audioSettingsTest (): Promise<void>
         check (store.getSnapshot ().audio?.latency.bufferMs === (128 * 1000) / 48000,
                "fetched buffer latency is one buffer at 48 kHz");
 
-        const initial = renderApp (store);
+        const initial = renderApp (store, "/audio");
 
         check (initial.includes ('data-buffer-size="128"'),
                "panel renders the fetched buffer size");
@@ -1457,7 +1768,7 @@ async function audioSettingsTest (): Promise<void>
         check (store.getSnapshot ().audio?.bufferSize === 256,
                "store adopts the post-change buffer size");
 
-        const after = renderApp (store);
+        const after = renderApp (store, "/audio");
 
         check (after.includes ('data-buffer-size="256"'),
                "the readout updates to 256 frames");
@@ -1478,7 +1789,7 @@ async function audioSettingsTest (): Promise<void>
         check (measurement !== null && Math.abs (measurement.roundTripMs - 10.6667) < 0.1,
                "measured round trip is two buffers at 256 frames (10.7 ms)");
 
-        const measuredHtml = renderApp (store);
+        const measuredHtml = renderApp (store, "/audio");
 
         check (measuredHtml.includes ('data-testid="measure-result" data-valid="true"'),
                "the panel renders the successful measurement");
@@ -2005,6 +2316,9 @@ async function main (): Promise<void>
     await snapshotTest ();
     await gridSnapshotTest ();
     await armTest ();
+    routeTest ();
+    await clickArmsAndRoutesTest ();
+    await colourEditTest ();
     meterTest ();
     loadingTest ();
     await audioSettingsTest ();

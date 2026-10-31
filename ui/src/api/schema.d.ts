@@ -77,6 +77,105 @@ export interface paths {
         patch: operations["updatePatch"];
         trace?: never;
     };
+    "/patches/{slot}/fx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one patch's insert chain
+         * @description Returns the ordered inserts between the patch's instrument and the bus,
+         *     plus the latency budget: the instrument's own latency, the summed
+         *     latency of the inserts that are in the audible path, and the total in
+         *     samples and milliseconds.
+         *
+         *     Inserts are processed in list order. A bypassed insert (or one with
+         *     `wet: 0`) contributes no latency.
+         */
+        get: operations["getFxChain"];
+        /**
+         * Replace a patch's whole insert chain
+         * @description Builds the complete chain from `chain` in one atomic operation. Each
+         *     element is the same object `POST` accepts. An empty array clears the
+         *     chain. If any element is invalid or a plugin cannot be loaded, the
+         *     existing chain is left untouched.
+         */
+        put: operations["replaceFxChain"];
+        /**
+         * Append or insert an effect
+         * @description Creates one insert and places it at `position` (clamped; omitted or -1
+         *     appends). Built-in types are `eq`, `compressor`, `delay` and `reverb`;
+         *     `vst3` loads a plugin bundle from `path`. The response is the complete
+         *     chain after the change, and the same change is published as
+         *     `event.kind: "patch"` on `/events`.
+         *
+         *     Effect parameters are validated before anything is applied. See
+         *     `FxInsert.parameters` for the built-in keys.
+         */
+        post: operations["addFxInsert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patches/{slot}/fx/{index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+                /** @description 0-based insert index in the current chain. */
+                index: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove one insert */
+        delete: operations["removeFxInsert"];
+        options?: never;
+        head?: never;
+        /**
+         * Bypass, balance, re-parameterise or move one insert
+         * @description Accepts a partial object: `bypassed`, `wet`, `parameters` and/or
+         *     `position`. `position` moves the insert within the chain (0 is first).
+         *     The response is the complete chain after the change.
+         */
+        patch: operations["updateFxInsert"];
+        trace?: never;
+    };
+    "/patches/{slot}/fx/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reorder the inserts
+         * @description `order` must be a permutation of the current insert indices;
+         *     `order[0]` becomes the first insert. The response is the complete chain.
+         */
+        post: operations["reorderFxChain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings": {
         parameters: {
             query?: never;
@@ -355,6 +454,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/plugins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List installed VST3 plug-ins
+         * @description Returns the read-only inventory produced by the out-of-process scanner
+         *     and its `PluginCache.xml`. An unchanged install is answered from the
+         *     cache, so this endpoint never launches plugin code.
+         *
+         *     `search` is a case-insensitive substring matched against name, vendor,
+         *     version, category, format and path. The result is already filtered;
+         *     `total` reports the unfiltered size. Rescanning is asynchronous: call
+         *     `POST /plugins/rescan`, then poll this endpoint while `scanning` is
+         *     true.
+         */
+        get: operations["listPlugins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rescan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rescan the VST3 directories
+         * @description Starts one background scan. The response is the inventory as it was when
+         *     the scan started, with `started: true` and `scanning: true` when the
+         *     scan was accepted. A scan already in progress returns `started: false`
+         *     and leaves it running. New, changed and removed bundles are picked up
+         *     when the scan finishes; the scanner's dead-man's-pedal list still keeps
+         *     a crashing bundle from being retried.
+         */
+        post: operations["rescanPlugins"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -491,6 +643,92 @@ export interface components {
             solo?: boolean;
             colorIndex?: number;
         };
+        FxInsert: {
+            /** @description Position in the chain; 0 is the first insert. */
+            index: number;
+            /**
+             * @description Stable effect type.
+             * @enum {string}
+             */
+            type: "eq" | "compressor" | "delay" | "reverb" | "vst3";
+            /** @enum {string} */
+            kind: "builtin" | "vst3";
+            /** @description Built-in id, or the plugin's bundle path. */
+            id: string;
+            name: string;
+            /** @description A bypassed insert is skipped and no longer delays the path. */
+            bypassed: boolean;
+            /** @description Wet/dry balance; 0 is fully dry and bit-exact. */
+            wet: number;
+            /** @description The complement of `wet`. */
+            dry: number;
+            /** @description Latency this insert contributes while it is audible. */
+            latencySamples: number;
+            /**
+             * @description Effect-specific values. Built-ins use these keys:
+             *
+             *     - `eq`: `lowFrequencyHz`, `lowGainDb`, `lowQ`, `lowEnabled`,
+             *       `midFrequencyHz`, `midGainDb`, `midQ`, `midEnabled`,
+             *       `highFrequencyHz`, `highGainDb`, `highQ`, `highEnabled`
+             *     - `compressor`: `thresholdDb`, `ratio`, `attackMs`, `releaseMs`,
+             *       `makeupDb`
+             *     - `delay`: `tempoSync` (0/1), `division` (0..9), `timeMs`,
+             *       `feedback`, `dampingHz`
+             *     - `reverb`: `roomSize`, `damping`, `width`, `preDelayMs`
+             *     - `vst3`: parameter id or display name -> normalised 0..1 value
+             */
+            parameters: {
+                [key: string]: number;
+            };
+        };
+        FxChain: {
+            /** @description Fixed audio-graph slot that hosts this patch. */
+            slot: number;
+            /** @description Latency of the instrument source alone. */
+            instrumentLatencySamples: number;
+            /** @description Summed latency of the inserts in the audible path. */
+            fxLatencySamples: number;
+            /** @description Instrument + FX latency of the whole patch. */
+            latencySamples: number;
+            /** @description The same total at the engine's sample rate. */
+            latencyMs: number;
+            inserts: components["schemas"]["FxInsert"][];
+        };
+        FxInsertRequest: {
+            /** @enum {string} */
+            type: "eq" | "compressor" | "delay" | "reverb" | "vst3";
+            /** @description VST3 bundle path; required for `vst3`, ignored otherwise. */
+            path?: string;
+            /** @description Optional stable id; the bundle path is used for a plugin. */
+            id?: string;
+            name?: string;
+            /** @default false */
+            bypassed: boolean;
+            /** @default 1 */
+            wet: number;
+            /** @description New insert position; -1 or omitted appends. */
+            position?: number;
+            parameters?: {
+                [key: string]: number;
+            };
+        };
+        FxInsertUpdate: {
+            bypassed?: boolean;
+            wet?: number;
+            /** @description Move the insert to this position in the chain. */
+            position?: number;
+            parameters?: {
+                [key: string]: number;
+            };
+        };
+        FxChainReplace: {
+            /** @description The complete new chain, first insert first. */
+            chain: components["schemas"]["FxInsertRequest"][];
+        };
+        FxReorderRequest: {
+            /** @description A permutation of 0 .. chainLength-1; first entry first. */
+            order: number[];
+        };
         State: {
             /** @constant */
             schemaVersion: 1;
@@ -620,6 +858,50 @@ export interface components {
             token: string;
             pairedClients: number;
         };
+        Plugin: {
+            /** @description Stable identity that survives a restart. */
+            id: string;
+            /** @example TestPlugin */
+            name: string;
+            /** @description Optional descriptive name reported by the plugin. */
+            description: string;
+            /** @example Instrument Hub */
+            vendor: string;
+            /** @description Version string as reported by the plugin. */
+            version: string;
+            /** @description Plugin category, e.g. `Fx` or `Instrument`. */
+            category: string;
+            /** @description True when the plugin identifies itself as an instrument. */
+            isInstrument: boolean;
+            /** @description True for an effect; the complement of `isInstrument`. */
+            isEffect: boolean;
+            /** @constant */
+            format: "VST3";
+            /**
+             * @description Bundle path the scanner reported.
+             * @example /usr/lib/vst3/TestPlugin.vst3
+             */
+            path: string;
+        };
+        PluginList: {
+            plugins: components["schemas"]["Plugin"][];
+            /** @description Number of plugins after the search filter. */
+            count: number;
+            /** @description Number of installed plugins before the search filter. */
+            total: number;
+            /** @description The applied search query, empty when unfiltered. */
+            search: string;
+            /** @description True while a background rescan is running. */
+            scanning: boolean;
+            /** @description True once a cache was loaded or a scan completed. */
+            scanned: boolean;
+            /** @description Epoch milliseconds of the last completed scan or cache load. */
+            lastScanMs: number;
+            /** @description Last scan error, empty on success. */
+            error: string;
+            /** @description Only on `POST /plugins/rescan`; true when a scan was started. */
+            started?: boolean;
+        };
     };
     responses: {
         /** @description The request body is missing, malformed or outside the allowed ranges */
@@ -734,6 +1016,282 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             /** @description No patch is hosted by that slot */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFxChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The patch's insert chain */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxChain"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    replaceFxChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxChainReplace"];
+            };
+        };
+        responses: {
+            /** @description The chain after the replacement */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxChain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    addFxInsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxInsertRequest"];
+            };
+        };
+        responses: {
+            /** @description The chain after the insert */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxChain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    removeFxInsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+                /** @description 0-based insert index in the current chain. */
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The chain after the removal */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxChain"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The patch or insert index does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateFxInsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+                /** @description 0-based insert index in the current chain. */
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxInsertUpdate"];
+            };
+        };
+        responses: {
+            /** @description The chain after the update */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxChain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description The patch or insert index does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    reorderFxChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FxReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description The reordered chain */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxChain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1090,6 +1648,71 @@ export interface operations {
             };
             /** @description LAN mode is off, so there is nothing to pair with */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listPlugins: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive filter over the plug-in metadata. */
+                search?: string;
+                /** @description Alias for `search`. */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current inventory */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    rescanPlugins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A scan was already running; the inventory is unchanged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginList"];
+                };
+            };
+            /** @description The scan was started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The server has no plug-in inventory attached */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

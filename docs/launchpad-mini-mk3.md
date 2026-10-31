@@ -112,20 +112,26 @@ controller selection, not a graph change.
 
 ## LED policy
 
-`PadState` maps to the following palette values (confirmed on the physical
-device: green 21, red 5):
+The grid mirrors `/state`: every unarmed patch lights its `colorIndex`
+palette colour, the armed patch is bright red, a patch that is warming is
+yellow, and a load error flashes red.
 
 | State | Colour | Velocity | When |
 | --- | --- | --- | --- |
-| `idle` | Off | 0 | unselected pad |
-| `warming` | Yellow | 13 | press received, slot fading in |
-| `active` | Green | 21 | the armed slot |
-| `error` | Red | 5 | slot could not be loaded |
+| `idle` | patch palette | 5..57 | unselected patch |
+| `warming` | Yellow | 13 | card is loading a cold patch |
+| `armed` | Red | 5 | the armed patch |
+| `error` | Red, flashing | 5 (`0x91`) | slot could not be loaded |
 
-The driver writes the active pad's LED and turns the previous one off; the app
-also lights the selected top-row bank and right-column scene. LED state is
-stored per pad/button, so `refreshLeds()` can repaint the whole surface after a
-reconnect without replaying controller history.
+The generic `PadState` feedback used by the controller scripts keeps its
+legacy mapping (idle off, warming yellow, active green, error red); the app
+uses the patch-aware `LaunchpadDriver::setPatchLed()` policy above. Button
+LEDs use the same palette velocity on a CC message.
+
+LED state is stored per pad/button, so `refreshLeds()` can repaint the whole
+surface after a reconnect without replaying controller history. The app polls
+`/state` at 10 Hz and repaints only changed LEDs, so an HTTP colour edit reaches
+the hardware without a reconnect.
 
 ## Mapping and the composed session
 
