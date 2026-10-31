@@ -1340,6 +1340,7 @@ add_test(
 
 add_executable(ihub-transport-test
     audio/TransportTest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
 
@@ -1387,6 +1388,7 @@ add_test(
 add_executable(ihub-clock-out-test
     audio/ClockOutTest.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/ClockOut.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
 
@@ -1433,6 +1435,7 @@ add_test(
 add_executable(ihub-clock-in-test
     audio/ClockInTest.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/ClockIn.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
 
@@ -1466,6 +1469,53 @@ set_target_properties(ihub-clock-in-test PROPERTIES
 add_test(
     NAME ihub-clock-in
     COMMAND ihub-clock-in-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# --- Tap tempo (T074) -------------------------------------------------------
+#
+# Acceptance: taps spaced 500 ms +/- 20 ms converge to 120 +/- 1 BPM after four
+# taps. The taps are exact timestamps (no wall clock), with several jitter
+# patterns. Also covers the median window, sequence resets, the 20/300 BPM
+# range boundaries, non-finite input, allocation-free tapping, and the
+# Transport integration used by the controller button and the control API.
+
+add_executable(ihub-tap-tempo-test
+    audio/TapTempoTest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+)
+
+target_compile_features(ihub-tap-tempo-test PRIVATE cxx_std_20)
+
+target_include_directories(ihub-tap-tempo-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+# The replacement operator new is backed by malloc/free (which is a valid
+# implementation), so GCC's pairing heuristic fires at inlined call sites.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-tap-tempo-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(ihub-tap-tempo-test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+set_target_properties(ihub-tap-tempo-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-tap-tempo
+    COMMAND ihub-tap-tempo-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 

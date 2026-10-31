@@ -1,8 +1,6 @@
 #include "Transport.h"
 
 #include <algorithm>
-#include <array>
-#include <chrono>
 #include <cmath>
 #include <limits>
 
@@ -11,8 +9,6 @@ namespace AudioEngine
 
 namespace
 {
-constexpr double tinyEpsilon = 1.0e-9;
-
 double sanitisePpq (double value) noexcept
 {
     return std::isfinite (value) && value > 0.0 ? value : 0.0;
@@ -193,90 +189,41 @@ double Transport::getPpqAtSampleOffset (int offsetSamples) const noexcept
 
 double Transport::tapAt (double timestampSeconds) noexcept
 {
-    if (! std::isfinite (timestampSeconds))
-        return tapTempoBpm.load (std::memory_order_relaxed);
+    const double estimate = tapTempo.tapAt (timestampSeconds);
 
-    if (tapCount == 0)
+    // A non-finite timestamp is ignored by TapTempo; do not let its retained
+    // estimate overwrite a tempo the user set by hand.
+    if (std::isfinite (timestampSeconds)
+        && estimate > 0.0
+        && syncSource.load (std::memory_order_relaxed) == SyncSource::internal)
     {
-        tapCount = 1;
-        lastTapTime = timestampSeconds;
-        return 0.0;
-    }
-
-    const double interval = timestampSeconds - lastTapTime;
-
-    // A gap outside the supported tempo range means the player stopped and
-    // started tapping again; begin a new sequence at this tap.
-    if (interval + tinyEpsilon < minTapIntervalSeconds
-        || interval > maxTapIntervalSeconds + tinyEpsilon)
-    {
-        tapCount = 1;
-        lastTapTime = timestampSeconds;
-        tapIntervalCount = 0;
-        tapIntervalHead = 0;
-        tapTempoBpm.store (0.0, std::memory_order_relaxed);
-        return 0.0;
-    }
-
-    ++tapCount;
-    lastTapTime = timestampSeconds;
-
-    tapIntervals[tapIntervalHead] = interval;
-    tapIntervalHead = (tapIntervalHead + 1) % tapHistorySize;
-
-    if (tapIntervalCount < tapHistorySize)
-        ++tapIntervalCount;
-
-    std::array<double, tapHistorySize> sorted {};
-    const int count = tapIntervalCount;
-
-    for (int index = 0; index < count; ++index)
-        sorted[static_cast<size_t> (index)] = tapIntervals[index];
-
-    std::sort (sorted.begin(), sorted.begin() + count);
-
-    const double median = (count % 2 == 1)
-                              ? sorted[static_cast<size_t> (count / 2)]
-                              : 0.5 * (sorted[static_cast<size_t> (count / 2 - 1)]
-                                       + sorted[static_cast<size_t> (count / 2)]);
-
-    if (! (median > 0.0))
-        return 0.0;
-
-    const double estimate = clampBpm (60.0 / median);
-
-    tapTempoBpm.store (estimate, std::memory_order_relaxed);
-
-    if (syncSource.load (std::memory_order_relaxed) == SyncSource::internal)
         bpm.store (estimate, std::memory_order_relaxed);
+    }
 
     return estimate;
 }
 
 double Transport::tap() noexcept
 {
-    const auto now = std::chrono::steady_clock::now().time_since_epoch();
-    const double seconds = std::chrono::duration<double> (now).count();
+    const double estimate = tapTempo.tap();
 
-    return tapAt (seconds);
+    if (estimate > 0.0
+        && syncSource.load (std::memory_order_relaxed) == SyncSource::internal)
+    {
+        bpm.store (estimate, std::memory_order_relaxed);
+    }
+
+    return estimate;
 }
 
 void Transport::resetTapTempo() noexcept
 {
-    tapCount = 0;
-    lastTapTime = 0.0;
-    tapIntervalCount = 0;
-    tapIntervalHead = 0;
-
-    for (auto& interval : tapIntervals)
-        interval = 0.0;
-
-    tapTempoBpm.store (0.0, std::memory_order_relaxed);
+    tapTempo.reset();
 }
 
 double Transport::getTapTempoBpm() const noexcept
 {
-    return tapTempoBpm.load (std::memory_order_relaxed);
+    return tapTempo.getBpm();
 }
 
 void Transport::setSyncSource (SyncSource newSource) noexcept
@@ -337,7 +284,7 @@ Transport::Snapshot Transport::snapshot() const noexcept
     result.syncSource = syncSource.load (std::memory_order_relaxed);
     result.externalClockLocked = externalClockLocked.load (std::memory_order_relaxed);
 
-    result.tapTempoBpm = tapTempoBpm.load (std::memory_order_relaxed);
+    result.tapTempoBpm = tapTempo.getBpm();
 
     return result;
 }

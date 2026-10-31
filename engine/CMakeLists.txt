@@ -109,6 +109,7 @@ target_sources(instrument-hub
         src/audio/Slot.cpp
         src/audio/SlotSwitcher.cpp
         src/audio/TimingMonitor.cpp
+        src/audio/TapTempo.cpp
         src/audio/Transport.cpp
         src/audio/WarmPool.cpp
         src/controller/LaunchkeyDriver.cpp
