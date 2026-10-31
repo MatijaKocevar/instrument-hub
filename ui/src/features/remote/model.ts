@@ -1,5 +1,8 @@
 import type { ControlState, ControlTransport } from "../../api/client";
 
+/** Connection phases shared with the desktop store. */
+export type RemoteConnection = "idle" | "connecting" | "ready" | "offline";
+
 /** One playable entry in the remote's set list. */
 export interface RemotePatch
 {

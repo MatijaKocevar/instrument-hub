@@ -8,6 +8,8 @@
 
 .remote {
   --remote-gap: clamp(0.7rem, 1.8vw, 1.15rem);
+  --remote-bg: #0b0d12;
+  --remote-text: #eef2fb;
   --remote-card: #171922;
   --remote-line: #303344;
   --remote-muted: #9aa3b8;
@@ -19,6 +21,8 @@
   min-width: 0;
   min-height: 100%;
   padding: clamp(0.85rem, 2.2vw, 1.75rem);
+  background: var(--remote-bg);
+  color: var(--remote-text);
   overflow-x: clip;
 }
 
@@ -71,6 +75,128 @@
 
 .remote__heading {
   min-width: 0;
+}
+
+.remote__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.remote button.remote__contrast {
+  padding: 0.5rem 0.75rem;
+  border-color: var(--remote-line);
+  background: #1d202b;
+  color: #dbe2f2;
+  font-size: 0.74rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.remote button.remote__contrast[aria-pressed="true"] {
+  border-color: #f4f7ff;
+  background: #f4f7ff;
+  color: #07080c;
+}
+
+.remote__wake {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #2f6f5f;
+  border-radius: 999px;
+  background: #12352b;
+  color: #8ff2d9;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.remote__wake::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #6ee7c8;
+}
+
+.remote__wake--off {
+  border-color: #5c5227;
+  background: #332e16;
+  color: #f2d06b;
+}
+
+.remote__wake--off::before {
+  background: #f2d06b;
+}
+
+.remote__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #8a6a1f;
+  border-radius: 0.8rem;
+  background: #2f2610;
+  color: #ffe5a3;
+}
+
+.remote__banner--critical {
+  border-color: #b23a4b;
+  background: #3a1219;
+  color: #ffd4da;
+}
+
+.remote__banner-dot {
+  flex: 0 0 auto;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-top: 0.2rem;
+  border-radius: 50%;
+  background: #f2d06b;
+  animation: remote-pulse 1.2s ease-in-out infinite;
+}
+
+.remote__banner--critical .remote__banner-dot {
+  background: #ff6b81;
+}
+
+.remote__banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.remote__banner-title {
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.remote__banner-detail {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+@keyframes remote-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.25;
+  }
 }
 
 .remote__eyebrow {
@@ -515,8 +641,164 @@
   }
 }
 
+.remote[data-contrast="high"] {
+  --remote-bg: #000000;
+  --remote-card: #000000;
+  --remote-line: #ffffff;
+  --remote-muted: #e8e8e8;
+  --remote-text: #ffffff;
+  color-scheme: dark;
+}
+
+.remote[data-contrast="high"] .remote__title,
+.remote[data-contrast="high"] .remote__now-name,
+.remote[data-contrast="high"] .remote__bpm,
+.remote[data-contrast="high"] .remote__eyebrow,
+.remote[data-contrast="high"] .remote__label,
+.remote[data-contrast="high"] .remote__section-title,
+.remote[data-contrast="high"] .remote__set-name,
+.remote[data-contrast="high"] .remote__position,
+.remote[data-contrast="high"] .remote__now-meta {
+  color: #ffffff;
+}
+
+.remote[data-contrast="high"] button {
+  border-color: #ffffff;
+  background: #000000;
+  color: #ffffff;
+}
+
+.remote[data-contrast="high"] button:hover:not(:disabled) {
+  border-color: #35ffc0;
+  background: #101010;
+}
+
+.remote[data-contrast="high"] button:focus-visible {
+  outline: 3px solid #35ffc0;
+}
+
+.remote[data-contrast="high"] .remote__status,
+.remote[data-contrast="high"] .remote__count,
+.remote[data-contrast="high"] .remote__set-index,
+.remote[data-contrast="high"] .remote__set-latency,
+.remote[data-contrast="high"] .remote__position-detail,
+.remote[data-contrast="high"] .remote__panic-hint {
+  color: #ffffff;
+}
+
+.remote[data-contrast="high"] .remote__status--ready {
+  border-color: #35ffc0;
+  background: #00291f;
+  color: #35ffc0;
+}
+
+.remote[data-contrast="high"] .remote__status--connecting {
+  border-color: #ffd84d;
+  background: #2b2400;
+  color: #ffd84d;
+}
+
+.remote[data-contrast="high"] .remote__status--offline {
+  border-color: #ff6b81;
+  background: #33000c;
+  color: #ff9cab;
+}
+
+.remote[data-contrast="high"] .remote__now,
+.remote[data-contrast="high"] .remote__set,
+.remote[data-contrast="high"] .remote__transport,
+.remote[data-contrast="high"] .remote__panic {
+  border-color: #ffffff;
+  background: #000000;
+}
+
+.remote[data-contrast="high"] .remote__now {
+  border-color: #35ffc0;
+}
+
+.remote[data-contrast="high"] button.remote__step-button {
+  border-color: #35ffc0;
+  background: #00291f;
+  color: #ffffff;
+}
+
+.remote[data-contrast="high"] button.remote__step-button:hover:not(:disabled) {
+  background: #004a39;
+}
+
+.remote[data-contrast="high"] button.remote__set-item--armed {
+  border-color: #35ffc0;
+  background: #00291f;
+  box-shadow: inset 0 0 0 2px #35ffc0;
+}
+
+.remote[data-contrast="high"] .remote__set-item--armed .remote__set-index,
+.remote[data-contrast="high"] .remote__set-item--armed .remote__set-latency {
+  color: #35ffc0;
+}
+
+.remote[data-contrast="high"] .remote__set-badge {
+  background: #35ffc0;
+  color: #000000;
+}
+
+.remote[data-contrast="high"] .remote__transport-state {
+  background: #000000;
+  color: #ffffff;
+  outline: 1px solid #ffffff;
+}
+
+.remote[data-contrast="high"] .remote__transport-state--playing {
+  background: #00291f;
+  color: #35ffc0;
+  outline-color: #35ffc0;
+}
+
+.remote[data-contrast="high"] button.remote__transport-button--play {
+  border-color: #7cc4ff;
+  background: #001a33;
+  color: #ffffff;
+}
+
+.remote[data-contrast="high"] button.remote__panic-button {
+  border-color: #ff6b81;
+  background: #7a0016;
+  color: #ffffff;
+}
+
+.remote[data-contrast="high"] button.remote__panic-button:hover:not(:disabled) {
+  border-color: #ffffff;
+  background: #a3001d;
+}
+
+.remote[data-contrast="high"] .remote__empty,
+.remote[data-contrast="high"] .remote__set-loading {
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.remote[data-contrast="high"] .remote__banner--warning {
+  border-color: #ffd84d;
+  background: #000000;
+  color: #ffd84d;
+}
+
+.remote[data-contrast="high"] .remote__banner--critical {
+  border-color: #ff6b81;
+  background: #000000;
+  color: #ff9cab;
+}
+
+.remote[data-contrast="high"] .remote__banner-dot {
+  background: currentColor;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .remote button {
     transition: none;
+  }
+
+  .remote__banner-dot {
+    animation: none;
   }
 }

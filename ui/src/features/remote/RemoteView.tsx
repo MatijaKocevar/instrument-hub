@@ -4,12 +4,15 @@ import {
     currentPatch,
     formatBpm,
     formatPosition,
+    type RemoteConnection,
     type RemoteModel,
 } from "./model";
+import { remoteBanner, type RemoteLinkSnapshot } from "./link";
+import { contrastLabel, type RemoteContrast } from "./theme";
+import type { WakeLockStatus } from "./wakeLock";
 import "./remote.css";
 
-/** Connection phases shared with the desktop store. */
-export type RemoteConnection = "idle" | "connecting" | "ready" | "offline";
+export type { RemoteConnection } from "./model";
 
 const CONNECTION_LABEL: Record<RemoteConnection, string> = {
     idle: "Idle",
@@ -28,6 +31,14 @@ export interface RemoteViewProps
     readonly loading?: boolean;
     /** Last API failure, shown under the header. */
     readonly error?: string | null;
+    /** Live WebSocket history, drives the reconnect banner. */
+    readonly link?: RemoteLinkSnapshot | null;
+    /** Stage palette; high contrast is the default. */
+    readonly contrast?: RemoteContrast;
+    /** Screen-wake-lock status, shown as a small badge. */
+    readonly wakeLock?: WakeLockStatus;
+    /** Switch between the high-contrast and standard palettes. */
+    readonly onToggleContrast?: () => void;
     /** Tap a patch in the set list. */
     readonly onSelect?: (slot: number) => void;
     /** Move one patch backwards in set order. */
@@ -54,6 +65,18 @@ function formatLatency (milliseconds: number): string
     return `${clamped.toFixed (1)} ms`;
 }
 
+/** `live` / `lost` / `connecting` / `unknown`, for data attributes. */
+function linkPhase (link: RemoteLinkSnapshot | null): string
+{
+    if (link === null)
+        return "unknown";
+
+    if (link.connected)
+        return "live";
+
+    return link.everConnected ? "lost" : "connecting";
+}
+
 /**
     The tablet/stage remote.
 
@@ -67,6 +90,10 @@ export function RemoteView ({
     connection = "idle",
     loading = false,
     error = null,
+    link = null,
+    contrast = "high",
+    wakeLock = "idle",
+    onToggleContrast,
     onSelect,
     onPrevious,
     onNext,
@@ -79,13 +106,18 @@ export function RemoteView ({
     const playing = model.transport.playing;
     const empty = model.patches.length === 0;
     const stepDisabled = empty || loading;
+    const banner = remoteBanner (connection, link);
 
     return (
         <main
             className="remote"
             aria-label="Stage remote"
             data-testid="remote"
+            data-theme="stage"
+            data-contrast={contrast}
             data-connection={connection}
+            data-link={linkPhase (link)}
+            data-wake-lock={wakeLock}
             data-armed-slot={model.armedSlot}
             data-playing={playing ? "true" : "false"}
         >
@@ -95,14 +127,63 @@ export function RemoteView ({
                     <h1 className="remote__title">{model.applicationName}</h1>
                 </div>
 
-                <span
-                    className={`remote__status remote__status--${connection}`}
-                    data-testid="remote-connection"
-                    data-phase={connection}
-                >
-                    {CONNECTION_LABEL[connection]}
-                </span>
+                <div className="remote__header-actions">
+                    {wakeLock === "active"
+                        ? <span
+                              className="remote__wake"
+                              data-testid="remote-wake-lock"
+                              data-state="active"
+                          >
+                              Screen on
+                          </span>
+                        : wakeLock === "denied" || wakeLock === "unavailable"
+                            ? <span
+                                  className="remote__wake remote__wake--off"
+                                  data-testid="remote-wake-lock"
+                                  data-state={wakeLock}
+                              >
+                                  Screen may sleep
+                              </span>
+                            : null}
+
+                    <button
+                        className="remote__contrast"
+                        type="button"
+                        data-testid="remote-contrast"
+                        data-contrast={contrast}
+                        aria-pressed={contrast === "high"}
+                        aria-label="Toggle the high-contrast stage theme"
+                        onClick={onToggleContrast}
+                    >
+                        {contrastLabel (contrast)}
+                    </button>
+
+                    <span
+                        className={`remote__status remote__status--${connection}`}
+                        data-testid="remote-connection"
+                        data-phase={connection}
+                    >
+                        {CONNECTION_LABEL[connection]}
+                    </span>
+                </div>
             </header>
+
+            {banner.visible
+                ? <div
+                      className={`remote__banner remote__banner--${banner.tone}`}
+                      role={banner.tone === "critical" ? "alert" : "status"}
+                      data-testid="remote-banner"
+                      data-tone={banner.tone}
+                      data-link={linkPhase (link)}
+                      data-failures={link?.failures ?? 0}
+                  >
+                      <span className="remote__banner-dot" aria-hidden="true" />
+                      <span className="remote__banner-text">
+                          <strong className="remote__banner-title">{banner.title}</strong>
+                          <span className="remote__banner-detail">{banner.detail}</span>
+                      </span>
+                  </div>
+                : null}
 
             {error !== null
                 ? <p className="remote__error" role="alert" data-testid="remote-error">
