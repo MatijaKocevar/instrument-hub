@@ -1,9 +1,7 @@
 # Golden LED stream for ihub-driver-integration-test (T044).
 # One outbound MIDI message per line, in order, timestamps excluded.
-# 16 startup LEDs (pad 0..15 idle), then pads 0..7 pressed:
-#   previous active pad -> idle, new pad -> warming, then -> active
-# Pads 8..15 are unmapped and emit nothing.
-
+# 16 startup LEDs (pad 0..15 idle), then pads 0..15 pressed:
+#   previous active pad -> idle, new pad -> warming, then -> active.
 90 70 01
 90 71 01
 90 72 01
@@ -43,3 +41,27 @@
 90 76 01
 90 77 09
 90 77 13
+90 77 01
+90 60 09
+90 60 13
+90 60 01
+90 61 09
+90 61 13
+90 61 01
+90 62 09
+90 62 13
+90 62 01
+90 63 09
+90 63 13
+90 63 01
+90 64 09
+90 64 13
+90 64 01
+90 65 09
+90 65 13
+90 65 01
+90 66 09
+90 66 13
+90 66 01
+90 67 09
+90 67 13

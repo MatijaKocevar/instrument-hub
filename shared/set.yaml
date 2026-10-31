@@ -8,10 +8,16 @@
 # Full contract: shared/schema/set.schema.json
 #
 # Layout:
-#   families  instrument definitions, grouped for the grid
-#   macros    named destinations for the 8 encoders
-#   pads      16 pad bindings (0..7 bottom row, 8..15 top row)
-#   encoders  8 knob bindings (0 = leftmost)
+#   families  eight instrument families, eight instruments each (64 patches)
+#   macros    named destinations for the eight macro pages
+#   banks     eight top-row macro pages (Launchpad CC 91..98)
+#   scenes    eight right-column scenes (Launchpad CC 89..19, top to bottom)
+#   pads      64 grid bindings: row N is family N, column N is patch N
+#   encoders  eight macro bindings; the Launchpad exposes them as banks
+#
+# The Launchpad Mini MK3 grid is row-major from the bottom-left. Pad 0 is the
+# bottom-left key (note 11) and pad 63 the top-right (note 88). Row 0 is Keys,
+# row 7 is Vox; the right column selects the matching row through a scene.
 
 schemaVersion: 1
 name: Starter Set
@@ -26,41 +32,220 @@ families:
       - id: strings
         name: Warm Strings
         slot: 1
+      - id: rhodes
+        name: Electric Rhodes
+        slot: 2
+      - id: organ
+        name: Drawbar Organ
+        slot: 3
+      - id: harp
+        name: Concert Harp
+        slot: 4
+      - id: choir
+        name: Choir Keys
+        slot: 5
+      - id: celesta
+        name: Celesta
+        slot: 6
+      - id: clav
+        name: Clavinet
+        slot: 7
 
   drums:
     name: Drums
     instruments:
       - id: kit
         name: Acoustic Kit
-        slot: 2
+        slot: 8
+      - id: snare
+        name: Snare Stack
+        slot: 9
+      - id: hihats
+        name: Hi-Hats
+        slot: 10
+      - id: toms
+        name: Toms
+        slot: 11
+      - id: clap
+        name: Clap
+        slot: 12
+      - id: rimshot
+        name: Rimshot
+        slot: 13
+      - id: cymbals
+        name: Cymbals
+        slot: 14
+      - id: kick
+        name: Kick
+        slot: 15
 
   bass:
     name: Bass
     instruments:
       - id: sub
         name: Sub Bass
-        slot: 3
+        slot: 16
+      - id: finger
+        name: Finger Bass
+        slot: 17
+      - id: pick
+        name: Pick Bass
+        slot: 18
+      - id: fretless
+        name: Fretless
+        slot: 19
+      - id: synth
+        name: Synth Bass
+        slot: 20
+      - id: upright
+        name: Upright Bass
+        slot: 21
+      - id: growl
+        name: Growl Bass
+        slot: 22
+      - id: octave
+        name: Octave Bass
+        slot: 23
 
   pads:
     name: Pads
     instruments:
       - id: air
         name: Air Pad
-        slot: 4
+        slot: 24
+      - id: warm
+        name: Warm Pad
+        slot: 25
+      - id: glass
+        name: Glass Pad
+        slot: 26
+      - id: choir
+        name: Choir Pad
+        slot: 27
+      - id: motion
+        name: Motion Pad
+        slot: 28
+      - id: dark
+        name: Dark Pad
+        slot: 29
+      - id: shimmer
+        name: Shimmer Pad
+        slot: 30
+      - id: tape
+        name: Tape Pad
+        slot: 31
 
   lead:
     name: Lead
     instruments:
       - id: saw
         name: Saw Lead
-        slot: 5
+        slot: 32
+      - id: square
+        name: Square Lead
+        slot: 33
+      - id: sine
+        name: Sine Lead
+        slot: 34
+      - id: supersaw
+        name: Supersaw
+        slot: 35
+      - id: pluck
+        name: Pluck Lead
+        slot: 36
+      - id: brass
+        name: Brass Lead
+        slot: 37
+      - id: flute
+        name: Flute Lead
+        slot: 38
+      - id: whistle
+        name: Whistle
+        slot: 39
 
   fx:
     name: FX
     instruments:
       - id: riser
         name: Riser
-        slot: 6
+        slot: 40
+      - id: downlifter
+        name: Downlifter
+        slot: 41
+      - id: impact
+        name: Impact
+        slot: 42
+      - id: sweep
+        name: Sweep
+        slot: 43
+      - id: noise
+        name: Noise FX
+        slot: 44
+      - id: glitch
+        name: Glitch
+        slot: 45
+      - id: drone
+        name: Drone
+        slot: 46
+      - id: reverse
+        name: Reverse
+        slot: 47
+
+  perc:
+    name: Percussion
+    instruments:
+      - id: shaker
+        name: Shaker
+        slot: 48
+      - id: tambourine
+        name: Tambourine
+        slot: 49
+      - id: conga
+        name: Conga
+        slot: 50
+      - id: bongo
+        name: Bongo
+        slot: 51
+      - id: triangle
+        name: Triangle
+        slot: 52
+      - id: woodblock
+        name: Woodblock
+        slot: 53
+      - id: cowbell
+        name: Cowbell
+        slot: 54
+      - id: tabla
+        name: Tabla
+        slot: 55
+
+  vox:
+    name: Vocals
+    instruments:
+      - id: ah
+        name: Ahh Choir
+        slot: 56
+      - id: oo
+        name: Ooh Choir
+        slot: 57
+      - id: eh
+        name: Ehh Choir
+        slot: 58
+      - id: whisper
+        name: Whisper
+        slot: 59
+      - id: shout
+        name: Shout
+        slot: 60
+      - id: vocoder
+        name: Vocoder
+        slot: 61
+      - id: breath
+        name: Breath
+        slot: 62
+      - id: choir
+        name: Vocal Choir
+        slot: 63
 
 macros:
   cutoff:
@@ -119,39 +304,289 @@ macros:
     max: 1.0
     default: 0.0
 
+# Top-row CC 91..98 select these macro pages, left to right.
+banks:
+  - bank: 0
+    name: Filter
+    macros:
+      - cutoff
+
+  - bank: 1
+    name: Resonance
+    macros:
+      - resonance
+
+  - bank: 2
+    name: Space
+    macros:
+      - reverb
+
+  - bank: 3
+    name: Delay
+    macros:
+      - delay
+
+  - bank: 4
+    name: Drive
+    macros:
+      - drive
+
+  - bank: 5
+    name: Tone
+    macros:
+      - tone
+
+  - bank: 6
+    name: Volume
+    macros:
+      - volume
+
+  - bank: 7
+    name: Pan
+    macros:
+      - pan
+
+# Right-column CC 89..19 select these scenes, top to bottom. Scene 0 is the
+# top grid row (Vox) and scene 7 the bottom row (Keys), so the button lines up
+# with the row it names.
+scenes:
+  - scene: 0
+    name: Vox
+    family: vox
+
+  - scene: 1
+    name: Percussion
+    family: perc
+
+  - scene: 2
+    name: FX
+    family: fx
+
+  - scene: 3
+    name: Lead
+    family: lead
+
+  - scene: 4
+    name: Pads
+    family: pads
+
+  - scene: 5
+    name: Bass
+    family: bass
+
+  - scene: 6
+    name: Drums
+    family: drums
+
+  - scene: 7
+    name: Keys
+    family: keys
+
+# Row 0 (pads 0..7) is Keys, row 1 Drums, ... row 7 Vox. Pad index is also the
+# audio slot the patch lives in.
 pads:
   - pad: 0
     family: keys
     instrument: piano
-
   - pad: 1
     family: keys
     instrument: strings
-
   - pad: 2
-    family: drums
-    instrument: kit
-
+    family: keys
+    instrument: rhodes
   - pad: 3
-    family: bass
-    instrument: sub
-
+    family: keys
+    instrument: organ
   - pad: 4
-    family: pads
-    instrument: air
-
+    family: keys
+    instrument: harp
   - pad: 5
-    family: lead
-    instrument: saw
-
+    family: keys
+    instrument: choir
   - pad: 6
-    family: fx
-    instrument: riser
-
+    family: keys
+    instrument: celesta
   - pad: 7
     family: keys
-    instrument: piano
+    instrument: clav
 
+  - pad: 8
+    family: drums
+    instrument: kit
+  - pad: 9
+    family: drums
+    instrument: snare
+  - pad: 10
+    family: drums
+    instrument: hihats
+  - pad: 11
+    family: drums
+    instrument: toms
+  - pad: 12
+    family: drums
+    instrument: clap
+  - pad: 13
+    family: drums
+    instrument: rimshot
+  - pad: 14
+    family: drums
+    instrument: cymbals
+  - pad: 15
+    family: drums
+    instrument: kick
+
+  - pad: 16
+    family: bass
+    instrument: sub
+  - pad: 17
+    family: bass
+    instrument: finger
+  - pad: 18
+    family: bass
+    instrument: pick
+  - pad: 19
+    family: bass
+    instrument: fretless
+  - pad: 20
+    family: bass
+    instrument: synth
+  - pad: 21
+    family: bass
+    instrument: upright
+  - pad: 22
+    family: bass
+    instrument: growl
+  - pad: 23
+    family: bass
+    instrument: octave
+
+  - pad: 24
+    family: pads
+    instrument: air
+  - pad: 25
+    family: pads
+    instrument: warm
+  - pad: 26
+    family: pads
+    instrument: glass
+  - pad: 27
+    family: pads
+    instrument: choir
+  - pad: 28
+    family: pads
+    instrument: motion
+  - pad: 29
+    family: pads
+    instrument: dark
+  - pad: 30
+    family: pads
+    instrument: shimmer
+  - pad: 31
+    family: pads
+    instrument: tape
+
+  - pad: 32
+    family: lead
+    instrument: saw
+  - pad: 33
+    family: lead
+    instrument: square
+  - pad: 34
+    family: lead
+    instrument: sine
+  - pad: 35
+    family: lead
+    instrument: supersaw
+  - pad: 36
+    family: lead
+    instrument: pluck
+  - pad: 37
+    family: lead
+    instrument: brass
+  - pad: 38
+    family: lead
+    instrument: flute
+  - pad: 39
+    family: lead
+    instrument: whistle
+
+  - pad: 40
+    family: fx
+    instrument: riser
+  - pad: 41
+    family: fx
+    instrument: downlifter
+  - pad: 42
+    family: fx
+    instrument: impact
+  - pad: 43
+    family: fx
+    instrument: sweep
+  - pad: 44
+    family: fx
+    instrument: noise
+  - pad: 45
+    family: fx
+    instrument: glitch
+  - pad: 46
+    family: fx
+    instrument: drone
+  - pad: 47
+    family: fx
+    instrument: reverse
+
+  - pad: 48
+    family: perc
+    instrument: shaker
+  - pad: 49
+    family: perc
+    instrument: tambourine
+  - pad: 50
+    family: perc
+    instrument: conga
+  - pad: 51
+    family: perc
+    instrument: bongo
+  - pad: 52
+    family: perc
+    instrument: triangle
+  - pad: 53
+    family: perc
+    instrument: woodblock
+  - pad: 54
+    family: perc
+    instrument: cowbell
+  - pad: 55
+    family: perc
+    instrument: tabla
+
+  - pad: 56
+    family: vox
+    instrument: ah
+  - pad: 57
+    family: vox
+    instrument: oo
+  - pad: 58
+    family: vox
+    instrument: eh
+  - pad: 59
+    family: vox
+    instrument: whisper
+  - pad: 60
+    family: vox
+    instrument: shout
+  - pad: 61
+    family: vox
+    instrument: vocoder
+  - pad: 62
+    family: vox
+    instrument: breath
+  - pad: 63
+    family: vox
+    instrument: choir
+
+# The Launchpad has no encoders. These eight bindings describe the macros the
+# UI exposes for the selected bank; the top row selects the page.
 encoders:
   - encoder: 0
     macro: cutoff
