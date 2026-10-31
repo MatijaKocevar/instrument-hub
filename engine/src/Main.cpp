@@ -1,4 +1,5 @@
 #include "Bridge/WebView.h"
+#include "Session.h"
 #include "api/Server.h"
 #include "audio/AudioEngine.h"
 #include "audio/AudioSettings.h"
@@ -713,6 +714,116 @@ int runDiagnostics (const juce::String& commandLine)
     return snapshot.device.open ? 0 : 1;
 }
 
+//==============================================================================
+// --session-smoke (T114)
+//
+// Composes the default session, renders it offline to measure the armed slot's
+// RMS and the discontinuity across a slot switch, then opens the real ALSA
+// Loopback and streams the same graph for a short bounded time. The offline
+// pass is deterministic (no wall-clock timing); the device pass only proves
+// that the callback is running and that the graph really reaches hardware.
+
+int runSessionSmoke (const juce::String& commandLine)
+{
+    constexpr double switchLimitDbfs = -60.0;
+    constexpr double minimumRmsDbfs = -60.0;
+
+    ihub::SessionConfig config;
+    config.device.sampleRate = 48000.0;
+    config.device.bufferSize = 128;
+    config.device.numOutputChannels = 2;
+    config.device.numInputChannels = 2;
+    config.device.preferLoopback = true;
+
+    if (const auto value = getCommandLineValue (commandLine, "--audio-device"); value.isNotEmpty())
+        config.device.outputDeviceName = value;
+
+    if (const auto value = getCommandLineValue (commandLine, "--audio-sample-rate"); value.isNotEmpty())
+        config.device.sampleRate = value.getDoubleValue();
+
+    if (const auto value = getCommandLineValue (commandLine, "--audio-buffer-size"); value.isNotEmpty())
+        config.device.bufferSize = value.getIntValue();
+
+    ihub::Session session;
+    juce::String error;
+
+    if (! session.build (config, error))
+    {
+        std::cerr << "session-smoke: FAILED to build the default set: "
+                  << error << std::endl;
+        return 1;
+    }
+
+    std::cout << "session-smoke: built " << session.getNumSlots()
+              << " slots" << std::endl;
+
+    const auto report = session.measureSwitch (0, 1);
+
+    if (! report.rendered)
+    {
+        std::cerr << "session-smoke: FAILED, the switch render produced no samples"
+                  << std::endl;
+        return 1;
+    }
+
+    std::cout << "session-smoke: armed_slot=" << report.fromSlot
+              << " rms=" << report.rms
+              << " rms_dbfs=" << report.rmsDbfs
+              << " switch_to=" << report.toSlot
+              << " discontinuity_dbfs=" << report.discontinuityDbfs
+              << " max_slew_dbfs=" << report.maxSampleDeltaDbfs
+              << " samples=" << report.samplesMeasured
+              << std::endl;
+
+    const bool rmsOk = report.rms > 0.0 && report.rmsDbfs > minimumRmsDbfs;
+    const bool switchOk = report.discontinuityDbfs <= switchLimitDbfs;
+
+    if (! rmsOk)
+        std::cerr << "session-smoke: FAILED, armed slot RMS is zero/silent ("
+                  << report.rmsDbfs << " dBFS)" << std::endl;
+
+    if (! switchOk)
+        std::cerr << "session-smoke: FAILED, switch discontinuity "
+                  << report.discontinuityDbfs << " dBFS is above "
+                  << switchLimitDbfs << " dBFS" << std::endl;
+
+    if (! session.openDevice (&error))
+    {
+        std::cerr << "session-smoke: FAILED to open the ALSA Loopback: "
+                  << error << std::endl;
+        return 1;
+    }
+
+    const auto deviceName = session.getDevices().getCurrentDeviceName();
+    const auto deviceRate = session.getDevices().getCurrentSampleRate();
+    const auto deviceBlock = session.getDevices().getCurrentBufferSize();
+
+    session.armSlot (0);
+    juce::Thread::sleep (300);
+
+    const auto timing = session.getEngine().getTimingMonitor().snapshot();
+    session.closeDevice();
+
+    const bool deviceOk = timing.callbacks > 0;
+
+    std::cout << "session-smoke: device=\"" << deviceName << "\""
+              << " rate=" << deviceRate
+              << " block=" << deviceBlock
+              << " callbacks=" << timing.callbacks
+              << " " << (deviceOk ? "callback-running" : "callback-silent")
+              << std::endl;
+
+    const bool passed = rmsOk && switchOk && deviceOk;
+
+    std::cout << "session-smoke: "
+              << (passed ? "PASS" : "FAIL")
+              << " (rms>" << minimumRmsDbfs << "dBFS, discontinuity<="
+              << switchLimitDbfs << "dBFS, device callback running)"
+              << std::endl;
+
+    return passed ? 0 : 1;
+}
+
 class MainComponent final : public juce::Component
 {
 public:
@@ -857,6 +968,18 @@ public:
             return;
         }
 
+        if (commandLine.contains ("--session-smoke"))
+        {
+            setApplicationReturnValue (runSessionSmoke (commandLine));
+            quit();
+            return;
+        }
+
+        // Compose the audio session for the normal application and for
+        // --serve. Diagnostic and UI-only modes quit above or own no audio.
+        if (! snapshotMode && ! uiCheckMode && ! selftestMode)
+            startSession (commandLine);
+
         // The control API is part of the normal application, but not of the
         // single-purpose diagnostic modes above (they quit immediately).
         const bool apiRequired = serveMode;
@@ -920,6 +1043,14 @@ public:
             apiServer->stop();
 
         apiServer.reset();
+
+        // Stop the device before destroying the graph it renders.
+        if (session != nullptr)
+        {
+            session->closeDevice();
+            session.reset();
+        }
+
         audioSettings.reset();
         apiState.reset();
         mainWindow.reset();
@@ -933,6 +1064,69 @@ public:
     void anotherInstanceStarted (const juce::String&) override {}
 
 private:
+    /**
+        Builds and opens the composed audio session.
+
+        The graph is created once: an AudioEngine with eight fixed slots, a
+        SlotSwitcher over them, and the default set created through the
+        existing instrument factories. The configured device is then opened and
+        the session becomes its callback. Nothing is rewired at runtime;
+        arming a slot only publishes a lock-free crossfade request.
+    */
+    void startSession (const juce::String& commandLine)
+    {
+        if (commandLine.contains ("--no-audio"))
+        {
+            std::cout << "session: audio disabled by --no-audio" << std::endl;
+            return;
+        }
+
+        ihub::SessionConfig config;
+
+        if (const auto type = getCommandLineValue (commandLine, "--audio-type"); type.isNotEmpty())
+            config.device.deviceTypeName = type;
+
+        if (const auto name = getCommandLineValue (commandLine, "--audio-device"); name.isNotEmpty())
+            config.device.outputDeviceName = name;
+
+        if (const auto rate = getCommandLineValue (commandLine, "--audio-sample-rate"); rate.isNotEmpty())
+            config.device.sampleRate = rate.getDoubleValue();
+
+        if (const auto block = getCommandLineValue (commandLine, "--audio-buffer-size"); block.isNotEmpty())
+            config.device.bufferSize = block.getIntValue();
+
+        config.device.numOutputChannels = 2;
+        config.device.numInputChannels = 2;
+
+        session = std::make_unique<ihub::Session>();
+        juce::String error;
+
+        if (! session->build (config, error))
+        {
+            std::cerr << "session: could not build the default set: " << error << std::endl;
+            session.reset();
+            return;
+        }
+
+        if (! session->openDevice (&error))
+        {
+            std::cerr << "session: audio is not running: " << error << std::endl;
+        }
+        else
+        {
+            std::cout << "session: opened " << session->getDevices().getCurrentDeviceName()
+                      << " at " << session->getDevices().getCurrentSampleRate()
+                      << " Hz / " << session->getDevices().getCurrentBufferSize()
+                      << " frames, " << session->getNumSlots()
+                      << " slots, default set loaded" << std::endl;
+        }
+
+        // The default set is playable immediately. The control API mirrors it
+        // and routes arm requests into the switcher once the state store is
+        // created below.
+        session->armSlot (0);
+    }
+
     /**
         Starts the Launchpad and the set.yaml mapping.
 
@@ -1018,8 +1212,38 @@ private:
         apiServer = std::make_unique<Api::Server> (*apiState, options);
         audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
 
-        if (commandLine.contains ("--audio")
-            || commandLine.contains ("--audio-loopback"))
+        // The session is the single owner of the audio device. Mirror its
+        // slots into the state store and route arm requests into the
+        // SlotSwitcher; the UI and the controller then drive real audio.
+        if (session != nullptr)
+        {
+            apiState->setArmHandler ([this] (int slot)
+            {
+                if (session != nullptr)
+                    session->armSlot (slot);
+            });
+
+            const auto& slotConfigs = session->getSlotConfigs();
+            const auto engineSampleRate = session->getEngine().getSampleRate();
+
+            for (int index = 0; index < apiState->getNumSlots(); ++index)
+            {
+                if (index < static_cast<int> (slotConfigs.size()))
+                    apiState->setSlotName (index,
+                                           slotConfigs[static_cast<std::size_t> (index)].name);
+
+                apiState->setSlotLatency (index,
+                                          session->getSlotLatencySamples (index),
+                                          engineSampleRate);
+            }
+
+            audioSettings->setTimingMonitor (&session->getEngine().getTimingMonitor());
+            (void) apiState->setArmedSlot (0);
+        }
+
+        if (session == nullptr
+            && (commandLine.contains ("--audio")
+                || commandLine.contains ("--audio-loopback")))
         {
             juce::String audioError;
 
@@ -1295,6 +1519,7 @@ private:
     }
 
     std::unique_ptr<MainWindow> mainWindow;
+    std::unique_ptr<ihub::Session> session;
     std::unique_ptr<Controller::Mapping> mapping;
     std::unique_ptr<Controller::LaunchpadDriver> launchpad;
     std::unique_ptr<Api::StateStore> apiState;
