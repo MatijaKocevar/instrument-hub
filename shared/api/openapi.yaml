@@ -327,6 +327,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /patches/{slot}/state/capture:
+    parameters:
+      - name: slot
+        in: path
+        required: true
+        description: Fixed audio-graph slot index, 0 .. 63.
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 63
+    post:
+      tags: [control]
+      operationId: capturePatchState
+      summary: Save the running plugin's sound into its patch
+      description: |
+        Immediately captures the resident plug-in instance's state into the
+        patch's opaque sidecar blob and answers with the stored size. Use it
+        after tweaking a sound to keep it without switching away.
+
+        Automatic captures on switch-away, editor close and warm-pool eviction
+        remain unchanged. A generated, sampler or cold patch has no resident
+        plug-in state and is rejected with a readable error.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The patch state that was captured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchStateCapture"
+        "400":
+          description: The patch has no resident plugin instance or the capture failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No patch is hosted by that slot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: No audio session is attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /patches/{slot}/fx:
     parameters:
       - name: slot
@@ -1547,6 +1601,24 @@ components:
         wasOpen:
           type: boolean
           description: State before the request was applied.
+
+    PatchStateCapture:
+      type: object
+      required: [slot, captured, sizeBytes]
+      additionalProperties: false
+      properties:
+        slot:
+          type: integer
+          minimum: 0
+          description: Fixed audio-graph slot that hosts this patch.
+        captured:
+          type: boolean
+          description: True when the running plug-in's state was written to the patch.
+        sizeBytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Size of the patch's opaque state blob after the capture.
 
     PatchUpdate:
       type: object

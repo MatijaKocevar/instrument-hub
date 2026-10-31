@@ -9,6 +9,7 @@ import type {
     ControlMidiState,
     ControlPairingState,
     ControlPatchSourceRequest,
+    ControlPatchStateCapture,
     ControlPatchUpdate,
     ControlPluginList,
     ControlState,
@@ -65,6 +66,14 @@ export interface AppSnapshot
     editorBusy: boolean;
     /** Message from the most recent editor failure. */
     editorError: string | null;
+    /** True while an explicit patch-sound save is in flight. */
+    captureBusy: boolean;
+    /** Slot whose last explicit save succeeded, or -1. */
+    captureSlot: number;
+    /** Confirmation from the most recent explicit save, or null. */
+    capture: ControlPatchStateCapture | null;
+    /** Message from the most recent failed explicit save. */
+    captureError: string | null;
     /** Installed plug-in inventory, or null before the first load. */
     plugins: ControlPluginList | null;
     /** Message from the most recent inventory failure. */
@@ -215,6 +224,10 @@ export class AppStore
         editorOpenSlot: -1,
         editorBusy: false,
         editorError: null,
+        captureBusy: false,
+        captureSlot: -1,
+        capture: null,
+        captureError: null,
         plugins: null,
         pluginError: null,
         pluginBusy: false,
@@ -566,6 +579,10 @@ export class AppStore
                 sourceBusy: false,
                 editorOpenSlot: -1,
                 editorError: null,
+                captureBusy: false,
+                captureSlot: -1,
+                capture: null,
+                captureError: null,
                 error: null,
                 failedAttempts: 0,
                 updatedAt: this.options.now(),
@@ -643,6 +660,53 @@ export class AppStore
         catch (error)
         {
             this.patch ({ editorBusy: false, editorError: messageOf (error) });
+            return false;
+        }
+    };
+
+    /**
+        Save the running plugin's sound into its patch.
+
+        This is the explicit counterpart to the automatic capture on switch,
+        editor close and eviction: a tweak can be kept without changing
+        patches. The engine writes the sidecar blob before it answers, so the
+        confirmation already describes persistent state.
+    */
+    savePatchSound = async (slot: number): Promise<boolean> =>
+    {
+        this.patch ({
+            captureBusy: true,
+            captureSlot: -1,
+            capture: null,
+            captureError: null,
+        });
+
+        try
+        {
+            const capture = await this.api.capturePatchState (slot);
+
+            this.patch ({
+                phase: "ready",
+                captureBusy: false,
+                captureSlot: slot,
+                capture,
+                captureError: null,
+                error: null,
+                failedAttempts: 0,
+                updatedAt: this.options.now(),
+            });
+
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({
+                captureBusy: false,
+                captureSlot: slot,
+                capture: null,
+                captureError: messageOf (error),
+            });
+
             return false;
         }
     };

@@ -17,6 +17,7 @@ export type ControlPairResponse = components["schemas"]["PairResponse"];
 export type ControlPatch = components["schemas"]["Patch"];
 export type ControlPatchUpdate = components["schemas"]["PatchUpdate"];
 export type ControlPatchEditor = components["schemas"]["PatchEditor"];
+export type ControlPatchStateCapture = components["schemas"]["PatchStateCapture"];
 export type ControlPatchSourceRequest = components["schemas"]["PatchSourceRequest"];
 export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
 export type ControlFxChain = components["schemas"]["FxChain"];
@@ -120,6 +121,16 @@ export interface ControlApi
     /** Close one patch's native editor. Idempotent. */
     closePatchEditor (slot: number,
                       options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
+
+    /**
+        Save the running plugin's current sound into its patch.
+
+        Resolves with `{ slot, captured, sizeBytes }` after the engine has
+        written the patch's state blob, so the page can confirm the save
+        without switching patches.
+    */
+    capturePatchState (slot: number,
+                       options?: { signal?: AbortSignal }): Promise<ControlPatchStateCapture>;
 
     //==========================================================================
     // Per-patch insert chain (T121)
@@ -526,6 +537,24 @@ export function createControlApi (options: ControlApiOptions): ControlApi
             status);
     }
 
+    function requireStateCapture (data: ControlPatchStateCapture | undefined,
+                                  error: unknown,
+                                  status: number,
+                                  what: string): ControlPatchStateCapture
+    {
+        if (data !== undefined
+            && typeof data.slot === "number"
+            && typeof data.captured === "boolean"
+            && typeof data.sizeBytes === "number")
+            return data;
+
+        const message = describeError (error);
+
+        throw new ApiError (
+            message.length > 0 ? message : `${what} failed with HTTP ${status}`,
+            status);
+    }
+
     function requirePluginList (data: ControlPluginList | undefined,
                                 error: unknown,
                                 status: number,
@@ -638,6 +667,17 @@ export function createControlApi (options: ControlApiOptions): ControlApi
 
             return requireEditor (data, error, response.status,
                                   `DELETE /patches/${String (slot)}/editor`);
+        },
+
+        async capturePatchState (slot, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/patches/{slot}/state/capture", {
+                params: { path: { slot } },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireStateCapture (data, error, response.status,
+                                        `POST /patches/${String (slot)}/state/capture`);
         },
 
         async getFxChain (slot, requestOptions)
