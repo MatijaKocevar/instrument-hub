@@ -575,3 +575,53 @@ add_test(
     COMMAND ihub-warm-pool-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Click/discontinuity test (T034) ----------------------------------------
+#
+# Renders the master bus while 50 seeded, randomly timed switches move the
+# armed slot across four sine sources. The output is checked for
+# sample-to-sample steps above the maximum continuous slew and for spectral
+# splatter above 1 kHz. The same schedule then runs with the ramp disabled and
+# must be caught, proving the detectors can fail.
+
+juce_add_console_app(ihub-switch-continuity-test
+    PRODUCT_NAME "ihub-switch-continuity-test"
+)
+
+target_sources(ihub-switch-continuity-test
+    PRIVATE
+        audio/SwitchContinuity.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+)
+
+target_include_directories(ihub-switch-continuity-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-switch-continuity-test
+    PRIVATE
+        juce::juce_audio_basics
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-switch-continuity-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-switch-continuity
+    COMMAND ihub-switch-continuity-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
