@@ -1579,6 +1579,71 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Plugin state store (T081) ----------------------------------------------
+#
+# Acceptance: a set whose second slot names a plugin that is not installed
+# loads with a silent placeholder slot and a warning, while the installed slot
+# keeps working. Also captures a live instance into a chunk with a fresh UUID,
+# plugin identity and version stamp, then restores that blob into a fresh set,
+# engine and store.
+
+juce_add_console_app(ihub-plugin-state-store-test
+    PRODUCT_NAME "ihub-plugin-state-store-test"
+)
+
+target_sources(ihub-plugin-state-store-test
+    PRIVATE
+        project/PluginStateStoreTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/PluginStateStore.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+)
+
+target_include_directories(ihub-plugin-state-store-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-plugin-state-store-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+)
+
+target_link_libraries(ihub-plugin-state-store-test
+    PRIVATE
+        juce::juce_audio_devices
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_dependencies(ihub-plugin-state-store-test TestPlugin_VST3)
+
+set_target_properties(ihub-plugin-state-store-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-plugin-state-store
+    COMMAND ihub-plugin-state-store-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
