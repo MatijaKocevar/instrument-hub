@@ -1019,6 +1019,68 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-audio-settings PROPERTIES DISABLED TRUE)
 endif()
 
+# --- Built-in 3-band EQ (T060) ----------------------------------------------
+#
+# An impulse is pushed through the juce::dsp::IIR cascade and its DFT is
+# compared with an independent RBJ-cookbook target at 50 Hz, 1 kHz and 10 kHz.
+# The tolerance is 0.5 dB. Also checks the flat/bypassed path is bit-exact, that
+# a message-thread coefficient update is applied on the next block without
+# allocating on the audio thread, and that state round-trips.
+
+juce_add_console_app(ihub-eq-test
+    PRODUCT_NAME "ihub-eq-test"
+)
+
+target_sources(ihub-eq-test
+    PRIVATE
+        dsp/EqTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+)
+
+target_include_directories(ihub-eq-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+# Same non-counting pairing note as the other allocation-counting tests.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-eq-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_link_options(ihub-eq-test PRIVATE
+        "-Wl,--wrap=malloc"
+        "-Wl,--wrap=calloc"
+        "-Wl,--wrap=realloc"
+    )
+endif()
+
+target_link_libraries(ihub-eq-test
+    PRIVATE
+        juce::juce_dsp
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-eq-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-eq
+    COMMAND ihub-eq-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
