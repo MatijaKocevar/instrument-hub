@@ -131,6 +131,7 @@ target_sources(instrument-hub
         src/project/PluginStateStore.cpp
         src/project/SetFile.cpp
         src/project/Serializer.cpp
+        src/sampler/SampleLoader.cpp
 )
 
 target_include_directories(instrument-hub
@@ -157,6 +158,7 @@ target_link_libraries(instrument-hub
     PRIVATE
         InstrumentHubAssets
         juce::juce_audio_devices
+        juce::juce_audio_formats
         juce::juce_audio_processors
         juce::juce_audio_utils
         juce::juce_dsp

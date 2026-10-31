@@ -1707,6 +1707,67 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Sample loader (T090) ---------------------------------------------------
+#
+# Acceptance: a 48 kHz file loads unchanged, and a 44.1 kHz file becomes the
+# right number of frames at 48 kHz with the same pitch. Fixtures are generated
+# as float WAV, AIFF and FLAC inside the test, so there are no committed
+# binaries. Also checks the background request path and that the audio-thread
+# hand-off allocates nothing.
+
+juce_add_console_app(ihub-sample-loader-test
+    PRODUCT_NAME "ihub-sample-loader-test"
+)
+
+target_sources(ihub-sample-loader-test
+    PRIVATE
+        sampler/SampleLoaderTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+)
+
+target_include_directories(ihub-sample-loader-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+# Same non-counting pairing note as the other allocation-counting tests.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-sample-loader-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_link_options(ihub-sample-loader-test PRIVATE
+        "-Wl,--wrap=malloc"
+        "-Wl,--wrap=calloc"
+        "-Wl,--wrap=realloc"
+    )
+endif()
+
+target_link_libraries(ihub-sample-loader-test
+    PRIVATE
+        juce::juce_audio_formats
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-sample-loader-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-sample-loader
+    COMMAND ihub-sample-loader-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
