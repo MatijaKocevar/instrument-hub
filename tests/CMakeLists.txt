@@ -1000,6 +1000,7 @@ juce_add_console_app(ihub-api-test
 target_sources(ihub-api-test
     PRIVATE
         api/ApiTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
 )
@@ -1033,6 +1034,53 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- QR pairing (T101) ------------------------------------------------------
+#
+# Acceptance: unpaired request -> 401, POST /pair with the 6-digit code -> a
+# token, token -> GET /state 200. Also checks the runtime LAN rebind, single-use
+# codes, revocation, loopback-only management endpoints and --lan startup.
+
+juce_add_console_app(ihub-pairing-test
+    PRODUCT_NAME "ihub-pairing-test"
+)
+
+target_sources(ihub-pairing-test
+    PRIVATE
+        api/PairingTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+)
+
+target_include_directories(ihub-pairing-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-pairing-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_core
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-pairing-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-pairing
+    COMMAND ihub-pairing-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- Audio settings panel backend (T053) ------------------------------------
 #
 # Part 1 starts the control server against an in-memory audio backend and
@@ -1047,6 +1095,7 @@ juce_add_console_app(ihub-audio-settings-test
 target_sources(ihub-audio-settings-test
     PRIVATE
         api/AudioSettingsTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"

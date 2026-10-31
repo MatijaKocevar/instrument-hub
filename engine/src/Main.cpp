@@ -788,6 +788,7 @@ private:
             options.address = address.toStdString();
 
         options.authToken = getCommandLineValue (commandLine, "--api-token").toStdString();
+        options.lanMode = commandLine.contains ("--lan") || commandLine.contains ("--lan-mode");
 
         apiState = std::make_unique<Api::StateStore> (AudioEngine::AudioEngine::defaultNumSlots);
         apiServer = std::make_unique<Api::Server> (*apiState, options);
@@ -839,6 +840,7 @@ private:
                   << apiServer->getPort()
                   << " meters=" << options.meterHz << "Hz"
                   << " auth=" << (apiServer->hasAuthToken() ? "enabled" : "disabled")
+                  << " lan=" << (apiServer->isLanModeEnabled() ? "enabled" : "disabled")
                   << std::endl;
 
         return true;
