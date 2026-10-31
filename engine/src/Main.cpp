@@ -19,6 +19,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -1028,6 +1029,13 @@ public:
                       << ", quitting in 3 s" << std::endl;
             startTimer (3000);
         }
+        else
+        {
+            // Normal window: keep the Launchpad LEDs in sync with the grid,
+            // including colour edits that arrive only through the HTTP API.
+            ledPollMode = true;
+            startTimer (100);
+        }
     }
 
     void shutdown() override
@@ -1253,20 +1261,20 @@ private:
             mappingListeners.armSlot = [this] (int slot)
             {
                 if (slot >= 0 && apiState != nullptr)
+                {
                     (void) apiState->setArmedSlot (slot);
+                    refreshControllerLeds();
+                }
             };
 
-            mappingListeners.padEvent = [this] (int pad,
+            mappingListeners.padEvent = [this] (int,
                                                 const Controller::PadBinding*,
-                                                bool pressed)
+                                                bool)
             {
-                if (! pressed || launchpad == nullptr)
-                    return;
-
-                for (int index = 0; index < Launchpad::padCount; ++index)
-                    launchpad->setPadState (index,
-                                            index == pad ? Controller::PadState::active
-                                                         : Controller::PadState::idle);
+                // The armSlot listener above already refreshed the surface.
+                // A release re-paints from the same state so a dropped press
+                // cannot leave a stale LED.
+                refreshControllerLeds();
             };
 
             // The top row selects a macro page, the right column a scene. With
@@ -1329,7 +1337,52 @@ private:
         if (! launchpad->connect())
             std::cerr << "controller: " << launchpad->getLastError() << std::endl;
         else
-            launchpad->clearLeds();
+            refreshControllerLeds();
+    }
+
+    /**
+        Mirrors the `/state` grid onto the Launchpad LEDs.
+
+        Unarmed patches show their palette colour, the armed patch is bright
+        red, a warming patch is yellow and a load error flashes red. Called
+        after every controller/API change and by the 100 ms poll, so an HTTP
+        colour edit reaches the hardware without a reconnect.
+    */
+    void refreshControllerLeds()
+    {
+        if (launchpad == nullptr || ! launchpad->isConnected() || apiState == nullptr)
+            return;
+
+        const auto snapshot = apiState->snapshot();
+        std::array<const Api::PatchState*, Launchpad::padCount> patches {};
+
+        for (const auto& family : snapshot.families)
+        {
+            for (const auto& patch : family.patches)
+            {
+                if (patch.slot < 0 || patch.slot >= Launchpad::padCount)
+                    continue;
+
+                patches[static_cast<std::size_t> (patch.slot)] = &patch;
+            }
+        }
+
+        for (int pad = 0; pad < Launchpad::padCount; ++pad)
+        {
+            const auto* patch = patches[static_cast<std::size_t> (pad)];
+
+            if (patch == nullptr)
+            {
+                launchpad->setPadLed (pad, {});
+                continue;
+            }
+
+            const bool armed = pad == snapshot.armedSlot;
+            const bool warming = patch->warmState == "warming";
+            const bool error = patch->warmState == "error";
+
+            launchpad->setPatchLed (pad, patch->colorIndex, armed, warming, error);
+        }
     }
 
     bool startControlApi (const juce::String& commandLine, bool required)
@@ -1441,6 +1494,12 @@ private:
         if (uiCheckMode)
         {
             checkUi();
+            return;
+        }
+
+        if (ledPollMode)
+        {
+            refreshControllerLeds();
             return;
         }
 
@@ -1667,6 +1726,7 @@ private:
     bool serveMode = false;
     bool snapshotMode = false;
     bool uiCheckPassed = false;
+    bool ledPollMode = false;
     bool snapshotPageLoaded = false;
     bool snapshotProbePassed = false;
     bool evaluationInFlight = false;

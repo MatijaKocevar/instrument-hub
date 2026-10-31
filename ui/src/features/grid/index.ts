@@ -1,9 +1,16 @@
 export { GridView, type GridViewProps } from "./GridView";
 export {
+    ARMED_COLOUR,
+    clampColourIndex,
+    colourForIndex,
     createGridModel,
     gridFromState,
+    gridPatches,
     GRID_COLUMNS,
     GRID_ROWS,
+    nextColourIndex,
+    PATCH_COLOURS,
+    patchForSlot,
     type GridFamily,
     type GridModel,
     type GridPatch,

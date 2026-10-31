@@ -1,6 +1,14 @@
 import type { ReactElement } from "react";
 
-import { GRID_COLUMNS, GRID_ROWS, type GridModel } from "./model";
+import {
+    ARMED_COLOUR,
+    colourForIndex,
+    GRID_COLUMNS,
+    GRID_ROWS,
+    nextColourIndex,
+    type GridFamily,
+    type GridModel,
+} from "./model";
 import { EMPTY_METERS, type MeterSnapshot } from "./meters";
 import "./grid.css";
 
@@ -14,6 +22,10 @@ export interface GridViewProps
     readonly loading?: boolean;
     /** Called with the engine slot when a patch cell is pressed. */
     readonly onArm?: (slot: number) => void;
+    /** Called when the little colour swatch on a cell is pressed. */
+    readonly onColourChange?: (slot: number, colorIndex: number) => void;
+    /** Called when a family's colour swatch is pressed. */
+    readonly onFamilyColourChange?: (familyId: string, slots: readonly number[], colorIndex: number) => void;
 }
 
 function meterPercent (peak: number): number
@@ -36,6 +48,18 @@ function formatLatency (milliseconds: number): string
     const clamped = Math.max (0, Number.isFinite (milliseconds) ? milliseconds : 0);
 
     return `${clamped.toFixed (2)} ms`;
+}
+
+function familyColour (family: GridFamily): number
+{
+    return family.patches[0]?.colorIndex ?? 0;
+}
+
+function familySlots (family: GridFamily): number[]
+{
+    return family.patches
+        .map (patch => patch.slot)
+        .filter ((slot): slot is number => slot !== null);
 }
 
 function LoadingGrid (): ReactElement
@@ -69,15 +93,18 @@ function LoadingGrid (): ReactElement
 /**
     The main instrument grid: families down, patches across.
 
-    Every cell is at least a 44 px touch target. A cell is highlighted as soon
-    as the store's armed slot changes, which the store does synchronously when
-    `POST /arm` is sent — the highlight never waits for the next poll.
+    Every cell is at least a 44 px touch target and carries its resolved patch
+    colour. The armed cell is painted bright red. Pressing the cell body arms
+    the patch; pressing its corner swatch cycles the patch colour without
+    arming, and the family swatch recolours the whole row.
 */
 export function GridView ({
     model,
     meters = EMPTY_METERS,
     loading = false,
     onArm,
+    onColourChange,
+    onFamilyColourChange,
 }: GridViewProps): ReactElement
 {
     return (
@@ -91,7 +118,9 @@ export function GridView ({
             <header className="grid__header">
                 <div className="grid__heading">
                     <h2 className="grid__title">Instrument grid</h2>
-                    <p className="grid__subtitle">8 families × 8 patches · tap a patch to arm it</p>
+                    <p className="grid__subtitle">
+                        8 families × 8 patches · tap a patch to arm and open it · tap a swatch to recolour
+                    </p>
                 </div>
 
                 <div
@@ -147,114 +176,173 @@ export function GridView ({
                                   ))}
                               </div>
 
-                              {model.families.map ((family, row) => (
-                                  <div
-                                      className="grid__row"
-                                      role="row"
-                                      key={family.id}
-                                      data-testid="family"
-                                      data-family={family.id}
-                                      data-row={row}
-                                  >
+                              {model.families.map ((family, row) => {
+                                  const colour = familyColour (family);
+                                  const slots = familySlots (family);
+
+                                  return (
                                       <div
-                                          className="grid__family"
-                                          role="rowheader"
-                                          data-testid="family-name"
+                                          className="grid__row"
+                                          role="row"
+                                          key={family.id}
+                                          data-testid="family"
+                                          data-family={family.id}
+                                          data-row={row}
+                                          data-colour-index={colour}
+                                          data-colour={colourForIndex (colour)}
                                       >
-                                          <span className="grid__family-index">{pad2 (row + 1)}</span>
-                                          <span className="grid__family-text">{family.name}</span>
-                                          <span className="grid__family-count">
-                                              {family.patches.length}/{GRID_COLUMNS}
-                                          </span>
-                                      </div>
+                                          <div
+                                              className="grid__family"
+                                              role="rowheader"
+                                              data-testid="family-name"
+                                          >
+                                              <span className="grid__family-index">{pad2 (row + 1)}</span>
+                                              <span className="grid__family-text">{family.name}</span>
+                                              <button
+                                                  className="grid__family-colour"
+                                                  type="button"
+                                                  title={`Recolour ${family.name}`}
+                                                  aria-label={`Recolour ${family.name}`}
+                                                  data-testid="family-colour"
+                                                  data-family={family.id}
+                                                  data-colour-index={colour}
+                                                  style={{ background: colourForIndex (colour) }}
+                                                  onClick={onFamilyColourChange === undefined || slots.length === 0
+                                                      ? undefined
+                                                      : () => {
+                                                          onFamilyColourChange (
+                                                              family.id,
+                                                              slots,
+                                                              nextColourIndex (colour));
+                                                      }}
+                                              />
+                                              <span className="grid__family-count">
+                                                  {family.patches.length}/{GRID_COLUMNS}
+                                              </span>
+                                          </div>
 
-                                      {Array.from ({ length: GRID_COLUMNS }, (_, column) => {
-                                          const patch = family.patches[column];
+                                          {Array.from ({ length: GRID_COLUMNS }, (_, column) => {
+                                              const patch = family.patches[column];
 
-                                          if (patch === undefined)
-                                          {
+                                              if (patch === undefined)
+                                              {
+                                                  return (
+                                                      <div
+                                                          className="grid__cell grid__cell--empty"
+                                                          role="gridcell"
+                                                          aria-disabled="true"
+                                                          aria-label={`${family.name}, empty patch ${String (column + 1)}`}
+                                                          key={`empty-${family.id}-${String (column)}`}
+                                                          data-testid="grid-cell"
+                                                          data-empty="true"
+                                                          data-family={family.id}
+                                                          data-column={column}
+                                                          data-colour-index={0}
+                                                          data-colour={colourForIndex (0)}
+                                                          data-fill={colourForIndex (0)}
+                                                          style={{ background: `linear-gradient(150deg, ${colourForIndex (0)}33 0%, #14151c 70%)` }}
+                                                      />
+                                                  );
+                                              }
+
+                                              const slot = patch.slot;
+                                              const armed = slot !== null && slot === model.armedSlot;
+                                              const peak = slot === null
+                                                  ? 0
+                                                  : (meters.slots[slot]?.peak ?? 0);
+                                              const latencyMs = patch.latencyMs;
+                                              const latencySamples = patch.latencySamples;
+                                              const colour = colourForIndex (patch.colorIndex);
+                                              const fill = armed ? ARMED_COLOUR : colour;
+
                                               return (
                                                   <div
-                                                      className="grid__cell grid__cell--empty"
+                                                      className={`grid__cell${armed ? " grid__cell--armed" : ""}`}
                                                       role="gridcell"
-                                                      aria-disabled="true"
-                                                      aria-label={`${family.name}, empty patch ${String (column + 1)}`}
-                                                      key={`empty-${family.id}-${String (column)}`}
+                                                      key={patch.id}
                                                       data-testid="grid-cell"
-                                                      data-empty="true"
+                                                      data-slot={slot ?? -1}
+                                                      data-armed={armed ? "true" : "false"}
+                                                      data-empty="false"
                                                       data-family={family.id}
                                                       data-column={column}
-                                                  />
-                                              );
-                                          }
-
-                                          const slot = patch.slot;
-                                          const armed = slot !== null && slot === model.armedSlot;
-                                          const peak = slot === null
-                                              ? 0
-                                              : (meters.slots[slot]?.peak ?? 0);
-                                          const latencyMs = patch.latencyMs;
-                                          const latencySamples = patch.latencySamples;
-
-                                          return (
-                                              <button
-                                                  className={`grid__cell${armed ? " grid__cell--armed" : ""}`}
-                                                  type="button"
-                                                  role="gridcell"
-                                                  key={patch.id}
-                                                  data-testid="grid-cell"
-                                                  data-slot={slot ?? -1}
-                                                  data-armed={armed ? "true" : "false"}
-                                                  data-empty="false"
-                                                  data-family={family.id}
-                                                  data-column={column}
-                                                  aria-pressed={armed}
-                                                  aria-label={`${family.name}, ${patch.name}${armed ? ", armed" : ""}`}
-                                                  onClick={onArm === undefined || slot === null
-                                                      ? undefined
-                                                      : () => { onArm (slot); }}
-                                              >
-                                                  <span className="grid__cell-name">{patch.name}</span>
-
-                                                  <span className="grid__cell-foot">
-                                                      <span className="grid__cell-slot">
-                                                          {slot === null ? "—" : `S${pad2 (slot + 1)}`}
-                                                      </span>
-                                                      {armed
-                                                          ? <span className="grid__cell-badge">Armed</span>
-                                                          : null}
-                                                  </span>
-
-                                                  {latencyMs !== undefined
-                                                      ? <span
-                                                            className="grid__cell-latency"
-                                                            data-testid="slot-latency"
-                                                            data-slot={slot ?? -1}
-                                                            data-latency-samples={latencySamples ?? 0}
-                                                            data-latency-ms={latencyMs.toFixed (3)}
-                                                            title="Instrument + FX chain latency"
-                                                        >
-                                                            {formatLatency (latencyMs)}
-                                                        </span>
-                                                      : null}
-
-                                                  <span
-                                                      className="grid__cell-meter"
-                                                      data-testid="slot-meter"
-                                                      data-slot={slot ?? -1}
-                                                      data-peak={peak.toFixed (3)}
-                                                      aria-hidden="true"
+                                                      data-colour-index={patch.colorIndex}
+                                                      data-colour={colour}
+                                                      data-fill={fill}
+                                                      data-warm-state={patch.warmState}
+                                                      style={{ background: armed
+                                                          ? ARMED_COLOUR
+                                                          : `linear-gradient(150deg, ${colour}55 0%, #1c1d28 70%)` }}
+                                                      aria-label={`${family.name}, ${patch.name}${armed ? ", armed" : ""}`}
                                                   >
-                                                      <span
-                                                          className="grid__cell-meter-fill"
-                                                          style={{ width: `${String (meterPercent (peak))}%` }}
+                                                      <button
+                                                          className="grid__cell-main"
+                                                          type="button"
+                                                          data-testid="grid-cell-arm"
+                                                          aria-pressed={armed}
+                                                          onClick={onArm === undefined || slot === null
+                                                              ? undefined
+                                                              : () => { onArm (slot); }}
+                                                      >
+                                                          <span className="grid__cell-name">{patch.name}</span>
+
+                                                          <span className="grid__cell-foot">
+                                                              <span className="grid__cell-slot">
+                                                                  {slot === null ? "—" : `S${pad2 (slot + 1)}`}
+                                                              </span>
+                                                              {armed
+                                                                  ? <span className="grid__cell-badge">Armed</span>
+                                                                  : null}
+                                                          </span>
+
+                                                          {latencyMs !== undefined
+                                                              ? <span
+                                                                    className="grid__cell-latency"
+                                                                    data-testid="slot-latency"
+                                                                    data-slot={slot ?? -1}
+                                                                    data-latency-samples={latencySamples ?? 0}
+                                                                    data-latency-ms={latencyMs.toFixed (3)}
+                                                                    title="Instrument + FX chain latency"
+                                                                >
+                                                                    {formatLatency (latencyMs)}
+                                                                </span>
+                                                              : null}
+
+                                                          <span
+                                                              className="grid__cell-meter"
+                                                              data-testid="slot-meter"
+                                                              data-slot={slot ?? -1}
+                                                              data-peak={peak.toFixed (3)}
+                                                              aria-hidden="true"
+                                                          >
+                                                              <span
+                                                                  className="grid__cell-meter-fill"
+                                                                  style={{ width: `${String (meterPercent (peak))}%` }}
+                                                              />
+                                                          </span>
+                                                      </button>
+
+                                                      <button
+                                                          className="grid__cell-colour"
+                                                          type="button"
+                                                          title={`Colour ${patch.colorIndex + 1} for ${patch.name}`}
+                                                          aria-label={`Change colour for ${patch.name}`}
+                                                          data-testid="cell-colour"
+                                                          data-slot={slot ?? -1}
+                                                          data-colour-index={patch.colorIndex}
+                                                          style={{ background: colour }}
+                                                          onClick={onColourChange === undefined || slot === null
+                                                              ? undefined
+                                                              : () => {
+                                                                  onColourChange (slot, nextColourIndex (patch.colorIndex));
+                                                              }}
                                                       />
-                                                  </span>
-                                              </button>
-                                          );
-                                      })}
-                                  </div>
-                              ))}
+                                                  </div>
+                                              );
+                                          })}
+                                      </div>
+                                  );
+                              })}
                           </div>
                       </div>}
         </section>

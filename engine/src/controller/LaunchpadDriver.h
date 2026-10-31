@@ -19,6 +19,31 @@ namespace Controller
 /** The LED colour used for a pad state on the Launchpad. */
 Launchpad::Colour launchpadColourForState (PadState state) noexcept;
 
+/** One pad LED: a raw palette velocity plus the lighting mode. */
+struct PatchLed
+{
+    std::uint8_t velocity = 0;
+    Launchpad::LedMode mode = Launchpad::LedMode::Static;
+
+    bool operator== (const PatchLed&) const = default;
+};
+
+/**
+    The grid's LED policy.
+
+    - a patch being warmed is yellow,
+    - a load error flashes red,
+    - the armed patch is bright red,
+    - every other patch shows its palette colour.
+
+    Warming wins over armed so a cold arm is visible while it loads. The
+    function is pure: the driver and its scripts share one policy.
+*/
+PatchLed launchpadLedForPatch (int colorIndex,
+                               bool armed,
+                               bool warming,
+                               bool error) noexcept;
+
 /**
     Novation Launchpad Mini MK3 I/O on top of `juce::MidiInput`/`MidiOutput`.
 
@@ -110,6 +135,18 @@ public:
 
     PadState getPadState (int padIndex) const noexcept;
 
+    /** Sets one pad to an explicit LED value (raw palette velocity + mode). */
+    void setPadLed (int padIndex, PatchLed led);
+
+    PatchLed getPadLed (int padIndex) const noexcept;
+
+    /** Applies the grid LED policy for one patch. */
+    void setPatchLed (int padIndex,
+                      int colorIndex,
+                      bool armed,
+                      bool warming,
+                      bool error);
+
     void setAllPadStates (PadState state);
 
     /** Sets the LED of a top-row or right-column button. `cc` is the raw
@@ -133,6 +170,10 @@ public:
     bool sendPadColour (int padIndex,
                         Launchpad::Colour colour,
                         Launchpad::LedMode mode = Launchpad::LedMode::Static);
+
+    bool sendPadVelocity (int padIndex,
+                          std::uint8_t velocity,
+                          Launchpad::LedMode mode = Launchpad::LedMode::Static);
 
     bool sendButtonColour (int cc,
                            Launchpad::Colour colour,
@@ -186,6 +227,7 @@ private:
     DriverListeners listeners;
 
     std::array<std::atomic<std::uint8_t>, Launchpad::padCount> padStates {};
+    std::array<std::atomic<std::uint16_t>, Launchpad::padCount> padLeds {};
     std::array<std::atomic<std::uint8_t>, controlButtonCount> buttonStates {};
 
     std::atomic<bool> connected { false };

@@ -4,6 +4,7 @@ import type {
     ControlAudioPatch,
     ControlAudioState,
     ControlPairingState,
+    ControlPatchUpdate,
     ControlState,
     ControlTransportPatch,
 } from "../api/client";
@@ -103,6 +104,27 @@ function withArmedSlot (state: ControlState, slot: number): ControlState
 }
 
 /**
+    Return `state` with a partial patch update applied to `slot`.
+
+    Used for the same optimistic highlight rule as arming: a colour swatch
+    moves the cell on the next render even if the engine round trip is slow.
+*/
+function withPatchUpdate (state: ControlState,
+                          slot: number,
+                          patch: ControlPatchUpdate): ControlState
+{
+    return {
+        ...state,
+        families: state.families.map (family => ({
+            ...family,
+            patches: family.patches.map (candidate => candidate.slot === slot
+                ? { ...candidate, ...patch }
+                : candidate),
+        })),
+    };
+}
+
+/**
     Holds the control state and keeps it fresh.
 
     A single polling loop serialises requests: `refresh()` de-duplicates while a
@@ -143,6 +165,8 @@ export class AppStore
     private armSequence = 0;
     /** Number of arm requests in flight, used to keep the highlight during polls. */
     private armInFlight = 0;
+    /** Sequence of patch-colour requests; a stale response must not win. */
+    private patchSequence = 0;
     /** Sequence of transport requests; a stale response must not win. */
     private transportSequence = 0;
     /** Number of transport requests in flight, used to keep Play/Pause during polls. */
@@ -284,6 +308,74 @@ export class AppStore
         {
             this.armInFlight -= 1;
         }
+    };
+
+    /**
+        Change one patch's mix or colour.
+
+        The store applies the change optimistically (so the cell recolours on
+        the next render) and adopts the engine's complete state when the
+        request answers. A rejection restores the last confirmed state.
+    */
+    updatePatch = async (slot: number, patch: ControlPatchUpdate): Promise<boolean> =>
+    {
+        const previous = this.snapshot.state;
+
+        if (previous === null)
+            return false;
+
+        const sequence = this.patchSequence + 1;
+        this.patchSequence = sequence;
+
+        this.patch ({ state: withPatchUpdate (previous, slot, patch), error: null });
+
+        try
+        {
+            const state = await this.api.updatePatch (slot, patch);
+
+            if (sequence === this.patchSequence)
+            {
+                this.patch ({
+                    phase: "ready",
+                    state,
+                    error: null,
+                    failedAttempts: 0,
+                    updatedAt: this.options.now(),
+                });
+            }
+
+            return true;
+        }
+        catch (error)
+        {
+            if (sequence === this.patchSequence)
+                this.patch ({ error: messageOf (error), state: previous });
+
+            return false;
+        }
+    };
+
+    /**
+        Recolour every patch in a family.
+
+        The API stores colour per patch, so the family default is applied as
+        one PATCH per patch. Sequential requests keep the final state
+        deterministic if one is rejected.
+    */
+    updateFamilyColour = async (familyId: string, colorIndex: number): Promise<boolean> =>
+    {
+        const family = this.snapshot.state?.families.find (candidate => candidate.id === familyId);
+
+        if (family === undefined)
+            return false;
+
+        for (const patch of family.patches)
+        {
+            if (! await this.updatePatch (patch.slot, { colorIndex }))
+                return false;
+        }
+
+        return true;
     };
 
     /**

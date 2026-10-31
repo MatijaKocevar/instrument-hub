@@ -14,6 +14,8 @@ export type ControlAudioPatch = components["schemas"]["AudioPatch"];
 export type ControlAudioChannel = components["schemas"]["AudioChannel"];
 export type ControlPairingState = components["schemas"]["PairingState"];
 export type ControlPairResponse = components["schemas"]["PairResponse"];
+export type ControlPatch = components["schemas"]["Patch"];
+export type ControlPatchUpdate = components["schemas"]["PatchUpdate"];
 
 /** Raised for any non-2xx response or an unusable payload. */
 export class ApiError extends Error
@@ -69,6 +71,16 @@ export interface ControlApi
     /** Start/stop or reposition the transport. */
     controlTransport (patch: ControlTransportPatch,
                       options?: { signal?: AbortSignal }): Promise<ControlTransport>;
+
+    /**
+        Change one patch's mix or colour.
+
+        Resolves with the state after the request so the grid can reconcile its
+        optimistic colour change with the engine.
+    */
+    updatePatch (slot: number,
+                 patch: ControlPatchUpdate,
+                 options?: { signal?: AbortSignal }): Promise<ControlState>;
 
     /** Read the audio device settings and live latency readout. */
     getAudio (options?: { signal?: AbortSignal }): Promise<ControlAudioState>;
@@ -137,6 +149,19 @@ function isControlState (value: unknown): value is ControlState
                && typeof slot.armed === "boolean"
                && typeof slot.latencySamples === "number"
                && typeof slot.latencyMs === "number")
+        && Array.isArray (candidate.families)
+        && candidate.families.every (family =>
+               family !== null
+               && typeof family === "object"
+               && typeof family.id === "string"
+               && typeof family.name === "string"
+               && Array.isArray (family.patches)
+               && family.patches.every (patch =>
+                      patch !== null
+                      && typeof patch === "object"
+                      && typeof patch.slot === "number"
+                      && typeof patch.name === "string"
+                      && typeof patch.colorIndex === "number"))
         && typeof candidate.settings?.masterGain === "number"
         && typeof candidate.transport?.bpm === "number";
 }
@@ -316,6 +341,17 @@ export function createControlApi (options: ControlApiOptions): ControlApi
             throw new ApiError (
                 message.length > 0 ? message : `POST /transport failed with HTTP ${response.status}`,
                 response.status);
+        },
+
+        async updatePatch (slot, patch, requestOptions)
+        {
+            const { data, error, response } = await client.PATCH ("/patches/{slot}", {
+                params: { path: { slot } },
+                body: patch,
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireState (data, error, response.status, `PATCH /patches/${String (slot)}`);
         },
 
         async getAudio (requestOptions)

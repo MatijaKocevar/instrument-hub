@@ -288,6 +288,44 @@ constexpr std::array<std::uint8_t, 3> padColourMessage (int padIndex,
              velocityFor (colour) };
 }
 
+/**
+    Raw palette velocities used for the 16 patch colours.
+
+    `colourIndex` is the resolved patch palette index in `/state` (0..15). The
+    values are distinct MK3 palette velocities: red, orange, yellow, lime,
+    green, mint, teal, cyan, sky, azure, blue, violet, purple, magenta, white,
+    grey. The armed/warming/error states override these with red/yellow.
+*/
+inline constexpr std::array<std::uint8_t, 16> patchPaletteVelocities {
+    5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 3, 1
+};
+
+/** Raw palette velocity for a patch colour index, clamped to 0..15. */
+constexpr std::uint8_t velocityForPatchColour (int colourIndex) noexcept
+{
+    const int index = colourIndex < 0 ? 0
+                    : colourIndex > 15 ? 15
+                    : colourIndex;
+
+    return patchPaletteVelocities[static_cast<std::size_t> (index)];
+}
+
+/** The three bytes that light one pad with a raw palette velocity. */
+constexpr std::array<std::uint8_t, 3> padVelocityMessage (
+    int padIndex,
+    std::uint8_t velocity,
+    LedMode mode = LedMode::Static) noexcept
+{
+    const int note = padNoteForIndex (padIndex);
+
+    if (note < 0)
+        return { 0, 0, 0 };
+
+    return { static_cast<std::uint8_t> (0x90u + static_cast<std::uint8_t> (mode)),
+             static_cast<std::uint8_t> (note),
+             velocity };
+}
+
 /** True when `cc` addresses a top-row or right-column button. */
 constexpr bool isControlCC (int cc) noexcept
 {

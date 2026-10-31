@@ -69,6 +69,14 @@ std::string hex (const std::vector<Bytes>& messages)
     return result;
 }
 
+std::string velocityHex (std::uint8_t value)
+{
+    std::ostringstream out;
+    out << std::hex << std::uppercase << std::setfill ('0') << std::setw (2)
+        << static_cast<unsigned int> (value);
+    return out.str ();
+}
+
 Bytes padLed (int pad, Controller::PadState state)
 {
     const auto bytes = Launchpad::padColourMessage (
@@ -277,6 +285,62 @@ int main()
                return slots;
            }(),
            "the driver produced the armed slot sequence 0..63");
+
+    //==========================================================================
+    // Grid colour mirror (T123)
+    //==========================================================================
+    sent.clear();
+
+    const auto idle = Controller::launchpadLedForPatch (2, false, false, false);
+    const auto armed = Controller::launchpadLedForPatch (9, true, false, false);
+    const auto warming = Controller::launchpadLedForPatch (9, true, true, false);
+    const auto errorLed = Controller::launchpadLedForPatch (9, false, false, true);
+
+    check (idle.velocity == Launchpad::velocityForPatchColour (2)
+               && idle.mode == Launchpad::LedMode::Static,
+           "an unarmed patch shows its palette colour");
+    check (armed.velocity == Launchpad::velocityFor (Launchpad::Colour::Red)
+               && armed.mode == Launchpad::LedMode::Static,
+           "the armed patch is bright red");
+    check (warming.velocity == Launchpad::velocityFor (Launchpad::Colour::Yellow)
+               && warming.mode == Launchpad::LedMode::Static,
+           "a warming patch is yellow even while armed");
+    check (errorLed.velocity == Launchpad::velocityFor (Launchpad::Colour::Red)
+               && errorLed.mode == Launchpad::LedMode::Flashing,
+           "a patch error flashes red");
+
+    bool distinctPalette = true;
+
+    for (int index = 0; index < 16; ++index)
+        for (int other = index + 1; other < 16; ++other)
+            if (Launchpad::velocityForPatchColour (index)
+                == Launchpad::velocityForPatchColour (other))
+                distinctPalette = false;
+
+    check (distinctPalette, "all 16 patch colours have distinct LED velocities");
+
+    driver.setPatchLed (0, 2, false, false, false);
+
+    check (! sent.empty ()
+               && hex (sent.back ()) == "90 0B " + velocityHex (
+                      Launchpad::velocityForPatchColour (2)),
+           "the driver lights an unarmed patch with its palette colour");
+
+    driver.setPatchLed (0, 9, false, false, false);
+
+    check (! sent.empty ()
+               && hex (sent.back ()) == "90 0B " + velocityHex (
+                      Launchpad::velocityForPatchColour (9)),
+           "changing the patch colour sends the new palette LED");
+
+    driver.setPatchLed (0, 9, true, false, false);
+    check (hex (sent.back ()) == "90 0B 05", "the armed pad LED is red");
+
+    driver.setPatchLed (0, 9, true, true, false);
+    check (hex (sent.back ()) == "90 0B 0D", "the warming pad LED is yellow");
+
+    driver.setPatchLed (0, 9, false, false, true);
+    check (hex (sent.back ()) == "91 0B 05", "the error pad LED flashes red");
 
     std::cout << (failures == 0 ? "\nPASS" : "\nFAIL") << ": " << failures
               << " failed check(s)" << std::endl;

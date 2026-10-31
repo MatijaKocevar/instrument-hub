@@ -1,10 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, type ReactElement } from "react";
 
-import type { ControlState } from "./api/client";
+import type { ControlPatch, ControlState } from "./api/client";
 import { AudioSettingsPanel } from "./features/audio-settings";
-import { GridView, gridFromState, metersUrlFor, useMeters } from "./features/grid";
+import {
+    colourForIndex,
+    GridView,
+    gridFromState,
+    metersUrlFor,
+    useMeters,
+} from "./features/grid";
 import { PairingPanel } from "./features/pairing";
 import { useAppState, useAppStore } from "./state/AppStoreContext";
+import {
+    instrumentPathForSlot,
+    pathForRoute,
+    slotFromSearch,
+    useRouter,
+    type ShellRoute,
+} from "./state/router";
 import type { ConnectionPhase } from "./state/store";
 
 const PHASE_LABEL: Record<ConnectionPhase, string> = {
@@ -13,6 +26,13 @@ const PHASE_LABEL: Record<ConnectionPhase, string> = {
     ready: "Connected",
     offline: "Offline",
 };
+
+const NAV_ITEMS: readonly { route: ShellRoute; label: string }[] = [
+    { route: "grid", label: "Grid" },
+    { route: "instrument", label: "Instrument" },
+    { route: "plugins", label: "Plugins" },
+    { route: "audio", label: "Audio" },
+];
 
 function formatUptime (milliseconds: number): string
 {
@@ -52,17 +72,244 @@ function slotLabel (state: ControlState): string
         : `${(state.armedSlot + 1).toString().padStart (2, "0")} · ${slot.name}`;
 }
 
-export default function App ()
+/**
+    Arm a patch and open its Instrument page.
+
+    Exported as a pure function so the click contract (one action both arms and
+    routes) is testable without a DOM.
+*/
+export function armAndOpenInstrument (
+    slot: number,
+    arm: (slot: number) => void,
+    navigate: (path: string) => void): void
+{
+    arm (slot);
+    navigate (instrumentPathForSlot (slot));
+}
+
+function SystemPanels ({ state }: { readonly state: ControlState }): ReactElement
+{
+    return (
+        <section className="app__panels" aria-label="Engine state">
+            <article className="panel">
+                <h2 className="panel__title">Engine</h2>
+                <dl className="panel__meta">
+                    <div>
+                        <dt>Application</dt>
+                        <dd data-testid="application-name">{state.application.name}</dd>
+                    </div>
+                    <div>
+                        <dt>Version</dt>
+                        <dd data-testid="application-version">{state.application.version}</dd>
+                    </div>
+                    <div>
+                        <dt>Uptime</dt>
+                        <dd>{formatUptime (state.uptimeMs)}</dd>
+                    </div>
+                    <div>
+                        <dt>Armed slot</dt>
+                        <dd data-testid="armed-slot">{slotLabel (state)}</dd>
+                    </div>
+                </dl>
+            </article>
+
+            <article className="panel">
+                <h2 className="panel__title">Transport</h2>
+                <dl className="panel__meta">
+                    <div>
+                        <dt>State</dt>
+                        <dd data-testid="transport-state">
+                            {state.transport.playing ? "Playing" : "Stopped"}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Tempo</dt>
+                        <dd data-testid="transport-bpm">{formatBpm (state.transport.bpm)}</dd>
+                    </div>
+                    <div>
+                        <dt>Position</dt>
+                        <dd>{state.transport.ppq.toFixed (2)} beats</dd>
+                    </div>
+                    <div>
+                        <dt>Samples</dt>
+                        <dd>{state.transport.positionSamples.toLocaleString ("en-US")}</dd>
+                    </div>
+                </dl>
+            </article>
+
+            <article className="panel">
+                <h2 className="panel__title">Settings</h2>
+                <dl className="panel__meta">
+                    <div>
+                        <dt>Master gain</dt>
+                        <dd>{formatGain (state.settings.masterGain)}</dd>
+                    </div>
+                    <div>
+                        <dt>Input gain</dt>
+                        <dd>{formatGain (state.settings.inputGain)}</dd>
+                    </div>
+                    <div>
+                        <dt>MIDI channel</dt>
+                        <dd>{state.settings.midiChannel}</dd>
+                    </div>
+                    <div>
+                        <dt>Metronome</dt>
+                        <dd>{state.settings.metronome ? "On" : "Off"}</dd>
+                    </div>
+                </dl>
+            </article>
+        </section>
+    );
+}
+
+interface InstrumentPageProps
+{
+    readonly patch: ControlPatch | null;
+    readonly armedSlot: number;
+    readonly onBack: () => void;
+    readonly onColourChange: (slot: number, colorIndex: number) => void;
+}
+
+function InstrumentPage ({
+    patch,
+    armedSlot,
+    onBack,
+    onColourChange,
+}: InstrumentPageProps): ReactElement
+{
+    return (
+        <section
+            className="page page--instrument"
+            data-testid="instrument-page"
+            data-slot={patch?.slot ?? -1}
+        >
+            <header className="page__header">
+                <p className="page__eyebrow">Instrument</p>
+                <h2 className="page__title" data-testid="instrument-name">
+                    {patch?.name ?? "No patch selected"}
+                </h2>
+                <p className="page__lede">
+                    {patch === null
+                        ? "Arm a patch on the Grid page to open its instrument."
+                        : `${patch.familyName} · slot ${String (patch.slot + 1)} · ${patch.instrument.kind}`}
+                </p>
+            </header>
+
+            {patch === null
+                ? <button className="page__button" type="button" onClick={onBack}>
+                      Back to the grid
+                  </button>
+                : <>
+                      <dl className="page__meta">
+                          <div>
+                              <dt>Family</dt>
+                              <dd data-testid="instrument-family">{patch.familyName}</dd>
+                          </div>
+                          <div>
+                              <dt>Armed</dt>
+                              <dd>{patch.slot === armedSlot ? "Yes" : "No"}</dd>
+                          </div>
+                          <div>
+                              <dt>Warm state</dt>
+                              <dd data-testid="instrument-warm-state">{patch.warmState}</dd>
+                          </div>
+                          <div>
+                              <dt>Latency</dt>
+                              <dd data-testid="instrument-latency">{patch.latencyMs.toFixed (2)} ms</dd>
+                          </div>
+                          <div>
+                              <dt>Volume</dt>
+                              <dd>{patch.volumeDb.toFixed (1)} dB</dd>
+                          </div>
+                          <div>
+                              <dt>Balance</dt>
+                              <dd>{patch.pan.toFixed (2)}</dd>
+                          </div>
+                          <div>
+                              <dt>Mute / Solo</dt>
+                              <dd>{patch.mute ? "Muted" : patch.solo ? "Solo" : "Off"}</dd>
+                          </div>
+                      </dl>
+
+                      <div className="page__colours" aria-label="Patch colour">
+                          <span className="page__colour-swatch" data-testid="instrument-colour" data-colour-index={patch.colorIndex} style={{ background: colourForIndex (patch.colorIndex) }} />
+                          <button
+                              className="page__button"
+                              type="button"
+                              onClick={() => { onColourChange (patch.slot, (patch.colorIndex + 1) % 16); }}
+                          >
+                              Next colour
+                          </button>
+                      </div>
+
+                      <p className="page__note">
+                          The full instrument editor (source, fader, insert chain) is built in T124.
+                      </p>
+
+                      <button className="page__button" type="button" onClick={onBack}>
+                          Back to the grid
+                      </button>
+                  </>}
+        </section>
+    );
+}
+
+function PluginsPage (): ReactElement
+{
+    return (
+        <section className="page page--plugins" data-testid="plugins-page">
+            <header className="page__header">
+                <p className="page__eyebrow">Plugins</p>
+                <h2 className="page__title">Installed plugins</h2>
+                <p className="page__lede">
+                    The searchable VST3 inventory lands here with T125. Patches already
+                    carry their plugin descriptors, so this page only reads the scan.
+                </p>
+            </header>
+            <div className="page__empty" data-testid="plugins-empty">
+                No inventory loaded on this page yet.
+            </div>
+        </section>
+    );
+}
+
+interface AppProps
+{
+    /** Render a specific route in the headless snapshot test. */
+    readonly initialPath?: string;
+}
+
+export default function App ({ initialPath }: AppProps = {}): ReactElement
 {
     const app = useAppState();
     const store = useAppStore();
+    const router = useRouter (initialPath);
     const state = app.state;
-    const armedSlot = state?.slots.find (slot => slot.armed) ?? null;
     const grid = useMemo (() => gridFromState (state), [state]);
     const meters = useMeters ({ url: metersUrlFor (store.baseUrl) });
 
+    const armedSlot = state?.armedSlot ?? -1;
+    const requestedSlot = slotFromSearch (router.search);
+    const instrumentSlot = requestedSlot ?? (armedSlot >= 0 ? armedSlot : null);
+    const instrumentPatch = state?.families
+        .flatMap (family => family.patches)
+        .find (patch => patch.slot === instrumentSlot) ?? null;
+
+    const openPatch = (slot: number): void =>
+    {
+        armAndOpenInstrument (
+            slot,
+            candidate => { void store.armSlot (candidate); },
+            router.navigate);
+    };
+
+    const changeColour = (slot: number, colorIndex: number): void =>
+    {
+        void store.updatePatch (slot, { colorIndex });
+    };
+
     return (
-        <main className="app">
+        <main className="app" data-route={router.route}>
             <header className="app__header">
                 <p className="app__eyebrow">Audio workspace</p>
                 <h1 className="app__title" data-testid="app-title">
@@ -71,6 +318,26 @@ export default function App ()
                 <p className="app__lede">
                     One place for your instruments, controller and set.
                 </p>
+
+                <nav className="app__nav" aria-label="Pages" data-testid="app-nav">
+                    {NAV_ITEMS.map (item => (
+                        <a
+                            className={`app__nav-link${router.route === item.route ? " app__nav-link--active" : ""}`}
+                            href={pathForRoute (item.route)}
+                            key={item.route}
+                            data-testid={`nav-${item.route}`}
+                            data-active={router.route === item.route ? "true" : "false"}
+                            aria-current={router.route === item.route ? "page" : undefined}
+                            onClick={event =>
+                            {
+                                event.preventDefault ();
+                                router.navigate (pathForRoute (item.route));
+                            }}
+                        >
+                            {item.label}
+                        </a>
+                    ))}
+                </nav>
             </header>
 
             <section
@@ -102,13 +369,13 @@ export default function App ()
                 <button
                     className="app__retry"
                     type="button"
-                    onClick={() => { void store.refresh(); }}
+                    onClick={() => { void store.refresh (); }}
                 >
                     Retry now
                 </button>
             </section>
 
-            {state === null
+            {state === null && router.route !== "grid"
                 ? <section
                       className="app__empty"
                       aria-label="Engine state"
@@ -116,110 +383,65 @@ export default function App ()
                   >
                       Waiting for the engine to report its state…
                   </section>
-                : <section className="app__panels" aria-label="Engine state">
-                      <article className="panel">
-                          <h2 className="panel__title">Engine</h2>
-                          <dl className="panel__meta">
-                              <div>
-                                  <dt>Application</dt>
-                                  <dd data-testid="application-name">{state.application.name}</dd>
-                              </div>
-                              <div>
-                                  <dt>Version</dt>
-                                  <dd data-testid="application-version">{state.application.version}</dd>
-                              </div>
-                              <div>
-                                  <dt>Uptime</dt>
-                                  <dd>{formatUptime (state.uptimeMs)}</dd>
-                              </div>
-                              <div>
-                                  <dt>Armed slot</dt>
-                                  <dd data-testid="armed-slot">{slotLabel (state)}</dd>
-                              </div>
-                          </dl>
-                      </article>
+                : null}
 
-                      <article className="panel">
-                          <h2 className="panel__title">Transport</h2>
-                          <dl className="panel__meta">
-                              <div>
-                                  <dt>State</dt>
-                                  <dd data-testid="transport-state">
-                                      {state.transport.playing ? "Playing" : "Stopped"}
-                                  </dd>
-                              </div>
-                              <div>
-                                  <dt>Tempo</dt>
-                                  <dd data-testid="transport-bpm">{formatBpm (state.transport.bpm)}</dd>
-                              </div>
-                              <div>
-                                  <dt>Position</dt>
-                                  <dd>{state.transport.ppq.toFixed (2)} beats</dd>
-                              </div>
-                              <div>
-                                  <dt>Samples</dt>
-                                  <dd>{state.transport.positionSamples.toLocaleString ("en-US")}</dd>
-                              </div>
-                          </dl>
-                      </article>
+            <div className="app__route">
+                {router.route === "grid"
+                    ? <>
+                          {state === null
+                              ? null
+                              : <SystemPanels state={state} />}
 
-                      <article className="panel">
-                          <h2 className="panel__title">Settings</h2>
-                          <dl className="panel__meta">
-                              <div>
-                                  <dt>Master gain</dt>
-                                  <dd>{formatGain (state.settings.masterGain)}</dd>
-                              </div>
-                              <div>
-                                  <dt>Input gain</dt>
-                                  <dd>{formatGain (state.settings.inputGain)}</dd>
-                              </div>
-                              <div>
-                                  <dt>MIDI channel</dt>
-                                  <dd>{state.settings.midiChannel}</dd>
-                              </div>
-                              <div>
-                                  <dt>Metronome</dt>
-                                  <dd>{state.settings.metronome ? "On" : "Off"}</dd>
-                              </div>
-                          </dl>
-                      </article>
-                  </section>}
+                          <GridView
+                              model={grid}
+                              meters={meters}
+                              loading={state === null}
+                              onArm={openPatch}
+                              onColourChange={changeColour}
+                              onFamilyColourChange={(familyId, _slots, colorIndex) => {
+                                  void store.updateFamilyColour (familyId, colorIndex);
+                              }}
+                          />
+                      </>
+                    : router.route === "instrument"
+                        ? <InstrumentPage
+                              patch={instrumentPatch}
+                              armedSlot={armedSlot}
+                              onBack={() => { router.navigate (pathForRoute ("grid")); }}
+                              onColourChange={changeColour}
+                          />
+                        : router.route === "plugins"
+                            ? <PluginsPage />
+                            : <section className="app__stack" data-testid="audio-page">
+                                  <AudioSettingsPanel
+                                      audio={app.audio}
+                                      measurement={app.measurement}
+                                      error={app.audioError}
+                                      measurementError={app.measurementError}
+                                      busy={app.audioBusy}
+                                      loading={state === null && app.audio === null}
+                                      onChange={patch => { void store.updateAudio (patch); }}
+                                      onMeasure={() => { void store.measureLatency (); }}
+                                  />
 
-            <AudioSettingsPanel
-                audio={app.audio}
-                measurement={app.measurement}
-                error={app.audioError}
-                measurementError={app.measurementError}
-                busy={app.audioBusy}
-                loading={state === null && app.audio === null}
-                onChange={patch => { void store.updateAudio (patch); }}
-                onMeasure={() => { void store.measureLatency (); }}
-            />
-
-            <PairingPanel
-                pairing={app.pairing}
-                token={store.token}
-                error={app.pairingError}
-                busy={app.pairingBusy}
-                loading={app.pairing === null}
-                onToggleLan={enabled => { void store.toggleLan (enabled); }}
-                onForget={() => { void store.forgetPairing (); }}
-                onPair={code => { void store.pair (code); }}
-            />
-
-            <GridView
-                model={grid}
-                meters={meters}
-                loading={state === null}
-                onArm={slot => { void store.armSlot (slot); }}
-            />
+                                  <PairingPanel
+                                      pairing={app.pairing}
+                                      token={store.token}
+                                      error={app.pairingError}
+                                      busy={app.pairingBusy}
+                                      loading={app.pairing === null}
+                                      onToggleLan={enabled => { void store.toggleLan (enabled); }}
+                                      onForget={() => { void store.forgetPairing (); }}
+                                      onPair={code => { void store.pair (code); }}
+                                  />
+                              </section>}
+            </div>
 
             <footer className="app__footer">
                 <span className="app__status" data-testid="app-status">
                     {state === null
                         ? "Waiting for device state"
-                        : `Connected · ${state.slots.length} slots · armed ${armedSlot === null ? "none" : armedSlot.index + 1}`}
+                        : `Connected · ${state.slots.length} slots · armed ${armedSlot < 0 ? "none" : armedSlot + 1}`}
                 </span>
                 <span className="app__version">v0.1.0</span>
             </footer>
