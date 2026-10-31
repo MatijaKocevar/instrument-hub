@@ -117,6 +117,7 @@ target_sources(instrument-hub
         src/dsp/Reverb.cpp
         src/instruments/Instrument.cpp
         src/instruments/AudioInputInstrument.cpp
+        src/instruments/PluginFx.cpp
         src/plugins/PluginInstrument.cpp
         src/plugins/PluginCache.cpp
         src/plugins/PluginWindow.cpp
