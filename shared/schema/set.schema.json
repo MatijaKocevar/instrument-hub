@@ -29,6 +29,13 @@
             "type": "string",
             "minLength": 1
           },
+          "colorIndex": {
+            "description": "Default palette index (0..15) for every patch in this family. A patch may override it.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "default": 0
+          },
           "instruments": {
             "type": "array",
             "minItems": 1,
@@ -51,6 +58,104 @@
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 63
+                },
+                "colorIndex": {
+                  "description": "Patch palette override (-1 inherits the family default).",
+                  "type": "integer",
+                  "minimum": -1,
+                  "maximum": 15,
+                  "default": -1
+                },
+                "volumeDb": {
+                  "description": "Patch volume in dB.",
+                  "type": "number",
+                  "minimum": -60,
+                  "maximum": 12,
+                  "default": 0
+                },
+                "pan": {
+                  "description": "Stereo balance, -1 left .. +1 right.",
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1,
+                  "default": 0
+                },
+                "mute": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "solo": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "kind": {
+                  "description": "Instrument source. A cold patch still declares its kind and plugin descriptor, but no state blob.",
+                  "type": "string",
+                  "enum": ["init-tone", "sampler", "plugin", "audio-input"],
+                  "default": "init-tone"
+                },
+                "pluginFormat": {
+                  "type": "string",
+                  "default": "VST3"
+                },
+                "pluginId": {
+                  "description": "Stable plugin identifier for a plugin patch.",
+                  "type": "string"
+                },
+                "pluginName": {
+                  "type": "string"
+                },
+                "pluginManufacturer": {
+                  "type": "string"
+                },
+                "pluginVersion": {
+                  "type": "string"
+                },
+                "pluginState": {
+                  "description": "UUID of the stored state blob. Omitted for a cold patch that has never been loaded or edited.",
+                  "type": "string"
+                },
+                "samplePath": {
+                  "description": "Kit document for a sampler patch.",
+                  "type": "string"
+                },
+                "fx": {
+                  "description": "Ordered insert chain for this patch.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["id"],
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": ["builtin", "plugin"],
+                        "default": "builtin"
+                      },
+                      "id": {
+                        "description": "Built-in effect id (eq, compressor, delay, reverb) or the plugin id.",
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "pluginState": {
+                        "description": "UUID of the stored plugin state blob; omitted while the insert is cold.",
+                        "type": "string"
+                      },
+                      "bypassed": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "parameters": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }

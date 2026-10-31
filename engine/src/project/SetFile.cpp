@@ -97,6 +97,20 @@ bool fxKindFromString (std::string_view text, FxKind& kind) noexcept
     return false;
 }
 
+float SlotConfig::volumeDb() const noexcept
+{
+    if (gain <= 0.0f)
+        return -60.0f;
+
+    return juce::jlimit (-60.0f, 12.0f, 20.0f * std::log10 (gain));
+}
+
+void SlotConfig::setVolumeDb (float decibels) noexcept
+{
+    const auto clamped = juce::jlimit (-60.0f, 12.0f, decibels);
+    gain = clamped <= -60.0f ? 0.0f : std::pow (10.0f, clamped / 20.0f);
+}
+
 const PluginStateChunk* SetFile::findPluginState (std::string_view uuid) const noexcept
 {
     for (const auto& chunk : pluginStates)
@@ -191,15 +205,34 @@ bool SetFile::validate (juce::String& error) const
         if (! isValidSlotColour (slot.colour))
             return fail (slotName + ": colour must be a #rrggbb hex string");
 
+        if (slot.colorIndex < 0 || slot.colorIndex > maximumSlotColourIndex)
+            return fail (slotName + ": colorIndex must be within 0.."
+                         + juce::String (maximumSlotColourIndex));
+
+        if (! std::isfinite (slot.pan) || slot.pan < -1.0f || slot.pan > 1.0f)
+            return fail (slotName + ": pan must be between -1 and +1");
+
         if (! std::isfinite (slot.instrument.gain)
             || slot.instrument.gain < 0.0f || slot.instrument.gain > 4.0f)
             return fail (slotName + ": instrument gain must be between 0 and 4");
 
         if (slot.instrument.kind == SourceKind::plugin)
         {
-            if (! checkStateReference (slot.instrument.pluginState,
-                                       slotName + ": instrument"))
-                return false;
+            // A plugin patch with no state is a cold descriptor: it names the
+            // plugin so it can be loaded on demand, but stores no blob. Once
+            // a blob is referenced it must exist exactly once.
+            if (slot.hasPluginState())
+            {
+                if (! checkStateReference (slot.instrument.pluginState,
+                                           slotName + ": instrument"))
+                    return false;
+            }
+            else if (slot.instrument.pluginId.empty()
+                     && slot.instrument.pluginName.empty()
+                     && slot.instrument.name.empty())
+            {
+                return fail (slotName + ": cold plugin patch has no descriptor");
+            }
         }
 
         if (slot.instrument.kind == SourceKind::audioInput && slot.instrument.inputChannel < 0)
@@ -210,7 +243,7 @@ bool SetFile::validate (juce::String& error) const
             const auto& fx = slot.fxChain[i];
             const auto context = slotName + ": fx[" + juce::String (static_cast<int> (i)) + "]";
 
-            if (fx.kind == FxKind::plugin
+            if (fx.kind == FxKind::plugin && ! fx.pluginState.empty()
                 && ! checkStateReference (fx.pluginState, context))
                 return false;
 

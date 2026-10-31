@@ -269,6 +269,13 @@ PluginLoadReport PluginStateStore::loadInto (const SetFile& set,
         if (slotConfig.instrument.kind != SourceKind::plugin)
             continue;
 
+        // Lazy patch state (T119): a plugin patch with no blob has never been
+        // loaded or edited. It is a descriptor only, so it stays out of the
+        // graph until something warms it, instead of earning a permanent
+        // "missing state" placeholder.
+        if (slotConfig.instrument.pluginState.empty())
+            continue;
+
         auto& slot = engine.getSlot (slotConfig.index);
         const auto context = describeSlot (slotConfig);
 

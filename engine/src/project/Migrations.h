@@ -22,8 +22,11 @@ inline constexpr int oldestSupportedSetSchemaVersion = 1;
     - 1: the original `.ihub` set file format (T080).
     - 2: adds `notes` on the set and `colour` on every slot. Both are filled
       in by the 1 -> 2 migration, so a v1 document loads unchanged.
+    - 3: adds per-patch `colorIndex`, `pan` and `solo` and the plugin
+      descriptor fields on an instrument. The 2 -> 3 migration fills neutral
+      values, so a v2 document loads unchanged (a cold plugin stays cold).
 */
-inline constexpr int currentSetSchemaVersion = 2;
+inline constexpr int currentSetSchemaVersion = 3;
 
 /** Slot colour assigned to every v1 slot by the 1 -> 2 migration. */
 inline constexpr const char* defaultSlotColour = "#5a6478";

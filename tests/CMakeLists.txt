@@ -2274,6 +2274,68 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Per-patch persistence (T119) -------------------------------------------
+#
+# Parses the shipped 64-patch set.yaml for instrument descriptors, mixer state,
+# family/override colour and FX chains, then builds a 64-slot `.ihub` set with
+# exactly one loaded patch. The container round-trip must preserve every patch,
+# store only the loaded patch's plugin state, and keep the other 63 as
+# descriptors.
+
+juce_add_console_app(ihub-patch-persistence-test
+    PRODUCT_NAME "ihub-patch-persistence-test"
+)
+
+target_sources(ihub-patch-persistence-test
+    PRIVATE
+        project/PatchPersistenceTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+)
+
+target_include_directories(ihub-patch-persistence-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-patch-persistence-test
+    PRIVATE
+        "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+)
+
+target_link_libraries(ihub-patch-persistence-test
+    PRIVATE
+        Threads::Threads
+        juce::juce_audio_devices
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-patch-persistence-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-patch-persistence
+    COMMAND ihub-patch-persistence-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- Plugin state store (T081) ----------------------------------------------
 #
 # Acceptance: a set whose second slot names a plugin that is not installed

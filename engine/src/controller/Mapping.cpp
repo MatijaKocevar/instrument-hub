@@ -83,6 +83,31 @@ const MacroSpec* SetMapping::macroFor (const EncoderBinding& binding) const noex
     return macro == macros.end() ? nullptr : &macro->second;
 }
 
+int SetMapping::colorIndexFor (const PadBinding& binding) const noexcept
+{
+    const auto family = families.find (binding.family);
+
+    if (family == families.end())
+        return 0;
+
+    const auto* instrument = family->second.findInstrument (binding.instrument);
+    return instrument != nullptr ? instrument->resolvedColorIndex
+                                 : family->second.colorIndex;
+}
+
+int SetMapping::countPatches() const noexcept
+{
+    int count = 0;
+
+    for (const auto& [familyId, family] : families)
+    {
+        (void) familyId;
+        count += static_cast<int> (family.instruments.size());
+    }
+
+    return count;
+}
+
 int SetMapping::countPads() const noexcept
 {
     int count = 0;
@@ -738,6 +763,98 @@ bool readFloat (const YamlValue& value, float& out, MappingError& error, const s
     return true;
 }
 
+bool readBool (const YamlValue& value, bool& out, MappingError& error, const std::string& what)
+{
+    if (value.kind != YamlKind::scalar)
+        return fail (error, value, what + " must be true or false");
+
+    if (value.scalar == "true")
+    {
+        out = true;
+        return true;
+    }
+
+    if (value.scalar == "false")
+    {
+        out = false;
+        return true;
+    }
+
+    return fail (error, value, what + " must be true or false");
+}
+
+bool readColourIndex (const YamlValue& value, int& out, MappingError& error,
+                      const std::string& what)
+{
+    if (! readInt (value, out, error, what))
+        return false;
+
+    if (out < 0 || out > SetMapping::maximumColourIndex)
+        return fail (error, value, what + " must be within 0.."
+                         + std::to_string (SetMapping::maximumColourIndex));
+
+    return true;
+}
+
+bool readFx (const YamlValue& value, PatchFxSpec& fx, MappingError& error)
+{
+    if (value.kind != YamlKind::mapping)
+        return fail (error, value, "an fx entry must be a mapping");
+
+    if (! checkKeys (value, { "kind", "id", "name", "pluginState", "bypassed",
+                              "parameters" }, error))
+        return false;
+
+    const auto* kindValue = value.find ("kind");
+    const auto* idValue = value.find ("id");
+
+    if (idValue == nullptr)
+        return fail (error, value, "an fx entry needs an id");
+
+    if (kindValue != nullptr && ! readString (*kindValue, fx.kind, error, "fx kind"))
+        return false;
+
+    if (fx.kind != "builtin" && fx.kind != "plugin")
+        return fail (error, kindValue != nullptr ? *kindValue : value,
+                     "fx kind must be 'builtin' or 'plugin'");
+
+    if (! readString (*idValue, fx.id, error, "fx id"))
+        return false;
+
+    if (const auto* name = value.find ("name"))
+        if (! readString (*name, fx.name, error, "fx name"))
+            return false;
+
+    if (const auto* state = value.find ("pluginState"))
+        if (! readString (*state, fx.pluginState, error, "fx pluginState", true))
+            return false;
+
+    if (const auto* bypassed = value.find ("bypassed"))
+        if (! readBool (*bypassed, fx.bypassed, error, "fx bypassed"))
+            return false;
+
+    if (const auto* parameters = value.find ("parameters"))
+    {
+        if (parameters->kind != YamlKind::mapping)
+            return fail (error, *parameters, "fx parameters must be a mapping");
+
+        for (const auto& [key, parameterValue] : parameters->mapping)
+        {
+            if (key.empty())
+                return fail (error, parameterValue, "an fx parameter name must not be empty");
+
+            float parsed = 0.0f;
+
+            if (! readFloat (parameterValue, parsed, error, "fx parameter '" + key + "'"))
+                return false;
+
+            fx.parameters[key] = parsed;
+        }
+    }
+
+    return true;
+}
+
 bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error)
 {
     if (root.kind != YamlKind::mapping)
@@ -788,7 +905,7 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
         if (familyValue.kind != YamlKind::mapping)
             return fail (error, familyValue, "family '" + familyId + "' must be a mapping");
 
-        if (! checkKeys (familyValue, { "name", "instruments" }, error))
+        if (! checkKeys (familyValue, { "name", "instruments", "colorIndex" }, error))
             return false;
 
         FamilySpec family;
@@ -801,6 +918,10 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
 
         if (! readString (*familyName, family.name, error, "family name"))
             return false;
+
+        if (const auto* familyColour = familyValue.find ("colorIndex"))
+            if (! readColourIndex (*familyColour, family.colorIndex, error, "family colorIndex"))
+                return false;
 
         const auto* instruments = familyValue.find ("instruments");
 
@@ -815,7 +936,12 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
                 return fail (error, instrumentValue,
                              "an instrument in family '" + familyId + "' must be a mapping");
 
-            if (! checkKeys (instrumentValue, { "id", "name", "slot" }, error))
+            if (! checkKeys (instrumentValue,
+                             { "id", "name", "slot", "colorIndex", "volumeDb", "pan",
+                               "mute", "solo", "kind", "pluginFormat", "pluginId",
+                               "pluginName", "pluginManufacturer", "pluginVersion",
+                               "pluginState", "samplePath", "fx" },
+                             error))
                 return false;
 
             InstrumentSpec instrument;
@@ -842,6 +968,97 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
                 return fail (error, *id,
                              "duplicate instrument id '" + instrument.id
                                  + "' in family '" + familyId + "'");
+
+            // --- Patch persistence (T119) --------------------------------
+            if (const auto* colour = instrumentValue.find ("colorIndex"))
+                if (! readInt (*colour, instrument.colorIndex, error, "patch colorIndex"))
+                    return false;
+
+            if (instrument.colorIndex != InstrumentSpec::inheritColorIndex
+                && (instrument.colorIndex < 0
+                    || instrument.colorIndex > SetMapping::maximumColourIndex))
+                return fail (error, *instrumentValue.find ("colorIndex"),
+                             "patch colorIndex must be -1 (inherit) or within 0.."
+                                 + std::to_string (SetMapping::maximumColourIndex));
+
+            if (const auto* volume = instrumentValue.find ("volumeDb"))
+            {
+                if (! readFloat (*volume, instrument.volumeDb, error, "patch volumeDb"))
+                    return false;
+
+                if (instrument.volumeDb < -60.0f || instrument.volumeDb > 12.0f)
+                    return fail (error, *volume, "patch volumeDb must be within -60..+12");
+            }
+
+            if (const auto* balance = instrumentValue.find ("pan"))
+            {
+                if (! readFloat (*balance, instrument.pan, error, "patch pan"))
+                    return false;
+
+                if (instrument.pan < -1.0f || instrument.pan > 1.0f)
+                    return fail (error, *balance, "patch pan must be within -1..+1");
+            }
+
+            if (const auto* mute = instrumentValue.find ("mute"))
+                if (! readBool (*mute, instrument.muted, error, "patch mute"))
+                    return false;
+
+            if (const auto* solo = instrumentValue.find ("solo"))
+                if (! readBool (*solo, instrument.solo, error, "patch solo"))
+                    return false;
+
+            if (const auto* kindValue = instrumentValue.find ("kind"))
+                if (! readString (*kindValue, instrument.kind, error, "patch kind"))
+                    return false;
+
+            if (instrument.kind != "init-tone" && instrument.kind != "sampler"
+                && instrument.kind != "plugin" && instrument.kind != "audio-input")
+                return fail (error, *instrumentValue.find ("kind"),
+                             "patch kind must be init-tone, sampler, plugin or audio-input");
+
+            const auto readOptional =
+                [&instrumentValue, &error] (const char* key, std::string& destination)
+            {
+                if (const auto* value = instrumentValue.find (key))
+                    return readString (*value, destination, error, key, true);
+
+                return true;
+            };
+
+            if (! readOptional ("pluginFormat", instrument.pluginFormat)
+                || ! readOptional ("pluginId", instrument.pluginId)
+                || ! readOptional ("pluginName", instrument.pluginName)
+                || ! readOptional ("pluginManufacturer", instrument.pluginManufacturer)
+                || ! readOptional ("pluginVersion", instrument.pluginVersion)
+                || ! readOptional ("pluginState", instrument.pluginState)
+                || ! readOptional ("samplePath", instrument.samplePath))
+                return false;
+
+            if (instrument.kind == "plugin" && instrument.pluginId.empty()
+                && instrument.pluginName.empty())
+                return fail (error, instrumentValue,
+                             "a plugin patch needs a pluginId or pluginName descriptor");
+
+            if (const auto* fxList = instrumentValue.find ("fx"))
+            {
+                if (fxList->kind != YamlKind::sequence)
+                    return fail (error, *fxList, "patch fx must be a sequence");
+
+                for (const auto& fxValue : fxList->sequence)
+                {
+                    PatchFxSpec fx;
+
+                    if (! readFx (fxValue, fx, error))
+                        return false;
+
+                    instrument.fxChain.push_back (std::move (fx));
+                }
+            }
+
+            instrument.resolvedColorIndex =
+                instrument.colorIndex == InstrumentSpec::inheritColorIndex
+                    ? family.colorIndex
+                    : instrument.colorIndex;
 
             family.instruments.push_back (std::move (instrument));
         }

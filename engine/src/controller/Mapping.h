@@ -22,17 +22,88 @@ namespace Controller
 // Parsed set.yaml model
 //==============================================================================
 
-/** One instrument inside a family.
+/** One insert effect in a patch's chain, as declared in `set.yaml`.
 
-    `slot` is the fixed audio-graph slot that hosts the instrument. A pad
-    binding resolves to this slot, so changing a pad's instrument in
-    `set.yaml` changes the slot the next pad press arms.
+    `kind` is `builtin` for an engine effect (`eq`, `compressor`, `delay`,
+    `reverb`) or `plugin` for a hosted VST3. A plugin entry with an empty
+    `pluginState` is a cold descriptor: it names the plugin but carries no
+    opaque state until the patch has been loaded or edited.
+*/
+struct PatchFxSpec
+{
+    std::string kind = "builtin";
+    std::string id;
+    std::string name;
+    std::string pluginState;
+    bool bypassed = false;
+    std::map<std::string, float> parameters;
+
+    bool operator== (const PatchFxSpec&) const = default;
+};
+
+/** One patch inside a family.
+
+    `slot` is the fixed audio-graph slot that hosts the patch. A pad binding
+    resolves to this slot, so changing a pad's instrument in `set.yaml`
+    changes the slot the next pad press arms.
+
+    The remaining fields are the patch's persistent state (T119): they are
+    parsed from `set.yaml`, carried into the `.ihub` container and restored
+    when the set is opened again. A patch that has never been loaded is a
+    descriptor only: its `pluginState` is empty and no blob exists for it.
 */
 struct InstrumentSpec
 {
     std::string id;
     std::string name;
     int slot = -1;
+
+    //==========================================================================
+    // Instrument descriptor (present for every patch, hot or cold)
+
+    /** `init-tone`, `sampler`, `plugin` or `audio-input`. */
+    std::string kind = "init-tone";
+
+    /** Plugin identity. `pluginState` is the lazy part: accepted empty. */
+    std::string pluginFormat = "VST3";
+    std::string pluginId;
+    std::string pluginName;
+    std::string pluginManufacturer;
+    std::string pluginVersion;
+    std::string pluginState;
+
+    /** Kit document for a sampler patch. */
+    std::string samplePath;
+
+    //==========================================================================
+    // Mixer state
+
+    /** Patch volume in dB, -60 .. +12. */
+    float volumeDb = 0.0f;
+
+    /** Stereo balance, -1 (left) .. +1 (right). */
+    float pan = 0.0f;
+
+    bool muted = false;
+    bool solo = false;
+
+    //==========================================================================
+    // Colour
+
+    /** "Use the family default" marker for `colorIndex`. */
+    static constexpr int inheritColorIndex = -1;
+
+    /** Patch override, or `inheritColorIndex`. */
+    int colorIndex = inheritColorIndex;
+
+    /** Filled by the parser: the override when present, else the family
+        default. This is the value the API and the LEDs use. */
+    int resolvedColorIndex = 0;
+
+    //==========================================================================
+    // Insert chain
+
+    std::vector<PatchFxSpec> fxChain;
 
     bool operator== (const InstrumentSpec&) const = default;
 };
@@ -42,6 +113,10 @@ struct FamilySpec
 {
     std::string id;
     std::string name;
+
+    /** Default colour for every patch in the family (0..15). */
+    int colorIndex = 0;
+
     std::vector<InstrumentSpec> instruments;
 
     /** The instrument with this id, or nullptr. The pointer stays valid while
@@ -125,6 +200,9 @@ struct SetMapping
     static constexpr int supportedSchemaVersion = 1;
     static constexpr int maximumSlot = 63;
 
+    /** Patch colour palette indices accepted by `set.yaml`. */
+    static constexpr int maximumColourIndex = 15;
+
     /** The Launchpad grid. `set.yaml` pads are validated against this. */
     static constexpr int maximumPads = 64;
 
@@ -153,6 +231,12 @@ struct SetMapping
 
     const InstrumentSpec* instrumentFor (const PadBinding& binding) const noexcept;
     const MacroSpec* macroFor (const EncoderBinding& binding) const noexcept;
+
+    /** Colour index for a patch: its override, else the family default. */
+    int colorIndexFor (const PadBinding& binding) const noexcept;
+
+    /** Number of patches declared across every family. */
+    int countPatches() const noexcept;
 
     /** Number of bound pads / encoders / banks / scenes. */
     int countPads() const noexcept;

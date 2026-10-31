@@ -136,6 +136,45 @@ ihub::project::SetFile makeSet (const ihub::project::PluginStateChunk& present,
     return set;
 }
 
+/** Builds a 64-slot set with one loaded patch and 63 cold descriptors. */
+ihub::project::SetFile makeLazySet (const ihub::project::PluginStateChunk& hot,
+                                    int numSlots = 64)
+{
+    using namespace ihub::project;
+
+    SetFile set;
+    set.name = "T119 lazy patch set";
+    set.pluginStates.push_back (hot);
+
+    for (int index = 0; index < numSlots; ++index)
+    {
+        SlotConfig slot;
+        slot.index = index;
+        slot.name = "Patch " + std::to_string (index);
+        slot.active = index == 0;
+        slot.instrument.kind = SourceKind::plugin;
+        slot.instrument.id = "patch-" + std::to_string (index);
+        slot.instrument.name = "Patch " + std::to_string (index);
+
+        if (index == 0)
+        {
+            slot.instrument.pluginId = hot.pluginId;
+            slot.instrument.pluginState = hot.uuid;
+        }
+        else
+        {
+            // Descriptor only: the plugin is named, but no blob exists until
+            // the patch is loaded or edited.
+            slot.instrument.pluginId = "com.instrumenthub.cold." + std::to_string (index);
+            slot.instrument.pluginState.clear();
+        }
+
+        set.slots.push_back (std::move (slot));
+    }
+
+    return set;
+}
+
 } // namespace
 
 int main (int argc, char** argv)
@@ -358,6 +397,72 @@ int main (int argc, char** argv)
 
     check (nearlyEqual (reloadedMarker, capturedMarker),
            "the captured blob round-trips through the store");
+
+    // --- Lazy per-patch state: one hot patch, 63 cold descriptors ----------
+    {
+        auto lazySet = makeLazySet (captured);
+        juce::String lazyError;
+
+        check (lazySet.validate (lazyError),
+               "the 64-patch lazy set validates: " + lazyError.toStdString());
+        check (lazySet.slots.size() == 64, "the lazy set has 64 patches");
+        check (lazySet.pluginStates.size() == 1,
+               "the lazy set stores one state blob");
+
+        const auto lazyPath = juce::File::getCurrentWorkingDirectory()
+                                  .getChildFile ("t119-lazy-patches.ihub");
+        lazyPath.deleteFile();
+
+        check (Serializer::save (lazySet, lazyPath, lazyError),
+               "the lazy set writes: " + lazyError.toStdString());
+
+        SetFile lazyLoaded;
+        check (Serializer::load (lazyPath, lazyLoaded, lazyError),
+               "the lazy set loads: " + lazyError.toStdString());
+        lazyPath.deleteFile();
+
+        int coldCount = 0;
+
+        for (const auto& slot : lazyLoaded.slots)
+            if (! slot.hasPluginState())
+                ++coldCount;
+
+        check (lazyLoaded.pluginStates.size() == 1,
+               "the lazy round-trip still stores one blob");
+        check (coldCount == 63, "63 patches carry descriptors only");
+
+        AudioEngine::AudioEngine lazyEngine (64);
+        lazyEngine.prepare (48000.0, 128, 2);
+
+        PluginStateStore lazyStore;
+        lazyStore.setAvailablePlugins ({ description });
+
+        const auto lazyReport = lazyStore.loadInto (lazyLoaded, lazyEngine);
+
+        check (lazyReport.success,
+               "the lazy set loads into a 64-slot engine: "
+                   + lazyReport.error.toStdString());
+        check (lazyReport.getNumLoaded() == 1,
+               "only the loaded patch is instantiated");
+        check (lazyReport.getNumPlaceholders() == 0,
+               "cold descriptors do not become placeholder slots");
+        check (lazyReport.warnings.empty(),
+               "cold descriptors produce no missing-state warnings");
+        check (lazyReport.bindings.size() == 1,
+               "the report lists only the instantiated patch");
+
+        auto* lazyLive = lazyStore.getInstrument (0);
+
+        check (lazyLive != nullptr, "the loaded patch owns a live instrument");
+        check (lazyLive != nullptr
+                   && nearlyEqual (lazyLive->getParameterValue ("State Marker"),
+                                   capturedMarker),
+               "the loaded patch restores its plugin state");
+        check (lazyStore.getInstrument (1) == nullptr,
+               "a cold patch owns no instrument");
+
+        lazyStore.unload (lazyEngine);
+    }
 
     // --- A structurally invalid set fails without touching the graph ------
     {

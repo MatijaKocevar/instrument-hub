@@ -39,6 +39,9 @@ bool isValidSlotColour (std::string_view colour) noexcept;
 /** Longest accepted `SetFile::notes` text, in bytes. */
 inline constexpr std::size_t maximumSetNotesBytes = 64 * 1024;
 
+/** Largest accepted palette index for a slot colour. */
+inline constexpr int maximumSlotColourIndex = 15;
+
 /** What produces audio for a slot. */
 enum class SourceKind
 {
@@ -62,8 +65,23 @@ struct InstrumentConfig
     /** Display name. */
     std::string name;
 
-    /** UUID of the plugin state chunk for `kind == plugin`. */
+    /** UUID of the plugin state chunk for `kind == plugin`.
+
+        Empty is valid and means "cold descriptor": the patch names a plugin
+        but has never been loaded or edited, so no opaque blob is stored for
+        it yet. `validate()` only requires the blob when it is referenced.
+    */
     std::string pluginState;
+
+    /** Plugin descriptor, stored even when `pluginState` is empty. */
+    std::string pluginFormat = "VST3";
+    std::string pluginId;
+    std::string pluginName;
+    std::string pluginManufacturer;
+    std::string pluginVersion;
+
+    /** Kit document for `kind == sampler`. */
+    std::string samplePath;
 
     /** Device input channel for `kind == audioInput`. */
     int inputChannel = 0;
@@ -118,11 +136,22 @@ struct SlotConfig
     /** Display name. */
     std::string name;
 
-    /** Slot gain, 0 .. 4. A muted slot is applied as gain 0. */
+    /** Patch volume as linear slot gain, 0 .. 4. A muted slot is applied as
+        gain 0. `volumeDb()`/`setVolumeDb()` expose the same value in dB. */
     float gain = 1.0f;
 
     /** Grid colour as `#rrggbb`. Added by schema v2. */
     std::string colour = defaultSlotColour;
+
+    /** Palette index 0..15, resolved from the family default plus the patch
+        override. Added by schema v3. */
+    int colorIndex = 0;
+
+    /** Stereo balance, -1 (left) .. +1 (right). Added by schema v3. */
+    float pan = 0.0f;
+
+    /** Solo state. Persisted for the mixer; the graph applies mute directly. */
+    bool solo = false;
 
     bool active = false;
     bool muted = false;
@@ -131,6 +160,17 @@ struct SlotConfig
     std::vector<FxConfig> fxChain;
 
     bool operator== (const SlotConfig&) const = default;
+
+    /** The persisted linear gain expressed in dB (-60 dB floor). */
+    float volumeDb() const noexcept;
+    void setVolumeDb (float decibels) noexcept;
+
+    /** True when this slot's instrument carries an opaque plugin state blob.
+
+        A cold patch (`false`) is a descriptor only; nothing is stored for it
+        until it has been loaded or edited.
+    */
+    bool hasPluginState() const noexcept { return ! instrument.pluginState.empty(); }
 };
 
 /** A plugin state blob and the metadata needed to find its plugin again.

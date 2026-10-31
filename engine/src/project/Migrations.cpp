@@ -93,13 +93,63 @@ bool migrateV1ToV2 (juce::var& root, juce::String& error)
     return true;
 }
 
+/** 2 -> 3: a patch gains a palette index, a balance and a solo flag.
+
+    Neutral defaults keep an existing mix unchanged: colour 0, centre pan,
+    solo off. Only missing fields are written, so an explicit value from a
+    hand-edited or forward-ported document is preserved.
+*/
+bool migrateV2ToV3 (juce::var& root, juce::String& error)
+{
+    auto* set = root.getDynamicObject();
+
+    if (set == nullptr)
+    {
+        error = "set.json is not a JSON object";
+        return false;
+    }
+
+    auto* slots = set->getProperties().getVarPointer ("slots");
+
+    if (slots == nullptr || ! slots->isArray())
+    {
+        // The parser reports a malformed slots array; there is nothing to
+        // migrate in a document that does not have one.
+        return true;
+    }
+
+    auto* array = slots->getArray();
+
+    for (int i = 0; i < array->size(); ++i)
+    {
+        auto& value = array->getReference (i);
+
+        if (! value.isObject())
+            continue;
+
+        auto* slot = value.getDynamicObject();
+
+        if (! slot->hasProperty ("colorIndex"))
+            slot->setProperty ("colorIndex", 0);
+
+        if (! slot->hasProperty ("pan"))
+            slot->setProperty ("pan", 0.0);
+
+        if (! slot->hasProperty ("solo"))
+            slot->setProperty ("solo", false);
+    }
+
+    return true;
+}
+
 } // namespace
 
 const std::vector<MigrationStep>& migrationSteps()
 {
     static const std::vector<MigrationStep> steps
     {
-        { 1, 2, &migrateV1ToV2, "add set notes and per-slot colour defaults" }
+        { 1, 2, &migrateV1ToV2, "add set notes and per-slot colour defaults" },
+        { 2, 3, &migrateV2ToV3, "add per-patch colour, pan and solo defaults" }
     };
 
     return steps;

@@ -15,6 +15,12 @@
 #   pads      64 grid bindings: row N is family N, column N is patch N
 #   encoders  eight macro bindings; the Launchpad exposes them as banks
 #
+# Each instrument is a patch descriptor. Families declare a default
+# `colorIndex`; a patch may override it and also carries `volumeDb`, `pan`,
+# `mute`, `solo`, its instrument/plugin descriptor and an ordered `fx` chain.
+# A plugin patch with no `pluginState` is cold: only its descriptor is stored
+# until the patch has been loaded or edited.
+#
 # The Launchpad Mini MK3 grid is row-major from the bottom-left. Pad 0 is the
 # bottom-left key (note 11) and pad 63 the top-right (note 88). Row 0 is Keys,
 # row 7 is Vox; the right column selects the matching row through a scene.
@@ -25,10 +31,21 @@ name: Starter Set
 families:
   keys:
     name: Keys
+    colorIndex: 0
     instruments:
       - id: piano
         name: Grand Piano
         slot: 0
+        colorIndex: 1
+        volumeDb: -2.5
+        pan: -0.15
+        fx:
+          - id: eq
+            name: Piano EQ
+            kind: builtin
+            parameters:
+              low: 2.0
+              high: -1.0
       - id: strings
         name: Warm Strings
         slot: 1
@@ -53,10 +70,20 @@ families:
 
   drums:
     name: Drums
+    colorIndex: 1
     instruments:
       - id: kit
         name: Acoustic Kit
         slot: 8
+        volumeDb: -1.0
+        fx:
+          - id: compressor
+            name: Kit Compressor
+            kind: builtin
+            bypassed: false
+            parameters:
+              ratio: 4.0
+              threshold: -18.0
       - id: snare
         name: Snare Stack
         slot: 9
@@ -81,10 +108,18 @@ families:
 
   bass:
     name: Bass
+    colorIndex: 2
     instruments:
       - id: sub
         name: Sub Bass
         slot: 16
+        pan: 0.0
+        fx:
+          - id: compressor
+            name: Bass Compressor
+            kind: builtin
+            parameters:
+              ratio: 3.0
       - id: finger
         name: Finger Bass
         slot: 17
@@ -109,10 +144,18 @@ families:
 
   pads:
     name: Pads
+    colorIndex: 3
     instruments:
       - id: air
         name: Air Pad
         slot: 24
+        volumeDb: -4.0
+        fx:
+          - id: reverb
+            name: Air Reverb
+            kind: builtin
+            parameters:
+              mix: 0.35
       - id: warm
         name: Warm Pad
         slot: 25
@@ -137,10 +180,18 @@ families:
 
   lead:
     name: Lead
+    colorIndex: 4
     instruments:
       - id: saw
         name: Saw Lead
         slot: 32
+        pan: 0.1
+        fx:
+          - id: delay
+            name: Lead Delay
+            kind: builtin
+            parameters:
+              mix: 0.2
       - id: square
         name: Square Lead
         slot: 33
@@ -165,6 +216,7 @@ families:
 
   fx:
     name: FX
+    colorIndex: 5
     instruments:
       - id: riser
         name: Riser
@@ -193,10 +245,12 @@ families:
 
   perc:
     name: Percussion
+    colorIndex: 6
     instruments:
       - id: shaker
         name: Shaker
         slot: 48
+        pan: 0.3
       - id: tambourine
         name: Tambourine
         slot: 49
@@ -221,10 +275,18 @@ families:
 
   vox:
     name: Vocals
+    colorIndex: 7
     instruments:
       - id: ah
         name: Ahh Choir
         slot: 56
+        volumeDb: -3.0
+        fx:
+          - id: reverb
+            name: Vocal Reverb
+            kind: builtin
+            parameters:
+              mix: 0.4
       - id: oo
         name: Ooh Choir
         slot: 57
