@@ -1880,6 +1880,66 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-audio-settings PROPERTIES DISABLED TRUE)
 endif()
 
+# --- MIDI inputs and the pad test (T126) ------------------------------------
+#
+# Part 1 starts the control server against an in-memory MIDI backend and
+# exercises GET /midi, POST /midi/inputs and POST /midi/pad-test. Part 2
+# enumerates the real ALSA inputs through JUCE, then drives the pad test
+# through a scripted LaunchpadDriver message sink and verifies the 64-pad LED
+# stream, its clear and the grid restore. No controller or sound card needed.
+
+juce_add_console_app(ihub-midi-api-test
+    PRODUCT_NAME "ihub-midi-api-test"
+)
+
+target_sources(ihub-midi-api-test
+    PRIVATE
+        api/MidiApiTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+)
+
+target_include_directories(ihub-midi-api-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-midi-api-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_audio_devices
+        juce::juce_core
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-midi-api-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-midi-api
+    COMMAND ihub-midi-api-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set_tests_properties(ihub-midi-api PROPERTIES DISABLED TRUE)
+endif()
+
 # --- mDNS discovery (T102) --------------------------------------------------
 #
 # Acceptance: `avahi-browse -t _instrumenthub._tcp` lists the service. The test

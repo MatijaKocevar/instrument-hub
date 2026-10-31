@@ -115,6 +115,12 @@ public:
 
     bool isConnected() const noexcept;
 
+    /** True when LED output can reach something: an open MIDI output or a
+        scripted message sink. Used by the pad test to refuse a disconnected
+        surface without stopping a hardware-free capture.
+    */
+    bool canSendLeds() const noexcept;
+
     juce::String getInputName() const;
     juce::String getOutputName() const;
     juce::String getLastError() const;

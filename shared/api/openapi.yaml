@@ -1051,6 +1051,116 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /midi:
+    get:
+      tags: [midi]
+      operationId: getMidi
+      summary: List MIDI inputs and controller status
+      description: |
+        Returns the ALSA MIDI inputs JUCE can see, each with the user's enable
+        switch, plus the status of the Launchpad Mini MK3 (pads and LEDs on the
+        **MI** port) and an optional Keystation keyboard. `padTest` reports the
+        most recent grid test. This endpoint only enumerates devices; enabling
+        a generic input opens it through the engine.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Current MIDI devices and controllers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MidiState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /midi/inputs:
+    post:
+      tags: [control]
+      operationId: setMidiInput
+      summary: Enable or disable one MIDI input
+      description: |
+        Opens or closes one input. The Launchpad row is owned by its driver:
+        enabling it connects the controller to the MI port, disabling it
+        disconnects. Every other input is opened by the control engine and its
+        messages are counted for the page. The response is the complete MIDI
+        state after the change.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MidiInputUpdate"
+            examples:
+              enableKeystation:
+                value: { id: "ALSA:5:0", enabled: true }
+      responses:
+        "200":
+          description: MIDI state after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MidiState"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No MIDI input has that identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: The server has no MIDI backend attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /midi/pad-test:
+    post:
+      tags: [control]
+      operationId: runMidiPadTest
+      summary: Light the Launchpad grid
+      description: |
+        Lights every pad and walks a bright column across the 8x8 grid for about
+        900 ms, then clears the surface and repaints the real grid. Requires a
+        connected Launchpad or a scripted LED sink; otherwise the request fails
+        with `409` and the reason. The response is the MIDI state with
+        `padTest.active: true` and `lit: 64` while the animation runs.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The pad test started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MidiState"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: No Launchpad output is available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: The server has no pad-test handler attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   securitySchemes:
     tokenHeader:
@@ -1964,3 +2074,116 @@ components:
         started:
           type: boolean
           description: Only on `POST /plugins/rescan`; true when a scan was started.
+
+    MidiInput:
+      type: object
+      required: [id, name, role, port, enabled, open, events, lastEvent]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: JUCE device identifier, stable across resumes.
+          example: "ALSA:5:0"
+        name:
+          type: string
+          description: ALSA device name.
+          example: "Keystation Mini 32 MK3 USB Audio"
+        role:
+          type: string
+          enum: [launchpad, keystation, input]
+          description: What the engine uses this input for.
+        port:
+          type: string
+          description: Short port label (`MI`, `DA`, `USB`), empty when the name has none.
+        enabled:
+          type: boolean
+          description: The user's switch for this input.
+        open:
+          type: boolean
+          description: True while the engine owns the port.
+        events:
+          type: integer
+          minimum: 0
+          description: MIDI messages received since the input was opened.
+        lastEvent:
+          type: string
+          description: A human-readable summary of the last message, empty when none.
+
+    MidiPort:
+      type: object
+      required: [name, port, connected, handshake, inputName, outputName, error]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Device name, empty when not present.
+        port:
+          type: string
+          description: Short port label (`MI`, `DA` or `USB`).
+        connected:
+          type: boolean
+          description: True when the controller is open.
+        handshake:
+          type: boolean
+          description: True once the controller echoed its mode frame.
+        inputName:
+          type: string
+          description: Open input name, empty when disconnected.
+        outputName:
+          type: string
+          description: Open output name, empty when disconnected.
+        error:
+          type: string
+          description: Last connection error, empty on success.
+
+    MidiPadTest:
+      type: object
+      required: [active, lit, durationMs]
+      additionalProperties: false
+      properties:
+        active:
+          type: boolean
+          description: True while the grid test animation is running.
+        lit:
+          type: integer
+          minimum: 0
+          description: Pads currently lit by the test; 64 while it runs.
+        durationMs:
+          type: integer
+          minimum: 0
+          description: Length of the animation in milliseconds.
+
+    MidiState:
+      type: object
+      required: [inputs, inputCount, launchpad, keystation, padTest, error]
+      additionalProperties: false
+      properties:
+        inputs:
+          type: array
+          items:
+            $ref: "#/components/schemas/MidiInput"
+        inputCount:
+          type: integer
+          minimum: 0
+          description: Number of MIDI inputs in this snapshot.
+        launchpad:
+          $ref: "#/components/schemas/MidiPort"
+        keystation:
+          $ref: "#/components/schemas/MidiPort"
+        padTest:
+          $ref: "#/components/schemas/MidiPadTest"
+        error:
+          type: string
+          description: Enumeration error, empty on success.
+
+    MidiInputUpdate:
+      type: object
+      required: [id, enabled]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Identifier from `GET /midi`.
+        enabled:
+          type: boolean
+          description: Desired switch state.

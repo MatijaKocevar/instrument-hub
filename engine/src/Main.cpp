@@ -1,5 +1,6 @@
 #include "Bridge/WebView.h"
 #include "Session.h"
+#include "api/MidiBridge.h"
 #include "api/PluginBridge.h"
 #include "api/Server.h"
 #include "api/SessionBridge.h"
@@ -1042,16 +1043,24 @@ public:
     {
         stopTimer();
 
+        mapping.reset();
+
+        // No handler may observe the driver after this point, so stop the
+        // listener before tearing the pad-test thread and the driver down.
+        if (apiServer != nullptr)
+            apiServer->stop();
+
+        if (midiBridge != nullptr)
+        {
+            midiBridge->setLaunchpad (nullptr);
+            midiBridge.reset();
+        }
+
         if (launchpad != nullptr)
         {
             launchpad->disconnect();
             launchpad.reset();
         }
-
-        mapping.reset();
-
-        if (apiServer != nullptr)
-            apiServer->stop();
 
         apiServer.reset();
 
@@ -1318,6 +1327,9 @@ private:
 
         launchpad = std::make_unique<Controller::LaunchpadDriver>();
 
+        if (midiBridge != nullptr)
+            midiBridge->setLaunchpad (launchpad.get());
+
         Controller::LaunchpadDriver::DriverListeners driverListeners;
 
         driverListeners.padEvent = [this] (int pad, bool pressed)
@@ -1351,6 +1363,11 @@ private:
     void refreshControllerLeds()
     {
         if (launchpad == nullptr || ! launchpad->isConnected() || apiState == nullptr)
+            return;
+
+        // The pad test owns the surface until it clears it; repainting the
+        // grid here would overwrite the animation within 100 ms.
+        if (midiBridge != nullptr && midiBridge->isPadTestActive())
             return;
 
         const auto snapshot = apiState->snapshot();
@@ -1418,6 +1435,20 @@ private:
                       << std::endl;
         }
 
+        // MIDI enumeration and the Launchpad pad test. The driver itself is
+        // attached by startController(); until then the page reports the
+        // devices and that the controller is not attached.
+        midiBridge = std::make_unique<Api::MidiBridge>();
+        midiBridge->setRestoreHandler ([this] { refreshControllerLeds(); });
+
+        apiServer->setMidiHandlers (
+            [this] { return midiBridge->snapshot(); },
+            [this] (const std::string& id, bool enabled, std::string& error)
+            {
+                return midiBridge->setInputEnabled (id, enabled, error);
+            },
+            [this] (std::string& error) { return midiBridge->runPadTest (error); });
+
         audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
 
         // The session is the single owner of the audio device. Wire the API to
@@ -1464,6 +1495,7 @@ private:
                       << (apiServer->hasAuthToken() ? " (auth enabled)" : "")
                       << std::endl;
             apiServer.reset();
+            midiBridge.reset();
             audioSettings.reset();
             apiState.reset();
 
@@ -1720,6 +1752,7 @@ private:
     std::unique_ptr<ihub::plugins::PluginInventory> pluginInventory;
     std::unique_ptr<Api::StateStore> apiState;
     std::unique_ptr<Api::Server> apiServer;
+    std::unique_ptr<Api::MidiBridge> midiBridge;
     std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
     bool uiCheckMode = false;
     bool selftestMode = false;

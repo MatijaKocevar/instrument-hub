@@ -24,6 +24,11 @@ export type ControlFxInsertRequest = components["schemas"]["FxInsertRequest"];
 export type ControlFxInsertUpdate = components["schemas"]["FxInsertUpdate"];
 export type ControlPlugin = components["schemas"]["Plugin"];
 export type ControlPluginList = components["schemas"]["PluginList"];
+export type ControlMidiState = components["schemas"]["MidiState"];
+export type ControlMidiInput = components["schemas"]["MidiInput"];
+export type ControlMidiPort = components["schemas"]["MidiPort"];
+export type ControlMidiPadTest = components["schemas"]["MidiPadTest"];
+export type ControlMidiInputUpdate = components["schemas"]["MidiInputUpdate"];
 
 /** Raised for any non-2xx response or an unusable payload. */
 export class ApiError extends Error
@@ -141,6 +146,20 @@ export interface ControlApi
 
     /** Start a background rescan and return the inventory as it was then. */
     rescanPlugins (options?: { signal?: AbortSignal }): Promise<ControlPluginList>;
+
+    //==========================================================================
+    // MIDI inputs and the pad test (T126)
+
+    /** Read the MIDI inputs, Launchpad/Keystation status and pad-test state. */
+    getMidi (options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
+
+    /** Enable or disable one MIDI input, returning the new state. */
+    setMidiInput (id: string,
+                  enabled: boolean,
+                  options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
+
+    /** Light the Launchpad grid for ~900 ms. */
+    runMidiPadTest (options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
 
     /** Read the audio device settings and live latency readout. */
     getAudio (options?: { signal?: AbortSignal }): Promise<ControlAudioState>;
@@ -297,6 +316,48 @@ function isPluginList (value: unknown): value is ControlPluginList
                && typeof plugin.isEffect === "boolean"
                && typeof plugin.format === "string"
                && typeof plugin.path === "string");
+}
+
+/** Rejects MIDI payloads the page cannot render. */
+function isMidiState (value: unknown): value is ControlMidiState
+{
+    if (value === null || typeof value !== "object")
+        return false;
+
+    const candidate = value as Partial<ControlMidiState>;
+
+    const isPort = (port: ControlMidiPort | undefined): boolean =>
+        port !== null
+        && port !== undefined
+        && typeof port.name === "string"
+        && typeof port.port === "string"
+        && typeof port.connected === "boolean"
+        && typeof port.handshake === "boolean"
+        && typeof port.inputName === "string"
+        && typeof port.outputName === "string"
+        && typeof port.error === "string";
+
+    return Array.isArray (candidate.inputs)
+        && typeof candidate.inputCount === "number"
+        && candidate.inputs.every (input =>
+               input !== null
+               && typeof input === "object"
+               && typeof input.id === "string"
+               && typeof input.name === "string"
+               && typeof input.role === "string"
+               && typeof input.port === "string"
+               && typeof input.enabled === "boolean"
+               && typeof input.open === "boolean"
+               && typeof input.events === "number"
+               && typeof input.lastEvent === "string")
+        && isPort (candidate.launchpad)
+        && isPort (candidate.keystation)
+        && candidate.padTest !== null
+        && candidate.padTest !== undefined
+        && typeof candidate.padTest.active === "boolean"
+        && typeof candidate.padTest.lit === "number"
+        && typeof candidate.padTest.durationMs === "number"
+        && typeof candidate.error === "string";
 }
 
 /** Rejects audio payloads the panel cannot render. */
@@ -614,6 +675,59 @@ export function createControlApi (options: ControlApiOptions): ControlApi
             });
 
             return requirePluginList (data, error, response.status, "POST /plugins/rescan");
+        },
+
+        async getMidi (requestOptions)
+        {
+            const { data, error, response } = await client.GET ("/midi", {
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            if (data !== undefined && isMidiState (data))
+                return data;
+
+            const message = describeError (error);
+
+            throw new ApiError (
+                message.length > 0 ? message : `GET /midi failed with HTTP ${response.status}`,
+                response.status);
+        },
+
+        async setMidiInput (id, enabled, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/midi/inputs", {
+                body: { id, enabled },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            if (data !== undefined && isMidiState (data))
+                return data;
+
+            const message = describeError (error);
+
+            throw new ApiError (
+                message.length > 0
+                    ? message
+                    : `POST /midi/inputs failed with HTTP ${response.status}`,
+                response.status);
+        },
+
+        async runMidiPadTest (requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/midi/pad-test", {
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            if (data !== undefined && isMidiState (data))
+                return data;
+
+            const message = describeError (error);
+
+            throw new ApiError (
+                message.length > 0
+                    ? message
+                    : `POST /midi/pad-test failed with HTTP ${response.status}`,
+                response.status);
         },
 
         async getAudio (requestOptions)

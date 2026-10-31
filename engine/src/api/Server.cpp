@@ -1222,7 +1222,8 @@ struct Server::Impl
                 requestsInFlight.fetch_sub (1, std::memory_order_acq_rel);
         });
 
-        RouteContext context { state, {}, {}, {}, {}, &pairing, {}, {}, {} };
+        RouteContext context { state, {}, {}, {}, {}, &pairing,
+                               {}, {}, {}, {}, {}, {} };
 
         {
             const std::lock_guard<std::mutex> lock (configMutex);
@@ -1231,6 +1232,9 @@ struct Server::Impl
             context.audioMeasure = audioMeasure;
             context.pluginProvider = pluginProvider;
             context.pluginRescan = pluginRescan;
+            context.midiProvider = midiProvider;
+            context.midiEnableInput = midiEnableInput;
+            context.midiPadTest = midiPadTest;
         }
 
         context.setLanMode = [this] (bool enabled) { return applyLanMode (enabled); };
@@ -1398,6 +1402,9 @@ struct Server::Impl
     AudioMeasureHandler audioMeasure;
     PluginInventoryProvider pluginProvider;
     PluginRescanHandler pluginRescan;
+    MidiStateProvider midiProvider;
+    MidiInputHandler midiEnableInput;
+    MidiPadTestHandler midiPadTest;
     std::string authToken;
     const int meterHz;
     StateBroadcast broadcast;
@@ -1542,6 +1549,16 @@ void Server::setPluginHandlers (PluginInventoryProvider provider,
     const std::lock_guard<std::mutex> lock (impl->configMutex);
     impl->pluginProvider = std::move (provider);
     impl->pluginRescan = std::move (rescan);
+}
+
+void Server::setMidiHandlers (MidiStateProvider provider,
+                              MidiInputHandler enableInput,
+                              MidiPadTestHandler padTest)
+{
+    const std::lock_guard<std::mutex> lock (impl->configMutex);
+    impl->midiProvider = std::move (provider);
+    impl->midiEnableInput = std::move (enableInput);
+    impl->midiPadTest = std::move (padTest);
 }
 
 void Server::setAuthToken (std::string token)
