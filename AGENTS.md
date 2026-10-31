@@ -63,9 +63,13 @@ queried once per load, not per block.
 ## Verification
 
 `plan/TESTING.md` defines how to prove things without hardware: ALSA
-loopback for audio, a virtual Launchkey on the ALSA sequencer for MIDI,
+loopback for audio, a virtual Launchpad on the ALSA sequencer for MIDI,
 an in-repo `TestPlugin` VST3, and snapshots taken inside JUCE. A change is
 not done until its acceptance check has been run and its output recorded.
+
+Run tests through `scripts/test.sh` (or `ctest --timeout 120`). A deadlocked
+test must fail within two minutes; never leave a test or test wrapper
+unbounded, and never treat "the command is still running" as progress.
 
 ---
 

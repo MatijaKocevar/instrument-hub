@@ -39,6 +39,9 @@ Your job inside a session:
 - Do **only** that task. Do not start the next one.
 - Do not ask questions. The human is not there.
 - Run the acceptance check yourself before declaring done.
+- Run tests with a hard timeout: `scripts/test.sh` or `ctest --timeout 120`.
+  A hung test must fail within two minutes; never treat "still running" as
+  progress.
 - Write the result file, exactly in this format:
 
 ```
