@@ -108,6 +108,7 @@ target_sources(instrument-hub
         src/audio/ClockOut.cpp
         src/audio/DeviceManager.cpp
         src/audio/FxChain.cpp
+        src/audio/FxRack.cpp
         src/audio/LatencyProbe.cpp
         src/audio/RtGuard.cpp
         src/audio/Slot.cpp

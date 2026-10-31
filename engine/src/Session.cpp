@@ -292,6 +292,7 @@ Session::~Session()
     shutdownWarmPool();
     switcher.reset();
     engine.reset();
+    fxRacks.clear();
     voices.clear();
     pluginFormats.reset();
 }
@@ -349,6 +350,7 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     shutdownWarmPool();
     switcher.reset();
     engine.reset();
+    fxRacks.clear();
     voices.clear();
     pluginFormats.reset();
 
@@ -470,6 +472,32 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     prepare (config.device.sampleRate,
              config.device.bufferSize,
              config.device.numOutputChannels);
+
+    // The rack owns the insert processors; the slot's FxChain only holds
+    // non-owning pointers, so build the racks after the graph is prepared and
+    // rebuild each chain once from the persisted set.
+    fxRacks.clear();
+    fxRacks.reserve (static_cast<std::size_t> (slotCount));
+
+    for (int index = 0; index < slotCount; ++index)
+    {
+        auto rack = std::make_unique<AudioEngine::FxRack> (pluginFormats.get());
+        const auto& slotConfig = config.slots[static_cast<std::size_t> (index)];
+
+        for (const auto& fx : slotConfig.fxChain)
+        {
+            std::string fxError;
+
+            if (! rack->add (fx, -1, sampleRate, maximumBlockSize, numChannels, fxError))
+                juce::Logger::writeToLog ("session: slot " + juce::String (index)
+                                          + " insert skipped: " + juce::String (fxError));
+        }
+
+        rack->setTransport (currentFxTransport());
+        rack->rebuild (engine->getSlot (index).getFxChain(),
+                       sampleRate, maximumBlockSize, numChannels);
+        fxRacks.push_back (std::move (rack));
+    }
 
     const int initial = juce::jlimit (0, slotCount - 1, config.initialSlot);
     warmPool->setActiveSlot (initial);
@@ -815,6 +843,245 @@ int Session::getSlotLatencySamples (int slot) const noexcept
         return 0;
 
     return engine->getSlot (slot).latencySamples();
+}
+
+//==============================================================================
+// Per-patch insert chain (T121)
+
+AudioEngine::FxTransport Session::currentFxTransport() const noexcept
+{
+    const auto snapshot = transport.snapshot();
+
+    AudioEngine::FxTransport result;
+    result.playing = snapshot.playing;
+    result.bpm = snapshot.bpm;
+    result.ppq = snapshot.ppq;
+    return result;
+}
+
+bool Session::beginFxEditLocked (int slot, std::string& error)
+{
+    if (! prepared || engine == nullptr || slot < 0
+        || slot >= static_cast<int> (fxRacks.size()))
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    auto& audioSlot = engine->getSlot (slot);
+    audioSlot.setFxChainEditing (true);
+
+    // A running device callback gets one block to see the gate, so the chain
+    // vector cannot be read while the rack rebuilds it. Offline sessions have
+    // no concurrent audio path and edit immediately.
+    if (deviceOpen && callbackInstalled)
+    {
+        const auto before = renderEpoch.load (std::memory_order_acquire);
+        const double deadline = juce::Time::getMillisecondCounterHiRes() + 250.0;
+
+        while (renderEpoch.load (std::memory_order_acquire) == before)
+        {
+            if (juce::Time::getMillisecondCounterHiRes() >= deadline)
+            {
+                audioSlot.setFxChainEditing (false);
+                error = "the audio thread did not reach a block boundary; try again";
+                return false;
+            }
+
+            juce::Thread::sleep (1);
+        }
+    }
+
+    return true;
+}
+
+void Session::endFxEditLocked (int slot) noexcept
+{
+    if (engine != nullptr && slot >= 0 && slot < engine->getNumSlots())
+        engine->getSlot (slot).setFxChainEditing (false);
+}
+
+void Session::rebuildFxChainLocked (int slot)
+{
+    if (engine == nullptr || slot < 0 || slot >= static_cast<int> (fxRacks.size()))
+        return;
+
+    auto& audioSlot = engine->getSlot (slot);
+    fxRacks[static_cast<std::size_t> (slot)]->rebuild (audioSlot.getFxChain(),
+                                                       sampleRate,
+                                                       maximumBlockSize,
+                                                       numChannels);
+    audioSlot.getFxChain().refreshLatency();
+}
+
+bool Session::makeFxSnapshotLocked (int slot,
+                                    AudioEngine::FxChainSnapshot& snapshot) const
+{
+    if (engine == nullptr || slot < 0 || slot >= static_cast<int> (fxRacks.size()))
+        return false;
+
+    const auto& audioSlot = engine->getSlot (slot);
+    const auto& rack = *fxRacks[static_cast<std::size_t> (slot)];
+
+    const int total = audioSlot.latencySamples();
+    const int fxLatency = rack.latencySamples();
+
+    snapshot = {};
+    snapshot.slot = slot;
+    snapshot.fxLatencySamples = fxLatency;
+    snapshot.latencySamples = total;
+    snapshot.instrumentLatencySamples = juce::jmax (0, total - fxLatency);
+    snapshot.latencyMs = sampleRate > 0.0
+                             ? static_cast<double> (total) * 1000.0 / sampleRate
+                             : 0.0;
+    snapshot.inserts = rack.snapshots();
+    return true;
+}
+
+bool Session::getSlotFxChain (int slot,
+                              AudioEngine::FxChainSnapshot& snapshot,
+                              std::string& error) const
+{
+    const std::lock_guard<std::mutex> lock (fxMutex);
+
+    if (! makeFxSnapshotLocked (slot, snapshot))
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    return true;
+}
+
+bool Session::addSlotFx (int slot,
+                         const AudioEngine::FxInsertConfig& insert,
+                         int position,
+                         AudioEngine::FxChainSnapshot& snapshot,
+                         std::string& error)
+{
+    const std::lock_guard<std::mutex> lock (fxMutex);
+
+    if (! beginFxEditLocked (slot, error))
+        return false;
+
+    const bool added = fxRacks[static_cast<std::size_t> (slot)]->add (
+        insert, position, sampleRate, maximumBlockSize, numChannels, error);
+
+    if (added)
+        rebuildFxChainLocked (slot);
+
+    endFxEditLocked (slot);
+
+    return added && makeFxSnapshotLocked (slot, snapshot);
+}
+
+bool Session::replaceSlotFx (int slot,
+                             const std::vector<AudioEngine::FxInsertConfig>& chain,
+                             AudioEngine::FxChainSnapshot& snapshot,
+                             std::string& error)
+{
+    const std::lock_guard<std::mutex> lock (fxMutex);
+
+    if (! beginFxEditLocked (slot, error))
+        return false;
+
+    const bool replaced = fxRacks[static_cast<std::size_t> (slot)]->replace (
+        chain, sampleRate, maximumBlockSize, numChannels, error);
+
+    if (replaced)
+        rebuildFxChainLocked (slot);
+
+    endFxEditLocked (slot);
+
+    return replaced && makeFxSnapshotLocked (slot, snapshot);
+}
+
+bool Session::updateSlotFx (int slot,
+                            int index,
+                            const AudioEngine::FxInsertPatch& patch,
+                            AudioEngine::FxChainSnapshot& snapshot,
+                            std::string& error)
+{
+    const std::lock_guard<std::mutex> lock (fxMutex);
+
+    if (! beginFxEditLocked (slot, error))
+        return false;
+
+    const bool updated = fxRacks[static_cast<std::size_t> (slot)]->update (
+        index, patch, sampleRate, maximumBlockSize, numChannels, error);
+
+    if (updated)
+        rebuildFxChainLocked (slot);
+
+    endFxEditLocked (slot);
+
+    return updated && makeFxSnapshotLocked (slot, snapshot);
+}
+
+bool Session::removeSlotFx (int slot,
+                            int index,
+                            AudioEngine::FxChainSnapshot& snapshot,
+                            std::string& error)
+{
+    const std::lock_guard<std::mutex> lock (fxMutex);
+
+    if (! beginFxEditLocked (slot, error))
+        return false;
+
+    const bool removed = fxRacks[static_cast<std::size_t> (slot)]->remove (index, error);
+
+    if (removed)
+        rebuildFxChainLocked (slot);
+
+    endFxEditLocked (slot);
+
+    return removed && makeFxSnapshotLocked (slot, snapshot);
+}
+
+bool Session::reorderSlotFx (int slot,
+                             const std::vector<int>& order,
+                             AudioEngine::FxChainSnapshot& snapshot,
+                             std::string& error)
+{
+    const std::lock_guard<std::mutex> lock (fxMutex);
+
+    if (! beginFxEditLocked (slot, error))
+        return false;
+
+    const bool reordered = fxRacks[static_cast<std::size_t> (slot)]->reorder (order, error);
+
+    if (reordered)
+        rebuildFxChainLocked (slot);
+
+    endFxEditLocked (slot);
+
+    return reordered && makeFxSnapshotLocked (slot, snapshot);
+}
+
+bool Session::clearSlotFx (int slot,
+                           AudioEngine::FxChainSnapshot& snapshot,
+                           std::string& error)
+{
+    const std::lock_guard<std::mutex> lock (fxMutex);
+
+    if (! beginFxEditLocked (slot, error))
+        return false;
+
+    fxRacks[static_cast<std::size_t> (slot)]->clear();
+    rebuildFxChainLocked (slot);
+    endFxEditLocked (slot);
+
+    return makeFxSnapshotLocked (slot, snapshot);
+}
+
+void Session::updateFxTransport() noexcept
+{
+    const std::lock_guard<std::mutex> lock (fxMutex);
+    const auto current = currentFxTransport();
+
+    for (auto& rack : fxRacks)
+        if (rack != nullptr)
+            rack->setTransport (current);
 }
 
 float Session::getSlotMeterPeak (int slot) const noexcept
@@ -1220,6 +1487,11 @@ void Session::renderInternal (int numSamples, juce::MidiBuffer& midi) noexcept
     transport.process (samples);
 
     updateMeters (samples);
+
+    // Publish that a full block has rendered. An API chain edit waits for this
+    // counter to advance after gating the slot, which proves the callback is
+    // past the edit point and the chain vector is safe to rebuild.
+    renderEpoch.fetch_add (1, std::memory_order_release);
 }
 
 void Session::render (juce::AudioBuffer<float>& output,

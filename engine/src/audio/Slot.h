@@ -142,6 +142,26 @@ public:
     FxChain& getFxChain() noexcept { return fxChain; }
     const FxChain& getFxChain() const noexcept { return fxChain; }
 
+    /** Gates the FX chain while the control thread rebuilds it.
+
+        The audio thread reads this once per rendered block. While it is set the
+        slot renders its source dry (the chain is skipped), which gives the
+        message/HTTP thread a block in which the chain vector may be edited
+        without racing the audio callback. Editing is rare, so the occasional
+        dry block is acceptable and keeps the audio path lock-free.
+
+        Lock-free; safe from any thread.
+    */
+    void setFxChainEditing (bool editing) noexcept
+    {
+        fxChainEditing.store (editing, std::memory_order_release);
+    }
+
+    bool isFxChainEditing() const noexcept
+    {
+        return fxChainEditing.load (std::memory_order_acquire);
+    }
+
     //==============================================================================
     // Control (off the audio thread, lock-free)
 
@@ -236,6 +256,7 @@ private:
     std::atomic<bool> activated { false };
     std::atomic<SlotState> publishedState { SlotState::idle };
     std::atomic<float> gainTarget { 1.0f };
+    std::atomic<bool> fxChainEditing { false };
 
     // Audio-thread-owned state.
     SlotState state = SlotState::idle;

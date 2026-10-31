@@ -2,6 +2,7 @@
 
 #include "audio/AudioEngine.h"
 #include "audio/DeviceManager.h"
+#include "audio/FxRack.h"
 #include "audio/SlotSwitcher.h"
 #include "audio/Transport.h"
 #include "audio/WarmPool.h"
@@ -10,6 +11,7 @@
 #include <juce_audio_devices/juce_audio_devices.h>
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -113,6 +115,9 @@ struct SessionSlotConfig
     std::string familyName;
     std::string patch;
     std::string patchName;
+
+    /** Persisted insert chain, built into the fixed slot's FX chain. */
+    std::vector<AudioEngine::FxInsertConfig> fxChain;
 };
 
 /** How and where the composed session opens its audio device. */
@@ -332,6 +337,51 @@ public:
     int getSlotLatencySamples (int slot) const noexcept;
 
     //==============================================================================
+    // Per-patch insert chain (control thread)
+
+    /** Reads one patch's insert chain and latency budget. */
+    bool getSlotFxChain (int slot,
+                         AudioEngine::FxChainSnapshot& snapshot,
+                         std::string& error) const;
+
+    /** Appends or inserts an effect. `position < 0` appends. */
+    bool addSlotFx (int slot,
+                    const AudioEngine::FxInsertConfig& insert,
+                    int position,
+                    AudioEngine::FxChainSnapshot& snapshot,
+                    std::string& error);
+
+    /** Replaces the whole chain in one operation. */
+    bool replaceSlotFx (int slot,
+                        const std::vector<AudioEngine::FxInsertConfig>& chain,
+                        AudioEngine::FxChainSnapshot& snapshot,
+                        std::string& error);
+
+    /** Changes bypass, wet/dry, parameters or the position of one insert. */
+    bool updateSlotFx (int slot,
+                       int index,
+                       const AudioEngine::FxInsertPatch& patch,
+                       AudioEngine::FxChainSnapshot& snapshot,
+                       std::string& error);
+
+    bool removeSlotFx (int slot,
+                       int index,
+                       AudioEngine::FxChainSnapshot& snapshot,
+                       std::string& error);
+
+    bool reorderSlotFx (int slot,
+                        const std::vector<int>& order,
+                        AudioEngine::FxChainSnapshot& snapshot,
+                        std::string& error);
+
+    bool clearSlotFx (int slot,
+                      AudioEngine::FxChainSnapshot& snapshot,
+                      std::string& error);
+
+    /** Publishes the transport to every tempo-synced delay insert. */
+    void updateFxTransport() noexcept;
+
+    //==============================================================================
     // Warm-pool inspection (safe on any non-audio thread)
 
     int getNeighbourCount() const noexcept;
@@ -439,6 +489,14 @@ private:
                        int numOutputChannels,
                        int numSamples) noexcept;
 
+    // Per-patch insert chain helpers (control thread, `fxMutex` held).
+    bool beginFxEditLocked (int slot, std::string& error);
+    void endFxEditLocked (int slot) noexcept;
+    void rebuildFxChainLocked (int slot);
+    bool makeFxSnapshotLocked (int slot,
+                               AudioEngine::FxChainSnapshot& snapshot) const;
+    AudioEngine::FxTransport currentFxTransport() const noexcept;
+
     SessionConfig config;
 
     // Destruction order matters: the plugin format manager must outlive the
@@ -447,6 +505,7 @@ private:
     std::unique_ptr<juce::AudioPluginFormatManager> pluginFormats;
     std::unique_ptr<AudioEngine::WarmPool> warmPool;
     std::vector<std::unique_ptr<Voice>> voices;
+    std::vector<std::unique_ptr<AudioEngine::FxRack>> fxRacks;
 
     std::unique_ptr<AudioEngine::AudioEngine> engine;
     std::unique_ptr<AudioEngine::SlotSwitcher> switcher;
@@ -460,6 +519,14 @@ private:
     std::unique_ptr<std::atomic<float>[]> slotMeterPeaks;
     std::atomic<float> masterMeterPeak { 0.0f };
     int meterSlotCount = 0;
+
+    // Serialises API chain edits. The audio thread never takes it: an edit
+    // gates the target slot and waits for one rendered block instead.
+    mutable std::mutex fxMutex;
+
+    /** Incremented by the audio path after every rendered block. An FX edit
+        waits for it to advance, which proves the callback moved past the gate. */
+    std::atomic<std::uint64_t> renderEpoch { 0 };
 
     // Warm-pool arm hand-off. The audio thread never touches these; the
     // switcher request itself is the only lock-free publish.

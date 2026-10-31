@@ -1139,6 +1139,36 @@ private:
                     slotConfig.pluginVersion = instrument->pluginVersion;
                     slotConfig.samplePath = instrument->samplePath;
 
+                    // Persisted insert chain (T119/T121). A built-in's id is
+                    // its type; a plugin entry carries the bundle path in id.
+                    for (const auto& fxSpec : instrument->fxChain)
+                    {
+                        AudioEngine::FxInsertConfig fx;
+                        fx.bypassed = fxSpec.bypassed;
+                        fx.id = fxSpec.id;
+                        fx.name = fxSpec.name;
+
+                        if (fxSpec.kind == "plugin")
+                        {
+                            fx.type = AudioEngine::FxInsertType::vst3;
+                            fx.path = fxSpec.id;
+                        }
+                        else if (! AudioEngine::fxInsertTypeFromString (fxSpec.id, fx.type))
+                        {
+                            continue;
+                        }
+
+                        for (const auto& [key, value] : fxSpec.parameters)
+                        {
+                            if (key == "wet")
+                                fx.wet = juce::jlimit (0.0f, 1.0f, value);
+                            else
+                                fx.parameters[key] = value;
+                        }
+
+                        slotConfig.fxChain.push_back (std::move (fx));
+                    }
+
                     if (const auto family = document.families.find (binding->family);
                         family != document.families.end())
                     {
