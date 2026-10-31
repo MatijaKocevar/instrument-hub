@@ -88,6 +88,7 @@ target_sources(instrument-hub
         src/audio/AudioEngine.cpp
         src/audio/Bus.cpp
         src/audio/DeviceManager.cpp
+        src/audio/LatencyProbe.cpp
         src/audio/Slot.cpp
 )
 

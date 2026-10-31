@@ -89,7 +89,6 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 # --- Fixed slot graph -------------------------------------------------------
-#
 # Renders 2 s through AudioEngine with three slots and compares the bus output
 # against a manually mixed reference within -90 dBFS. It also counts heap
 # allocations across processBlock() by replacing the global operator new and
@@ -104,6 +103,7 @@ target_sources(ihub-audio-engine-test
         audio_engine/AudioEngineTest.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
 )
 
@@ -152,3 +152,51 @@ add_test(
     COMMAND ihub-audio-engine-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Round-trip latency -----------------------------------------------------
+#
+# Opens the ALSA Loopback full-duplex, fires an impulse, records the capture,
+# and cross-correlates it. Includes a pure synthetic correlation test and five
+# real measurements at 128 frames.
+
+juce_add_console_app(ihub-latency-probe-test
+    PRODUCT_NAME "ihub-latency-probe-test"
+)
+
+target_sources(ihub-latency-probe-test
+    PRIVATE
+        latency_probe/LatencyProbeTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+)
+
+target_include_directories(ihub-latency-probe-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-latency-probe-test
+    PRIVATE
+        juce::juce_audio_devices
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-latency-probe-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-latency-probe
+    COMMAND ihub-latency-probe-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set_tests_properties(ihub-latency-probe PROPERTIES DISABLED TRUE)
+endif()
