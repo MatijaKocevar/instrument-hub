@@ -1376,6 +1376,53 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- MIDI clock out (T072) --------------------------------------------------
+#
+# Acceptance: ten simulated seconds at 48 kHz and 120 BPM must emit exactly
+# 480 clock messages, each within 1 ms (48 samples) of the ideal 1000-frame
+# grid. Also covers start/stop/continue, rewind/reposition, tempo and format
+# changes, the lock-free audio -> message queue, the MIDI bytes, and
+# allocation-free processing.
+
+add_executable(ihub-clock-out-test
+    audio/ClockOutTest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/ClockOut.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+)
+
+target_compile_features(ihub-clock-out-test PRIVATE cxx_std_20)
+
+target_include_directories(ihub-clock-out-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+# The replacement operator new is backed by malloc/free (which is a valid
+# implementation), so GCC's pairing heuristic fires at inlined call sites.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-clock-out-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(ihub-clock-out-test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+set_target_properties(ihub-clock-out-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-clock-out
+    COMMAND ihub-clock-out-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
