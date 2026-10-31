@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Discovery.h"
 #include "Pairing.h"
 
 #include <juce_core/juce_core.h>
@@ -389,6 +390,12 @@ public:
     /** The pairing manager behind `/pairing` and `/pair`. */
     PairingManager& getPairing();
     const PairingManager& getPairing() const;
+
+    /** The mDNS responder that advertises `_instrumenthub._tcp` in LAN mode
+        (T102). It runs only while the listener is bound to all interfaces.
+    */
+    Discovery& getDiscovery();
+    const Discovery& getDiscovery() const;
 
     /** Turn LAN mode on/off.
 

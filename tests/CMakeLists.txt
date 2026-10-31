@@ -1000,6 +1000,7 @@ juce_add_console_app(ihub-api-test
 target_sources(ihub-api-test
     PRIVATE
         api/ApiTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
@@ -1047,6 +1048,7 @@ juce_add_console_app(ihub-pairing-test
 target_sources(ihub-pairing-test
     PRIVATE
         api/PairingTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
@@ -1095,6 +1097,7 @@ juce_add_console_app(ihub-audio-settings-test
 target_sources(ihub-audio-settings-test
     PRIVATE
         api/AudioSettingsTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
@@ -1138,6 +1141,51 @@ add_test(
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-audio-settings PROPERTIES DISABLED TRUE)
 endif()
+
+# --- mDNS discovery (T102) --------------------------------------------------
+#
+# Acceptance: `avahi-browse -t _instrumenthub._tcp` lists the service. The test
+# performs the same multicast round trip directly: it starts Discovery, sends a
+# PTR query and checks the PTR/SRV/TXT records and the advertised port. Port
+# 5353 is shared with avahi-daemon through SO_REUSEPORT.
+
+juce_add_console_app(ihub-discovery-test
+    PRODUCT_NAME "ihub-discovery-test"
+)
+
+target_sources(ihub-discovery-test
+    PRIVATE
+        api/DiscoveryTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+)
+
+target_include_directories(ihub-discovery-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-discovery-test
+    PRIVATE
+        Threads::Threads
+        juce::juce_core
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-discovery-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-discovery
+    COMMAND ihub-discovery-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
 
 # --- Built-in compressor (T061) ---------------------------------------------
 #

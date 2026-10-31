@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include <iostream>
 #include <limits>
 #include <thread>
 #include <utility>
@@ -508,6 +509,29 @@ struct Server::Impl
         });
     }
 
+    /** Starts advertising the API on the LAN, replacing any old record set.
+
+        Called after a successful bind and only when LAN mode is on. A failure
+        (no multicast route, port 5353 taken by a non-sharing daemon) is logged
+        and never stops the HTTP listener.
+
+        Caller holds `lifecycleMutex`.
+    */
+    void startDiscoveryLocked()
+    {
+        DiscoveryService service;
+        service.instanceName = "Instrument Hub";
+        service.port = boundPort.load (std::memory_order_acquire);
+        service.address = pairing.getAdvertisedAddress();
+
+        if (service.address.rfind ("127.", 0) == 0)
+            service.address.clear();
+
+        if (! discovery.start (std::move (service)))
+            std::cerr << "mdns: could not advertise " << Discovery::serviceType
+                      << ": " << discovery.getLastError() << std::endl;
+    }
+
     /** Creates the HTTP listener on the address LAN mode currently wants.
 
         Caller holds `lifecycleMutex`.
@@ -606,6 +630,9 @@ struct Server::Impl
         listening.store (true, std::memory_order_release);
         pairing.setEndpoint ({}, port);
 
+        if (pairing.isLanEnabled())
+            startDiscoveryLocked();
+
         listenerThread = std::thread ([this] { http->listen_after_bind(); });
 
         return true;
@@ -617,6 +644,8 @@ struct Server::Impl
     */
     void stopListenerLocked()
     {
+        discovery.stop();
+
         if (! listening.exchange (false, std::memory_order_acq_rel))
         {
             if (http != nullptr)
@@ -739,6 +768,7 @@ struct Server::Impl
 
     // LAN mode / pairing
     PairingManager pairing;
+    Discovery discovery;
     mutable std::mutex lifecycleMutex;
     std::string listenerAddress;
     int nextPort = 0;
@@ -881,6 +911,16 @@ PairingManager& Server::getPairing()
 const PairingManager& Server::getPairing() const
 {
     return impl->pairing;
+}
+
+Discovery& Server::getDiscovery()
+{
+    return impl->discovery;
+}
+
+const Discovery& Server::getDiscovery() const
+{
+    return impl->discovery;
 }
 
 PairingSnapshot Server::setLanMode (bool enabled)
