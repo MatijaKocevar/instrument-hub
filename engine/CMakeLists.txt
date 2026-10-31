@@ -134,6 +134,7 @@ target_sources(instrument-hub
         src/sampler/Kit.cpp
         src/sampler/KitLoader.cpp
         src/sampler/SampleLoader.cpp
+        src/sampler/SamplerInstrument.cpp
 )
 
 target_include_directories(instrument-hub

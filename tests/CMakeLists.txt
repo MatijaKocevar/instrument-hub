@@ -1835,6 +1835,69 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Sampler instrument (T092) ----------------------------------------------
+#
+# Acceptance: 16 simultaneous hits do not clip the 64-voice pool, and a closed
+# hat chokes the open hat within 5 ms. The test generates a kit whose closed
+# hat is digital silence, so the choke measurement is unambiguous. It also
+# checks one-shot/gate behaviour, sample-accurate MIDI, voice stealing and that
+# process() allocates nothing.
+
+juce_add_console_app(ihub-sampler-instrument-test
+    PRODUCT_NAME "ihub-sampler-instrument-test"
+)
+
+target_sources(ihub-sampler-instrument-test
+    PRIVATE
+        sampler/SamplerInstrumentTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+)
+
+target_include_directories(ihub-sampler-instrument-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-sampler-instrument-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_link_options(ihub-sampler-instrument-test PRIVATE
+        "-Wl,--wrap=malloc"
+        "-Wl,--wrap=calloc"
+        "-Wl,--wrap=realloc"
+    )
+endif()
+
+target_link_libraries(ihub-sampler-instrument-test
+    PRIVATE
+        juce::juce_audio_formats
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-sampler-instrument-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-sampler-instrument
+    COMMAND ihub-sampler-instrument-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
