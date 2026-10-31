@@ -24,7 +24,11 @@ import {
     type ControlAudioMeasurement,
     type ControlAudioPatch,
     type ControlAudioState,
+    type ControlFxChain,
+    type ControlFxInsert,
     type ControlPairingState,
+    type ControlPatch,
+    type ControlPluginList,
     type ControlState,
     type ControlTransport,
     type ControlTransportPatch,
@@ -33,6 +37,29 @@ import {
     AudioSettingsPanel,
     bufferSizePatch,
 } from "../features/audio-settings";
+import {
+    chainWithBypass,
+    chainWithMove,
+    chainWithoutInsert,
+    clampPan,
+    effectPlugins,
+    FADER_MIN_DB,
+    followsArmedSlot,
+    formatDb,
+    formatPan,
+    gainFromDb,
+    InstrumentPage,
+    instrumentPlugins,
+    instrumentSlotForRoute,
+    insertRequestForBuiltin,
+    insertRequestForPlugin,
+    isPluginSource,
+    moveOrder,
+    sourceKindLabel,
+    sourceRequestForInitTone,
+    sourceRequestForPlugin,
+    wetPercent,
+} from "../features/instrument";
 import {
     codeFromSearch,
     encodeQr,
@@ -373,6 +400,98 @@ const GRID_METERS: MeterSnapshot = {
     },
 };
 
+/**
+    Insert-chain fixture for the instrument page.
+
+    Slot 3 is armed in `/state`, so its chain is the one the page renders: an
+    EQ with no latency and a compressor with 156 samples, on top of 84 samples
+    of instrument latency, for the 240 samples / 5 ms the patch already
+    publishes.
+*/
+const CHAIN_INSTRUMENT_LATENCY = 84;
+const COMPRESSOR_LATENCY = 156;
+
+function fixtureInsert (index: number,
+                        type: ControlFxInsert["type"],
+                        id: string,
+                        name: string,
+                        latencySamples: number,
+                        parameters: Record<string, number> = {}): ControlFxInsert
+{
+    return {
+        index,
+        type,
+        kind: type === "vst3" ? "vst3" : "builtin",
+        id,
+        name,
+        bypassed: false,
+        wet: 1,
+        dry: 0,
+        latencySamples,
+        parameters,
+    };
+}
+
+/** Recompute indices and the latency budget of a fixture chain. */
+function recalculateChain (chain: ControlFxChain): void
+{
+    chain.inserts = chain.inserts.map ((insert, index) => ({ ...insert, index }));
+    chain.fxLatencySamples = chain.inserts.reduce (
+        (total, insert) => total + (insert.bypassed || insert.wet === 0 ? 0 : insert.latencySamples),
+        0);
+    chain.latencySamples = chain.instrumentLatencySamples + chain.fxLatencySamples;
+    chain.latencyMs = (chain.latencySamples * 1000) / 48000;
+}
+
+/** The installed-plug-in inventory fixture for `GET /plugins`. */
+const PLUGIN_FIXTURE: ControlPluginList = {
+    plugins: [
+        {
+            id: "com.instrumenthub.TestPlugin",
+            name: "TestPlugin",
+            description: "Instrument Hub test instrument",
+            vendor: "Instrument Hub",
+            version: "1.0.0",
+            category: "Instrument",
+            isInstrument: true,
+            isEffect: false,
+            format: "VST3",
+            path: "/usr/lib/vst3/TestPlugin.vst3",
+        },
+        {
+            id: "com.instrumenthub.TestReverb",
+            name: "TestReverb",
+            description: "Instrument Hub test effect",
+            vendor: "Instrument Hub",
+            version: "1.0.0",
+            category: "Fx",
+            isInstrument: false,
+            isEffect: true,
+            format: "VST3",
+            path: "/usr/lib/vst3/TestReverb.vst3",
+        },
+        {
+            id: "com.arturia.AnalogLab",
+            name: "Analog Lab V",
+            description: "Analog Lab",
+            vendor: "Arturia",
+            version: "5.10.0",
+            category: "Instrument",
+            isInstrument: true,
+            isEffect: false,
+            format: "VST3",
+            path: "/usr/lib/vst3/Analog Lab V.vst3",
+        },
+    ],
+    count: 3,
+    total: 3,
+    search: "",
+    scanning: false,
+    scanned: true,
+    lastScanMs: 1_700_000_000_000,
+    error: "",
+};
+
 interface FixtureServer
 {
     baseUrl: string;
@@ -386,6 +505,10 @@ interface FixtureServer
     readonly pairRequests: readonly string[];
     readonly lanRequests: readonly boolean[];
     readonly patchRequests: readonly { slot: number; patch: Record<string, unknown> }[];
+    readonly fxRequests: readonly { method: string; slot: number; index: number; body: Record<string, unknown> }[];
+    readonly sourceRequests: readonly { slot: number; body: Record<string, unknown> }[];
+    readonly pluginRequests: readonly string[];
+    readonly chain: ControlFxChain;
     close: () => Promise<void>;
 }
 
@@ -456,6 +579,38 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
     const pairRequests: string[] = [];
     const lanRequests: boolean[] = [];
     const patchRequests: { slot: number; patch: Record<string, unknown> }[] = [];
+    const fxRequests: { method: string; slot: number; index: number; body: Record<string, unknown> }[] = [];
+    const sourceRequests: { slot: number; body: Record<string, unknown> }[] = [];
+    const pluginRequests: string[] = [];
+    const chains = new Map<number, ControlFxChain> ();
+
+    const chainFor = (slot: number): ControlFxChain =>
+    {
+        const existing = chains.get (slot);
+
+        if (existing !== undefined)
+            return existing;
+
+        const chain: ControlFxChain = {
+            slot,
+            instrumentLatencySamples: slot === 3 ? CHAIN_INSTRUMENT_LATENCY : 0,
+            fxLatencySamples: 0,
+            latencySamples: 0,
+            latencyMs: 0,
+            inserts: slot === 3
+                ? [
+                      fixtureInsert (0, "eq", "eq", "EQ",
+                                    0, { lowGainDb: 2, midGainDb: 0, highGainDb: -1 }),
+                      fixtureInsert (1, "compressor", "compressor", "Compressor",
+                                     COMPRESSOR_LATENCY, { thresholdDb: -24, ratio: 3 }),
+                  ]
+                : [],
+        };
+
+        recalculateChain (chain);
+        chains.set (slot, chain);
+        return chain;
+    };
     let stateRequests = 0;
     let measureRequests = 0;
     let pairing = { ...PAIRING_OFF };
@@ -587,6 +742,315 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
                 }));
             });
 
+            return;
+        }
+
+        const url = request.url ?? "";
+        const fxMatch = /^\/patches\/(\d+)\/fx$/.exec (url);
+        const fxReorderMatch = /^\/patches\/(\d+)\/fx\/reorder$/.exec (url);
+        const fxIndexMatch = /^\/patches\/(\d+)\/fx\/(\d+)$/.exec (url);
+        const sourceMatch = /^\/patches\/(\d+)\/source$/.exec (url);
+
+        const readBody = (done: (parsed: Record<string, unknown>) => void): void =>
+        {
+            let body = "";
+
+            request.on ("data", (chunk: Buffer) => { body += chunk.toString ("utf8"); });
+
+            request.on ("end", () =>
+            {
+                try
+                {
+                    const parsed = JSON.parse (body) as unknown;
+
+                    done (parsed !== null && typeof parsed === "object" && ! Array.isArray (parsed)
+                        ? parsed as Record<string, unknown>
+                        : {});
+                }
+                catch
+                {
+                    response.statusCode = 400;
+                    response.end (JSON.stringify ({ error: "body must be a JSON object" }));
+                }
+            });
+        };
+
+        const respondChain = (chain: ControlFxChain): void =>
+        {
+            response.statusCode = 200;
+            response.end (JSON.stringify (chain));
+        };
+
+        const insertFromRequest = (body: Record<string, unknown>,
+                                   chainLength: number): ControlFxInsert =>
+        {
+            const type = (typeof body.type === "string"
+                ? body.type
+                : "eq") as ControlFxInsert["type"];
+            const wet = typeof body.wet === "number" ? body.wet : 1;
+            const latency = type === "compressor" ? COMPRESSOR_LATENCY
+                : type === "delay" ? 96
+                    : 0;
+
+            return {
+                index: chainLength,
+                type,
+                kind: type === "vst3" ? "vst3" : "builtin",
+                id: typeof body.id === "string" && body.id.length > 0
+                    ? body.id
+                    : (typeof body.path === "string" ? body.path : type),
+                name: typeof body.name === "string" && body.name.length > 0
+                    ? body.name
+                    : type,
+                bypassed: body.bypassed === true,
+                wet,
+                dry: 1 - wet,
+                latencySamples: latency,
+                parameters: (body.parameters ?? {}) as Record<string, number>,
+            };
+        };
+
+        const findPatch = (slot: number): ControlState["families"][number]["patches"][number] | null =>
+        {
+            for (const family of state.families)
+                for (const patch of family.patches)
+                    if (patch.slot === slot)
+                        return patch;
+
+            return null;
+        };
+
+        if (fxMatch !== null)
+        {
+            const slot = Number.parseInt (fxMatch[1] ?? "", 10);
+            const chain = chainFor (slot);
+
+            if (request.method === "GET")
+            {
+                respondChain (chain);
+                return;
+            }
+
+            if (request.method === "POST")
+            {
+                readBody (body =>
+                {
+                    const insert = insertFromRequest (body, chain.inserts.length);
+                    const position = typeof body.position === "number" ? body.position : -1;
+
+                    if (position < 0 || position >= chain.inserts.length)
+                        chain.inserts.push (insert);
+                    else
+                        chain.inserts.splice (position, 0, insert);
+
+                    recalculateChain (chain);
+                    fxRequests.push ({ method: "POST", slot, index: -1, body });
+                    respondChain (chain);
+                });
+
+                return;
+            }
+
+            if (request.method === "PUT")
+            {
+                readBody (body =>
+                {
+                    const requested = Array.isArray (body.chain) ? body.chain : [];
+
+                    chain.inserts = requested.map ((entry, index) =>
+                        insertFromRequest (entry as Record<string, unknown>, index));
+                    recalculateChain (chain);
+                    fxRequests.push ({ method: "PUT", slot, index: -1, body });
+                    respondChain (chain);
+                });
+
+                return;
+            }
+        }
+
+        if (fxReorderMatch !== null && request.method === "POST")
+        {
+            const slot = Number.parseInt (fxReorderMatch[1] ?? "", 10);
+            const chain = chainFor (slot);
+
+            readBody (body =>
+            {
+                const order = Array.isArray (body.order) ? body.order as number[] : [];
+                const reordered: ControlFxInsert[] = [];
+
+                for (const index of order)
+                {
+                    const insert = chain.inserts[index];
+
+                    if (insert !== undefined)
+                        reordered.push (insert);
+                }
+
+                if (reordered.length !== chain.inserts.length)
+                {
+                    response.statusCode = 400;
+                    response.end (JSON.stringify ({ error: "order must be a permutation" }));
+                    return;
+                }
+
+                chain.inserts = reordered;
+                recalculateChain (chain);
+                fxRequests.push ({ method: "POST", slot, index: -1, body });
+                respondChain (chain);
+            });
+
+            return;
+        }
+
+        if (fxIndexMatch !== null)
+        {
+            const slot = Number.parseInt (fxIndexMatch[1] ?? "", 10);
+            const index = Number.parseInt (fxIndexMatch[2] ?? "", 10);
+            const chain = chainFor (slot);
+
+            if (index < 0 || index >= chain.inserts.length)
+            {
+                response.statusCode = 404;
+                response.end (JSON.stringify ({ error: "fx index is out of range" }));
+                return;
+            }
+
+            if (request.method === "DELETE")
+            {
+                chain.inserts.splice (index, 1);
+                recalculateChain (chain);
+                fxRequests.push ({ method: "DELETE", slot, index, body: {} });
+                respondChain (chain);
+                return;
+            }
+
+            if (request.method === "PATCH")
+            {
+                readBody (body =>
+                {
+                    const insert = chain.inserts[index];
+
+                    if (insert === undefined)
+                    {
+                        response.statusCode = 404;
+                        response.end (JSON.stringify ({ error: "fx index is out of range" }));
+                        return;
+                    }
+
+                    if (typeof body.bypassed === "boolean")
+                        insert.bypassed = body.bypassed;
+
+                    if (typeof body.wet === "number")
+                    {
+                        insert.wet = body.wet;
+                        insert.dry = 1 - body.wet;
+                    }
+
+                    if (typeof body.position === "number"
+                        && Number.isInteger (body.position)
+                        && body.position >= 0
+                        && body.position < chain.inserts.length
+                        && body.position !== index)
+                    {
+                        chain.inserts.splice (index, 1);
+                        chain.inserts.splice (body.position, 0, insert);
+                    }
+
+                    recalculateChain (chain);
+                    fxRequests.push ({ method: "PATCH", slot, index, body });
+                    respondChain (chain);
+                });
+
+                return;
+            }
+        }
+
+        if (sourceMatch !== null && request.method === "POST")
+        {
+            const slot = Number.parseInt (sourceMatch[1] ?? "", 10);
+            const target = findPatch (slot);
+
+            readBody (body =>
+            {
+                sourceRequests.push ({ slot, body });
+
+                if (target === null)
+                {
+                    response.statusCode = 404;
+                    response.end (JSON.stringify ({ error: "patch slot is out of range" }));
+                    return;
+                }
+
+                if (typeof body.kind !== "string"
+                    || ! ["init-tone", "sampler", "plugin", "audio-input"].includes (body.kind))
+                {
+                    response.statusCode = 400;
+                    response.end (JSON.stringify ({ error: "kind must be a source kind" }));
+                    return;
+                }
+
+                const instrument: ControlState["families"][number]["patches"][number]["instrument"] = {
+                    id: target.instrument.id,
+                    name: typeof body.name === "string" && body.name.length > 0
+                        ? body.name
+                        : target.instrument.name,
+                    kind: body.kind as ControlState["families"][number]["patches"][number]["instrument"]["kind"],
+                };
+
+                for (const key of ["pluginFormat", "pluginId", "pluginName",
+                                   "pluginManufacturer", "pluginVersion",
+                                   "samplePath"] as const)
+                {
+                    const value = body[key];
+
+                    if (typeof value === "string" && value.length > 0)
+                        Object.assign (instrument, { [key]: value });
+                }
+
+                target.instrument = instrument;
+
+                response.statusCode = 200;
+                response.end (JSON.stringify (state));
+            });
+
+            return;
+        }
+
+        if (request.method === "GET" && url.startsWith ("/plugins"))
+        {
+            pluginRequests.push (url);
+
+            const searchAt = url.indexOf ("search=");
+            const search = searchAt < 0
+                ? ""
+                : decodeURIComponent (url.slice (searchAt + "search=".length).split ("&")[0] ?? "")
+                    .toLowerCase();
+
+            const plugins = PLUGIN_FIXTURE.plugins.filter (plugin =>
+                search.length === 0
+                || plugin.name.toLowerCase ().includes (search)
+                || plugin.vendor.toLowerCase ().includes (search));
+
+            response.statusCode = 200;
+            response.end (JSON.stringify ({
+                ...PLUGIN_FIXTURE,
+                plugins,
+                count: plugins.length,
+                search,
+            }));
+            return;
+        }
+
+        if (request.method === "POST" && url === "/plugins/rescan")
+        {
+            pluginRequests.push ("rescan");
+
+            response.statusCode = 202;
+            response.end (JSON.stringify ({
+                ...PLUGIN_FIXTURE,
+                scanning: true,
+                started: true,
+            }));
             return;
         }
 
@@ -910,6 +1374,10 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         get pairRequests () { return pairRequests; },
         get lanRequests () { return lanRequests; },
         get patchRequests () { return patchRequests; },
+        get fxRequests () { return fxRequests; },
+        get sourceRequests () { return sourceRequests; },
+        get pluginRequests () { return pluginRequests; },
+        get chain () { return chainFor (3); },
         close: () => new Promise ((resolve, reject) =>
         {
             server.close (error => { error === undefined ? resolve () : reject (error); });
@@ -1221,15 +1689,28 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
 
     check (loaded, "GET /state succeeds over HTTP");
 
+    // The page loads its chain and the plug-in inventory from effects, which
+    // do not run under `react-dom/server`; load them here so the artifact shows
+    // the same data a browser would.
+    const armedSlot = store.getSnapshot ().state?.armedSlot ?? -1;
+    const instrumentSlot = instrumentSlotForRoute ("instrument", 3, armedSlot);
+
+    if (instrumentSlot !== null)
+        await store.loadFxChain (instrumentSlot);
+
+    await store.loadPlugins ();
+
     const html = renderApp (store);
     const audioHtml = renderApp (store, "/audio");
     const instrumentHtml = renderApp (store, "/instrument?slot=3");
     const pluginsHtml = renderApp (store, "/plugins");
 
-    writeArtifact (fromFixture ? "ui-state-snapshot.html" : "ui-state-live.html", html);
-    writeArtifact ("ui-audio-snapshot.html", audioHtml);
-    writeArtifact ("ui-instrument-snapshot.html", instrumentHtml);
-    writeArtifact ("ui-plugins-snapshot.html", pluginsHtml);
+    const suffix = fromFixture ? "snapshot" : "live";
+
+    writeArtifact (`ui-state-${suffix}.html`, html);
+    writeArtifact (`ui-audio-${suffix}.html`, audioHtml);
+    writeArtifact (`ui-instrument-${suffix}.html`, instrumentHtml);
+    writeArtifact (`ui-plugins-${suffix}.html`, pluginsHtml);
 
     check (html.length > 2000, "snapshot is non-blank");
     check (countOf (html, 'data-testid="family"') === 8, "snapshot shows 8 families");
@@ -1289,7 +1770,6 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     check (pluginsHtml.includes ('data-testid="plugins-page"'), "the /plugins route resolves");
 
     // The markup must agree with the state the API actually returned.
-    const armedSlot = store.getSnapshot ().state?.armedSlot ?? -1;
     check (countOf (html, 'data-armed="true"') === (armedSlot >= 0 ? 1 : 0),
            `armed-slot highlight matches the fetched state (armedSlot ${String (armedSlot)})`);
     check ((armedSlot < 0) === html.includes ("armed none"),
@@ -1707,6 +2187,42 @@ async function backoffTest (): Promise<void>
             throw new Error ("connection refused");
         },
         revokePairing: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        changePatchSource: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        getFxChain: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        addFxInsert: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        replaceFxChain: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        updateFxInsert: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        removeFxInsert: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        reorderFxChain: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        listPlugins: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        rescanPlugins: async () =>
         {
             throw new Error ("connection refused");
         },
@@ -2311,6 +2827,372 @@ async function remoteOptimisticTest (): Promise<void>
     }
 }
 
+function instrumentModelTest (): void
+{
+    check (gainFromDb (0) === 1, "0 dB is unity gain");
+    check (Math.abs (gainFromDb (-20) - 0.1) < 0.0001, "-20 dB is 0.1 linear gain");
+    check (gainFromDb (FADER_MIN_DB) === 0, "the fader floor is silence");
+    check (formatDb (0) === "0.0 dB" && formatDb (-18) === "-18.0 dB", "dB readout is fixed width");
+    check (formatPan (-0.4) === "L 40" && formatPan (0) === "C" && formatPan (0.25) === "R 25",
+           "balance reads as L/C/R with a percentage");
+    check (clampPan (2) === 1 && clampPan (-2) === -1, "balance is clamped to ±1");
+    check (wetPercent (0.355) === 36, "wet is a whole percentage");
+
+    check (moveOrder (3, 2, 0).join (",") === "2,0,1", "moving the last insert to the front builds a permutation");
+    check (moveOrder (3, 0, 2).join (",") === "1,2,0", "moving the first insert to the end builds a permutation");
+    check (moveOrder (3, -5, 99).join (",") === "1,2,0", "out-of-range moves are clamped");
+    check (moveOrder (0, 0, 0).length === 0, "an empty chain has no order");
+
+    const chain: ControlFxChain = {
+        slot: 3,
+        instrumentLatencySamples: 84,
+        fxLatencySamples: 156,
+        latencySamples: 240,
+        latencyMs: 5,
+        inserts: [
+            {
+                index: 0, type: "eq", kind: "builtin", id: "eq", name: "EQ",
+                bypassed: false, wet: 1, dry: 0, latencySamples: 0, parameters: {},
+            },
+            {
+                index: 1, type: "compressor", kind: "builtin", id: "compressor",
+                name: "Compressor", bypassed: false, wet: 1, dry: 0,
+                latencySamples: 156, parameters: {},
+            },
+        ],
+    };
+
+    const bypassed = chainWithBypass (chain, 1, true);
+
+    check (bypassed.fxLatencySamples === 0 && bypassed.latencySamples === 84,
+           "bypassing an insert drops its latency from the budget");
+    check (bypassed.latencyMs === 84 * (5 / 240), "the millisecond readout follows the sample total");
+
+    const removed = chainWithoutInsert (chain, 0);
+
+    check (removed.inserts.length === 1 && removed.inserts[0]?.index === 0,
+           "removing the first insert renumbers the chain");
+
+    const moved = chainWithMove (chain, 1, 0);
+
+    check (moved.inserts[0]?.type === "compressor" && moved.inserts[1]?.index === 1,
+           "moving an insert reorders the chain and renumbers it");
+
+    const plugins: ControlPluginList = PLUGIN_FIXTURE;
+
+    check (instrumentPlugins (plugins.plugins).length === 2
+               && instrumentPlugins (plugins.plugins).every (plugin => plugin.isInstrument),
+           "only instrument plug-ins are offered as a source");
+    check (effectPlugins (plugins.plugins).length === 1
+               && effectPlugins (plugins.plugins)[0]?.name === "TestReverb",
+           "only effect plug-ins are offered as an insert");
+
+    const source = sourceRequestForPlugin (plugins.plugins[0]!);
+
+    check (source.kind === "plugin" && source.path === "/usr/lib/vst3/TestPlugin.vst3",
+           "a plug-in source request carries the bundle path");
+    check (source.pluginManufacturer === "Instrument Hub" && source.pluginVersion === "1.0.0",
+           "the plug-in identity reaches the source request");
+    check (sourceRequestForInitTone ().kind === "init-tone", "the built-in tone is a source request");
+    check (insertRequestForBuiltin ("delay").type === "delay", "a built-in insert is addressable by type");
+    check (insertRequestForPlugin (plugins.plugins[1]!).type === "vst3", "a plug-in insert uses the vst3 type");
+
+    check (instrumentSlotForRoute ("instrument", null, 3) === 3,
+           "the instrument page follows the armed slot");
+    check (instrumentSlotForRoute ("instrument", 1, 3) === 3,
+           "the controller selection beats a stale ?slot link");
+    check (instrumentSlotForRoute ("instrument", 1, -1) === 1,
+           "a link still selects a patch while nothing is armed");
+    check (instrumentSlotForRoute ("grid", null, 3) === null,
+           "other routes never resolve to an instrument slot");
+    check (followsArmedSlot (3) && ! followsArmedSlot (-1),
+           "the page follows the controller whenever a patch is armed");
+    check (isPluginSource (null) === false, "no patch has no plug-in source");
+    check (sourceKindLabel ("plugin") === "VST3 plug-in", "the source kind has a human label");
+}
+
+async function instrumentPageTest (): Promise<void>
+{
+    const server = await startFixtureServer ();
+
+    try
+    {
+        const store = new AppStore (
+            createControlApi ({ baseUrl: server.baseUrl }),
+            { pollIntervalMs: 60_000 });
+
+        check (await store.refresh (), "the instrument fixture loads GET /state");
+        check (await store.loadFxChain (3), "GET /patches/3/fx returns the insert chain");
+        check (await store.loadPlugins (), "GET /plugins returns the installed inventory");
+        check (server.pluginRequests.length === 1, "the page fetched the inventory once");
+
+        const initial = renderApp (store, "/instrument?slot=3");
+
+        writeArtifact ("ui-instrument-snapshot.html", initial);
+
+        check (initial.includes ('data-testid="instrument-page" data-slot="3"'),
+               "the instrument page renders the queried slot");
+        check (initial.includes ('data-testid="instrument-name">Drawbar Organ<'),
+               "the page shows the patch's real name");
+        check (initial.includes ("Keys · slot 04 · armed · following the controller"),
+               "the page shows family, slot and arm state");
+        check (initial.includes ('data-testid="instrument-warm-state" data-warm="true" data-warm-state="active"'),
+               "the warm state comes from /state");
+        check (initial.includes ('data-testid="instrument-latency" data-latency-samples="240" data-latency-ms="5.000"'),
+               "the chain latency comes from /state");
+        check (initial.includes ("5.00 ms · 240 smp"), "latency is readable in ms and samples");
+        check (initial.includes ('data-testid="volume-fader" data-slot="3" data-db="0.00"'),
+               "the fader starts at the patch's real volume");
+        check (initial.includes ('data-testid="volume-value">0.0 dB<'), "the fader has a dB readout");
+        check (initial.includes ('data-testid="volume-gain" data-gain="1.000000"'),
+               "the page publishes the effective linear gain");
+        check (initial.includes ('data-testid="pan-value">C<'), "the balance starts centred");
+        check (initial.includes ('data-testid="mute-button" data-slot="3" data-muted="false"'),
+               "mute reflects the patch");
+        check (initial.includes ('data-testid="solo-button" data-slot="3" data-solo="false"'),
+               "solo reflects the patch");
+        check (initial.includes ('data-testid="instrument-colour" data-colour-index="0"'),
+               "the patch colour reaches the page");
+
+        check (initial.includes ('data-testid="instrument-source" data-kind="init-tone"'),
+               "the page names the declared instrument source");
+        check (initial.includes ('data-testid="source-open-editor"'),
+               "the source has an editor control");
+        check (initial.includes ('data-testid="source-change"'), "the source can be changed");
+        check (initial.includes ('value="/usr/lib/vst3/TestPlugin.vst3"'),
+               "the source picker lists installed instrument plug-ins");
+        check (! initial.includes ('value="/usr/lib/vst3/TestReverb.vst3"'),
+               "the source picker excludes effect plug-ins");
+
+        check (initial.includes ('data-testid="fx-chain" data-slot="3" data-count="2"'),
+               "the insert chain renders both inserts");
+        check (initial.includes ('data-latency-samples="240" data-latency-ms="5.000"'),
+               "the chain publishes its latency budget");
+        check (initial.includes ('data-testid="fx-latency-instrument">84 smp<'),
+               "the chain separates instrument latency");
+        check (initial.includes ('data-testid="fx-latency-inserts">156 smp<'),
+               "the chain separates insert latency");
+        check (initial.includes ('data-testid="fx-insert" data-index="0" data-type="eq"'),
+               "the first insert is the EQ");
+        check (initial.includes ('data-testid="fx-insert" data-index="1" data-type="compressor"'),
+               "the second insert is the compressor");
+        check (initial.includes ('data-testid="fx-bypass"')
+                   && initial.includes ('title="Bypass EQ"')
+                   && initial.includes ('aria-pressed="true"'),
+               "an insert starts enabled with a bypass control");
+        check (initial.includes ('value="builtin:eq"') && initial.includes ('value="plugin:com.instrumenthub.TestReverb"'),
+               "the add control offers built-ins and installed effects");
+
+        // --- The fader writes the real level to the engine -------------------
+        check (await store.updatePatch (3, { volumeDb: -18 }), "moving the fader succeeds");
+        check (server.patchRequests.length === 1
+                   && server.patchRequests[0]?.slot === 3
+                   && server.patchRequests[0]?.patch.volumeDb === -18,
+               "the fader sends volumeDb: -18 to PATCH /patches/3");
+
+        const quiet = renderApp (store, "/instrument?slot=3");
+
+        check (quiet.includes ('data-testid="volume-fader" data-slot="3" data-db="-18.00"'),
+               "the fader shows the new level");
+        check (quiet.includes ('data-testid="volume-gain" data-gain="0.125893"'),
+               "-18 dB resolves to 0.1259 linear gain");
+        check (quiet.includes ('data-volume-db="-18.00" data-gain="0.125893"'),
+               "the mixer card publishes the level the engine applies");
+
+        check (await store.updatePatch (3, { mute: true }), "muting succeeds");
+        check (server.patchRequests.at (-1)?.patch.mute === true, "mute reaches the engine");
+        check (renderApp (store, "/instrument?slot=3").includes (
+                   'data-testid="mute-button" data-slot="3" data-muted="true"'),
+               "the mute button reflects the change");
+
+        check (await store.updatePatch (3, { solo: true }), "soloing succeeds");
+        check (renderApp (store, "/instrument?slot=3").includes (
+                   'data-testid="solo-button" data-slot="3" data-solo="true"'),
+               "the solo button reflects the change");
+
+        check (await store.updatePatch (3, { colorIndex: 7 }), "recolouring succeeds");
+        check (renderApp (store, "/instrument?slot=3").includes (
+                   'data-testid="instrument-colour" data-colour-index="7"'),
+               "the colour swatch follows the patch");
+
+        // --- The chain editor -----------------------------------------------
+        check (await store.addFxInsert (3, insertRequestForBuiltin ("compressor")),
+               "adding a compressor succeeds");
+        check (server.chain.inserts.length === 3 && server.chain.latencySamples === 396,
+               "the engine added the insert and summed its latency");
+
+        const added = renderApp (store, "/instrument?slot=3");
+
+        check (added.includes ('data-testid="fx-chain" data-slot="3" data-count="3"'),
+               "the new insert appears in the chain");
+        check (added.includes ('data-latency-samples="396"'), "the chain latency grows with the insert");
+
+        check (await store.moveFxInsert (3, 2, 0), "moving the last insert to the front succeeds");
+        check (server.fxRequests.at (-1)?.method === "POST"
+                   && (server.fxRequests.at (-1)?.body.order as number[]).join (",") === "2,0,1",
+               "reordering sends a permutation to /fx/reorder");
+        check (server.chain.inserts[0]?.index === 0 && server.chain.inserts[0]?.type === "compressor",
+               "the engine applied the new order");
+
+        const moved = renderApp (store, "/instrument?slot=3");
+
+        check (/data-testid="fx-insert" data-index="0" data-type="compressor"/.test (moved),
+               "the page renders the reordered chain");
+
+        check (await store.updateFxInsert (3, 0, { bypassed: true }), "bypassing succeeds");
+        check (server.fxRequests.at (-1)?.method === "PATCH"
+                   && server.fxRequests.at (-1)?.body.bypassed === true,
+               "bypass reaches PATCH /patches/3/fx/0");
+        check (server.chain.latencySamples === 240, "a bypassed insert leaves the latency budget");
+
+        const bypassed = renderApp (store, "/instrument?slot=3");
+
+        check (bypassed.includes ('data-count="3" data-latency-samples="240"'),
+               "the page drops the bypassed insert's latency");
+        check (/data-index="0" data-type="compressor" data-kind="builtin" data-name="compressor" data-bypassed="true"/.test (bypassed),
+               "the bypassed row is marked");
+
+        check (await store.removeFxInsert (3, 1), "removing an insert succeeds");
+        check (server.fxRequests.at (-1)?.method === "DELETE"
+                   && server.fxRequests.at (-1)?.index === 1,
+               "remove reaches DELETE /patches/3/fx/1");
+        check (server.chain.inserts.length === 2, "the engine dropped the insert");
+
+        const removed = renderApp (store, "/instrument?slot=3");
+
+        check (removed.includes ('data-count="2"'), "the page renders the shortened chain");
+        check (! removed.includes ('data-type="eq"'), "the removed insert is gone from the page");
+
+        // --- The instrument source ------------------------------------------
+        const plugin = PLUGIN_FIXTURE.plugins[0]!;
+
+        check (await store.changeInstrumentSource (3, sourceRequestForPlugin (plugin)),
+               "assigning an installed plug-in as the source succeeds");
+        check (server.sourceRequests.length === 1
+                   && server.sourceRequests[0]?.slot === 3
+                   && server.sourceRequests[0]?.body.kind === "plugin"
+                   && server.sourceRequests[0]?.body.path === "/usr/lib/vst3/TestPlugin.vst3",
+               "POST /patches/3/source carries the bundle path");
+
+        const pluginPage = renderApp (store, "/instrument?slot=3");
+
+        check (pluginPage.includes ('data-testid="instrument-source" data-kind="plugin"'),
+               "the page shows the new source kind");
+        check (pluginPage.includes ('data-name="TestPlugin"'), "the page shows the plug-in name");
+        check (pluginPage.includes ('data-testid="source-format">VST3<'),
+               "the source editor shows the plug-in format");
+        check (pluginPage.includes ('data-testid="source-manufacturer">Instrument Hub<'),
+               "the source editor shows the manufacturer");
+        check (pluginPage.includes ("Instrument sources are hosted headlessly in this build"),
+               "a plug-in source explains that this build has no native window");
+
+        check (await store.changeInstrumentSource (3, sourceRequestForInitTone (880)),
+               "switching back to the built-in tone succeeds");
+        check (server.sourceRequests.at (-1)?.body.frequency === 880,
+               "the tone frequency reaches the engine");
+
+        const tonePage = renderApp (store, "/instrument?slot=3");
+
+        check (tonePage.includes ('data-testid="instrument-source" data-kind="init-tone"'),
+               "the page returns to the tone source");
+        check (tonePage.includes ("there are no plug-in parameters to edit"),
+               "a generated source explains that it has no editor parameters");
+
+        // --- Following the controller ---------------------------------------
+        const following = renderApp (store, "/instrument");
+
+        check (following.includes ('data-testid="instrument-page" data-slot="3" data-armed="true" data-following="true"'),
+               "the instrument page follows the armed slot");
+        check (following.includes ("following the controller"),
+               "the page says it is following the controller");
+
+        check (await store.armSlot (5), "the controller arms another patch");
+        check (renderApp (store, "/instrument").includes ('data-testid="instrument-page" data-slot="5"'),
+               "the page follows the new armed slot");
+        check (renderApp (store, "/instrument?slot=1").includes ('data-testid="instrument-page" data-slot="5"'),
+               "a stale ?slot link does not override the controller");
+
+        check (await store.armSlot (7), "the controller arms a third patch");
+        check (renderApp (store, "/instrument?slot=1").includes ('data-testid="instrument-page" data-slot="7"'),
+               "the page keeps following later arms");
+        check (! renderApp (store, "/grid").includes ('data-testid="instrument-page"'),
+               "arming never navigates the grid to the instrument page");
+        check (! renderApp (store, "/plugins").includes ('data-testid="instrument-page"'),
+               "arming never navigates the plugins page to the instrument page");
+
+        // --- Failure surfaces ------------------------------------------------
+        const failing = new AppStore (
+            createControlApi ({ baseUrl: "http://127.0.0.1:1" }),
+            { pollIntervalMs: 60_000 });
+
+        check (! await failing.loadFxChain (3), "a chain failure is reported");
+        check (failing.getSnapshot ().fxError !== null, "the page can show the chain error");
+    }
+    finally
+    {
+        await server.close ();
+    }
+}
+
+function instrumentPluginEditorTest (): void
+{
+    const pluginPatch: ControlPatch = {
+        slot: 2,
+        id: "plugin-patch",
+        name: "Plugin Patch",
+        family: "keys",
+        familyName: "Keys",
+        instrument: {
+            id: "com.instrumenthub.TestPlugin",
+            name: "TestPlugin",
+            kind: "plugin",
+            pluginFormat: "VST3",
+            pluginId: "com.instrumenthub.TestPlugin",
+            pluginName: "TestPlugin",
+            pluginManufacturer: "Instrument Hub",
+            pluginVersion: "1.0.0",
+        },
+        volumeDb: -6,
+        pan: -0.5,
+        mute: false,
+        solo: false,
+        colorIndex: 4,
+        warmState: "warm",
+        warm: true,
+        latencySamples: 96,
+        latencyMs: 2,
+    };
+
+    const html = renderToStaticMarkup (
+        <InstrumentPage
+            patch={pluginPatch}
+            armedSlot={2}
+            following={false}
+            chain={null}
+            plugins={PLUGIN_FIXTURE.plugins}
+        />);
+
+    check (html.includes ('data-testid="instrument-source" data-kind="plugin"'),
+           "a plugin patch renders its source");
+    check (html.includes ('data-testid="source-open-editor"'), "a plugin patch offers its editor");
+    check (html.includes ("Instrument sources are hosted headlessly in this build"),
+           "the plugin editor explains that no native window opens");
+    check (html.includes ('data-testid="fx-loading"') && html.includes ('aria-busy="true"'),
+           "a chain that has not loaded shows its loading state");
+    check (html.includes ('data-testid="pan-value">L 50<'), "a left balance reads L 50");
+    check (html.includes ('data-testid="fx-latency-total">latency unavailable<'),
+           "a missing chain reports no latency instead of a zero");
+
+    const empty = renderApp (
+        new AppStore (createControlApi ({ baseUrl: "http://127.0.0.1:1" })),
+        "/instrument");
+
+    check (empty.includes ('data-testid="instrument-page" data-slot="-1"'),
+           "the instrument page renders its empty state before the first state");
+    check (empty.includes ('data-testid="instrument-name">Loading the set…<'),
+           "the empty state explains that the set is loading");
+}
+
 async function main (): Promise<void>
 {
     await snapshotTest ();
@@ -2334,6 +3216,9 @@ async function main (): Promise<void>
     await remoteOptimisticTest ();
     await reconnectTest ();
     await backoffTest ();
+    instrumentModelTest ();
+    await instrumentPageTest ();
+    instrumentPluginEditorTest ();
 
     if (failures > 0)
     {

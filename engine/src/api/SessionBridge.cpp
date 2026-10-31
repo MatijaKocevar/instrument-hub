@@ -30,6 +30,35 @@ double gainToDb (float gain) noexcept
     return juce::jlimit (-60.0, 12.0, 20.0 * std::log10 (static_cast<double> (gain)));
 }
 
+bool toSessionKind (const std::string& text, ihub::SessionSlotKind& kind)
+{
+    if (text == "init-tone")
+    {
+        kind = ihub::SessionSlotKind::initTone;
+        return true;
+    }
+
+    if (text == "sampler")
+    {
+        kind = ihub::SessionSlotKind::sampler;
+        return true;
+    }
+
+    if (text == "plugin")
+    {
+        kind = ihub::SessionSlotKind::plugin;
+        return true;
+    }
+
+    if (text == "audio-input")
+    {
+        kind = ihub::SessionSlotKind::audioInput;
+        return true;
+    }
+
+    return false;
+}
+
 PatchInstrumentState toPatchInstrument (const ihub::SessionSlotConfig& slotConfig)
 {
     PatchInstrumentState instrument;
@@ -173,6 +202,50 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
     state.setPatchHandler ([&session] (int slot, const PatchState&, float gain)
     {
         session.setSlotGain (slot, gain);
+    });
+
+    // POST /patches/{slot}/source -> a live instrument-source swap in the
+    // fixed graph. The store publishes the new descriptor after the session
+    // has accepted the change.
+    state.setPatchSourceHandler ([&session] (int slot,
+                                             const PatchSourceRequest& request,
+                                             std::string& error)
+    {
+        const auto& configs = session.getSlotConfigs();
+
+        if (slot < 0 || slot >= static_cast<int> (configs.size()))
+        {
+            error = "slot is out of range";
+            return false;
+        }
+
+        ihub::SessionSlotKind kind;
+
+        if (! toSessionKind (request.kind, kind))
+        {
+            error = "unknown source kind: " + request.kind;
+            return false;
+        }
+
+        ihub::SessionSlotConfig source = configs[static_cast<std::size_t> (slot)];
+        source.kind = kind;
+        source.path = juce::String (request.path);
+        source.frequency = request.frequency >= 20.0 ? request.frequency
+                                                     : source.frequency;
+        source.inputChannel = request.inputChannel;
+        source.instrumentKind = request.kind;
+        source.pluginFormat = request.pluginFormat.empty() ? "VST3"
+                                                          : request.pluginFormat;
+        source.pluginId = request.pluginId;
+        source.pluginName = request.pluginName.empty() ? request.name
+                                                       : request.pluginName;
+        source.pluginManufacturer = request.pluginManufacturer;
+        source.pluginVersion = request.pluginVersion;
+        source.samplePath = request.samplePath.empty() && request.kind == "sampler"
+                                ? request.path
+                                : request.samplePath;
+
+        return session.setSlotSource (slot, source, error);
     });
 
     // GET/POST/PUT/PATCH/DELETE /patches/{slot}/fx -> the live insert rack.

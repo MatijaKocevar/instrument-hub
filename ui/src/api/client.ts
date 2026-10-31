@@ -16,6 +16,14 @@ export type ControlPairingState = components["schemas"]["PairingState"];
 export type ControlPairResponse = components["schemas"]["PairResponse"];
 export type ControlPatch = components["schemas"]["Patch"];
 export type ControlPatchUpdate = components["schemas"]["PatchUpdate"];
+export type ControlPatchSourceRequest = components["schemas"]["PatchSourceRequest"];
+export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
+export type ControlFxChain = components["schemas"]["FxChain"];
+export type ControlFxInsert = components["schemas"]["FxInsert"];
+export type ControlFxInsertRequest = components["schemas"]["FxInsertRequest"];
+export type ControlFxInsertUpdate = components["schemas"]["FxInsertUpdate"];
+export type ControlPlugin = components["schemas"]["Plugin"];
+export type ControlPluginList = components["schemas"]["PluginList"];
 
 /** Raised for any non-2xx response or an unusable payload. */
 export class ApiError extends Error
@@ -81,6 +89,58 @@ export interface ControlApi
     updatePatch (slot: number,
                  patch: ControlPatchUpdate,
                  options?: { signal?: AbortSignal }): Promise<ControlState>;
+
+    /**
+        Change the instrument source behind one patch.
+
+        The engine swaps the slot's source without rewiring the graph and
+        answers with the state after the change, so the page can show the new
+        descriptor from the same round trip.
+    */
+    changePatchSource (slot: number,
+                       source: ControlPatchSourceRequest,
+                       options?: { signal?: AbortSignal }): Promise<ControlState>;
+
+    //==========================================================================
+    // Per-patch insert chain (T121)
+
+    /** Read one patch's ordered inserts and latency budget. */
+    getFxChain (slot: number, options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
+
+    /** Append an effect (or insert it at `position`). */
+    addFxInsert (slot: number,
+                 insert: ControlFxInsertRequest,
+                 options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
+
+    /** Replace the whole chain atomically. */
+    replaceFxChain (slot: number,
+                    chain: readonly ControlFxInsertRequest[],
+                    options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
+
+    /** Bypass, re-balance, re-parameterise or move one insert. */
+    updateFxInsert (slot: number,
+                    index: number,
+                    update: ControlFxInsertUpdate,
+                    options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
+
+    /** Remove one insert. */
+    removeFxInsert (slot: number,
+                    index: number,
+                    options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
+
+    /** Reorder the chain; `order[0]` becomes the first insert. */
+    reorderFxChain (slot: number,
+                    order: readonly number[],
+                    options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
+
+    //==========================================================================
+    // Plugin inventory (T122)
+
+    /** Read the installed VST3 inventory, optionally filtered by `search`. */
+    listPlugins (options?: { search?: string; signal?: AbortSignal }): Promise<ControlPluginList>;
+
+    /** Start a background rescan and return the inventory as it was then. */
+    rescanPlugins (options?: { signal?: AbortSignal }): Promise<ControlPluginList>;
 
     /** Read the audio device settings and live latency readout. */
     getAudio (options?: { signal?: AbortSignal }): Promise<ControlAudioState>;
@@ -178,6 +238,65 @@ function isTransport (value: unknown): value is ControlTransport
         && typeof candidate.bpm === "number"
         && typeof candidate.ppq === "number"
         && typeof candidate.positionSamples === "number";
+}
+
+/** Rejects chain payloads the editor cannot render. */
+function isFxChain (value: unknown): value is ControlFxChain
+{
+    if (value === null || typeof value !== "object")
+        return false;
+
+    const candidate = value as Partial<ControlFxChain>;
+
+    return typeof candidate.slot === "number"
+        && typeof candidate.instrumentLatencySamples === "number"
+        && typeof candidate.fxLatencySamples === "number"
+        && typeof candidate.latencySamples === "number"
+        && typeof candidate.latencyMs === "number"
+        && Array.isArray (candidate.inserts)
+        && candidate.inserts.every (insert =>
+               insert !== null
+               && typeof insert === "object"
+               && typeof insert.index === "number"
+               && typeof insert.type === "string"
+               && typeof insert.kind === "string"
+               && typeof insert.id === "string"
+               && typeof insert.name === "string"
+               && typeof insert.bypassed === "boolean"
+               && typeof insert.wet === "number"
+               && typeof insert.latencySamples === "number"
+               && insert.parameters !== null
+               && typeof insert.parameters === "object");
+}
+
+/** Rejects inventory payloads the plugin browser cannot render. */
+function isPluginList (value: unknown): value is ControlPluginList
+{
+    if (value === null || typeof value !== "object")
+        return false;
+
+    const candidate = value as Partial<ControlPluginList>;
+
+    return Array.isArray (candidate.plugins)
+        && typeof candidate.count === "number"
+        && typeof candidate.total === "number"
+        && typeof candidate.search === "string"
+        && typeof candidate.scanning === "boolean"
+        && typeof candidate.scanned === "boolean"
+        && typeof candidate.lastScanMs === "number"
+        && typeof candidate.error === "string"
+        && candidate.plugins.every (plugin =>
+               plugin !== null
+               && typeof plugin === "object"
+               && typeof plugin.id === "string"
+               && typeof plugin.name === "string"
+               && typeof plugin.vendor === "string"
+               && typeof plugin.version === "string"
+               && typeof plugin.category === "string"
+               && typeof plugin.isInstrument === "boolean"
+               && typeof plugin.isEffect === "boolean"
+               && typeof plugin.format === "string"
+               && typeof plugin.path === "string");
 }
 
 /** Rejects audio payloads the panel cannot render. */
@@ -294,6 +413,46 @@ export function createControlApi (options: ControlApiOptions): ControlApi
             status);
     }
 
+    function requireChain (data: ControlFxChain | undefined,
+                           error: unknown,
+                           status: number,
+                           what: string): ControlFxChain
+    {
+        if (data !== undefined)
+        {
+            if (! isFxChain (data))
+                throw new ApiError (`${what} returned an unsupported payload`, status);
+
+            return data;
+        }
+
+        const message = describeError (error);
+
+        throw new ApiError (
+            message.length > 0 ? message : `${what} failed with HTTP ${status}`,
+            status);
+    }
+
+    function requirePluginList (data: ControlPluginList | undefined,
+                                error: unknown,
+                                status: number,
+                                what: string): ControlPluginList
+    {
+        if (data !== undefined)
+        {
+            if (! isPluginList (data))
+                throw new ApiError (`${what} returned an unsupported payload`, status);
+
+            return data;
+        }
+
+        const message = describeError (error);
+
+        throw new ApiError (
+            message.length > 0 ? message : `${what} failed with HTTP ${status}`,
+            status);
+    }
+
     return {
         baseUrl,
 
@@ -352,6 +511,109 @@ export function createControlApi (options: ControlApiOptions): ControlApi
             });
 
             return requireState (data, error, response.status, `PATCH /patches/${String (slot)}`);
+        },
+
+        async changePatchSource (slot, source, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/patches/{slot}/source", {
+                params: { path: { slot } },
+                body: source,
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireState (data, error, response.status,
+                                 `POST /patches/${String (slot)}/source`);
+        },
+
+        async getFxChain (slot, requestOptions)
+        {
+            const { data, error, response } = await client.GET ("/patches/{slot}/fx", {
+                params: { path: { slot } },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireChain (data, error, response.status,
+                                 `GET /patches/${String (slot)}/fx`);
+        },
+
+        async addFxInsert (slot, insert, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/patches/{slot}/fx", {
+                params: { path: { slot } },
+                body: insert,
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireChain (data, error, response.status,
+                                 `POST /patches/${String (slot)}/fx`);
+        },
+
+        async replaceFxChain (slot, chain, requestOptions)
+        {
+            const { data, error, response } = await client.PUT ("/patches/{slot}/fx", {
+                params: { path: { slot } },
+                body: { chain: [...chain] },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireChain (data, error, response.status,
+                                 `PUT /patches/${String (slot)}/fx`);
+        },
+
+        async updateFxInsert (slot, index, update, requestOptions)
+        {
+            const { data, error, response } = await client.PATCH ("/patches/{slot}/fx/{index}", {
+                params: { path: { slot, index } },
+                body: update,
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireChain (data, error, response.status,
+                                 `PATCH /patches/${String (slot)}/fx/${String (index)}`);
+        },
+
+        async removeFxInsert (slot, index, requestOptions)
+        {
+            const { data, error, response } = await client.DELETE ("/patches/{slot}/fx/{index}", {
+                params: { path: { slot, index } },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireChain (data, error, response.status,
+                                 `DELETE /patches/${String (slot)}/fx/${String (index)}`);
+        },
+
+        async reorderFxChain (slot, order, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/patches/{slot}/fx/reorder", {
+                params: { path: { slot } },
+                body: { order: [...order] },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireChain (data, error, response.status,
+                                 `POST /patches/${String (slot)}/fx/reorder`);
+        },
+
+        async listPlugins (requestOptions)
+        {
+            const search = requestOptions?.search;
+
+            const { data, error, response } = await client.GET ("/plugins", {
+                ...(search !== undefined && search.length > 0 ? { params: { query: { search } } } : {}),
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requirePluginList (data, error, response.status, "GET /plugins");
+        },
+
+        async rescanPlugins (requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/plugins/rescan", {
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requirePluginList (data, error, response.status, "POST /plugins/rescan");
         },
 
         async getAudio (requestOptions)

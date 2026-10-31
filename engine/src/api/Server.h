@@ -60,15 +60,38 @@ struct SlotSnapshot
 
 /** Instrument descriptor published with every patch in the family tree.
 
-    The descriptor is read-only over the control API: changing the source is
-    the instrument page's job. It is present for every patch, hot or cold, so
-    the grid can show a plugin/sampler patch before its instance is loaded.
+    The descriptor mirrors the patch's declared source. `POST
+    /patches/{slot}/source` replaces it together with the live source the
+    session instantiates. It is present for every patch, hot or cold, so the
+    grid can show a plugin/sampler patch before its instance is loaded.
 */
 struct PatchInstrumentState
 {
     std::string id;
     std::string name;
     std::string kind = "init-tone";
+    std::string pluginFormat = "VST3";
+    std::string pluginId;
+    std::string pluginName;
+    std::string pluginManufacturer;
+    std::string pluginVersion;
+    std::string samplePath;
+};
+
+/** A requested instrument-source change for one patch (T124).
+
+    Only `kind` is required. `path` is the kit document for `sampler` and the
+    VST3 bundle for `plugin`; `frequency` exists for `init-tone` and
+    `inputChannel` for `audio-input`. The descriptor fields are optional
+    overrides the inventory supplies.
+*/
+struct PatchSourceRequest
+{
+    std::string kind = "init-tone";
+    std::string name;
+    std::string path;
+    double frequency = 0.0;
+    int inputChannel = 0;
     std::string pluginFormat = "VST3";
     std::string pluginId;
     std::string pluginName;
@@ -592,6 +615,28 @@ public:
     */
     bool updatePatch (int slot, const juce::var& patch, std::string& error);
 
+    /** Publishes the source handler used by `POST /patches/{slot}/source`.
+
+        The handler swaps the live source in the fixed graph. It runs outside
+        the store's lock, on the HTTP thread, and must not run on the audio
+        thread. Empty means no audio session is attached.
+    */
+    using PatchSourceHandler = std::function<bool (int slot,
+                                                   const PatchSourceRequest& source,
+                                                   std::string& error)>;
+    void setPatchSourceHandler (PatchSourceHandler handler);
+
+    /** Applies one instrument-source change and its descriptor update.
+
+        Calls the source handler first; nothing is changed when it refuses the
+        request. On success the patch descriptor is replaced, the change is
+        broadcast as `event.kind: "patch"`, and the source is returned in the
+        next `snapshot()`.
+    */
+    bool applyPatchSource (int slot,
+                           const PatchSourceRequest& source,
+                           std::string& error);
+
     /** Applies a patch's effective linear gain to the audio graph.
 
         `gain` already includes the mute/solo decision, so the handler only has
@@ -666,6 +711,7 @@ private:
     TransportHandler transportHandler;
     ChangeHandler changeHandler;
     PatchHandler patchHandler;
+    PatchSourceHandler patchSourceHandler;
     FxChainProvider fxProvider;
     FxCommandHandler fxHandler;
     TransportProvider transportProvider;
@@ -690,6 +736,7 @@ private:
     - `POST /settings`
     - `POST /transport`
     - `PATCH /patches/{slot}`
+    - `POST /patches/{slot}/source`
     - `GET  /patches/{slot}/fx`
     - `POST /patches/{slot}/fx`
     - `PUT  /patches/{slot}/fx`

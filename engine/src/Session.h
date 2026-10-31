@@ -337,8 +337,27 @@ public:
     int getSlotLatencySamples (int slot) const noexcept;
 
     //==============================================================================
-    // Per-patch insert chain (control thread)
+    // Instrument source (control thread, T124)
 
+    /** Replaces one slot's instrument source.
+
+        Only the source fields of `source` are taken: the patch identity, name,
+        mixer state, colour and insert chain stay with the slot. The slot's warm
+        request gets a new id, so the previous instance is retired (its destroy
+        hook clears the fixed voice) and a fresh one is created. An armed slot
+        is re-armed as soon as the new instance is resident, so the change is
+        audible after a short gap; a cold slot picks the new source up the next
+        time it is armed.
+
+        Must run on a control thread, never the audio thread. Returns false with
+        `error` when the session is not built or the slot is invalid.
+    */
+    bool setSlotSource (int slot,
+                        const SessionSlotConfig& source,
+                        std::string& error);
+
+    //==============================================================================
+    // Per-patch insert chain (control thread)
     /** Reads one patch's insert chain and latency budget. */
     bool getSlotFxChain (int slot,
                          AudioEngine::FxChainSnapshot& snapshot,
@@ -498,6 +517,13 @@ private:
     AudioEngine::FxTransport currentFxTransport() const noexcept;
 
     SessionConfig config;
+
+    /** Source fields the warm-pool factory reads, guarded separately so the
+        control thread can swap a source while another slot's instance is being
+        created on the pool worker. */
+    std::vector<SessionSlotConfig> sourceConfigs;
+    mutable std::mutex sourceMutex;
+    std::uint64_t sourceRevision = 0;
 
     // Destruction order matters: the plugin format manager must outlive the
     // instruments, and the engine must be destroyed before the proxies its

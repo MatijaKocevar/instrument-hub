@@ -77,6 +77,41 @@ export interface paths {
         patch: operations["updatePatch"];
         trace?: never;
     };
+    "/patches/{slot}/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change the instrument source behind one patch
+         * @description Replaces the patch's instrument source: the built-in initialisation
+         *     tone, a sampler kit, a hosted VST3 or the live audio input. The fixed
+         *     graph is not rewired; the slot's proxy is re-bound to a freshly
+         *     instantiated source and the previous instance is retired. An armed slot
+         *     fades back in as soon as the new source is resident, so the change is
+         *     audible on the next blocks. A cold slot keeps the new source in its warm
+         *     request and instantiates it the next time it is armed.
+         *
+         *     The patch identity (family, patch id, name, colour, mixer state and FX
+         *     chain) is preserved. Every provided descriptor field is validated
+         *     before the source is swapped, so a bad request never leaves the patch
+         *     half-changed. The response is the complete state after the change, and
+         *     the same change is published as `event.kind: "patch"` on `/events`.
+         */
+        post: operations["changePatchSource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/patches/{slot}/fx": {
         parameters: {
             query?: never;
@@ -643,6 +678,31 @@ export interface components {
             solo?: boolean;
             colorIndex?: number;
         };
+        PatchSourceRequest: {
+            /**
+             * @description Source to instantiate. `plugin` and `sampler` require `path`;
+             *     `audio-input` ignores both.
+             * @enum {string}
+             */
+            kind: "init-tone" | "sampler" | "plugin" | "audio-input";
+            /** @description Display name for the source; the patch name is unchanged. */
+            name?: string;
+            /** @description Kit document for `sampler`, VST3 bundle for `plugin`. */
+            path?: string;
+            /** @description Tone frequency for `init-tone`; omitted keeps the current one. */
+            frequency?: number;
+            /** @description Interface channel for `audio-input`. */
+            inputChannel?: number;
+            /** @description Plugin format label, `VST3` by default. */
+            pluginFormat?: string;
+            /** @description Stable plug-in id used by the set document. */
+            pluginId?: string;
+            pluginName?: string;
+            pluginManufacturer?: string;
+            pluginVersion?: string;
+            /** @description Kit document published in the descriptor; defaults to `path`. */
+            samplePath?: string;
+        };
         FxInsert: {
             /** @description Position in the chain; 0 is the first insert. */
             index: number;
@@ -1016,6 +1076,53 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             /** @description No patch is hosted by that slot */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    changePatchSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchSourceRequest"];
+            };
+        };
+        responses: {
+            /** @description The state after the source change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

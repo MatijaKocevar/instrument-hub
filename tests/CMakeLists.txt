@@ -1112,6 +1112,98 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Instrument page controls (T124) ----------------------------------------
+#
+# Drives the same requests the instrument page sends and measures the engine:
+# the volume fader changes the rendered level (PATCH volumeDb), mute silences
+# the slot, the insert chain can be added/bypassed/reordered/replaced/removed,
+# and the instrument source can be swapped (a tone frequency is measured by
+# zero crossings, a hosted TestPlugin loads and renders). The render is driven
+# by the test, so nothing depends on a sound card or wall-clock timing.
+
+juce_add_console_app(ihub-instrument-page-api-test
+    PRODUCT_NAME "ihub-instrument-page-api-test"
+)
+
+target_sources(ihub-instrument-page-api-test
+    PRIVATE
+        api/InstrumentPageApiTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+)
+
+target_include_directories(ihub-instrument-page-api-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-instrument-page-api-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
+        "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+)
+
+target_link_libraries(ihub-instrument-page-api-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_audio_devices
+        juce::juce_audio_formats
+        juce::juce_audio_processors_headless
+        juce::juce_core
+        juce::juce_dsp
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_dependencies(ihub-instrument-page-api-test TestPlugin_VST3)
+
+set_target_properties(ihub-instrument-page-api-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-instrument-page-api
+    COMMAND ihub-instrument-page-api-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- 64 logical slots and the warm pool (T118) ------------------------------
 #
 # Configures all 64 Launchpad patches, proves that only the armed slot, its K

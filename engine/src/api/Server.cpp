@@ -598,6 +598,102 @@ void StateStore::setPatchHandler (PatchHandler handler)
     patchHandler = std::move (handler);
 }
 
+void StateStore::setPatchSourceHandler (PatchSourceHandler handler)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    patchSourceHandler = std::move (handler);
+}
+
+bool StateStore::applyPatchSource (int slot,
+                                   const PatchSourceRequest& source,
+                                   std::string& error)
+{
+    if (slot < 0 || slot >= numSlots)
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    if (source.kind != "init-tone"
+        && source.kind != "sampler"
+        && source.kind != "plugin"
+        && source.kind != "audio-input")
+    {
+        error = "kind must be init-tone, sampler, plugin or audio-input";
+        return false;
+    }
+
+    PatchSourceHandler applySource;
+    PatchInstrumentState previous;
+    ChangeHandler changed;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        applySource = patchSourceHandler;
+        previous = slotInstruments[static_cast<std::size_t> (slot)];
+    }
+
+    if (applySource == nullptr)
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    if (! applySource (slot, source, error))
+    {
+        // The live swap refused the request, so the descriptor stays as it was.
+        return false;
+    }
+
+    PatchInstrumentState next;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+
+        next = slotInstruments[static_cast<std::size_t> (slot)];
+        next.kind = source.kind;
+        next.id = previous.id;
+
+        if (! source.name.empty())
+            next.name = source.name;
+        else if (! source.pluginName.empty())
+            next.name = source.pluginName;
+        else if (next.name.empty())
+            next.name = slotPatches[static_cast<std::size_t> (slot)];
+
+        // A source switch replaces the descriptor wholesale: a plug-in patch
+        // must not keep the previous kit path, and a tone must not keep a
+        // plug-in identity.
+        next.pluginFormat.clear();
+        next.pluginId.clear();
+        next.pluginName.clear();
+        next.pluginManufacturer.clear();
+        next.pluginVersion.clear();
+        next.samplePath.clear();
+
+        if (source.kind == "plugin")
+        {
+            next.pluginFormat = source.pluginFormat.empty() ? "VST3" : source.pluginFormat;
+            next.pluginId = source.pluginId;
+            next.pluginName = source.pluginName.empty() ? source.name : source.pluginName;
+            next.pluginManufacturer = source.pluginManufacturer;
+            next.pluginVersion = source.pluginVersion;
+        }
+        else if (source.kind == "sampler")
+        {
+            next.samplePath = source.samplePath.empty() ? source.path : source.samplePath;
+        }
+
+        slotInstruments[static_cast<std::size_t> (slot)] = next;
+        changed = changeHandler;
+    }
+
+    if (changed != nullptr)
+        changed ("patch", slot);
+
+    return true;
+}
+
 //==============================================================================
 // Per-patch insert chain (T121)
 
