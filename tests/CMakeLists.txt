@@ -720,3 +720,65 @@ add_test(
     COMMAND ihub-launchkey-protocol-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Launchkey driver against the virtual controller (T042) -----------------
+#
+# This is the T042 acceptance check. ihub-launchkey-sim's port is opened
+# through the same juce::MidiInput/MidiOutput calls the application uses:
+#
+#   connect -> handshake bytes match tests/midi/fixtures/session-handshake.json
+#   pad 0 press -> mapping arms slot 0 -> pad 0 LED with the active colour.
+#
+# It also checks key-note and encoder dispatch. Linux-only because the
+# simulator is an ALSA-sequencer client.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-launchkey-driver-test
+        PRODUCT_NAME "ihub-launchkey-driver-test"
+    )
+
+    target_sources(ihub-launchkey-driver-test
+        PRIVATE
+            controller/LaunchkeyDriverTest.cpp
+            midi/LaunchkeySim.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyDriver.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyProtocol.cpp"
+    )
+
+    target_include_directories(ihub-launchkey-driver-test
+        PRIVATE
+            "${IHUB_MIDI_DIR}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-launchkey-driver-test
+        PRIVATE
+            "IHUB_MIDI_FIXTURE_DIR=\"${IHUB_MIDI_DIR}/fixtures\""
+    )
+
+    target_link_libraries(ihub-launchkey-driver-test
+        PRIVATE
+            ALSA::ALSA
+            juce::juce_audio_devices
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-launchkey-driver-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-launchkey-driver
+        COMMAND ihub-launchkey-driver-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-launchkey-driver-test: ALSA simulator is Linux-only; skipping")
+endif()
