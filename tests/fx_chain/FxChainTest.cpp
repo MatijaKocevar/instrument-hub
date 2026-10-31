@@ -344,12 +344,23 @@ int testChainOrder (const juce::File& bundle)
     PatternSource source;
     AudioEngine::Slot slot (0);
     slot.setSource (&source);
-    check (slot.getFxChain().add (a.getPlugin()) == 0,
-           "the effect is added to the slot's chain");
     slot.prepare (kSampleRate, kBlockSize, kNumChannels);
 
-    check (slot.latencySamples() == source.latencySamples() + kLatencySamples,
+    const int latencyBefore = slot.latencySamples();
+    const double latencyMsBefore = slot.latencyMilliseconds();
+
+    check (slot.getFxChain().add (a.getPlugin()) == 0,
+           "the effect is added to the slot's chain");
+
+    const int latencyAfter = slot.latencySamples();
+    const double latencyMsAfter = slot.latencyMilliseconds();
+
+    check (latencyAfter == source.latencySamples() + kLatencySamples,
            "Slot::latencySamples() sums source and chain latency");
+    check (latencyAfter - latencyBefore == kLatencySamples,
+           "inserting a 5 ms plugin adds exactly 240 samples at 48 kHz");
+    check (std::abs ((latencyMsAfter - latencyMsBefore) - 5.0) < 1.0e-9,
+           "Slot::latencyMilliseconds() increases by exactly 5 ms");
 
     return 0;
 }

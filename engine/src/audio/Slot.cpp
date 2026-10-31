@@ -260,4 +260,12 @@ int Slot::latencySamples() const noexcept
     return sourceLatency + fxChain.latencySamples();
 }
 
+double Slot::latencyMilliseconds() const noexcept
+{
+    if (sampleRate <= 0.0)
+        return 0.0;
+
+    return static_cast<double> (latencySamples()) * 1000.0 / sampleRate;
+}
+
 } // namespace AudioEngine

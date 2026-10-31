@@ -291,6 +291,18 @@ void bridgeTest()
     check (std::abs (initial.latency.bufferMs - 2.6667) < 0.01,
            "the initial buffer latency is 2.67 ms");
 
+    // --- per-chain latency into /audio ------------------------------------
+    bridge.setChainLatencySamples (240);
+    auto withChain = bridge.snapshot();
+    check (std::abs (withChain.latency.chainMs - 5.0) < 0.01,
+           "the bridge publishes a 240-sample chain as 5 ms of chain latency");
+    check (std::abs (withChain.latency.totalMs
+                     - (withChain.latency.bufferMs
+                        + withChain.latency.deviceMs
+                        + withChain.latency.chainMs)) < 0.01,
+           "the total latency includes the chain contribution");
+    bridge.setChainLatencySamples (0);
+
     // --- buffer 128 -> 256 ------------------------------------------------
     Api::AudioSettingsPatch bufferPatch;
     bufferPatch.bufferSize = 256;

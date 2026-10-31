@@ -104,7 +104,9 @@ function isControlState (value: unknown): value is ControlState
                && typeof slot === "object"
                && typeof slot.index === "number"
                && typeof slot.name === "string"
-               && typeof slot.armed === "boolean")
+               && typeof slot.armed === "boolean"
+               && typeof slot.latencySamples === "number"
+               && typeof slot.latencyMs === "number")
         && typeof candidate.settings?.masterGain === "number"
         && typeof candidate.transport?.bpm === "number";
 }

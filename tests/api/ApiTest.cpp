@@ -32,6 +32,7 @@ juce::var parseJson (const std::string& text)
 int main()
 {
     Api::StateStore state (8);
+    state.setSlotLatency (2, 240, 48000.0);
 
     Api::Server::Options options;
     options.address = "127.0.0.1";
@@ -68,9 +69,24 @@ int main()
         const auto slots = body.getDynamicObject()->getProperty ("slots");
 
         if (const auto* array = slots.getArray())
+        {
             check (array->size() == 8, "state lists 8 slots");
+
+            const auto third = array->size() > 2 ? (*array)[2] : juce::var();
+            check (third.isObject()
+                       && static_cast<int> (third.getDynamicObject()
+                                                ->getProperty ("latencySamples")) == 240,
+                   "GET /state publishes the slot's 240-sample chain latency");
+            check (third.isObject()
+                       && std::abs (static_cast<double> (third.getDynamicObject()
+                                                             ->getProperty ("latencyMs")) - 5.0)
+                              < 1.0e-9,
+                   "GET /state publishes the same chain latency as 5 ms");
+        }
         else
+        {
             check (false, "state slots is an array");
+        }
     }
 
     // --- POST /arm ---------------------------------------------------------
