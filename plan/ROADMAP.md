@@ -534,3 +534,17 @@ file. If the check fails you are not done.
 - goal: Give every plugin patch its own persistent state. Capture `getStateInformation()` when the patch is switched away from, when its editor closes and before warm-pool eviction; restore it when the instance is created and whenever the patch is armed again. Persist the blobs in a sidecar next to `set.yaml` and load them at startup. When the armed patch changes, close editor windows belonging to non-armed slots so an open editor never keeps showing the old patch; opening the editor for the new patch shows its own restored state.
 - files: `engine/src/Session.{h,cpp}`, `engine/src/api/SessionBridge.{h,cpp}`, `engine/src/plugins/PluginWindow.{h,cpp}`, `tests/`
 - accept: assign Analog Lab V to two patches, give them different presets, switch back and forth and restart the app; each patch restores its own sound, the old editor does not stay bound to the previous patch, and `ctest` stays green.
+
+## T131 · 64-patch Analog Lab acceptance
+- depends: T130
+- size: M
+- goal: Prove the real use case: 8 families x 8 patches, every patch an Analog Lab V source with its own state. Use the plugin's program/preset API where available, or at least two captured state fixtures, and repeat them across all 64 slots. Arm every patch, verify its `getStateInformation` hash matches the state stored for that slot, switch A -> B -> A and back across many patches so the warm pool evicts and reloads, restart the app and verify all 64 again, and verify the editor for a non-armed slot closes when another patch is armed. Render a note on two patches with different states and assert both are non-silent and differ.
+- files: `tests/e2e/`, `engine/src/Session.{h,cpp}`, `tests/CMakeLists.txt`, `docs/`
+- accept: a new `ihub-analoglab-multipatch` ctest passes on this machine with 64 slots, two or more distinct Analog Lab states, state-hash checks before/after eviction and after restart, editor-follow checks, and a recorded non-silent/different-audio result; it skips with a clear message only when Analog Lab V is not installed.
+
+## T132 · Explicit save-sound control
+- depends: T130
+- size: S
+- goal: Add a visible "Save sound to patch" action on the Instrument page and `POST /patches/{slot}/state/capture`, which immediately captures the running plugin's state into that patch and confirms it. Auto-capture on switch/editor close/eviction stays; this is for tweaking a sound and saving it without switching away.
+- files: `engine/src/api/`, `ui/src/features/instrument/`, `shared/api/openapi.yaml`, `tests/`
+- accept: change a preset, press Save, switch away and back, restart and verify the patch restores; `ctest`, typecheck and snapshots stay green.
