@@ -2494,3 +2494,87 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-ui-snapshot-test: X11/WebKit snapshot is Linux-only; skipping")
 endif()
+
+# --- End-to-end pad-to-audio (T117) -----------------------------------------
+#
+# One headless acceptance test for the whole shipped path:
+#
+#   LaunchpadDriver pad event -> Mapping (shared/set.yaml) -> Session::armSlot
+#     -> SlotSwitcher 3 ms crossfade -> AudioEngine -> ALSA Loopback
+#
+# It checks the intended slot arms, that the armed slot renders non-silent
+# audio, that the switch is click-free (residual against the ideal equal-power
+# crossfade, plus a delta detector with a hard-switch negative control), and
+# that the same pad events produce non-silent audio captured from the Loopback.
+# Linux-only because it opens the ALSA Loopback card.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-e2e-test
+        PRODUCT_NAME "ihub-e2e-test"
+    )
+
+    target_sources(ihub-e2e-test
+        PRIVATE
+            e2e/PadToAudio.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+    )
+
+    target_include_directories(ihub-e2e-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-e2e-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+    )
+
+    target_link_libraries(ihub-e2e-test
+        PRIVATE
+            ALSA::ALSA
+            juce::juce_audio_devices
+            juce::juce_audio_formats
+            juce::juce_audio_processors_headless
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-e2e-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-e2e
+        COMMAND ihub-e2e-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-e2e-test: the ALSA Loopback acceptance is Linux-only; skipping")
+endif()
