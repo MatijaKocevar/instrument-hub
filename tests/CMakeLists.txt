@@ -327,6 +327,58 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Diagnostics (T111) -----------------------------------------------------
+#
+# Structured log ring under four concurrent producers, crash-safe dump format,
+# a forked child that really dies by SIGABRT with the handler installed, and
+# the formatted report (device, buffer, latency, xruns, plugins, log).
+
+juce_add_console_app(ihub-diagnostics-test
+    PRODUCT_NAME "ihub-diagnostics-test"
+)
+
+find_package(Threads REQUIRED)
+
+target_sources(ihub-diagnostics-test
+    PRIVATE
+        diag/DiagnosticsTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/CrashDump.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/Diagnostics.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/LogRing.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+)
+
+target_include_directories(ihub-diagnostics-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-diagnostics-test
+    PRIVATE
+        Threads::Threads
+        juce::juce_audio_devices
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-diagnostics-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-diagnostics
+    COMMAND ihub-diagnostics-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- Round-trip latency -----------------------------------------------------
 #
 # Opens the ALSA Loopback full-duplex, fires an impulse, records the capture,

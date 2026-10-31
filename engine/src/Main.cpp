@@ -4,6 +4,9 @@
 #include "audio/AudioSettings.h"
 #include "audio/DeviceManager.h"
 #include "audio/RtGuard.h"
+#include "diag/CrashDump.h"
+#include "diag/Diagnostics.h"
+#include "diag/LogRing.h"
 #include "plugins/ProcessLimits.h"
 #include "plugins/Scanner.h"
 
@@ -583,6 +586,131 @@ int runLatencyMeasurement()
     return withinTolerance && consistent ? 0 : 1;
 }
 
+//==============================================================================
+// --diagnostics (T111)
+//
+// Opens the ALSA Loopback through the real device path, renders silence
+// through the fixed graph for a short, bounded time, then prints one report
+// covering the device, buffer, latency, xruns, loaded plugins and the newest
+// structured log records. The same report can be written to a file with
+// --diagnostics-out <path>.
+int runDiagnostics (const juce::String& commandLine)
+{
+    using namespace ihub::diag;
+
+    const auto durationValue = getCommandLineValue (commandLine, "--diagnostics-ms");
+
+    int durationMs = durationValue.isNotEmpty() ? durationValue.getIntValue() : 1000;
+    durationMs = juce::jlimit (100, 20000, durationMs);
+
+    juce::File pluginList = ihub::plugins::Scanner::defaultReportFile();
+
+    if (const auto pluginDataDir = getCommandLineValue (commandLine, "--plugin-data-dir");
+        pluginDataDir.isNotEmpty())
+    {
+        pluginList = juce::File (pluginDataDir)
+                         .getChildFile (ihub::plugins::Scanner::reportFileName);
+    }
+
+    auto& ring = defaultLog();
+
+    DiagnosticsOptions options;
+    options.knownPluginListFile = pluginList;
+    options.crashDumpPath = getCrashDumpPath();
+    options.maxLogRecords = 128;
+
+    ring.log (LogLevel::info, LogSource::diagnostics, 100,
+              "diagnostics started, crash dump " + getCrashDumpPath());
+
+    AudioEngine::DeviceManager devices;
+    AudioEngine::DeviceSetup setup;
+
+    bool found = false;
+
+    for (const auto& info : devices.getDevices())
+    {
+        if (! info.hasOutput || ! info.name.containsIgnoreCase ("Loopback"))
+            continue;
+
+        setup.deviceTypeName = info.typeName;
+        setup.outputDeviceName = info.name;
+        setup.inputDeviceName = info.hasInput ? info.name : juce::String();
+        setup.sampleRate = 48000.0;
+        setup.bufferSize = 128;
+        setup.numOutputChannels = juce::jmin (2, info.outputChannelNames.size());
+        setup.numInputChannels = info.hasInput
+                                     ? juce::jmin (2, info.inputChannelNames.size())
+                                     : 0;
+        setup.outputChannels = AudioEngine::DeviceSetup::channelMask (
+            setup.numOutputChannels);
+        setup.inputChannels = AudioEngine::DeviceSetup::channelMask (
+            setup.numInputChannels);
+        found = true;
+        break;
+    }
+
+    AudioEngine::AudioEngine engine;
+
+    if (! found)
+    {
+        ring.log (LogLevel::error, LogSource::diagnostics, 110,
+                  "no Loopback output device was enumerated");
+    }
+    else
+    {
+        juce::String error;
+
+        if (! devices.open (setup, &error))
+        {
+            ring.log (LogLevel::error, LogSource::diagnostics, 111,
+                      "could not open Loopback: " + error.toStdString());
+        }
+        else
+        {
+            ring.log (LogLevel::info, LogSource::diagnostics, 101,
+                      "opened " + setup.outputDeviceName.toStdString() + " at "
+                          + juce::String (juce::roundToInt (devices.getCurrentSampleRate()))
+                                .toStdString()
+                          + " Hz / "
+                          + juce::String (devices.getCurrentBufferSize()).toStdString()
+                          + " frames");
+
+            // The engine is the device callback: prepare() runs from
+            // audioDeviceAboutToStart() and every block feeds TimingMonitor.
+            devices.setAudioCallback (&engine);
+
+            juce::Thread::sleep (durationMs);
+
+            devices.setAudioCallback (nullptr);
+
+            const auto snapshotTiming = engine.getTimingMonitor().snapshot();
+
+            ring.log (LogLevel::info, LogSource::diagnostics, 102,
+                      "rendered " + std::to_string (snapshotTiming.callbacks)
+                          + " callbacks in " + std::to_string (durationMs)
+                          + " ms, " + std::to_string (snapshotTiming.overruns)
+                          + " callback xruns");
+        }
+    }
+
+    const auto timing = engine.getTimingMonitor().snapshot();
+    const std::vector<PluginDiagnostics> loadedPlugins;
+    const auto snapshot = collectDiagnostics (devices, timing, loadedPlugins, ring, options);
+
+    const auto report = formatDiagnostics (snapshot);
+    std::cout << report;
+    std::cout.flush();
+
+    if (const auto outPath = getCommandLineValue (commandLine, "--diagnostics-out");
+        outPath.isNotEmpty())
+    {
+        if (! writeDiagnostics (snapshot, juce::File (outPath)))
+            std::cerr << "diagnostics: could not write " << outPath << std::endl;
+    }
+
+    return snapshot.device.open ? 0 : 1;
+}
+
 class MainComponent final : public juce::Component
 {
 public:
@@ -659,6 +787,15 @@ public:
     {
         ihub::plugins::capFileDescriptorLimit();
 
+        // Structured logging and the crash dump are active for every mode.
+        // The handler writes the last records with async-signal-safe calls and
+        // re-raises, so the process still dies with its original status.
+        ihub::diag::installJuceLoggerSink();
+
+        ihub::diag::CrashDumpOptions crashOptions;
+        crashOptions.path = getCommandLineValue (commandLine, "--crash-dump").toStdString();
+        ihub::diag::installCrashDump (crashOptions);
+
         uiCheckMode = commandLine.contains ("--ui-check");
         selftestMode = commandLine.contains ("--selftest");
         serveMode = commandLine.contains ("--serve");
@@ -707,6 +844,13 @@ public:
         if (commandLine.contains ("--measure-latency"))
         {
             setApplicationReturnValue (runLatencyMeasurement());
+            quit();
+            return;
+        }
+
+        if (commandLine.contains ("--diagnostics"))
+        {
+            setApplicationReturnValue (runDiagnostics (commandLine));
             quit();
             return;
         }
