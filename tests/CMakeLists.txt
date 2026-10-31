@@ -105,6 +105,7 @@ target_sources(ihub-audio-engine-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
 target_include_directories(ihub-audio-engine-test
@@ -150,6 +151,48 @@ set_target_properties(ihub-audio-engine-test PROPERTIES
 add_test(
     NAME ihub-audio-engine
     COMMAND ihub-audio-engine-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# --- Xrun and timing monitor ------------------------------------------------
+# Injects exact callback durations (including a 2x-deadline stall) through the
+# deterministic recording seam and checks the overrun, dropped-block and rolling
+# maximum accounting.
+
+juce_add_console_app(ihub-timing-monitor-test
+    PRODUCT_NAME "ihub-timing-monitor-test"
+)
+
+target_sources(ihub-timing-monitor-test
+    PRIVATE
+        timing_monitor/TimingMonitorTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+)
+
+target_include_directories(ihub-timing-monitor-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-timing-monitor-test
+    PRIVATE
+        juce::juce_core
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-timing-monitor-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-timing-monitor
+    COMMAND ihub-timing-monitor-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 

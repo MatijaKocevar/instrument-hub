@@ -90,6 +90,7 @@ target_sources(instrument-hub
         src/audio/DeviceManager.cpp
         src/audio/LatencyProbe.cpp
         src/audio/Slot.cpp
+        src/audio/TimingMonitor.cpp
 )
 
 target_include_directories(instrument-hub
