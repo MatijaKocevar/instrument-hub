@@ -44,6 +44,14 @@ export interface ControlApi
 
     /** Read one consistent state snapshot. */
     getState (options?: { signal?: AbortSignal }): Promise<ControlState>;
+
+    /**
+        Arm `slot`, or disarm with `null` / a negative value.
+
+        Resolves with the state after the request, so the caller can reconcile
+        its optimistic highlight with the engine.
+    */
+    armSlot (slot: number | null, options?: { signal?: AbortSignal }): Promise<ControlState>;
 }
 
 function describeError (value: unknown): string
@@ -97,6 +105,26 @@ export function createControlApi (options: ControlApiOptions): ControlApi
         ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
     });
 
+    function requireState (data: ControlState | undefined,
+                           error: unknown,
+                           status: number,
+                           what: string): ControlState
+    {
+        if (data !== undefined)
+        {
+            if (! isControlState (data))
+                throw new ApiError (`${what} returned an unsupported payload`, status);
+
+            return data;
+        }
+
+        const message = describeError (error);
+
+        throw new ApiError (
+            message.length > 0 ? message : `${what} failed with HTTP ${status}`,
+            status);
+    }
+
     return {
         baseUrl,
 
@@ -106,19 +134,17 @@ export function createControlApi (options: ControlApiOptions): ControlApi
                 ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
             });
 
-            if (data !== undefined)
-            {
-                if (! isControlState (data))
-                    throw new ApiError ("GET /state returned an unsupported payload", response.status);
+            return requireState (data, error, response.status, "GET /state");
+        },
 
-                return data;
-            }
+        async armSlot (slot, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/arm", {
+                body: { slot },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
 
-            const message = describeError (error);
-
-            throw new ApiError (
-                message.length > 0 ? message : `GET /state failed with HTTP ${response.status}`,
-                response.status);
+            return requireState (data, error, response.status, "POST /arm");
         },
     };
 }

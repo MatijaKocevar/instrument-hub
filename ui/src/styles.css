@@ -63,35 +63,10 @@ body {
   font-size: 1.05rem;
 }
 
-.app__slots {
+.app__panels {
   display: grid;
-  flex: 1;
-  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
   gap: 0.85rem;
-  align-content: start;
-}
-
-.slot {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid #2b2d3b;
-  border-radius: 0.9rem;
-  background: linear-gradient(160deg, #1b1c26 0%, #15161d 100%);
-}
-
-.slot__number {
-  color: #6ee7c8;
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.slot__name {
-  color: #7e859a;
-  font-size: 0.95rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
 
 .app__connection {
@@ -212,31 +187,6 @@ body {
   border-radius: 0.9rem;
   color: #8b93a7;
   text-align: center;
-}
-
-.slot--armed {
-  border-color: #3d7d6d;
-  background: linear-gradient(160deg, #17332c 0%, #14211f 100%);
-}
-
-.slot--armed .slot__name {
-  color: #dffaf2;
-}
-
-.slot--empty .slot__name {
-  color: #5d6478;
-}
-
-.slot__badge {
-  margin-left: auto;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: #2f6f5f;
-  color: #e7fff8;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .app__footer {

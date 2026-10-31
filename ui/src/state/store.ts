@@ -48,6 +48,25 @@ function messageOf (error: unknown): string
 }
 
 /**
+    Return `state` with `slot` armed.
+
+    Used for the optimistic highlight: the grid reads `armedSlot`, so patching
+    this in the same tick as the click makes the highlight move on the next
+    render instead of after the next 2 s poll.
+*/
+function withArmedSlot (state: ControlState, slot: number): ControlState
+{
+    return {
+        ...state,
+        armedSlot: slot,
+        slots: state.slots.map (candidate => ({
+            ...candidate,
+            armed: candidate.index === slot,
+        })),
+    };
+}
+
+/**
     Holds the control state and keeps it fresh.
 
     A single polling loop serialises requests: `refresh()` de-duplicates while a
@@ -74,6 +93,11 @@ export class AppStore
     private timer: ReturnType<typeof setTimeout> | null = null;
     private inFlight: Promise<boolean> | null = null;
     private running = false;
+
+    /** Sequence of arm requests; a stale response must not win. */
+    private armSequence = 0;
+    /** Number of arm requests in flight, used to keep the highlight during polls. */
+    private armInFlight = 0;
 
     constructor (api: ControlApi, options: AppStoreOptions = {})
     {
@@ -149,6 +173,64 @@ export class AppStore
         return Math.min (this.options.retryMaxMs, delay);
     }
 
+    /**
+        Arm `slot` (or disarm with `null`).
+
+        The store applies the highlight optimistically, synchronously, before
+        the request leaves. A failed request rolls the highlight back to the
+        last confirmed state. Returns `false` without a request when the slot
+        is outside the engine's slot list.
+    */
+    armSlot = async (slot: number | null): Promise<boolean> =>
+    {
+        const target = slot === null ? -1 : slot;
+        const previous = this.snapshot.state;
+
+        if (previous !== null && target >= previous.slots.length)
+            return false;
+
+        const sequence = this.armSequence + 1;
+        this.armSequence = sequence;
+        this.armInFlight += 1;
+
+        if (previous !== null)
+            this.patch ({ state: withArmedSlot (previous, target), error: null });
+
+        try
+        {
+            const state = await this.api.armSlot (slot);
+
+            if (sequence === this.armSequence)
+            {
+                this.patch ({
+                    phase: "ready",
+                    state,
+                    error: null,
+                    failedAttempts: 0,
+                    updatedAt: this.options.now(),
+                });
+            }
+
+            return true;
+        }
+        catch (error)
+        {
+            if (sequence === this.armSequence)
+            {
+                this.patch ({
+                    error: messageOf (error),
+                    ...(previous === null ? {} : { state: previous }),
+                });
+            }
+
+            return false;
+        }
+        finally
+        {
+            this.armInFlight -= 1;
+        }
+    };
+
     private async load (): Promise<boolean>
     {
         if (this.snapshot.state === null)
@@ -156,7 +238,13 @@ export class AppStore
 
         try
         {
-            const state = await this.api.getState();
+            let state = await this.api.getState();
+
+            // A poll that lands while an arm request is in flight may still
+            // describe the old slot. Keep the optimistic highlight until the
+            // arm response (or its rollback) arrives.
+            if (this.armInFlight > 0 && this.snapshot.state !== null)
+                state = withArmedSlot (state, this.snapshot.state.armedSlot);
 
             this.patch ({
                 phase: "ready",
