@@ -32,6 +32,12 @@ double gainToDb (float gain) noexcept
 
 bool toSessionKind (const std::string& text, ihub::SessionSlotKind& kind)
 {
+    if (text == "empty")
+    {
+        kind = ihub::SessionSlotKind::empty;
+        return true;
+    }
+
     if (text == "init-tone")
     {
         kind = ihub::SessionSlotKind::initTone;

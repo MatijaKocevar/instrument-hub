@@ -61,8 +61,8 @@ struct InstrumentSpec
     //==========================================================================
     // Instrument descriptor (present for every patch, hot or cold)
 
-    /** `init-tone`, `sampler`, `plugin` or `audio-input`. */
-    std::string kind = "init-tone";
+    /** `empty`, `init-tone`, `sampler`, `plugin` or `audio-input`. */
+    std::string kind = "empty";
 
     /** Plugin identity. `pluginState` is the lazy part: accepted empty. */
     std::string pluginFormat = "VST3";

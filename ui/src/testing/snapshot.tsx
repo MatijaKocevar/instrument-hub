@@ -1098,7 +1098,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
                 }
 
                 if (typeof body.kind !== "string"
-                    || ! ["init-tone", "sampler", "plugin", "audio-input"].includes (body.kind))
+                    || ! ["empty", "init-tone", "sampler", "plugin", "audio-input"].includes (body.kind))
                 {
                     response.statusCode = 400;
                     response.end (JSON.stringify ({ error: "kind must be a source kind" }));

@@ -23,6 +23,7 @@ export {
     moveOrder,
     patchForInstrumentSlot,
     sourceKindLabel,
+    sourceRequestForEmpty,
     sourceRequestForInitTone,
     sourceRequestForPlugin,
     wetPercent,

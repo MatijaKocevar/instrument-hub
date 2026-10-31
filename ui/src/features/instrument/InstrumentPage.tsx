@@ -25,6 +25,7 @@ import {
     insertRequestForPlugin,
     isPluginSource,
     sourceKindLabel,
+    sourceRequestForEmpty,
     sourceRequestForInitTone,
     sourceRequestForPlugin,
     wetPercent,
@@ -188,6 +189,12 @@ function SourceSection ({ patch, plugins, pluginError, sourceBusy, onSourceChang
 
     const choose = (): void =>
     {
+        if (selection === "empty")
+        {
+            onSourceChange?.(patch.slot, sourceRequestForEmpty ());
+            return;
+        }
+
         if (selection === "init-tone")
         {
             onSourceChange?.(patch.slot, sourceRequestForInitTone ());
@@ -291,6 +298,7 @@ function SourceSection ({ patch, plugins, pluginError, sourceBusy, onSourceChang
                             onChange={event => { setSelection (event.currentTarget.value); }}
                         >
                             <option value="">Choose a source…</option>
+                            <option value="empty">Unassigned (silent)</option>
                             <option value="init-tone">Built-in tone</option>
                             {assignable.map (plugin => (
                                 <option key={plugin.id} value={plugin.path}>

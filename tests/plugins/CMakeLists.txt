@@ -20,7 +20,7 @@ juce_add_plugin(TestPlugin
     FORMATS VST3
     VST3_CATEGORIES Fx
     IS_SYNTH FALSE
-    NEEDS_MIDI_INPUT FALSE
+    NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
@@ -42,6 +42,51 @@ target_compile_definitions(TestPlugin
 )
 
 target_link_libraries(TestPlugin
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_audio_utils
+        juce::juce_gui_basics
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+# NoteTonePlugin: a note-gated sine instrument for the live-MIDI acceptance.
+# It renders only while a note is held, so T128 can prove that an injected
+# note reaches the armed plugin and that a note-off silences it.
+
+juce_add_plugin(NoteTonePlugin
+    PRODUCT_NAME "NoteTonePlugin"
+    COMPANY_NAME "Instrument Hub"
+    BUNDLE_ID "com.instrumenthub.notetoneplugin"
+    PLUGIN_MANUFACTURER_CODE IHUB
+    PLUGIN_CODE NTNP
+    DESCRIPTION "Instrument Hub note-gated test instrument"
+    FORMATS VST3
+    VST3_CATEGORIES Instrument
+    IS_SYNTH TRUE
+    NEEDS_MIDI_INPUT TRUE
+    NEEDS_MIDI_OUTPUT FALSE
+    IS_MIDI_EFFECT FALSE
+    EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    COPY_PLUGIN_AFTER_BUILD FALSE
+    VST3_AUTO_MANIFEST TRUE
+)
+
+target_sources(NoteTonePlugin
+    PRIVATE
+        NoteTonePlugin/NoteTonePlugin.cpp
+        NoteTonePlugin/NoteTonePluginProcessor.cpp
+)
+
+target_compile_definitions(NoteTonePlugin
+    PRIVATE
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_VST3_CAN_REPLACE_VST2=0
+)
+
+target_link_libraries(NoteTonePlugin
     PRIVATE
         juce::juce_audio_processors
         juce::juce_audio_utils

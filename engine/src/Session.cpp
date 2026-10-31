@@ -117,6 +117,24 @@ private:
     double increment = 0.0;
 };
 
+/** A real `SlotSource` that renders nothing.
+
+    Unassigned patches use it so the fixed graph and warm pool stay uniform:
+    the slot is still warm/active, its meter is zero, and MIDI is ignored.
+*/
+class SilentSource final : public AudioEngine::SlotSource
+{
+public:
+    void prepare (double, int) override {}
+
+    void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override
+    {
+        buffer.clear();
+    }
+
+    int latencySamples() const noexcept override { return 0; }
+};
+
 /** A sampler patch whose kit is owned by the pooled instance.
 
     The warm pool creates and destroys instruments on its own threads; a kit
@@ -172,13 +190,14 @@ const char* toString (SessionSlotKind kind) noexcept
 {
     switch (kind)
     {
+        case SessionSlotKind::empty:      return "empty";
         case SessionSlotKind::initTone:   return "init-tone";
         case SessionSlotKind::sampler:    return "sampler";
         case SessionSlotKind::plugin:     return "plugin";
         case SessionSlotKind::audioInput: return "audio-input";
     }
 
-    return "init-tone";
+    return "empty";
 }
 
 const char* toString (SessionWarmState state) noexcept
@@ -297,7 +316,7 @@ Session::~Session()
     pluginFormats.reset();
 }
 
-std::vector<SessionSlotConfig> Session::makeDefaultSet()
+std::vector<SessionSlotConfig> Session::makeDefaultSet (SessionSlotKind defaultKind)
 {
     std::vector<SessionSlotConfig> slots;
     slots.reserve (static_cast<std::size_t> (defaultLogicalSlots));
@@ -310,7 +329,8 @@ std::vector<SessionSlotConfig> Session::makeDefaultSet()
 
         SessionSlotConfig slot;
         slot.name = "Init " + std::to_string (index + 1);
-        slot.kind = SessionSlotKind::initTone;
+        slot.kind = defaultKind;
+        slot.instrumentKind = toString (defaultKind);
         slot.frequency = defaultFrequencies[patchIndex] * familyScale;
         slot.gain = 1.0f;
 
@@ -541,6 +561,9 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
 
     switch (slotConfig.kind)
     {
+        case SessionSlotKind::empty:
+            return std::make_unique<SilentSource>();
+
         case SessionSlotKind::initTone:
             return std::make_unique<InitToneSource> (slotConfig.frequency,
                                                      initToneAmplitude);
@@ -800,6 +823,16 @@ void Session::prepare (double newSampleRate, int newMaximumBlockSize, int newNum
     renderBuffer.clear();
     blockMidi.clear();
 
+    // Pre-size the block MIDI storage so draining the queue on the audio
+    // thread never grows the underlying array. Each event costs a 6-byte
+    // header (int32 sample + uint16 size) plus its 3-byte payload, so 12
+    // bytes per queued event is a safe bound.
+    blockMidi.ensureSize (static_cast<std::size_t> (midiQueueCapacity) * 12u + 64u);
+
+    // A device change is a clean hand-off point: drop events queued for the
+    // stopped stream instead of replaying them into a later block.
+    midiFifo.reset();
+
     prepared = true;
 }
 
@@ -1028,7 +1061,23 @@ bool Session::setSlotSource (int slot,
         pendingArmSlot.store (slot, std::memory_order_relaxed);
     }
 
+    SourceAssignedHook hook;
+
+    {
+        const std::lock_guard<std::mutex> hookLock (sourceAssignedMutex);
+        hook = sourceAssignedHook;
+    }
+
+    if (hook)
+        hook (slot, config.slots[static_cast<std::size_t> (slot)]);
+
     return true;
+}
+
+void Session::setSourceAssignedHook (SourceAssignedHook hook)
+{
+    const std::lock_guard<std::mutex> lock (sourceAssignedMutex);
+    sourceAssignedHook = std::move (hook);
 }
 
 bool Session::getSlotFxChain (int slot,
@@ -1559,12 +1608,64 @@ void Session::updateMeters (int numSamples) noexcept
     masterMeterPeak.store (juce::jmax (masterPeak, decayed), std::memory_order_relaxed);
 }
 
+bool Session::pushMidi (const juce::MidiMessage& message) noexcept
+{
+    const auto size = message.getRawDataSize();
+
+    if (size <= 0 || size > 3 || message.isSysEx())
+        return false;
+
+    const auto scope = midiFifo.write (1);
+
+    if (scope.blockSize1 <= 0)
+        return false;
+
+    auto& event = midiQueue[static_cast<std::size_t> (scope.startIndex1)];
+    event.size = static_cast<std::uint8_t> (size);
+
+    const auto* raw = message.getRawData();
+
+    for (int index = 0; index < size; ++index)
+        event.data[static_cast<std::size_t> (index)] = raw[index];
+
+    return true;
+}
+
+void Session::drainMidi (juce::MidiBuffer& destination) noexcept
+{
+    const auto ready = midiFifo.getNumReady();
+
+    if (ready <= 0)
+        return;
+
+    const auto scope = midiFifo.read (ready);
+
+    auto add = [this, &destination] (int start, int count)
+    {
+        for (int index = 0; index < count; ++index)
+        {
+            const auto& event = midiQueue[static_cast<std::size_t> (start + index)];
+
+            if (event.size > 0)
+                destination.addEvent (event.data.data(), static_cast<int> (event.size), 0);
+        }
+    };
+
+    add (scope.startIndex1, scope.blockSize1);
+    add (scope.startIndex2, scope.blockSize2);
+}
+
 void Session::renderInternal (int numSamples, juce::MidiBuffer& midi) noexcept
 {
     const int samples = juce::jmin (numSamples, maximumBlockSize);
 
     if (samples <= 0 || engine == nullptr || switcher == nullptr)
         return;
+
+    // MIDI inputs and the offline test seam feed this one lock-free queue. The
+    // events are placed at the start of the block, which is the smallest
+    // musically meaningful offset a block-based renderer can promise.
+    drainMidi (midi);
 
     auto& bus = engine->getBus();
 

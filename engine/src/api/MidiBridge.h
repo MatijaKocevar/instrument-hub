@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -54,6 +55,19 @@ public:
         the driver is being destroyed. */
     void setLaunchpad (Controller::LaunchpadDriver* driver);
 
+    /** Attach the consumer that enabled inputs play into. In the application
+        this is `Session::pushMidi`. Pass an empty function to detach. */
+    void setMidiSink (std::function<bool (const juce::MidiMessage&)> sink);
+
+    /** Forward one short message from a named input to the session.
+
+        Launchpad MI/DA ports are controller surfaces, not instruments: their
+        notes arm patches and are never forwarded. Returns true only when the
+        message went into the session queue. MIDI input threads call this
+        through `handleIncomingMidiMessage`; tests call it directly. */
+    bool forwardMidiMessage (const juce::String& deviceName,
+                             const juce::MidiMessage& message);
+
     /** Called after the pad test clears the surface so the grid can repaint. */
     using RestoreHandler = std::function<void()>;
     void setRestoreHandler (RestoreHandler handler);
@@ -100,6 +114,15 @@ private:
     static std::string describeMessage (const juce::MidiMessage& message);
 
     std::atomic<Controller::LaunchpadDriver*> launchpad { nullptr };
+
+    /** The session queue writer. Set once by the application/tests; guarded
+        because MIDI callbacks and the control thread run concurrently. */
+    mutable std::mutex sinkMutex;
+    std::function<bool (const juce::MidiMessage&)> midiSink;
+
+    /** Serialises the SPSC writer: several enabled inputs each run on their
+        own MIDI thread. The audio-thread reader is still lock-free. */
+    std::mutex forwardMutex;
 
     mutable std::mutex monitorMutex;
     std::map<std::string, Monitor> monitors;

@@ -696,7 +696,7 @@ export interface components {
              * @description Instrument source described by the patch.
              * @enum {string}
              */
-            kind: "init-tone" | "sampler" | "plugin" | "audio-input";
+            kind: "empty" | "init-tone" | "sampler" | "plugin" | "audio-input";
             /** @description Plugin format for a plugin patch (`VST3`). */
             pluginFormat?: string;
             pluginId?: string;
@@ -756,7 +756,7 @@ export interface components {
              *     `audio-input` ignores both.
              * @enum {string}
              */
-            kind: "init-tone" | "sampler" | "plugin" | "audio-input";
+            kind: "empty" | "init-tone" | "sampler" | "plugin" | "audio-input";
             /** @description Display name for the source; the patch name is unchanged. */
             name?: string;
             /** @description Kit document for `sampler`, VST3 bundle for `plugin`. */

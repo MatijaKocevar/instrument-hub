@@ -239,6 +239,16 @@ ihub::SessionConfig makeConfig (float fadeMilliseconds)
     config.device.numInputChannels = 2;
     config.fadeMilliseconds = fadeMilliseconds;
     config.slots = ihub::Session::makeDefaultSet();
+
+    // The default set is unassigned/silent. This acceptance needs the
+    // deterministic audible source, so the fixture's init-tone patches are
+    // requested explicitly here as well.
+    for (auto& slot : config.slots)
+    {
+        slot.kind = ihub::SessionSlotKind::initTone;
+        slot.instrumentKind = "init-tone";
+    }
+
     return config;
 }
 

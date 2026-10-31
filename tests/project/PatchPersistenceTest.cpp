@@ -148,9 +148,10 @@ ihub::project::SetFile buildSet (const Controller::SetMapping& document,
             slot.fxChain.push_back (std::move (fx));
         }
 
-        // The shipped set is made of init-tone descriptors. For the container
-        // round-trip every patch becomes a plugin descriptor; slot 0 is the
-        // one patch that has been loaded, so it is the only one with a blob.
+        // The shipped set is made of empty (unassigned) descriptors. For the
+        // container round-trip every patch becomes a plugin descriptor; slot 0
+        // is the one patch that has been loaded, so it is the only one with a
+        // blob.
         if (patch->slot == 0)
         {
             slot.instrument.kind = SourceKind::plugin;
@@ -220,7 +221,7 @@ int main()
                 && ! patch.name.empty()
                 && patch.slot >= 0
                 && patch.slot <= Controller::SetMapping::maximumSlot
-                && patch.kind == "init-tone"
+                && patch.kind == "empty"
                 && patch.resolvedColorIndex >= 0
                 && patch.resolvedColorIndex <= Controller::SetMapping::maximumColourIndex;
         }

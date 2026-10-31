@@ -49,6 +49,14 @@ TestPluginAudioProcessor::createParameterLayout()
         ParameterID { stateMarkerParamID, 1 }, "State Marker",
         NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.5f));
 
+    // When on, the sine generator only sounds while a note is held. The
+    // T128 session test uses this to prove live MIDI reaches an armed plugin
+    // and that a note-off silences it. Default off keeps every existing test's
+    // continuous-tone behaviour.
+    layout.add (std::make_unique<AudioParameterFloat> (
+        ParameterID { midiGateParamID, 1 }, "MIDI Gate",
+        NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.0f));
+
     return layout;
 }
 
@@ -65,6 +73,7 @@ TestPluginAudioProcessor::TestPluginAudioProcessor()
 void TestPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 44100.0;
+    heldNotes.fill (false);
 
     maxDelaySamples = static_cast<int> (std::ceil (maxLatencyMs * 0.001 * currentSampleRate)) + 2;
 
@@ -109,7 +118,6 @@ bool TestPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layout
 void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                                              juce::MidiBuffer& midi)
 {
-    juce::ignoreUnused (midi);
     juce::ScopedNoDenormals noDenormals;
 
     const auto numSamples = buffer.getNumSamples();
@@ -126,6 +134,32 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     const auto frequency = readParameter (apvts, frequencyParamID);
     const auto sineLevel = readParameter (apvts, sineLevelParamID);
     const auto latencyMs = readParameter (apvts, latencyParamID);
+    const auto midiGate = readParameter (apvts, midiGateParamID) >= 0.5f;
+
+    if (midiGate)
+    {
+        for (const auto metadata : midi)
+        {
+            const auto message = metadata.getMessage();
+
+            if (message.isNoteOn())
+                heldNotes[static_cast<std::size_t> (
+                    juce::jlimit (0, 127, message.getNoteNumber()))] = true;
+            else if (message.isNoteOff())
+                heldNotes[static_cast<std::size_t> (
+                    juce::jlimit (0, 127, message.getNoteNumber()))] = false;
+            else if (message.isAllNotesOff() || message.isAllSoundOff())
+                heldNotes.fill (false);
+        }
+    }
+
+    bool anyHeld = false;
+
+    if (midiGate)
+        for (const auto held : heldNotes)
+            anyHeld = anyHeld || held;
+
+    const auto gate = midiGate && ! anyHeld ? 0.0f : 1.0f;
 
     const auto wantedLatency = juce::jlimit (
         0, maxDelaySamples,
@@ -145,7 +179,7 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // or as a tone source for slot/summing tests.
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        const auto sine = static_cast<float> (std::sin (phase)) * sineLevel;
+        const auto sine = static_cast<float> (std::sin (phase)) * sineLevel * gate;
 
         phase += phaseIncrement;
 

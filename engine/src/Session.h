@@ -11,7 +11,9 @@
 #include <juce_audio_devices/juce_audio_devices.h>
 
 #include <atomic>
+#include <array>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -33,12 +35,18 @@ namespace ihub
 /** What produces audio for one slot of the composed session. */
 enum class SessionSlotKind
 {
+    /** No instrument assigned: the slot renders silence.
+
+        This is the default for a patch the user has not given a source yet.
+        It is a real source, so the fixed graph and warm pool stay uniform, but
+        it never generates audio and ignores MIDI.
+    */
+    empty,
+
     /** Built-in initialisation tone.
 
-        The default set has no external samples or plugin bundles to rely on,
-        so every slot starts with a phase-continuous test tone. It is a real
-        `Instrument` / `AudioEngine::SlotSource` and follows the same audio
-        thread rules as the sampler and plugin sources.
+        Used by the offline tests and the `--session-smoke` diagnostic, which
+        need a deterministic source without an external kit or plugin bundle.
     */
     initTone,
 
@@ -71,7 +79,7 @@ struct SessionSlotConfig
 {
     /** Display name of the patch. */
     std::string name;
-    SessionSlotKind kind = SessionSlotKind::initTone;
+    SessionSlotKind kind = SessionSlotKind::empty;
 
     /** Kit document (sampler) or VST3 bundle (plugin). */
     juce::String path;
@@ -98,7 +106,7 @@ struct SessionSlotConfig
     /** Instrument descriptor published by `/state`. `kind` above is the audio
         source this session actually instantiates; a set may describe a plugin
         patch while the default session renders the initialisation tone. */
-    std::string instrumentKind = "init-tone";
+    std::string instrumentKind = "empty";
     std::string pluginFormat = "VST3";
     std::string pluginId;
     std::string pluginName;
@@ -247,13 +255,13 @@ public:
 
     /** The 64-slot starter set.
 
-        Every slot starts as an initialisation tone at a different pitch, so
-        the composed session is audible without a plugin bundle or sample
-        library. Slots are grouped into the eight families used by the
-        Launchpad set file (eight patches each); load a set later to replace a
-        tone with a sampler, plugin or audio-input source.
+        Every slot starts unassigned (`empty`) and is therefore silent. Slots
+        are grouped into the eight families used by the Launchpad set file
+        (eight patches each); load a set to assign a sampler, plugin, audio
+        input or initialisation tone to a patch.
     */
-    static std::vector<SessionSlotConfig> makeDefaultSet();
+    static std::vector<SessionSlotConfig> makeDefaultSet
+        (SessionSlotKind defaultKind = SessionSlotKind::empty);
 
     /** Builds the fixed graph and the warm pool.
 
@@ -356,6 +364,15 @@ public:
                         const SessionSlotConfig& source,
                         std::string& error);
 
+    /** Called after `setSlotSource()` accepts a new assignment.
+
+        The application uses it to persist the Instrument page's picker choice.
+        Runs on the control thread that made the change, after the live swap is
+        queued; the audio thread never calls it. */
+    using SourceAssignedHook = std::function<void (int slot,
+                                                   const SessionSlotConfig& source)>;
+    void setSourceAssignedHook (SourceAssignedHook hook);
+
     //==============================================================================
     // Per-patch insert chain (control thread)
     /** Reads one patch's insert chain and latency budget. */
@@ -451,6 +468,23 @@ public:
     //==============================================================================
     // Audio thread / offline rendering
 
+    /** Queues one short MIDI message for the next audio block.
+
+        Called from a MIDI input thread. The event goes into a fixed-capacity
+        lock-free SPSC ring; the audio callback drains it into the block's
+        `MidiBuffer` at sample 0. Nothing here allocates, locks or logs, so it
+        is safe to call from a juce::MidiInput callback while the stream runs.
+        Returns false when the queue is full or the message is too long (SysEx
+        is deliberately not forwarded).
+    */
+    bool pushMidi (const juce::MidiMessage& message) noexcept;
+
+    /** Number of MIDI events waiting for the next audio block. Test seam. */
+    int getQueuedMidiCount() const noexcept
+    {
+        return midiFifo.getNumReady();
+    }
+
     /** Renders `numSamples` of the session into `output`.
 
         Real-time safe after `prepare()`. Used by the offline smoke render; the
@@ -490,6 +524,18 @@ private:
     /** Permanent, real-time-safe proxy wired to one fixed engine slot. */
     struct Voice;
 
+    /** One queued short MIDI message. Three bytes cover every channel event;
+        SysEx is dropped instead of being forwarded in pieces. */
+    struct QueuedMidi
+    {
+        std::array<std::uint8_t, 3> data {};
+        std::uint8_t size = 0;
+    };
+
+    static constexpr int midiQueueCapacity = 1024;
+
+    void drainMidi (juce::MidiBuffer& destination) noexcept;
+
     std::unique_ptr<AudioEngine::SlotSource> createPooledSource (int slotIndex,
                                                                  juce::String& error);
     void warmCallback (int slot);
@@ -525,6 +571,9 @@ private:
     mutable std::mutex sourceMutex;
     std::uint64_t sourceRevision = 0;
 
+    SourceAssignedHook sourceAssignedHook;
+    mutable std::mutex sourceAssignedMutex;
+
     // Destruction order matters: the plugin format manager must outlive the
     // instruments, and the engine must be destroyed before the proxies its
     // slots point at. The destructor tears the pool down explicitly.
@@ -540,6 +589,12 @@ private:
 
     juce::AudioBuffer<float> renderBuffer;
     juce::MidiBuffer blockMidi;
+
+    /** Lock-free audio <- MIDI hand-off. One writer (the MIDI input thread),
+        one reader (the audio callback). The storage is fixed and allocated in
+        the Session constructor, so neither side ever allocates. */
+    juce::AbstractFifo midiFifo { midiQueueCapacity };
+    std::array<QueuedMidi, midiQueueCapacity> midiQueue {};
 
     // Peak meters published by the audio thread. Allocated once in prepare().
     std::unique_ptr<std::atomic<float>[]> slotMeterPeaks;

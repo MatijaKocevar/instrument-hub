@@ -18,8 +18,10 @@
 # Each instrument is a patch descriptor. Families declare a default
 # `colorIndex`; a patch may override it and also carries `volumeDb`, `pan`,
 # `mute`, `solo`, its instrument/plugin descriptor and an ordered `fx` chain.
-# A plugin patch with no `pluginState` is cold: only its descriptor is stored
-# until the patch has been loaded or edited.
+# Every patch here ships with `kind: empty`: it renders silence until a source
+# (a VST3, a sampler kit or the built-in tone) is assigned to it. A plugin patch
+# with no `pluginState` is cold: only its descriptor is stored until the patch
+# has been loaded or edited.
 #
 # The Launchpad Mini MK3 grid is row-major from the bottom-left. Pad 0 is the
 # bottom-left key (note 11) and pad 63 the top-right (note 88). Row 0 is Keys,
@@ -35,6 +37,7 @@ families:
     instruments:
       - id: piano
         name: Grand Piano
+        kind: empty
         slot: 0
         colorIndex: 1
         volumeDb: -2.5
@@ -48,24 +51,31 @@ families:
               high: -1.0
       - id: strings
         name: Warm Strings
+        kind: empty
         slot: 1
       - id: rhodes
         name: Electric Rhodes
+        kind: empty
         slot: 2
       - id: organ
         name: Drawbar Organ
+        kind: empty
         slot: 3
       - id: harp
         name: Concert Harp
+        kind: empty
         slot: 4
       - id: choir
         name: Choir Keys
+        kind: empty
         slot: 5
       - id: celesta
         name: Celesta
+        kind: empty
         slot: 6
       - id: clav
         name: Clavinet
+        kind: empty
         slot: 7
 
   drums:
@@ -74,6 +84,7 @@ families:
     instruments:
       - id: kit
         name: Acoustic Kit
+        kind: empty
         slot: 8
         volumeDb: -1.0
         fx:
@@ -86,24 +97,31 @@ families:
               threshold: -18.0
       - id: snare
         name: Snare Stack
+        kind: empty
         slot: 9
       - id: hihats
         name: Hi-Hats
+        kind: empty
         slot: 10
       - id: toms
         name: Toms
+        kind: empty
         slot: 11
       - id: clap
         name: Clap
+        kind: empty
         slot: 12
       - id: rimshot
         name: Rimshot
+        kind: empty
         slot: 13
       - id: cymbals
         name: Cymbals
+        kind: empty
         slot: 14
       - id: kick
         name: Kick
+        kind: empty
         slot: 15
 
   bass:
@@ -112,6 +130,7 @@ families:
     instruments:
       - id: sub
         name: Sub Bass
+        kind: empty
         slot: 16
         pan: 0.0
         fx:
@@ -122,24 +141,31 @@ families:
               ratio: 3.0
       - id: finger
         name: Finger Bass
+        kind: empty
         slot: 17
       - id: pick
         name: Pick Bass
+        kind: empty
         slot: 18
       - id: fretless
         name: Fretless
+        kind: empty
         slot: 19
       - id: synth
         name: Synth Bass
+        kind: empty
         slot: 20
       - id: upright
         name: Upright Bass
+        kind: empty
         slot: 21
       - id: growl
         name: Growl Bass
+        kind: empty
         slot: 22
       - id: octave
         name: Octave Bass
+        kind: empty
         slot: 23
 
   pads:
@@ -148,6 +174,7 @@ families:
     instruments:
       - id: air
         name: Air Pad
+        kind: empty
         slot: 24
         volumeDb: -4.0
         fx:
@@ -158,24 +185,31 @@ families:
               mix: 0.35
       - id: warm
         name: Warm Pad
+        kind: empty
         slot: 25
       - id: glass
         name: Glass Pad
+        kind: empty
         slot: 26
       - id: choir
         name: Choir Pad
+        kind: empty
         slot: 27
       - id: motion
         name: Motion Pad
+        kind: empty
         slot: 28
       - id: dark
         name: Dark Pad
+        kind: empty
         slot: 29
       - id: shimmer
         name: Shimmer Pad
+        kind: empty
         slot: 30
       - id: tape
         name: Tape Pad
+        kind: empty
         slot: 31
 
   lead:
@@ -184,6 +218,7 @@ families:
     instruments:
       - id: saw
         name: Saw Lead
+        kind: empty
         slot: 32
         pan: 0.1
         fx:
@@ -194,24 +229,31 @@ families:
               mix: 0.2
       - id: square
         name: Square Lead
+        kind: empty
         slot: 33
       - id: sine
         name: Sine Lead
+        kind: empty
         slot: 34
       - id: supersaw
         name: Supersaw
+        kind: empty
         slot: 35
       - id: pluck
         name: Pluck Lead
+        kind: empty
         slot: 36
       - id: brass
         name: Brass Lead
+        kind: empty
         slot: 37
       - id: flute
         name: Flute Lead
+        kind: empty
         slot: 38
       - id: whistle
         name: Whistle
+        kind: empty
         slot: 39
 
   fx:
@@ -220,27 +262,35 @@ families:
     instruments:
       - id: riser
         name: Riser
+        kind: empty
         slot: 40
       - id: downlifter
         name: Downlifter
+        kind: empty
         slot: 41
       - id: impact
         name: Impact
+        kind: empty
         slot: 42
       - id: sweep
         name: Sweep
+        kind: empty
         slot: 43
       - id: noise
         name: Noise FX
+        kind: empty
         slot: 44
       - id: glitch
         name: Glitch
+        kind: empty
         slot: 45
       - id: drone
         name: Drone
+        kind: empty
         slot: 46
       - id: reverse
         name: Reverse
+        kind: empty
         slot: 47
 
   perc:
@@ -249,28 +299,36 @@ families:
     instruments:
       - id: shaker
         name: Shaker
+        kind: empty
         slot: 48
         pan: 0.3
       - id: tambourine
         name: Tambourine
+        kind: empty
         slot: 49
       - id: conga
         name: Conga
+        kind: empty
         slot: 50
       - id: bongo
         name: Bongo
+        kind: empty
         slot: 51
       - id: triangle
         name: Triangle
+        kind: empty
         slot: 52
       - id: woodblock
         name: Woodblock
+        kind: empty
         slot: 53
       - id: cowbell
         name: Cowbell
+        kind: empty
         slot: 54
       - id: tabla
         name: Tabla
+        kind: empty
         slot: 55
 
   vox:
@@ -279,6 +337,7 @@ families:
     instruments:
       - id: ah
         name: Ahh Choir
+        kind: empty
         slot: 56
         volumeDb: -3.0
         fx:
@@ -289,24 +348,31 @@ families:
               mix: 0.4
       - id: oo
         name: Ooh Choir
+        kind: empty
         slot: 57
       - id: eh
         name: Ehh Choir
+        kind: empty
         slot: 58
       - id: whisper
         name: Whisper
+        kind: empty
         slot: 59
       - id: shout
         name: Shout
+        kind: empty
         slot: 60
       - id: vocoder
         name: Vocoder
+        kind: empty
         slot: 61
       - id: breath
         name: Breath
+        kind: empty
         slot: 62
       - id: choir
         name: Vocal Choir
+        kind: empty
         slot: 63
 
 macros:
