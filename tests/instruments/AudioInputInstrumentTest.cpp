@@ -1,28 +1,39 @@
-// ihub-instrument-test: acceptance check for T030.
+// ihub-instrument-test: acceptance checks for T030 and T070.
 //
 // 1. Proves `AudioInputInstrument` copies one interface channel to every
 //    output channel at bit-exact unity gain, applies its optional gain, selects
 //    the requested input channel, clears with no input, and reports its own
 //    cached latency and AudioInput kind.
-// 2. Plays a 440 Hz sine into the ALSA Loopback playback side, captures it
+// 2. T070: an audio-input slot runs the instrument -> FX chain -> bus path, a
+//    direct-monitor request makes the slot skip the chain (no processBlock
+//    call, no chain latency, bit-exact input), and the instrument enforces its
+//    own latency budget. AudioEngine::audioDeviceIOCallbackWithContext feeds
+//    the device input to the slot without a manual hand-off.
+// 3. Plays a 440 Hz sine into the ALSA Loopback playback side, captures it
 //    from the matching capture side, feeds every captured block through the
 //    instrument and the fixed slot/bus graph, and requires the master bus to
 //    reproduce the captured input at unity gain.
+// 4. T070 acceptance: the same loopback runs the first half through a gain
+//    effect (input -> FX -> bus) and the second half in direct-monitor mode,
+//    where the chain is bypassed and the input is reproduced bit-exactly.
 //
 // The loopback pair is the one documented in plan/TESTING.md:
 // hw:Loopback,0,0 -> hw:Loopback,1,0. Device names are used deliberately;
 // card indices are not stable across boots.
 
+#include "audio/AudioEngine.h"
 #include "audio/Bus.h"
 #include "audio/Slot.h"
 #include "instruments/AudioInputInstrument.h"
 
 #include <alsa/asoundlib.h>
+#include <juce_audio_processors_headless/juce_audio_processors_headless.h>
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -75,6 +86,71 @@ void fillSine (juce::AudioBuffer<float>& buffer, int channel)
         samples[i] = static_cast<float> (kAmplitude * std::sin (phase));
     }
 }
+
+/** A deterministic stereo effect used as the slot's heavy chain.
+
+    It scales by `gain` and reports (without actually inserting) `latency`
+    samples, so the test can prove both that the signal went through the chain
+    and that direct monitoring removed the chain's latency. Every processBlock
+    call is counted: a bypassed chain must not run at all, even if its output
+    would otherwise look unchanged.
+*/
+class GainFxProcessor final : public juce::AudioProcessor
+{
+public:
+    explicit GainFxProcessor (float gainToUse = 1.0f, int latencyToReport = 0)
+        : AudioProcessor (BusesProperties()
+                              .withInput ("Input", juce::AudioChannelSet::stereo(), true)
+                              .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+          gain (gainToUse),
+          latency (latencyToReport)
+    {
+    }
+
+    const juce::String getName() const override { return "GainFxProcessor"; }
+
+    void prepareToPlay (double, int) override
+    {
+        // Reporting latency here (rather than delaying samples) keeps the
+        // loopback comparison aligned while still exercising the accounting.
+        setLatencySamples (latency);
+    }
+
+    void releaseResources() override {}
+
+    using juce::AudioProcessor::processBlock;
+
+    void processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override
+    {
+        processCalls.fetch_add (1, std::memory_order_relaxed);
+
+        if (std::abs (gain - 1.0f) > 0.0f)
+            buffer.applyGain (gain);
+    }
+
+    double getTailLengthSeconds() const override { return 0.0; }
+    bool acceptsMidi() const override { return false; }
+    bool producesMidi() const override { return false; }
+    juce::AudioProcessorEditor* createEditor() override { return nullptr; }
+    bool hasEditor() const override { return false; }
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram (int) override {}
+    const juce::String getProgramName (int) override { return {}; }
+    void changeProgramName (int, const juce::String&) override {}
+    void getStateInformation (juce::MemoryBlock&) override {}
+    void setStateInformation (const void*, int) override {}
+
+    int getProcessCalls() const noexcept
+    {
+        return processCalls.load (std::memory_order_relaxed);
+    }
+
+private:
+    float gain = 1.0f;
+    int latency = 0;
+    std::atomic<int> processCalls { 0 };
+};
 
 //==============================================================================
 void testUnityGainIntoBus()
@@ -215,6 +291,165 @@ void testChannelSelectionAndMissingInput()
 
     check (rendered.getMagnitude (0, kBlockSize) <= 0.0f,
            "no input block renders silence (the hand-off is one block only)");
+}
+
+//==============================================================================
+void testDirectMonitorBypassesFxChain()
+{
+    std::cout << "\n-- direct monitoring bypasses the FX chain --" << std::endl;
+
+    AudioInputInstrument input;
+    input.prepare (kSampleRate, kBlockSize);
+    input.setLatencySamples (96);
+
+    GainFxProcessor fx (0.5f, 240); // half gain, reports 5 ms
+
+    AudioEngine::Slot slot (0);
+    slot.setSource (&input);
+    slot.prepare (kSampleRate, kBlockSize, 2);
+    check (slot.getFxChain().add (&fx) == 0, "the gain effect is added to the slot chain");
+    slot.activate();
+
+    juce::AudioBuffer<float> source (1, kBlockSize);
+    fillSine (source, 0);
+
+    juce::MidiBuffer midi;
+
+    const float* channels[] = { source.getReadPointer (0) };
+
+    // Fade in with the chain in the audible path.
+    for (int block = 0; block < kFadeBlocks; ++block)
+    {
+        input.setInputBlock (channels, 1);
+        slot.process (kBlockSize, midi);
+    }
+
+    const int callsAfterFade = fx.getProcessCalls();
+
+    check (callsAfterFade >= kFadeBlocks, "the chain runs every block in normal mode");
+    check (slot.latencySamples() == 96 + 240,
+           "normal mode reports input plus chain latency");
+
+    double fxDifference = 0.0;
+    const auto& processed = slot.getOutputBuffer();
+
+    for (int channel = 0; channel < 2; ++channel)
+        for (int i = 0; i < kBlockSize; ++i)
+            fxDifference = std::max (
+                fxDifference,
+                std::abs (static_cast<double> (processed.getSample (channel, i))
+                          - 0.5 * static_cast<double> (source.getSample (0, i))));
+
+    check (fxDifference < 1.0e-7, "input -> FX -> bus applies the chain gain");
+
+    // Direct monitoring: the very next block must skip the chain.
+    input.setDirectMonitor (true);
+    check (input.isDirectMonitor(), "direct monitoring is latched");
+    check (input.bypassesFxChain(), "direct monitoring asks the slot to bypass the chain");
+
+    input.setInputBlock (channels, 1);
+    check (slot.process (kBlockSize, midi), "the slot still renders the input while monitoring");
+
+    check (fx.getProcessCalls() == callsAfterFade,
+           "the bypassed chain's processBlock is never called");
+    check (slot.latencySamples() == 96,
+           "direct mode reports only the input path's own latency");
+
+    bool bitIdentical = true;
+    const auto& monitored = slot.getOutputBuffer();
+
+    for (int channel = 0; channel < 2 && bitIdentical; ++channel)
+        for (int i = 0; i < kBlockSize; ++i)
+            if (! juce::exactlyEqual (monitored.getSample (channel, i),
+                                      source.getSample (0, i)))
+            {
+                bitIdentical = false;
+                break;
+            }
+
+    check (bitIdentical, "direct-monitor output is the input, bit-exact");
+
+    // Leaving direct monitoring puts the loaded chain back in the path.
+    input.setDirectMonitor (false);
+    input.setInputBlock (channels, 1);
+    slot.process (kBlockSize, midi);
+
+    check (fx.getProcessCalls() == callsAfterFade + 1,
+           "leaving direct mode runs the chain again on the next block");
+    check (slot.latencySamples() == 96 + 240,
+           "latency returns to input plus chain");
+}
+
+void testLatencyBudget()
+{
+    std::cout << "\n-- the input's own latency budget --" << std::endl;
+
+    AudioInputInstrument input;
+    input.prepare (kSampleRate, kBlockSize);
+
+    check (input.latencyBudgetSamples() == -1, "no latency budget is configured by default");
+    check (input.isWithinLatencyBudget(), "an unset budget always passes");
+
+    input.setLatencySamples (200);
+    input.setLatencyBudgetSamples (240);
+
+    check (input.latencyBudgetSamples() == 240, "the budget is reported back");
+    check (input.isWithinLatencyBudget(), "200 samples fits a 240-sample budget");
+
+    input.setLatencyBudgetSamples (200);
+    check (input.isWithinLatencyBudget(), "the budget is inclusive");
+
+    input.setLatencyBudgetSamples (199);
+    check (! input.isWithinLatencyBudget(), "200 samples exceeds a 199-sample budget");
+
+    input.setLatencyBudgetSamples (-1);
+    check (input.latencyBudgetSamples() == -1 && input.isWithinLatencyBudget(),
+           "a negative budget clears the check");
+}
+
+void testEngineFeedsDeviceInput()
+{
+    std::cout << "\n-- the engine feeds the device input to an audio-input slot --" << std::endl;
+
+    using Engine = AudioEngine::AudioEngine;
+
+    Engine engine (2, 2);
+    engine.prepare (kSampleRate, kBlockSize, 2);
+
+    AudioInputInstrument input;
+    input.setGain (0.25f); // prove the engine used the instrument, not a copy
+
+    AudioEngine::Slot& slot = engine.getSlot (0);
+    slot.setSource (&input);
+    slot.activate();
+
+    juce::AudioBuffer<float> deviceInput (1, kBlockSize);
+    fillSine (deviceInput, 0);
+
+    juce::AudioBuffer<float> deviceOutput (2, kBlockSize);
+    float* outputChannels[] = { deviceOutput.getWritePointer (0),
+                                deviceOutput.getWritePointer (1) };
+    const float* inputChannels[] = { deviceInput.getReadPointer (0) };
+
+    for (int block = 0; block < kFadeBlocks; ++block)
+        engine.audioDeviceIOCallbackWithContext (inputChannels, 1,
+                                                 outputChannels, 2,
+                                                 kBlockSize, {});
+
+    check (slot.getState() == AudioEngine::SlotState::active,
+           "the engine-driven audio-input slot reaches active");
+
+    double maxDifference = 0.0;
+
+    for (int channel = 0; channel < 2; ++channel)
+        for (int i = 0; i < kBlockSize; ++i)
+            maxDifference = std::max (
+                maxDifference,
+                std::abs (static_cast<double> (deviceOutput.getSample (channel, i))
+                          - 0.25 * static_cast<double> (deviceInput.getSample (0, i))));
+
+    check (maxDifference < 1.0e-7,
+           "the device callback path renders the instrument's gained input");
 }
 
 //==============================================================================
@@ -511,6 +746,214 @@ void testLoopbackThroughMasterBus()
     }
 }
 
+//==============================================================================
+void testLoopbackThroughFxChainAndDirectMonitor()
+{
+    std::cout << "\n-- loopback: input -> FX -> bus, then direct monitor --" << std::endl;
+
+    constexpr const char* playbackDevice = "hw:Loopback,0,0";
+    constexpr const char* captureDevice = "hw:Loopback,1,0";
+
+    snd_pcm_t* playback = nullptr;
+    snd_pcm_t* capture = nullptr;
+
+    try
+    {
+        const auto source = makeSine();
+
+        playback = openPcm (playbackDevice, SND_PCM_STREAM_PLAYBACK);
+        capture = openPcm (captureDevice, SND_PCM_STREAM_CAPTURE);
+
+        configurePcm (playback, playbackDevice);
+        configurePcm (capture, captureDevice);
+
+        checkAlsa (snd_pcm_prepare (playback), "prepare playback");
+        checkAlsa (snd_pcm_prepare (capture), "prepare capture");
+
+        std::atomic<unsigned int> playbackXruns { 0 };
+        std::atomic<bool> failed { false };
+        std::atomic<std::size_t> writtenFrames { 0 };
+
+        std::thread playbackThread (playbackLoop, playback, std::cref (source),
+                                    std::ref (playbackXruns), std::ref (failed),
+                                    std::ref (writtenFrames));
+
+        while (writtenFrames.load (std::memory_order_acquire) < kPeriodFrames
+               && ! failed.load (std::memory_order_acquire))
+            std::this_thread::yield();
+
+        if (failed.load (std::memory_order_acquire))
+            throw std::runtime_error ("playback failed before capture started");
+
+        AudioInputInstrument input;
+        input.setInputChannel (0);
+        input.prepare (kSampleRate, kBlockSize);
+
+        // Half gain and a reported 5 ms: the signal proves the chain ran, the
+        // latency number proves direct mode takes it out of the total.
+        GainFxProcessor fx (0.5f, 240);
+
+        AudioEngine::Bus bus;
+        bus.prepare (kSampleRate, kBlockSize, 2);
+
+        AudioEngine::Slot slot (0);
+        slot.setSource (&input);
+        slot.prepare (kSampleRate, kBlockSize, 2);
+        check (slot.getFxChain().add (&fx) == 0,
+               "the loopback slot hosts the gain effect");
+        slot.activate();
+
+        check (slot.latencySamples() == 240,
+               "the chain's 5 ms is in the slot total before monitoring");
+
+        juce::AudioBuffer<float> capturedBlock (1, kBlockSize);
+        juce::AudioBuffer<float> rendered (2, kBlockSize);
+        juce::MidiBuffer midi;
+
+        std::vector<std::int16_t> raw (kPeriodFrames, 0);
+
+        constexpr std::size_t monitorFromFrame = kTotalFrames / 2;
+
+        std::size_t received = 0;
+        int blockIndex = 0;
+        int comparedFx = 0;
+        int comparedDirect = 0;
+        double inputPeak = 0.0;
+        double maxDifferenceFx = 0.0;
+        double maxDifferenceDirect = 0.0;
+        unsigned int captureXruns = 0;
+        bool direct = false;
+        int fxCallsAtDirectStart = 0;
+
+        while (received < kTotalFrames)
+        {
+            const auto remaining = kTotalFrames - received;
+            const auto want = static_cast<snd_pcm_uframes_t> (
+                std::min<std::size_t> (remaining, kPeriodFrames));
+
+            const snd_pcm_sframes_t read = snd_pcm_readi (capture, raw.data(), want);
+
+            if (read < 0)
+            {
+                ++captureXruns;
+                const int recovered = snd_pcm_recover (capture, static_cast<int> (read), 0);
+
+                if (recovered < 0)
+                    throw std::runtime_error (
+                        alsaError ("capture read", static_cast<int> (read)));
+
+                continue;
+            }
+
+            // Flip the monitor switch once, between blocks, halfway through
+            // the capture.
+            if (! direct && received >= monitorFromFrame)
+            {
+                direct = true;
+                input.setDirectMonitor (true);
+                fxCallsAtDirectStart = fx.getProcessCalls();
+            }
+
+            const int samples = static_cast<int> (read);
+            capturedBlock.setSize (1, samples, false, true, true);
+            auto* destination = capturedBlock.getWritePointer (0);
+
+            for (int i = 0; i < samples; ++i)
+                destination[i] = static_cast<float> (raw[static_cast<std::size_t> (i)])
+                                 / 32768.0f;
+
+            const float* channels[] = { capturedBlock.getReadPointer (0) };
+            input.setInputBlock (channels, 1);
+
+            const bool produced = slot.process (samples, midi);
+            bus.beginBlock (samples);
+
+            if (produced)
+                bus.add (slot.getOutputBuffer(), samples);
+
+            bus.finish (rendered, samples);
+
+            if (blockIndex >= kFadeBlocks)
+            {
+                for (int channel = 0; channel < 2; ++channel)
+                {
+                    for (int i = 0; i < samples; ++i)
+                    {
+                        const double capturedSample = static_cast<double> (destination[i]);
+                        const double busSample = static_cast<double> (
+                            rendered.getSample (channel, i));
+
+                        inputPeak = std::max (inputPeak, std::abs (capturedSample));
+
+                        if (direct)
+                        {
+                            maxDifferenceDirect = std::max (
+                                maxDifferenceDirect,
+                                std::abs (busSample - capturedSample));
+                            ++comparedDirect;
+                        }
+                        else
+                        {
+                            maxDifferenceFx = std::max (
+                                maxDifferenceFx,
+                                std::abs (busSample - 0.5 * capturedSample));
+                            ++comparedFx;
+                        }
+                    }
+                }
+            }
+
+            received += static_cast<std::size_t> (read);
+            ++blockIndex;
+        }
+
+        playbackThread.join();
+
+        snd_pcm_drop (playback);
+        snd_pcm_drop (capture);
+        snd_pcm_close (playback);
+        snd_pcm_close (capture);
+        playback = nullptr;
+        capture = nullptr;
+
+        const int fxCallsAfter = fx.getProcessCalls();
+
+        std::cout << "loopback: captured " << received << " frames, compared "
+                  << comparedFx << " FX + " << comparedDirect << " direct samples"
+                  << ", input peak " << inputPeak
+                  << ", max difference " << maxDifferenceFx << " / "
+                  << maxDifferenceDirect << ", direct "
+                  << (direct ? "on" : "off") << ", xruns "
+                  << playbackXruns.load() << "/" << captureXruns << std::endl;
+
+        check (! failed.load(), "loopback playback completed without failure");
+        check (received == kTotalFrames, "captured exactly 1 s at 48 kHz");
+        check (inputPeak > 0.4,
+               "loopback capture carries the injected sine (peak > 0.4)");
+        check (comparedFx > 0, "part of the capture ran through the FX chain");
+        check (direct && comparedDirect > 0,
+               "part of the capture ran in direct-monitor mode");
+        check (maxDifferenceFx < 1.0e-7,
+               "input -> FX -> bus applies the chain gain on the loopback");
+        check (maxDifferenceDirect <= 0.0,
+               "direct monitor reproduces the loopback input bit-exactly");
+        check (fxCallsAfter == fxCallsAtDirectStart,
+               "the heavy chain does not run while direct monitoring");
+        check (slot.latencySamples() == 0,
+               "direct monitor excludes the chain's reported latency");
+    }
+    catch (const std::exception&)
+    {
+        if (playback != nullptr)
+            snd_pcm_close (playback);
+
+        if (capture != nullptr)
+            snd_pcm_close (capture);
+
+        throw;
+    }
+}
+
 } // namespace
 
 int main()
@@ -520,7 +963,11 @@ int main()
         testUnityGainIntoBus();
         testGainAndLatency();
         testChannelSelectionAndMissingInput();
+        testDirectMonitorBypassesFxChain();
+        testLatencyBudget();
+        testEngineFeedsDeviceInput();
         testLoopbackThroughMasterBus();
+        testLoopbackThroughFxChainAndDirectMonitor();
     }
     catch (const std::exception& e)
     {

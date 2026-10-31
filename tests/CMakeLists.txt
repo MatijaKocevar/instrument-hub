@@ -222,12 +222,16 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Instrument interface and audio input (T030) ----------------------------
+# --- Instrument interface and audio input (T030, T070) ----------------------
 #
 # Checks the AudioInputInstrument in isolation (unity/gain/channel selection/
-# latency) and then plays a sine into the ALSA Loopback, captures it, and feeds
-# every block through the instrument -> slot -> master bus path. The bus output
-# must reproduce the captured input at bit-exact unity gain.
+# latency), the audio-input slot path through an FX chain, direct monitoring
+# (the chain must not run and its latency must drop out), the input's own
+# latency budget, and AudioEngine feeding device input to the slot. Then it
+# plays a sine into the ALSA Loopback, captures it, and feeds every block
+# through the instrument -> slot -> master bus path. The bus output must
+# reproduce the captured input at bit-exact unity gain; a second loopback pass
+# runs half the capture through a gain effect and half in direct-monitor mode.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-instrument-test
@@ -239,9 +243,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             instruments/AudioInputInstrumentTest.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
     )
 
     target_include_directories(ihub-instrument-test
@@ -253,6 +260,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             ALSA::ALSA
             juce::juce_audio_basics
+            juce::juce_audio_devices
             juce::juce_audio_processors_headless
             juce::juce_events
         PUBLIC

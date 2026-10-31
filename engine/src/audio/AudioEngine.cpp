@@ -124,6 +124,16 @@ void AudioEngine::processBlock (juce::AudioBuffer<float>& output,
             output.clear (channel, samples, numSamples - samples);
 }
 
+void AudioEngine::feedDeviceInput (const float* const* channelData,
+                                   int newNumChannels) noexcept
+{
+    // Every slot sees the same pointers; only a source that reports
+    // `acceptsDeviceInput()` keeps them, and it forgets them at the end of its
+    // next process() call. No copying, no allocation.
+    for (auto& slot : slots)
+        slot->feedDeviceInput (channelData, newNumChannels);
+}
+
 void AudioEngine::renderBlock (int numSamples, juce::MidiBuffer& midi) noexcept
 {
     const int samples = juce::jmin (numSamples, maximumBlockSize);
@@ -187,8 +197,8 @@ void AudioEngine::audioDeviceStopped()
     // device needed a re-prepare.
 }
 
-void AudioEngine::audioDeviceIOCallbackWithContext (const float* const*,
-                                                    int,
+void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
+                                                    int numInputChannels,
                                                     float* const* outputChannelData,
                                                     int numOutputChannels,
                                                     int numSamples,
@@ -214,6 +224,10 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const*,
     }
 
     const int samples = juce::jmin (numSamples, maximumBlockSize);
+
+    // A first-class audio-input slot: hand the interface block to any slot
+    // source that consumes it, before the graph renders.
+    feedDeviceInput (inputChannelData, numInputChannels);
 
     deviceMidi.clear();
     renderBlock (samples, deviceMidi);

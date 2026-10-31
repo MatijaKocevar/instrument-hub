@@ -25,7 +25,14 @@ namespace ihub
     Latency is cached here rather than queried from the device per block: the
     owner calls `setLatencySamples()` with the interface's reported input
     latency (plus anything else the direct path adds), and `latencySamples()`
-    returns it. The instrument itself introduces no delay.
+    returns it. The instrument itself introduces no delay. That cached value is
+    the input's own latency budget: `setLatencyBudgetSamples()` records the
+    maximum the input path may use for monitoring, independently of any FX
+    chain the slot hosts.
+
+    Direct monitoring (`setDirectMonitor(true)`) is the bypass path: the slot
+    skips its FX chain, so the performer hears the interface input at the
+    input's own latency while a heavy chain stays loaded and prepared.
 
     `process()` obeys the audio-thread contract: no allocation, no locks, no
     logging, no file I/O. Implements both `ihub::Instrument` and
@@ -62,15 +69,58 @@ public:
     Kind kind() const noexcept override { return Kind::AudioInput; }
 
     //==============================================================================
+    // Direct monitoring
+
+    /** Routes the input straight to the bus, skipping the slot's FX chain.
+
+        In direct-monitor mode `process()` still renders the input exactly as
+        it does normally; what changes is that the slot leaves the FX chain out
+        of the audible path. The performer therefore hears the interface input
+        with the input path's own latency, not the chain's. A heavy effect
+        (amp sim, convolution reverb) can stay loaded and prepared without
+        adding monitoring delay.
+
+        The flag is lock-free and takes effect on the next block. Off the audio
+        thread.
+    */
+    void setDirectMonitor (bool shouldMonitor) noexcept;
+    bool isDirectMonitor() const noexcept;
+
+    /** The maximum input-path latency allowed for monitoring, in samples.
+
+        `latencySamples()` is compared against it; the FX chain is not part of
+        the comparison because direct monitoring never includes it. A negative
+        value clears the budget, which makes `isWithinLatencyBudget()` true.
+        Off the audio thread.
+    */
+    void setLatencyBudgetSamples (int samples) noexcept;
+
+    /** The configured budget, or -1 when no budget is set. */
+    int latencyBudgetSamples() const noexcept;
+
+    /** True when the cached input latency is inside the configured budget. */
+    bool isWithinLatencyBudget() const noexcept;
+
+    //==============================================================================
+    // AudioEngine::SlotSource
+
+    /** The audio input is the slot source that consumes the device's input. */
+    bool acceptsDeviceInput() const noexcept override { return true; }
+
+    /** Direct monitoring is exactly the bypass-the-chain request. */
+    bool bypassesFxChain() const noexcept override;
+
+    //==============================================================================
     // Audio thread
 
     /** Hands the current device block to the instrument.
 
-        Called on the audio thread immediately before `process()`. The pointer
-        array and the samples it points at must stay valid until that
-        `process()` returns. The hand-off is consumed by one block only.
+        Called on the audio thread immediately before `process()`, normally by
+        `AudioEngine` through the slot (`Slot::feedDeviceInput()`), not by hand.
+        The pointer array and the samples it points at must stay valid until
+        that `process()` returns. The hand-off is consumed by one block only.
     */
-    void setInputBlock (const float* const* channelData, int numChannels) noexcept;
+    void setInputBlock (const float* const* channelData, int numChannels) noexcept override;
 
     /** Forgets the current block; the next `process()` renders silence. */
     void clearInput() noexcept;
@@ -102,6 +152,8 @@ private:
     std::atomic<int> selectedInputChannel { 0 };
     std::atomic<float> gainTarget { 1.0f };
     std::atomic<int> cachedLatency { 0 };
+    std::atomic<bool> directMonitor { false };
+    std::atomic<int> latencyBudget { -1 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioInputInstrument)
 };
