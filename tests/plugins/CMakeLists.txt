@@ -357,3 +357,77 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-plugin-scanner-test: Linux-only; skipping")
 endif()
+
+# --- Sandbox acceptance (T110) ----------------------------------------------
+#
+# Starts the ihub-sandbox helper for real:
+#
+#   1. a fake tone plugin renders through the shared request/reply rings,
+#   2. a fake plugin that calls abort() kills only the helper, SandboxHost
+#      reports the slot failed and the AudioEngine keeps rendering another
+#      slot,
+#   3. TestPlugin is loaded and rendered inside the sandbox, proving the
+#      helper hosts a genuine VST3 and not just the fake.
+#
+# Linux-only because it relies on POSIX signals (abort) and the helper's
+# parent-death detection.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-sandbox-test
+        PRODUCT_NAME "ihub-sandbox-test"
+    )
+
+    target_sources(ihub-sandbox-test
+        PRIVATE
+            SandboxTest.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/SandboxHost.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/AudioEngine.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/FxChain.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/LatencyProbe.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/TimingMonitor.cpp"
+    )
+
+    target_include_directories(ihub-sandbox-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src"
+    )
+
+    target_compile_definitions(ihub-sandbox-test
+        PRIVATE
+            "IHUB_SANDBOX_HELPER=\"$<TARGET_FILE:ihub-sandbox>\""
+            "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+    )
+
+    target_link_libraries(ihub-sandbox-test
+        PRIVATE
+            juce::juce_audio_devices
+            juce::juce_audio_processors_headless
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_dependencies(ihub-sandbox-test
+        ihub-sandbox
+        TestPlugin_VST3
+    )
+
+    set_target_properties(ihub-sandbox-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-sandbox
+        COMMAND ihub-sandbox-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-sandbox-test: POSIX process isolation is Linux-only; skipping")
+endif()
