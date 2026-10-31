@@ -1,4 +1,5 @@
 #include "Bridge/WebView.h"
+#include "audio/DeviceManager.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
@@ -83,6 +84,14 @@ public:
     {
         uiCheckMode = commandLine.contains ("--ui-check");
         selftestMode = commandLine.contains ("--selftest");
+
+        if (commandLine.contains ("--list-devices"))
+        {
+            AudioEngine::DeviceManager deviceManager;
+            std::cout << deviceManager.describeDevices() << std::endl;
+            quit();
+            return;
+        }
 
         mainWindow = std::make_unique<MainWindow> (getApplicationName(), [this] (const juce::String& url)
         {
