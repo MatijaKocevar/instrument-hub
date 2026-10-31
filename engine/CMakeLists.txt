@@ -100,6 +100,7 @@ target_sources(instrument-hub
         src/audio/AudioEngine.cpp
         src/audio/AudioSettings.cpp
         src/audio/Bus.cpp
+        src/audio/ClockIn.cpp
         src/audio/ClockOut.cpp
         src/audio/DeviceManager.cpp
         src/audio/FxChain.cpp

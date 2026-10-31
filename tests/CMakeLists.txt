@@ -1423,6 +1423,52 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- MIDI clock in (T073) ---------------------------------------------------
+#
+# Acceptance: a frame-timed 120 BPM clock master locks the transport within 2 s.
+# Also covers other tempos, timestamp jitter, start/stop/continue, position hold
+# while stopped, clock loss and relock, non-real-time bytes, queue overflow,
+# MIDI byte values, and allocation-free processing.
+
+add_executable(ihub-clock-in-test
+    audio/ClockInTest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/ClockIn.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+)
+
+target_compile_features(ihub-clock-in-test PRIVATE cxx_std_20)
+
+target_include_directories(ihub-clock-in-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+# The replacement operator new is backed by malloc/free (which is a valid
+# implementation), so GCC's pairing heuristic fires at inlined call sites.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-clock-in-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(ihub-clock-in-test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+set_target_properties(ihub-clock-in-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-clock-in
+    COMMAND ihub-clock-in-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
