@@ -1,0 +1,104 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #101014;
+  color: #eceef4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% 0%, #26263a 0%, transparent 45%),
+    radial-gradient(circle at 90% 10%, #1a2a2e 0%, transparent 40%),
+    #101014;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  min-height: 100%;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.app__header {
+  max-width: 42rem;
+}
+
+.app__eyebrow {
+  margin: 0 0 0.5rem;
+  color: #8b93a7;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.app__title {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  background: linear-gradient(100deg, #ffffff 0%, #9fd8ff 55%, #6ee7c8 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.app__lede {
+  margin: 1rem 0 0;
+  color: #a9b0c2;
+  font-size: 1.05rem;
+}
+
+.app__slots {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid #2b2d3b;
+  border-radius: 0.9rem;
+  background: linear-gradient(160deg, #1b1c26 0%, #15161d 100%);
+}
+
+.slot__number {
+  color: #6ee7c8;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.slot__name {
+  color: #7e859a;
+  font-size: 0.95rem;
+}
+
+.app__footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1.25rem;
+  border-top: 1px solid #232532;
+  color: #7e859a;
+  font-size: 0.8rem;
+}
