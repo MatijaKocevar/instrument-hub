@@ -1083,6 +1083,57 @@ private:
         }
 
         ihub::SessionConfig config;
+        config.slots = ihub::Session::makeDefaultSet();
+
+        // Give every pad its real family/patch identity from the shipped set
+        // file. The audio sources stay initialisation tones until a set with
+        // sample kits or plugin bundles is loaded, but `/state` already
+        // mirrors the 8 x 8 tree the Launchpad lights up.
+        const auto setFile = Controller::Mapping::findDefaultSetFile();
+
+        if (! setFile.empty())
+        {
+            Controller::SetMapping document;
+            Controller::MappingError mappingError;
+
+            if (Controller::loadSetMappingFile (setFile, document, mappingError))
+            {
+                for (int pad = 0; pad < Controller::SetMapping::maximumPads; ++pad)
+                {
+                    const auto* binding = document.padBinding (pad);
+                    const auto* instrument = binding != nullptr
+                                                 ? document.instrumentFor (*binding)
+                                                 : nullptr;
+
+                    if (binding == nullptr || instrument == nullptr)
+                        continue;
+
+                    const int slot = instrument->slot >= 0 ? instrument->slot
+                                                           : binding->slot;
+
+                    if (slot < 0 || slot >= static_cast<int> (config.slots.size()))
+                        continue;
+
+                    auto& slotConfig = config.slots[static_cast<std::size_t> (slot)];
+                    slotConfig.name = instrument->name;
+                    slotConfig.patch = instrument->id;
+                    slotConfig.patchName = instrument->name;
+                    slotConfig.family = binding->family;
+                    slotConfig.familyName = binding->family;
+
+                    if (const auto family = document.families.find (binding->family);
+                        family != document.families.end())
+                    {
+                        slotConfig.familyName = family->second.name;
+                    }
+                }
+            }
+            else
+            {
+                std::cerr << "session: could not read " << setFile.string()
+                          << ": " << mappingError.message << std::endl;
+            }
+        }
 
         if (const auto type = getCommandLineValue (commandLine, "--audio-type"); type.isNotEmpty())
             config.device.deviceTypeName = type;
@@ -1244,7 +1295,9 @@ private:
         options.authToken = getCommandLineValue (commandLine, "--api-token").toStdString();
         options.lanMode = commandLine.contains ("--lan") || commandLine.contains ("--lan-mode");
 
-        apiState = std::make_unique<Api::StateStore> (AudioEngine::AudioEngine::defaultNumSlots);
+        const int apiSlots = session != nullptr ? session->getNumSlots()
+                                                : ihub::Session::defaultLogicalSlots;
+        apiState = std::make_unique<Api::StateStore> (apiSlots);
         apiServer = std::make_unique<Api::Server> (*apiState, options);
         audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
 

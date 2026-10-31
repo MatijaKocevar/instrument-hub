@@ -178,6 +178,12 @@ juce::var stateToVar (const StateSnapshot& state)
         slotVar.getDynamicObject()->setProperty ("name", juce::String (slot.name));
         slotVar.getDynamicObject()->setProperty ("armed", slot.armed);
         slotVar.getDynamicObject()->setProperty ("state", juce::String (slot.state));
+        slotVar.getDynamicObject()->setProperty ("warmState", juce::String (slot.warmState));
+        slotVar.getDynamicObject()->setProperty ("warm", slot.warm);
+        slotVar.getDynamicObject()->setProperty ("family", juce::String (slot.family));
+        slotVar.getDynamicObject()->setProperty ("familyName", juce::String (slot.familyName));
+        slotVar.getDynamicObject()->setProperty ("patch", juce::String (slot.patch));
+        slotVar.getDynamicObject()->setProperty ("patchName", juce::String (slot.patchName));
         slotVar.getDynamicObject()->setProperty ("gain", static_cast<double> (slot.gain));
         slotVar.getDynamicObject()->setProperty ("latencySamples", slot.latencySamples);
         slotVar.getDynamicObject()->setProperty ("latencyMs", slot.latencyMs);
@@ -185,6 +191,34 @@ juce::var stateToVar (const StateSnapshot& state)
     }
 
     object->setProperty ("slots", juce::var (slots));
+
+    juce::Array<juce::var> families;
+
+    for (const auto& family : state.families)
+    {
+        auto familyVar = makeObject();
+        familyVar.getDynamicObject()->setProperty ("id", juce::String (family.id));
+        familyVar.getDynamicObject()->setProperty ("name", juce::String (family.name));
+
+        juce::Array<juce::var> patches;
+
+        for (const auto& patch : family.patches)
+        {
+            auto patchVar = makeObject();
+            patchVar.getDynamicObject()->setProperty ("slot", patch.slot);
+            patchVar.getDynamicObject()->setProperty ("id", juce::String (patch.id));
+            patchVar.getDynamicObject()->setProperty ("name", juce::String (patch.name));
+            patchVar.getDynamicObject()->setProperty ("family", juce::String (patch.family));
+            patchVar.getDynamicObject()->setProperty ("familyName",
+                                                      juce::String (patch.familyName));
+            patches.add (patchVar);
+        }
+
+        familyVar.getDynamicObject()->setProperty ("patches", juce::var (patches));
+        families.add (familyVar);
+    }
+
+    object->setProperty ("families", juce::var (families));
     object->setProperty ("settings", settingsToVar (state.settings));
     object->setProperty ("transport", transportToVar (state.transport));
 

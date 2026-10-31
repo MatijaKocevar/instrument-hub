@@ -4,12 +4,14 @@
 #include "audio/DeviceManager.h"
 #include "audio/SlotSwitcher.h"
 #include "audio/Transport.h"
+#include "audio/WarmPool.h"
 #include "instruments/Instrument.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -50,9 +52,22 @@ enum class SessionSlotKind
 
 const char* toString (SessionSlotKind kind) noexcept;
 
+/** Warm-pool state of one logical slot, exposed through `/state`. */
+enum class SessionWarmState
+{
+    cold,
+    warming,
+    warm,
+    active,
+    fading
+};
+
+const char* toString (SessionWarmState state) noexcept;
+
 /** One instrument to load into a fixed engine slot. */
 struct SessionSlotConfig
 {
+    /** Display name of the patch. */
     std::string name;
     SessionSlotKind kind = SessionSlotKind::initTone;
 
@@ -67,6 +82,13 @@ struct SessionSlotConfig
 
     /** Interface channel copied by an audio-input slot. */
     int inputChannel = 0;
+
+    /** Family and patch identity from the set document. Used by the API's
+        family/patch tree; the audio path only cares about `kind`/`path`. */
+    std::string family;
+    std::string familyName;
+    std::string patch;
+    std::string patchName;
 };
 
 /** How and where the composed session opens its audio device. */
@@ -97,6 +119,21 @@ struct SessionConfig
 
     /** Equal-power crossfade length. 0 is the test seam for a hard switch. */
     float fadeMilliseconds = 3.0f;
+
+    /** Slot to warm and arm around at startup. */
+    int initialSlot = 0;
+
+    /** Neighbours kept warm around the armed slot. The instance bound is
+        `1 + neighbourCount` (clamped to at least one neighbour, so the
+        previous patch can stay warm while a cold one loads). */
+    int neighbourCount = AudioEngine::WarmPool::defaultNeighbourCount;
+
+    /** Artificial delay before a cold patch is created, in milliseconds.
+
+        Zero in production. The headless warm-pool acceptance uses it to make
+        the `warming` -> `active` transition observable without a real plugin.
+    */
+    int loadDelayMilliseconds = 0;
 };
 
 /** Measurements from an offline armed-slot / slot-switch render. */
@@ -136,26 +173,33 @@ struct SessionSwitchReport
 /**
     The composed audio session.
 
-    Owns the fixed `AudioEngine`, one `SlotSwitcher` over its eight slots, the
-    instrument instances loaded into them and the `DeviceManager` that streams
-    the graph to hardware. The wiring is done once in `build()`; nothing is
-    ever rewired at runtime. `armSlot()` only publishes a lock-free request and
-    `SlotSwitcher` runs the 2-5 ms equal-power crossfade on the audio thread.
+    Owns the fixed `AudioEngine`, one `SlotSwitcher` over its logical slots,
+    the `WarmPool` that instantiates patch instruments and the `DeviceManager`
+    that streams the graph to hardware. The wiring is done once in `build()`;
+    nothing is ever rewired at runtime.
 
-    ## Default set
+    ## 64 logical slots, few live instruments
 
-    `makeDefaultSet()` describes eight slots. With no external assets present
-    each slot gets the built-in initialisation tone, so a fresh checkout makes
-    sound immediately. `build()` also accepts sampler, plugin and audio-input
-    slots, created through the existing `SamplerInstrument`,
-    `PluginInstrument` and `AudioInputInstrument` implementations.
+    The engine always has one slot per pad (64 in the default set), but a slot
+    is not an instrument. Each engine slot is wired to a permanent, silent
+    `Voice` proxy; the actual patch instrument is owned by the `WarmPool` and
+    bound into the proxy with an atomic pointer store. Only the armed slot,
+    its K neighbours and the previous patch are instantiated, bounded by
+    `1 + K` live instances. Arming a warm slot is a pointer hand-over plus the
+    3 ms equal-power crossfade; arming a cold slot leaves the previous patch
+    audible while the pool loads the new one, reports `warming`, then
+    crossfades when the instance is ready.
 
     ## Threading
 
     - `build()`, `prepare()`, `openDevice()`, `closeDevice()`, `resetGraph()`
       and `measureSwitch()` are message-thread calls; the stream must be
       stopped for the graph-editing ones.
-    - `armSlot()` and the getters are lock-free and safe while the stream runs.
+    - `armSlot()` may load a cold patch through the warm pool, so it is a
+      control-thread call (HTTP, controller, message thread), never the audio
+      thread. Its audio-thread effect is only `SlotSwitcher::armSlot()`, one
+      lock-free atomic publish, made once the instance is resident.
+    - The getters are lock-free and safe while the stream runs.
     - `audioDeviceIOCallbackWithContext()` and `render()` are the audio path:
       no allocation, locks, logging or file I/O. All buffers are allocated in
       `prepare()` at the maximum block size.
@@ -163,26 +207,33 @@ struct SessionSwitchReport
 class Session final : public juce::AudioIODeviceCallback
 {
 public:
+    /** One slot per Launchpad pad. */
+    static constexpr int defaultLogicalSlots = 64;
+
     Session();
     ~Session() override;
 
     //==============================================================================
     // Composition (message thread)
 
-    /** The eight-slot starter set.
+    /** The 64-slot starter set.
 
         Every slot starts as an initialisation tone at a different pitch, so
         the composed session is audible without a plugin bundle or sample
-        library. Each entry names its slot; load a set later to replace a tone
-        with a sampler, plugin or audio-input source.
+        library. Slots are grouped into the eight families used by the
+        Launchpad set file (eight patches each); load a set later to replace a
+        tone with a sampler, plugin or audio-input source.
     */
     static std::vector<SessionSlotConfig> makeDefaultSet();
 
-    /** Builds the graph and loads every configured source.
+    /** Builds the fixed graph and the warm pool.
 
         Must run with the stream stopped. An empty `config.slots` uses
         `makeDefaultSet()`. On failure nothing is left half-built: the graph is
-        released and `error` explains which slot failed.
+        released and `error` explains which slot failed. The initial slot and
+        its neighbours are queued for warming in the background; arming the
+        initial slot before they are ready reports `warming` and switches as
+        soon as the instance is resident.
     */
     bool build (const SessionConfig& config, juce::String& error);
 
@@ -195,7 +246,7 @@ public:
 
     /** Returns every slot to idle and drops the pending arm request.
 
-        The stream must be stopped.
+        The stream must be stopped. Warm instances are kept.
     */
     void resetGraph() noexcept;
 
@@ -220,6 +271,12 @@ public:
     bool isPrepared() const noexcept { return prepared; }
     int getNumSlots() const noexcept;
 
+    /** Number of logical (pad) slots, even before the engine is built. */
+    int getLogicalSlotCount() const noexcept
+    {
+        return static_cast<int> (config.slots.size());
+    }
+
     AudioEngine::AudioEngine& getEngine() noexcept;
     const AudioEngine::AudioEngine& getEngine() const noexcept;
 
@@ -235,11 +292,7 @@ public:
     AudioEngine::Transport& getTransport() noexcept { return transport; }
     const AudioEngine::Transport& getTransport() const noexcept { return transport; }
 
-    /** Most recent crossfade-weighted peak of one slot, 0 when silent.
-
-        Written by `render()` / the device callback and read by the meter
-        broadcaster: plain relaxed atomics, no locks and no audio-thread work.
-    */
+    /** Most recent crossfade-weighted peak of one slot, 0 when silent. */
     float getSlotMeterPeak (int slot) const noexcept;
 
     /** Most recent peak of the mixed master bus. */
@@ -255,11 +308,46 @@ public:
     int getSlotLatencySamples (int slot) const noexcept;
 
     //==============================================================================
-    // Control (lock-free)
+    // Warm-pool inspection (safe on any non-audio thread)
 
-    /** Requests an equal-power fade to `slot` at the next block boundary. */
-    void armSlot (int slot) noexcept;
+    int getNeighbourCount() const noexcept;
+    int getWarmInstanceLimit() const noexcept;
+    int getLiveInstrumentCount() const noexcept;
 
+    /** Peak number of simultaneously live patch instruments. The acceptance
+        bound is `getWarmInstanceLimit()`. */
+    int getPeakInstrumentCount() const noexcept;
+
+    bool isSlotWarm (int slot) const noexcept;
+
+    /** Cold, warming, warm, active or fading. `active` means the slot is the
+        current arm target; `warming` means a cold instance is being created. */
+    SessionWarmState getWarmState (int slot) const noexcept;
+
+    /** The warm-pool state as stable text, for `/state` and tests. */
+    const char* getWarmStateName (int slot) const noexcept;
+
+    /** Polls until the slot's instance is resident (it may still be a
+        neighbour rather than the armed slot). For tests and offline tools. */
+    bool waitForSlotWarm (int slot, int timeoutMs = 5000);
+
+    /** Polls until a pending cold arm has been assigned its instance and the
+        switcher has been asked to crossfade. For tests and offline tools. */
+    bool waitForSlotActive (int slot, int timeoutMs = 5000);
+
+    //==============================================================================
+    // Control (control thread; never the audio thread)
+
+    /** Requests an equal-power fade to `slot`.
+
+        A warm slot switches at the next block boundary. A cold slot leaves the
+        current patch playing, warms in the background, then crossfades in.
+        Negative indices disarm.
+    */
+    void armSlot (int slot);
+
+    /** The most recently requested slot, including a cold slot still warming.
+        -1 when disarmed. */
     int getArmedSlot() const noexcept;
 
     //==============================================================================
@@ -301,9 +389,20 @@ public:
                                            const juce::AudioIODeviceCallbackContext& context) override;
 
 private:
-    AudioEngine::SlotSource* createSource (const SessionSlotConfig& slotConfig,
-                                           int slotIndex,
-                                           juce::String& error);
+    /** Permanent, real-time-safe proxy wired to one fixed engine slot. */
+    struct Voice;
+
+    std::unique_ptr<AudioEngine::SlotSource> createPooledSource (int slotIndex,
+                                                                 juce::String& error);
+    void warmCallback (int slot);
+    void bindVoice (int slot, AudioEngine::SlotSource* instance) noexcept;
+    void clearVoice (AudioEngine::SlotSource* instance) noexcept;
+    bool finishArmLocked (int slot, AudioEngine::SlotSource* pinnedInstance);
+    bool warmSlotBlockingLocked (int slot, int timeoutMs);
+    bool waitForWarmIdle (int timeoutMs);
+    void releaseAllPinsLocked();
+    void shutdownWarmPool() noexcept;
+
     bool resolveDevice (AudioEngine::DeviceSetup& setup, juce::String& error);
     void renderInternal (int numSamples, juce::MidiBuffer& midi) noexcept;
     void updateMeters (int numSamples) noexcept;
@@ -313,13 +412,12 @@ private:
 
     SessionConfig config;
 
-    // Destruction order matters: the plugin format manager and the loaded kits
-    // must outlive the instruments that reference them, and the engine must be
-    // destroyed before the sources its slots point at.
+    // Destruction order matters: the plugin format manager must outlive the
+    // instruments, and the engine must be destroyed before the proxies its
+    // slots point at. The destructor tears the pool down explicitly.
     std::unique_ptr<juce::AudioPluginFormatManager> pluginFormats;
-    std::vector<std::unique_ptr<sampler::LoadedKit>> kits;
-    std::vector<std::unique_ptr<Instrument>> instruments;
-    std::vector<AudioEngine::SlotSource*> sources;
+    std::unique_ptr<AudioEngine::WarmPool> warmPool;
+    std::vector<std::unique_ptr<Voice>> voices;
 
     std::unique_ptr<AudioEngine::AudioEngine> engine;
     std::unique_ptr<AudioEngine::SlotSwitcher> switcher;
@@ -333,6 +431,15 @@ private:
     std::unique_ptr<std::atomic<float>[]> slotMeterPeaks;
     std::atomic<float> masterMeterPeak { 0.0f };
     int meterSlotCount = 0;
+
+    // Warm-pool arm hand-off. The audio thread never touches these; the
+    // switcher request itself is the only lock-free publish.
+    mutable std::mutex armMutex;
+    std::atomic<int> requestedSlot { -1 };
+    std::atomic<int> activeSlot { -1 };
+    std::atomic<int> pendingArmSlot { -1 };
+    int pinnedActiveSlot = -1;
+    int pinnedPreviousSlot = -1;
 
     double sampleRate = 48000.0;
     int maximumBlockSize = 0;

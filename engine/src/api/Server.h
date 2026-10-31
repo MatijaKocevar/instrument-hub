@@ -37,6 +37,17 @@ struct SlotSnapshot
     */
     std::string state = "idle";
 
+    /** Warm-pool state: cold, warming, warm, active or fading. A cold patch is
+        a descriptor only; `warming` means its instrument is being created. */
+    std::string warmState = "cold";
+    bool warm = false;
+
+    /** Family/patch identity from the set document. */
+    std::string family;
+    std::string familyName;
+    std::string patch;
+    std::string patchName;
+
     /** Crossfade gain published by `SlotSwitcher`, 0 .. 1. */
     float gain = 0.0f;
 
@@ -44,6 +55,24 @@ struct SlotSnapshot
     int latencySamples = 0;
     /** The same total at the sample rate it was measured at. */
     double latencyMs = 0.0;
+};
+
+/** One patch in the family tree exposed by `GET /state`. */
+struct PatchState
+{
+    int slot = -1;
+    std::string id;
+    std::string name;
+    std::string family;
+    std::string familyName;
+};
+
+/** One instrument family in the family tree. */
+struct FamilyState
+{
+    std::string id;
+    std::string name;
+    std::vector<PatchState> patches;
 };
 
 /** Mutable settings exposed by `GET /settings` and `POST /settings`.
@@ -80,6 +109,8 @@ struct SlotRuntimeState
     bool armed = false;
     float gain = 0.0f;
     std::string state = "idle";
+    std::string warmState = "cold";
+    bool warm = false;
 };
 
 /** Supplies one slot's live state. */
@@ -97,6 +128,9 @@ struct StateSnapshot
 
     int armedSlot = -1;
     std::vector<SlotSnapshot> slots;
+
+    /** 8 families x 8 patches for the Launchpad's 64-pad grid. */
+    std::vector<FamilyState> families;
 
     SettingsState settings;
     TransportState transport;
@@ -241,7 +275,7 @@ using AudioMeasureHandler = std::function<AudioMeasurementState()>;
 class StateStore
 {
 public:
-    explicit StateStore (int numSlots = 8);
+    explicit StateStore (int numSlots = 64);
 
     //==============================================================================
     // Arm
@@ -315,6 +349,11 @@ public:
 
     int getNumSlots() const noexcept;
     void setSlotName (int slot, std::string name);
+    void setSlotIdentity (int slot,
+                          std::string family,
+                          std::string familyName,
+                          std::string patch,
+                          std::string patchName);
 
     /** Publishes the latency of one slot's instrument + FX chain.
 
@@ -324,6 +363,10 @@ public:
         the audio callback.
     */
     void setSlotLatency (int slot, int samples, double sampleRate);
+
+    /** Publishes the family -> patch tree that `/state` mirrors. */
+    void setFamilyTree (std::vector<FamilyState> tree);
+    std::vector<FamilyState> getFamilyTree() const;
 
     //==============================================================================
     // Inspection
@@ -337,8 +380,13 @@ private:
     const int numSlots;
     int armedSlot = -1;
     std::vector<std::string> slotNames;
+    std::vector<std::string> slotFamilies;
+    std::vector<std::string> slotFamilyNames;
+    std::vector<std::string> slotPatches;
+    std::vector<std::string> slotPatchNames;
     std::vector<int> slotLatencySamples;
     std::vector<double> slotLatencyMs;
+    std::vector<FamilyState> families;
     SettingsState settings;
     TransportState transport;
 

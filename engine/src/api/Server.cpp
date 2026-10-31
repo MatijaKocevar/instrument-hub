@@ -45,6 +45,10 @@ StateStore::StateStore (int numSlotsToUse)
       startedAt (std::chrono::steady_clock::now())
 {
     slotNames.reserve (static_cast<std::size_t> (numSlots));
+    slotFamilies.assign (static_cast<std::size_t> (numSlots), {});
+    slotFamilyNames.assign (static_cast<std::size_t> (numSlots), {});
+    slotPatches.assign (static_cast<std::size_t> (numSlots), {});
+    slotPatchNames.assign (static_cast<std::size_t> (numSlots), {});
     slotLatencySamples.assign (static_cast<std::size_t> (numSlots), 0);
     slotLatencyMs.assign (static_cast<std::size_t> (numSlots), 0.0);
 
@@ -322,6 +326,52 @@ void StateStore::setSlotName (int slot, std::string name)
         changed ("slot", slot);
 }
 
+void StateStore::setSlotIdentity (int slot,
+                                  std::string family,
+                                  std::string familyName,
+                                  std::string patch,
+                                  std::string patchName)
+{
+    ChangeHandler changed;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+
+        if (slot < 0 || slot >= numSlots)
+            return;
+
+        const auto index = static_cast<std::size_t> (slot);
+        slotFamilies[index] = std::move (family);
+        slotFamilyNames[index] = std::move (familyName);
+        slotPatches[index] = std::move (patch);
+        slotPatchNames[index] = std::move (patchName);
+        changed = changeHandler;
+    }
+
+    if (changed != nullptr)
+        changed ("slot", slot);
+}
+
+void StateStore::setFamilyTree (std::vector<FamilyState> tree)
+{
+    ChangeHandler changed;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        families = std::move (tree);
+        changed = changeHandler;
+    }
+
+    if (changed != nullptr)
+        changed ("slot", -1);
+}
+
+std::vector<FamilyState> StateStore::getFamilyTree() const
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    return families;
+}
+
 void StateStore::setSlotLatency (int slot, int samples, double sampleRate)
 {
     ChangeHandler changed;
@@ -368,10 +418,16 @@ StateSnapshot StateStore::snapshot() const
             slot.index = index;
             slot.name = slotNames[position];
             slot.armed = index == armedSlot;
+            slot.family = slotFamilies[position];
+            slot.familyName = slotFamilyNames[position];
+            slot.patch = slotPatches[position];
+            slot.patchName = slotPatchNames[position];
             slot.latencySamples = slotLatencySamples[position];
             slot.latencyMs = slotLatencyMs[position];
             result.slots.push_back (std::move (slot));
         }
+
+        result.families = families;
 
         transportReader = transportProvider;
         slotReader = slotRuntimeProvider;
@@ -400,6 +456,8 @@ StateSnapshot StateStore::snapshot() const
                 slot.armed = runtime.armed;
                 slot.gain = runtime.gain;
                 slot.state = runtime.state;
+                slot.warmState = runtime.warmState;
+                slot.warm = runtime.warm;
             }
             catch (...)
             {

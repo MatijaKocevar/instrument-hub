@@ -72,6 +72,12 @@ void WarmPool::setDestroyHook (DestroyHook hook)
     destroyHook = std::move (hook);
 }
 
+void WarmPool::setWarmCallback (WarmCallback callback)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    warmCallback = std::move (callback);
+}
+
 void WarmPool::setFormat (double newSampleRate, int newMaximumBlockSize)
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -79,6 +85,12 @@ void WarmPool::setFormat (double newSampleRate, int newMaximumBlockSize)
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 48000.0;
     maximumBlockSize = juce::jmax (1, newMaximumBlockSize);
     hasFormat = true;
+
+    // A device change re-prepares the warm instances too, so the next arm
+    // starts at the new block size instead of the one they were created at.
+    for (auto& slot : slots)
+        if (slot.instance != nullptr)
+            slot.instance->prepare (sampleRate, maximumBlockSize);
 }
 
 void WarmPool::setNeighbourCount (int count)
@@ -362,6 +374,20 @@ bool WarmPool::isWarm (int slotIndex) const
     return slots[static_cast<size_t> (slotIndex)].instance != nullptr;
 }
 
+bool WarmPool::isWarming (int slotIndex) const
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+
+    if (! isValidSlotLocked (slotIndex))
+        return false;
+
+    if (loadingSlot == slotIndex)
+        return true;
+
+    const auto& slot = slots[static_cast<size_t> (slotIndex)];
+    return slot.queued || slot.deferred;
+}
+
 int WarmPool::getInstanceLimit() const
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -372,6 +398,13 @@ int WarmPool::getLiveInstanceCount() const
 {
     const std::lock_guard<std::mutex> lock (mutex);
     return liveCountLocked();
+}
+
+int WarmPool::getPeakLiveInstanceCount() const
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    (void) liveCountLocked();
+    return peakLiveCount;
 }
 
 int WarmPool::getPinnedCount() const
@@ -535,6 +568,7 @@ int WarmPool::liveCountLocked() const
         if (slot.instance != nullptr)
             ++live;
 
+    peakLiveCount = juce::jmax (peakLiveCount, live);
     return live;
 }
 
@@ -886,6 +920,7 @@ void WarmPool::run()
         const Request request = slots[static_cast<size_t> (slotIndex)].request;
 
         warming = true;
+        loadingSlot = slotIndex;
         condition.notify_all();
         lock.unlock();
 
@@ -894,9 +929,11 @@ void WarmPool::run()
 
         lock.lock();
         warming = false;
+        loadingSlot = -1;
 
         auto& slot = slots[static_cast<size_t> (slotIndex)];
         const bool stillNeeded = needsWarmLocked (slotIndex);
+        bool becameWarm = false;
 
         if (created != nullptr && stillNeeded && liveCountLocked() < limitLocked())
         {
@@ -905,6 +942,7 @@ void WarmPool::run()
             slot.lastError.clear();
             slot.failedId.clear();
             ++warmCount;
+            becameWarm = true;
         }
         else
         {
@@ -925,6 +963,28 @@ void WarmPool::run()
         }
 
         condition.notify_all();
+
+        if (becameWarm)
+        {
+            // The callback binds the instance and may finish an arm that was
+            // waiting for this cold patch. It runs without the pool lock so it
+            // can call acquire()/release().
+            auto callback = warmCallback;
+            lock.unlock();
+
+            if (callback != nullptr)
+            {
+                try
+                {
+                    callback (slotIndex);
+                }
+                catch (...)
+                {
+                }
+            }
+
+            lock.lock();
+        }
     }
 
     condition.notify_all();
