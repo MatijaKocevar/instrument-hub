@@ -90,3 +90,13 @@ Status legend: `open` · `resolved`
 - note: B007's tablet check refers to Launchpad pad presses, not Launchkey presses.
 - note: the shipped mapping declares 64 pads/slots but the default composed session owns eight slots, so pads 8..63 resolve in the mapping and are out of range for the current graph. This is a code gap, not a hardware blocker; see `HANDOVER.md` section 2.
 - workaround: `ihub-launchpad-protocol`, `ihub-launchpad-mapping`, `ihub-launchpad-driver` and `ihub-e2e` cover the protocol, the full mapping, the scripted LED stream and the rendered/captured audio path without hardware.
+
+## B010 · Native page frames and page interaction
+- task: T127
+- severity: soft
+- status: open
+- what: The Grid, Instrument, Plugins and Audio pages are verified by server-rendered DOM snapshots (`ihub-ui-pages`) and the Grid route by a native `--snapshot` PNG. The Instrument, Plugins and Audio pages are not captured as native web-view frames, and no browser or tablet has clicked through them.
+- why: The page harness renders React under `react-dom/server`; the native snapshot test opens one route. Driving the embedded WebView route by route would need a UI automation driver that is not installed.
+- human must: open `./build/engine/instrument-hub`, visit `/grid`, `/instrument`, `/plugins` and `/audio` in the embedded view, confirm layout, scrolling and 44 px touch targets, and capture a native frame per page if a pixel record is needed.
+- workaround: `ihub-ui-pages` validates the page markup and writes the four snapshots; `ihub-ui-snapshot` validates the native 1200x800 Grid frame.
+- note: B009's "eight slots" note is stale after T118. The composed session now owns all 64 slots and every pad arms audible audio, as `ihub-e2e` proves with the click/pad/LED/audio record.

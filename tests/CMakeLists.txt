@@ -2907,6 +2907,70 @@ else()
     message(STATUS "ihub-ui-snapshot-test: X11/WebKit snapshot is Linux-only; skipping")
 endif()
 
+# --- Page snapshots (T127) ---------------------------------------------------
+#
+# Runs the server-rendered UI harness (`ui/src/testing/snapshot.tsx`) through
+# pnpm, then validates the Grid, Instrument, Plugins and Audio snapshots it
+# writes to `tests/artifacts/`. No browser or display is needed; the harness
+# renders the real React tree against a fixture control API and asserts the
+# page content, the 64 coloured cells and the red armed cell.
+
+find_program(IHUB_UI_PAGES_PNPM NAMES pnpm DOC "pnpm used by the page snapshot test")
+
+if(IHUB_UI_PAGES_PNPM)
+    set(IHUB_UI_PAGES_USES_COREPACK 0)
+else()
+    find_program(IHUB_UI_PAGES_COREPACK NAMES corepack DOC "corepack used by the page snapshot test")
+
+    if(IHUB_UI_PAGES_COREPACK)
+        set(IHUB_UI_PAGES_PNPM "${IHUB_UI_PAGES_COREPACK}")
+        set(IHUB_UI_PAGES_USES_COREPACK 1)
+    endif()
+endif()
+
+if(IHUB_UI_PAGES_PNPM)
+    juce_add_console_app(ihub-ui-pages-test
+        PRODUCT_NAME "ihub-ui-pages-test"
+    )
+
+    target_sources(ihub-ui-pages-test
+        PRIVATE
+            ui/Pages.cpp
+    )
+
+    target_compile_definitions(ihub-ui-pages-test
+        PRIVATE
+            "IHUB_UI_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../ui\""
+            "IHUB_TEST_ARTIFACTS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/artifacts\""
+            "IHUB_UI_PNPM=\"${IHUB_UI_PAGES_PNPM}\""
+            "IHUB_UI_PNPM_USES_COREPACK=${IHUB_UI_PAGES_USES_COREPACK}"
+    )
+
+    target_link_libraries(ihub-ui-pages-test
+        PRIVATE
+            juce::juce_core
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-ui-pages-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-ui-pages
+        COMMAND ihub-ui-pages-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-ui-pages-test: pnpm/corepack is not installed; skipping the page snapshots")
+endif()
+
 # --- End-to-end pad-to-audio (T117) -----------------------------------------
 #
 # One headless acceptance test for the whole shipped path:
@@ -2929,6 +2993,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             e2e/PadToAudio.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
@@ -2971,7 +3041,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     target_link_libraries(ihub-e2e-test
         PRIVATE
+            Threads::Threads
             ALSA::ALSA
+            ihub-httplib
+            juce::juce_core
             juce::juce_audio_devices
             juce::juce_dsp
             juce::juce_audio_formats
