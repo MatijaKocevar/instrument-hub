@@ -8,6 +8,8 @@
 #
 # (JUCE's normal artefact layout).
 
+find_package(Threads REQUIRED)
+
 juce_add_plugin(TestPlugin
     PRODUCT_NAME "TestPlugin"
     COMPANY_NAME "Instrument Hub"
@@ -352,6 +354,75 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(
         NAME ihub-plugin-cache
         COMMAND ihub-plugin-cache-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    # --- Plugin inventory API acceptance (T122) -----------------------------
+    #
+    # Copies TestPlugin into an isolated VST3 directory, attaches a real
+    # PluginInventory to the HTTP server and drives GET /plugins,
+    # POST /plugins/rescan and the search filter. It also removes and restores
+    # the bundle to prove a rescan picks up changes.
+
+    juce_add_console_app(ihub-plugin-inventory-api-test
+        PRODUCT_NAME "ihub-plugin-inventory-api-test"
+    )
+
+    target_sources(ihub-plugin-inventory-api-test
+        PRIVATE
+            PluginInventoryApiTest.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Discovery.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Pairing.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/PluginBridge.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Routes.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Server.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/StateBroadcast.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginCache.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginInventory.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/Scanner.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/ScannerProcess.cpp"
+    )
+
+    target_include_directories(ihub-plugin-inventory-api-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src"
+    )
+
+    target_compile_definitions(ihub-plugin-inventory-api-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+            "IHUB_SCANNER_HELPER=\"$<TARGET_FILE:ihub-scanner>\""
+    )
+
+    target_link_libraries(ihub-plugin-inventory-api-test
+        PRIVATE
+            Threads::Threads
+            ihub-httplib
+            juce::juce_audio_processors
+            juce::juce_core
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_dependencies(ihub-plugin-inventory-api-test
+        TestPlugin_VST3
+        ihub-scanner
+    )
+
+    set_target_properties(ihub-plugin-inventory-api-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-plugin-inventory-api
+        COMMAND ihub-plugin-inventory-api-test
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 else()

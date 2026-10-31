@@ -43,6 +43,7 @@ tags:
   - name: state
   - name: control
   - name: audio
+  - name: plugins
   - name: meters
   - name: pairing
 
@@ -895,6 +896,86 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /plugins:
+    get:
+      tags: [plugins]
+      operationId: listPlugins
+      summary: List installed VST3 plug-ins
+      description: |
+        Returns the read-only inventory produced by the out-of-process scanner
+        and its `PluginCache.xml`. An unchanged install is answered from the
+        cache, so this endpoint never launches plugin code.
+
+        `search` is a case-insensitive substring matched against name, vendor,
+        version, category, format and path. The result is already filtered;
+        `total` reports the unfiltered size. Rescanning is asynchronous: call
+        `POST /plugins/rescan`, then poll this endpoint while `scanning` is
+        true.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: search
+          in: query
+          required: false
+          description: Case-insensitive filter over the plug-in metadata.
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          description: Alias for `search`.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The current inventory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PluginList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /plugins/rescan:
+    post:
+      tags: [plugins]
+      operationId: rescanPlugins
+      summary: Rescan the VST3 directories
+      description: |
+        Starts one background scan. The response is the inventory as it was when
+        the scan started, with `started: true` and `scanning: true` when the
+        scan was accepted. A scan already in progress returns `started: false`
+        and leaves it running. New, changed and removed bundles are picked up
+        when the scan finishes; the scanner's dead-man's-pedal list still keeps
+        a crashing bundle from being retried.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: A scan was already running; the inventory is unchanged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PluginList"
+        "202":
+          description: The scan was started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PluginList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: The server has no plug-in inventory attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   securitySchemes:
     tokenHeader:
@@ -1687,3 +1768,80 @@ components:
         pairedClients:
           type: integer
           minimum: 1
+
+    Plugin:
+      type: object
+      required:
+        [id, name, description, vendor, version, category, isInstrument,
+         isEffect, format, path]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Stable identity that survives a restart.
+        name:
+          type: string
+          example: TestPlugin
+        description:
+          type: string
+          description: Optional descriptive name reported by the plugin.
+        vendor:
+          type: string
+          example: Instrument Hub
+        version:
+          type: string
+          description: Version string as reported by the plugin.
+        category:
+          type: string
+          description: Plugin category, e.g. `Fx` or `Instrument`.
+        isInstrument:
+          type: boolean
+          description: True when the plugin identifies itself as an instrument.
+        isEffect:
+          type: boolean
+          description: True for an effect; the complement of `isInstrument`.
+        format:
+          type: string
+          const: VST3
+        path:
+          type: string
+          description: Bundle path the scanner reported.
+          example: /usr/lib/vst3/TestPlugin.vst3
+
+    PluginList:
+      type: object
+      required:
+        [plugins, count, total, search, scanning, scanned, lastScanMs, error]
+      additionalProperties: false
+      properties:
+        plugins:
+          type: array
+          items:
+            $ref: "#/components/schemas/Plugin"
+        count:
+          type: integer
+          minimum: 0
+          description: Number of plugins after the search filter.
+        total:
+          type: integer
+          minimum: 0
+          description: Number of installed plugins before the search filter.
+        search:
+          type: string
+          description: The applied search query, empty when unfiltered.
+        scanning:
+          type: boolean
+          description: True while a background rescan is running.
+        scanned:
+          type: boolean
+          description: True once a cache was loaded or a scan completed.
+        lastScanMs:
+          type: integer
+          minimum: 0
+          description: Epoch milliseconds of the last completed scan or cache load.
+        error:
+          type: string
+          description: Last scan error, empty on success.
+        started:
+          type: boolean
+          description: Only on `POST /plugins/rescan`; true when a scan was started.
