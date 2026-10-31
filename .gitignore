@@ -25,6 +25,7 @@ build.ninja
 # Node / React UI
 node_modules/
 ui/dist/
+ui/dist-test/
 ui/.vite/
 npm-debug.log*
 yarn-debug.log*

@@ -12,6 +12,16 @@ export default defineConfig({
     host: "localhost",
     port: 5173,
     strictPort: true,
+    // The engine serves the UI from its own origin in production, so the app
+    // talks to `window.location.origin`. In dev, Vite forwards those paths to
+    // the control server instead.
+    proxy: {
+      "/state": "http://127.0.0.1:8080",
+      "/arm": "http://127.0.0.1:8080",
+      "/settings": "http://127.0.0.1:8080",
+      "/transport": "http://127.0.0.1:8080",
+      "/meters": { target: "ws://127.0.0.1:8080", ws: true },
+    },
   },
   build: {
     outDir: "dist",

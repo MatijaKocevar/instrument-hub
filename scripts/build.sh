@@ -22,20 +22,23 @@ if [[ ! -f third_party/JUCE/CMakeLists.txt ]]; then
 fi
 
 build_ui() {
-    if ! command -v npm >/dev/null 2>&1; then
-        echo "error: npm is required to build the React UI" >&2
+    local -a PNPM_CMD
+    if command -v pnpm >/dev/null 2>&1; then
+        PNPM_CMD=(pnpm)
+    elif command -v corepack >/dev/null 2>&1; then
+        # corepack ships with Node and fetches the version pinned by
+        # package.json "packageManager" on first use.
+        PNPM_CMD=(corepack pnpm)
+    else
+        echo "error: pnpm (or corepack) is required to build the React UI" >&2
         exit 1
     fi
 
     if [[ ! -d ui/node_modules ]]; then
-        if [[ -f ui/package-lock.json ]]; then
-            npm --prefix ui ci
-        else
-            npm --prefix ui install
-        fi
+        (cd ui && "${PNPM_CMD[@]}" install --frozen-lockfile)
     fi
 
-    npm --prefix ui run build
+    (cd ui && "${PNPM_CMD[@]}" run build)
 }
 
 case "$PRESET" in

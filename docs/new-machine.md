@@ -40,12 +40,12 @@ the script only reports what is missing and refuses to build.
 
 ## What the script sets up
 
-- toolchain: `git cmake ninja pkg-config node npm python3 opencode`
+- toolchain: `git cmake ninja pkg-config node npm corepack python3 opencode`
 - headers: `alsa jack freetype2 x11 gl webkit2gtk-4.1`
 - audio/MIDI: `/dev/snd/seq`, an ALSA loopback card, realtime limits,
   `audio` group
 - JUCE submodule (fetched if absent)
-- `ui/node_modules` (`npm ci`)
+- `ui/node_modules` (`pnpm install`; pnpm comes from corepack)
 - repo-local git identity — required, because the driver commits with
   `check=False` and would otherwise fail silently
 - opencode: `run --auto`, DeepSeek credentials, model `deepseek/deepseek-flash`

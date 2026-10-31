@@ -13,9 +13,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-if ! command -v npm >/dev/null 2>&1; then
-    echo "error: npm is required to run the React UI" >&2
+if ! command -v pnpm >/dev/null 2>&1 && ! command -v corepack >/dev/null 2>&1; then
+    echo "error: pnpm (or corepack) is required to run the React UI" >&2
     exit 1
+fi
+
+PNPM_CMD=(pnpm)
+if ! command -v pnpm >/dev/null 2>&1; then
+    PNPM_CMD=(corepack pnpm)
 fi
 
 if [[ ! -f third_party/JUCE/CMakeLists.txt ]]; then
@@ -25,7 +30,7 @@ fi
 
 if [[ ! -x ui/node_modules/.bin/vite ]]; then
     echo "installing UI dependencies..."
-    (cd ui && npm ci --no-audit --no-fund)
+    (cd ui && "${PNPM_CMD[@]}" install --frozen-lockfile)
 fi
 
 # Configure/build first, then start Vite: the app reconnects to HMR as soon as
