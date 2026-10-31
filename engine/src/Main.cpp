@@ -1,5 +1,6 @@
 #include "Bridge/WebView.h"
 #include "Session.h"
+#include "api/PluginBridge.h"
 #include "api/Server.h"
 #include "api/SessionBridge.h"
 #include "audio/AudioEngine.h"
@@ -12,6 +13,7 @@
 #include "diag/Diagnostics.h"
 #include "diag/LogRing.h"
 #include "plugins/ProcessLimits.h"
+#include "plugins/PluginInventory.h"
 #include "plugins/Scanner.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -1347,6 +1349,22 @@ private:
                                                 : ihub::Session::defaultLogicalSlots;
         apiState = std::make_unique<Api::StateStore> (apiSlots);
         apiServer = std::make_unique<Api::Server> (*apiState, options);
+        pluginInventory = std::make_unique<ihub::plugins::PluginInventory>();
+        Api::attachPluginInventory (*apiServer, *pluginInventory);
+
+        const auto inventory = pluginInventory->snapshot();
+
+        if (inventory.scanned)
+        {
+            std::cout << "plugins: " << inventory.total
+                      << " installed VST3 type(s) in the inventory" << std::endl;
+        }
+        else if (pluginInventory->requestRescan())
+        {
+            std::cout << "plugins: scanning VST3 directories in the background"
+                      << std::endl;
+        }
+
         audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
 
         // The session is the single owner of the audio device. Wire the API to
@@ -1640,6 +1658,7 @@ private:
     std::unique_ptr<ihub::Session> session;
     std::unique_ptr<Controller::Mapping> mapping;
     std::unique_ptr<Controller::LaunchpadDriver> launchpad;
+    std::unique_ptr<ihub::plugins::PluginInventory> pluginInventory;
     std::unique_ptr<Api::StateStore> apiState;
     std::unique_ptr<Api::Server> apiServer;
     std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;

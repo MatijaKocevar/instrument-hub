@@ -97,6 +97,10 @@ struct RouteContext
 
     /** Toggles LAN mode (and rebinds the listener). Empty means unavailable. */
     std::function<PairingSnapshot (bool)> setLanMode;
+
+    /** Optional read-only plug-in inventory behind `/plugins` (T122). */
+    PluginInventoryProvider pluginProvider;
+    PluginRescanHandler pluginRescan;
 };
 
 /** Installs every HTTP route and the WebSocket meter upgrade.

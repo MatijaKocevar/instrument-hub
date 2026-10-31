@@ -399,6 +399,51 @@ struct AudioMeasurementState
     std::string error;
 };
 
+/** One installed plug-in as returned by `GET /plugins` (T122).
+
+    The inventory is read-only. Assigning a plug-in to a patch happens through
+    the per-patch instrument/FX endpoints, not here.
+*/
+struct PluginState
+{
+    std::string id;
+    std::string name;
+    std::string description;
+    std::string vendor;
+    std::string version;
+    std::string category;
+
+    /** True when the plug-in identifies itself as an instrument. */
+    bool isInstrument = false;
+
+    /** True for an effect (the complement of `isInstrument`). */
+    bool isEffect = true;
+
+    std::string format;
+
+    /** Bundle path (`.../Name.vst3`). */
+    std::string path;
+};
+
+/** Everything `GET /plugins` returns. */
+struct PluginInventoryState
+{
+    std::vector<PluginState> plugins;
+    int total = 0;
+    std::string query;
+    bool scanning = false;
+    bool scanned = false;
+    std::int64_t lastScanMs = 0;
+    std::string error;
+};
+
+/** Supplies a filtered inventory snapshot. Called on an HTTP thread. */
+using PluginInventoryProvider =
+    std::function<PluginInventoryState (const std::string& search)>;
+
+/** Starts a background rescan. Returns false when one is already running. */
+using PluginRescanHandler = std::function<bool()>;
+
 /** Supplies the current audio state. Called on an HTTP thread. */
 using AudioStateProvider = std::function<AudioStateSnapshot()>;
 
@@ -653,6 +698,8 @@ private:
     - `GET  /audio`
     - `POST /audio`
     - `POST /audio/measure`
+    - `GET  /plugins`
+    - `POST /plugins/rescan`
     - `GET  /meters` (WebSocket upgrade)
     - `GET  /events` (WebSocket upgrade, live state mirror)
     - `GET  /pairing` (loopback only)
@@ -732,6 +779,16 @@ public:
     void setAudioHandlers (AudioStateProvider provider,
                            AudioApplyHandler apply,
                            AudioMeasureHandler measure);
+
+    /** Installs the plug-in inventory behind `/plugins` (T122).
+
+        Call before `start()`; the handlers are copied into the route table.
+        The inventory object they close over must outlive this server. Without
+        them `GET /plugins` returns an empty list and `POST /plugins/rescan`
+        answers `503`.
+    */
+    void setPluginHandlers (PluginInventoryProvider provider,
+                            PluginRescanHandler rescan);
 
     /** Enables/disables token auth. Takes effect on the next request. */
     void setAuthToken (std::string token);

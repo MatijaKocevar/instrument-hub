@@ -96,6 +96,7 @@ target_sources(instrument-hub
         src/Main.cpp
         src/api/Discovery.cpp
         src/api/Pairing.cpp
+        src/api/PluginBridge.cpp
         src/api/Routes.cpp
         src/api/Server.cpp
         src/api/SessionBridge.cpp
@@ -134,6 +135,7 @@ target_sources(instrument-hub
         src/instruments/PluginFx.cpp
         src/plugins/PluginInstrument.cpp
         src/plugins/PluginCache.cpp
+        src/plugins/PluginInventory.cpp
         src/plugins/PluginWindow.cpp
         src/plugins/SandboxHost.cpp
         src/plugins/Scanner.cpp

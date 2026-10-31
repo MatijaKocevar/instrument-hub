@@ -1126,13 +1126,15 @@ struct Server::Impl
                 requestsInFlight.fetch_sub (1, std::memory_order_acq_rel);
         });
 
-        RouteContext context { state, {}, {}, {}, {}, &pairing, {} };
+        RouteContext context { state, {}, {}, {}, {}, &pairing, {}, {}, {} };
 
         {
             const std::lock_guard<std::mutex> lock (configMutex);
             context.audioProvider = audioProvider;
             context.audioApply = audioApply;
             context.audioMeasure = audioMeasure;
+            context.pluginProvider = pluginProvider;
+            context.pluginRescan = pluginRescan;
         }
 
         context.setLanMode = [this] (bool enabled) { return applyLanMode (enabled); };
@@ -1298,6 +1300,8 @@ struct Server::Impl
     AudioStateProvider audioProvider;
     AudioApplyHandler audioApply;
     AudioMeasureHandler audioMeasure;
+    PluginInventoryProvider pluginProvider;
+    PluginRescanHandler pluginRescan;
     std::string authToken;
     const int meterHz;
     StateBroadcast broadcast;
@@ -1434,6 +1438,14 @@ void Server::setAudioHandlers (AudioStateProvider provider,
     impl->audioProvider = std::move (provider);
     impl->audioApply = std::move (apply);
     impl->audioMeasure = std::move (measure);
+}
+
+void Server::setPluginHandlers (PluginInventoryProvider provider,
+                                PluginRescanHandler rescan)
+{
+    const std::lock_guard<std::mutex> lock (impl->configMutex);
+    impl->pluginProvider = std::move (provider);
+    impl->pluginRescan = std::move (rescan);
 }
 
 void Server::setAuthToken (std::string token)
