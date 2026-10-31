@@ -185,6 +185,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live state stream (WebSocket upgrade)
+         * @description Upgrade to a WebSocket. The server immediately sends the current
+         *     state, then sends a new frame whenever:
+         *
+         *     - a hardware pad is pressed or released (`event.kind: "pad"`),
+         *     - `POST /arm` changes the armed slot (`"arm"`),
+         *     - `POST /settings` or `POST /transport` succeeds,
+         *     - a slot name or measured latency changes (`"slot"`).
+         *
+         *     Frames are coalesced: a slow client skips sequence numbers instead of
+         *     receiving a backlog. Each frame embeds the same document as
+         *     `GET /state`, so a client never has to poll after an event. Latency
+         *     from the physical pad press to the frame is under 100 ms.
+         *
+         *     Frame shape (`application/json` text message):
+         *
+         *     ```json
+         *     {
+         *       "type": "state",
+         *       "sequence": 7,
+         *       "timestampMs": 1400.5,
+         *       "event": { "kind": "pad", "pad": 3, "slot": -1, "pressed": true, "timestampMs": 1400.5 },
+         *       "pads": [
+         *         { "index": 0, "pressed": false, "updatedMs": 0.0 },
+         *         { "index": 3, "pressed": true, "updatedMs": 1400.5 }
+         *       ],
+         *       "state": { "schemaVersion": 1, "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
+         *     }
+         *     ```
+         */
+        get: operations["stateEventsWebSocket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pairing": {
         parameters: {
             query?: never;
@@ -751,6 +798,25 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description WebSocket upgrade accepted; meter frames follow. */
+            101: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    stateEventsWebSocket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description WebSocket upgrade accepted; state frames follow. */
             101: {
                 headers: {
                     [name: string]: unknown;

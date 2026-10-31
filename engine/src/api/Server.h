@@ -18,6 +18,8 @@
 namespace Api
 {
 
+class StateBroadcast;
+
 //==============================================================================
 // Control API state
 //==============================================================================
@@ -246,6 +248,22 @@ public:
     void setTransportHandler (TransportHandler handler);
 
     //==============================================================================
+    // Change notification (T103)
+
+    /** Called after every successful mutation of the store.
+
+        `kind` is `"arm"`, `"settings"`, `"transport"` or `"slot"`; `slot` is
+        the affected slot for `"arm"`/`"slot"` and -1 otherwise. The handler
+        runs outside the store's lock, on the thread that made the change, so
+        it must not block the audio path (it never is on it).
+
+        `StateBroadcast` installs this to mirror API and controller changes to
+        the connected clients. There is one handler per store.
+    */
+    using ChangeHandler = std::function<void (const char* kind, int slot)>;
+    void setChangeHandler (ChangeHandler handler);
+
+    //==============================================================================
     // Slots
 
     int getNumSlots() const noexcept;
@@ -279,6 +297,7 @@ private:
 
     ArmHandler armHandler;
     TransportHandler transportHandler;
+    ChangeHandler changeHandler;
 
     const std::chrono::steady_clock::time_point startedAt;
 };
@@ -302,6 +321,7 @@ private:
     - `POST /audio`
     - `POST /audio/measure`
     - `GET  /meters` (WebSocket upgrade)
+    - `GET  /events` (WebSocket upgrade, live state mirror)
     - `GET  /pairing` (loopback only)
     - `POST /pairing/lan` (loopback only)
     - `POST /pairing/revoke` (loopback only)
@@ -396,6 +416,16 @@ public:
     */
     Discovery& getDiscovery();
     const Discovery& getDiscovery() const;
+
+    /** The live state mirror behind the `/events` WebSocket (T103).
+
+        A pad press, `POST /arm`, `POST /settings` or `POST /transport` all
+        publish a frame; every connected client receives the newest state
+        within a few milliseconds. The broadcaster starts and stops with the
+        server.
+    */
+    StateBroadcast& getStateBroadcast();
+    const StateBroadcast& getStateBroadcast() const;
 
     /** Turn LAN mode on/off.
 
