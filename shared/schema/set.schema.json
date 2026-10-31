@@ -89,10 +89,65 @@
         }
       }
     },
-    "pads": {
-      "description": "Pad bindings. Pad 0..7 is the bottom row left-to-right, 8..15 the top row left-to-right.",
+    "banks": {
+      "description": "Top-row macro pages, keyed by bank index (Launchpad CC 91..98). Optional; when present bank 0 is the leftmost button.",
       "type": "array",
-      "maxItems": 16,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["bank", "name", "macros"],
+        "properties": {
+          "bank": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "macros": {
+            "description": "Macro ids exposed while this page is selected.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "scenes": {
+      "description": "Right-column scenes, keyed by scene index (Launchpad CC 89..19, top to bottom). Optional; a scene names the family row it selects.",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scene", "name", "family"],
+        "properties": {
+          "scene": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "family": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "pads": {
+      "description": "Grid pad bindings. The Launchpad exposes 64 pads in row-major order from the bottom-left: pad 0 is the bottom-left key, pad 63 the top-right. In the starter set each row is one family.",
+      "type": "array",
+      "maxItems": 64,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -101,7 +156,7 @@
           "pad": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 15
+            "maximum": 63
           },
           "family": {
             "description": "Must match a key in families.",

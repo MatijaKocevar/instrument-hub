@@ -1075,6 +1075,106 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Launchpad 64-pad mapping (T116) ----------------------------------------
+#
+# Pure C++: loads the shipped shared/set.yaml and resolves all 64 grid pads to
+# eight families of eight patches, then exercises the top-row macro pages and
+# right-column scenes. No MIDI port and no audio device.
+
+find_package(Threads REQUIRED)
+
+add_executable(ihub-launchpad-mapping-test
+    controller/LaunchpadMappingTest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+)
+
+target_compile_features(ihub-launchpad-mapping-test PRIVATE cxx_std_20)
+
+target_include_directories(ihub-launchpad-mapping-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-launchpad-mapping-test
+    PRIVATE
+        "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+)
+
+target_link_libraries(ihub-launchpad-mapping-test
+    PRIVATE
+        Threads::Threads
+)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(ihub-launchpad-mapping-test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+set_target_properties(ihub-launchpad-mapping-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-launchpad-mapping
+    COMMAND ihub-launchpad-mapping-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# --- Scripted Launchpad driver (T116) ---------------------------------------
+#
+# Injects note/CC events straight into LaunchpadDriver and captures every LED
+# message with a sink, so the armed slot and the idle/warming/active/error
+# stream are checked without a MIDI port or hardware.
+
+juce_add_console_app(ihub-launchpad-driver-test
+    PRODUCT_NAME "ihub-launchpad-driver-test"
+)
+
+target_sources(ihub-launchpad-driver-test
+    PRIVATE
+        controller/LaunchpadDriverTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+)
+
+target_include_directories(ihub-launchpad-driver-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-launchpad-driver-test
+    PRIVATE
+        "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+)
+
+target_link_libraries(ihub-launchpad-driver-test
+    PRIVATE
+        Threads::Threads
+        juce::juce_audio_devices
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-launchpad-driver-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-launchpad-driver
+    COMMAND ihub-launchpad-driver-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- Launchkey driver against the virtual controller (T042) -----------------
 #
 # This is the T042 acceptance check. ihub-launchkey-sim's port is opened

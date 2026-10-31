@@ -1168,6 +1168,35 @@ private:
                                                          : Controller::PadState::idle);
             };
 
+            // The top row selects a macro page, the right column a scene. With
+            // no encoders these LEDs are the only feedback the surface gives
+            // for those selections.
+            mappingListeners.bankEvent = [this] (int bank,
+                                                 const Controller::MacroBankSpec*)
+            {
+                if (launchpad == nullptr)
+                    return;
+
+                for (int index = 0; index < Launchpad::topRowCount; ++index)
+                    launchpad->setButtonState (
+                        Launchpad::topRowCCForIndex (index),
+                        index == bank ? Controller::PadState::active
+                                      : Controller::PadState::idle);
+            };
+
+            mappingListeners.sceneEvent = [this] (int scene,
+                                                  const Controller::SceneSpec*)
+            {
+                if (launchpad == nullptr)
+                    return;
+
+                for (int index = 0; index < Launchpad::rightColumnCount; ++index)
+                    launchpad->setButtonState (
+                        Launchpad::rightColumnCCForIndex (index),
+                        index == scene ? Controller::PadState::active
+                                       : Controller::PadState::idle);
+            };
+
             mapping->setListeners (std::move (mappingListeners));
 
             Controller::MappingError error;
@@ -1186,6 +1215,12 @@ private:
         {
             if (mapping != nullptr)
                 mapping->handlePad (pad, pressed);
+        };
+
+        driverListeners.buttonEvent = [this] (int cc, bool pressed)
+        {
+            if (mapping != nullptr)
+                mapping->handleButton (cc, pressed);
         };
 
         launchpad->setListeners (std::move (driverListeners));

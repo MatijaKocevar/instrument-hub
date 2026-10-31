@@ -112,17 +112,51 @@ public:
 
     void setAllPadStates (PadState state);
 
-    /** Rewrites every grid LED from the current states. */
+    /** Sets the LED of a top-row or right-column button. `cc` is the raw
+        controller number (91..98 or 89, 79, ... 19). */
+    void setButtonState (int cc, PadState state);
+
+    PadState getButtonState (int cc) const noexcept;
+
+    void setAllButtonStates (PadState state);
+
+    /** Number of addressable non-grid buttons (8 top row + 8 right column). */
+    static constexpr int controlButtonCount =
+        Launchpad::topRowCount + Launchpad::rightColumnCount;
+
+    /** Rewrites every grid and control-row LED from the current states. */
     void refreshLeds();
 
-    /** Turns every grid LED off. */
+    /** Turns every grid and control-row LED off. */
     void clearLeds();
 
     bool sendPadColour (int padIndex,
                         Launchpad::Colour colour,
                         Launchpad::LedMode mode = Launchpad::LedMode::Static);
 
+    bool sendButtonColour (int cc,
+                           Launchpad::Colour colour,
+                           Launchpad::LedMode mode = Launchpad::LedMode::Static);
+
     bool sendSysEx (const Launchpad::SysExFrame& frame);
+
+    //==============================================================================
+    // Scripted (hardware-free) operation
+
+    /** Receives every MIDI message the driver emits. A scripted test can
+        capture the LED stream without opening a MIDI port. */
+    using MessageSink = std::function<void (const juce::MidiMessage&)>;
+
+    /** Installs or clears the output tap. It runs on the calling thread. */
+    void setMessageSink (MessageSink sink);
+
+    /** Feeds one incoming message through the same decoder as the MIDI thread.
+
+        This is the seam for scripted tests and simulators: no device needs to
+        be connected. The driver still knows nothing about audio; it only turns
+        notes and CCs into pad/button events and LED messages.
+    */
+    void injectMidiMessage (const juce::MidiMessage& message);
 
 private:
     void handleIncomingMidiMessage (juce::MidiInput* source,
@@ -130,6 +164,8 @@ private:
 
     void dispatchPad (int padIndex, bool pressed);
     void dispatchButton (int cc, bool pressed);
+
+    static int controlButtonSlot (int cc) noexcept;
 
     bool sendBytes (const std::uint8_t* bytes, int size);
 
@@ -150,9 +186,13 @@ private:
     DriverListeners listeners;
 
     std::array<std::atomic<std::uint8_t>, Launchpad::padCount> padStates {};
+    std::array<std::atomic<std::uint8_t>, controlButtonCount> buttonStates {};
 
     std::atomic<bool> connected { false };
     std::atomic<bool> handshakeEcho { false };
+
+    mutable std::mutex sinkMutex;
+    MessageSink messageSink;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LaunchpadDriver)
 };

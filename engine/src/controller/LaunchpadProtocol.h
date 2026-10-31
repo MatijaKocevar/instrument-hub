@@ -288,4 +288,25 @@ constexpr std::array<std::uint8_t, 3> padColourMessage (int padIndex,
              velocityFor (colour) };
 }
 
+/** True when `cc` addresses a top-row or right-column button. */
+constexpr bool isControlCC (int cc) noexcept
+{
+    return topRowIndexForCC (cc).has_value()
+           || rightColumnIndexForCC (cc).has_value();
+}
+
+/** The three bytes that light one top-row or right-column button. */
+constexpr std::array<std::uint8_t, 3> buttonColourMessage (
+    int cc,
+    Colour colour,
+    LedMode mode = LedMode::Static) noexcept
+{
+    if (! isControlCC (cc))
+        return { 0, 0, 0 };
+
+    return { static_cast<std::uint8_t> (0xB0u + static_cast<std::uint8_t> (mode)),
+             static_cast<std::uint8_t> (cc),
+             velocityFor (colour) };
+}
+
 } // namespace Launchpad

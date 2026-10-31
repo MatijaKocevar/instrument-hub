@@ -1,5 +1,7 @@
 #include "Mapping.h"
 
+#include "LaunchpadProtocol.h"
+
 #include <algorithm>
 #include <cctype>
 #include <charconv>
@@ -47,6 +49,24 @@ const EncoderBinding* SetMapping::encoderBinding (int encoder) const noexcept
     return entry.has_value() ? &*entry : nullptr;
 }
 
+const MacroBankSpec* SetMapping::bankBinding (int bank) const noexcept
+{
+    if (bank < 0 || bank >= SetMapping::maximumBanks)
+        return nullptr;
+
+    const auto& entry = banks[static_cast<std::size_t> (bank)];
+    return entry.has_value() ? &*entry : nullptr;
+}
+
+const SceneSpec* SetMapping::sceneBinding (int scene) const noexcept
+{
+    if (scene < 0 || scene >= SetMapping::maximumScenes)
+        return nullptr;
+
+    const auto& entry = scenes[static_cast<std::size_t> (scene)];
+    return entry.has_value() ? &*entry : nullptr;
+}
+
 const InstrumentSpec* SetMapping::instrumentFor (const PadBinding& binding) const noexcept
 {
     const auto family = families.find (binding.family);
@@ -79,6 +99,28 @@ int SetMapping::countEncoders() const noexcept
     int count = 0;
 
     for (const auto& entry : encoders)
+        if (entry.has_value())
+            ++count;
+
+    return count;
+}
+
+int SetMapping::countBanks() const noexcept
+{
+    int count = 0;
+
+    for (const auto& entry : banks)
+        if (entry.has_value())
+            ++count;
+
+    return count;
+}
+
+int SetMapping::countScenes() const noexcept
+{
+    int count = 0;
+
+    for (const auto& entry : scenes)
         if (entry.has_value())
             ++count;
 
@@ -701,7 +743,8 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
     if (root.kind != YamlKind::mapping)
         return fail (error, root, "the document root must be a mapping");
 
-    if (! checkKeys (root, { "schemaVersion", "name", "families", "macros", "pads", "encoders" }, error))
+    if (! checkKeys (root, { "schemaVersion", "name", "families", "macros",
+                             "pads", "encoders", "banks", "scenes" }, error))
         return false;
 
     const auto* version = root.find ("schemaVersion");
@@ -972,6 +1015,114 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
         out.encoders[static_cast<std::size_t> (binding.encoder)] = std::move (binding);
     }
 
+    // --- macro banks (top row) -------------------------------------------
+    if (const auto* banks = root.find ("banks"))
+    {
+        if (banks->kind != YamlKind::sequence)
+            return fail (error, *banks, "banks must be a sequence");
+
+        for (const auto& bankValue : banks->sequence)
+        {
+            if (bankValue.kind != YamlKind::mapping)
+                return fail (error, bankValue, "a bank entry must be a mapping");
+
+            if (! checkKeys (bankValue, { "bank", "name", "macros" }, error))
+                return false;
+
+            const auto* bankNumber = bankValue.find ("bank");
+            const auto* name = bankValue.find ("name");
+            const auto* macroList = bankValue.find ("macros");
+
+            if (bankNumber == nullptr || name == nullptr || macroList == nullptr)
+                return fail (error, bankValue, "a bank entry needs bank, name and macros");
+
+            MacroBankSpec bank;
+
+            if (! readInt (*bankNumber, bank.bank, error, "bank")
+                || ! readString (*name, bank.name, error, "bank name"))
+                return false;
+
+            if (bank.bank < 0 || bank.bank >= SetMapping::maximumBanks)
+                return fail (error, *bankNumber,
+                             "bank must be within 0.."
+                                 + std::to_string (SetMapping::maximumBanks - 1));
+
+            if (out.bankBinding (bank.bank) != nullptr)
+                return fail (error, *bankNumber,
+                             "duplicate bank binding for bank "
+                                 + std::to_string (bank.bank));
+
+            if (macroList->kind != YamlKind::sequence || macroList->sequence.empty())
+                return fail (error, *macroList,
+                             "bank " + std::to_string (bank.bank)
+                                 + " needs a non-empty macros list");
+
+            for (const auto& macroValue : macroList->sequence)
+            {
+                std::string macroId;
+
+                if (! readString (macroValue, macroId, error, "bank macro"))
+                    return false;
+
+                if (out.macros.find (macroId) == out.macros.end())
+                    return fail (error, macroValue,
+                                 "bank " + std::to_string (bank.bank)
+                                     + " names unknown macro '" + macroId + "'");
+
+                bank.macros.push_back (std::move (macroId));
+            }
+
+            out.banks[static_cast<std::size_t> (bank.bank)] = std::move (bank);
+        }
+    }
+
+    // --- scenes (right column) --------------------------------------------
+    if (const auto* scenes = root.find ("scenes"))
+    {
+        if (scenes->kind != YamlKind::sequence)
+            return fail (error, *scenes, "scenes must be a sequence");
+
+        for (const auto& sceneValue : scenes->sequence)
+        {
+            if (sceneValue.kind != YamlKind::mapping)
+                return fail (error, sceneValue, "a scene entry must be a mapping");
+
+            if (! checkKeys (sceneValue, { "scene", "name", "family" }, error))
+                return false;
+
+            const auto* sceneNumber = sceneValue.find ("scene");
+            const auto* name = sceneValue.find ("name");
+            const auto* family = sceneValue.find ("family");
+
+            if (sceneNumber == nullptr || name == nullptr || family == nullptr)
+                return fail (error, sceneValue, "a scene entry needs scene, name and family");
+
+            SceneSpec scene;
+
+            if (! readInt (*sceneNumber, scene.scene, error, "scene")
+                || ! readString (*name, scene.name, error, "scene name")
+                || ! readString (*family, scene.family, error, "scene family"))
+                return false;
+
+            if (scene.scene < 0 || scene.scene >= SetMapping::maximumScenes)
+                return fail (error, *sceneNumber,
+                             "scene must be within 0.."
+                                 + std::to_string (SetMapping::maximumScenes - 1));
+
+            if (out.sceneBinding (scene.scene) != nullptr)
+                return fail (error, *sceneNumber,
+                             "duplicate scene binding for scene "
+                                 + std::to_string (scene.scene));
+
+            if (out.families.find (scene.family) == out.families.end())
+                return fail (error, *family,
+                             "scene " + std::to_string (scene.scene)
+                                 + " names unknown family '" + scene.family + "'");
+
+            out.scenes[static_cast<std::size_t> (scene.scene)] = std::move (scene);
+        }
+    }
+
     return true;
 }
 
@@ -1095,6 +1246,8 @@ bool Mapping::load (const std::filesystem::path& file, MappingError* error)
         hasAttempted = false;
         hasLoaded = false;
         activePad.store (-1, std::memory_order_release);
+        activeBank.store (-1, std::memory_order_release);
+        activeScene.store (-1, std::memory_order_release);
     }
 
     return reloadInternal (false, error);
@@ -1234,6 +1387,12 @@ bool Mapping::applyText (const std::string& text,
 
         if (newBinding != nullptr)
             armTarget = newBinding->slot;
+
+        if (newMapping->bankBinding (activeBank.load (std::memory_order_relaxed)) == nullptr)
+            activeBank.store (-1, std::memory_order_release);
+
+        if (newMapping->sceneBinding (activeScene.load (std::memory_order_relaxed)) == nullptr)
+            activeScene.store (-1, std::memory_order_release);
 
         current = newMapping;
         lastError = {};
@@ -1398,9 +1557,45 @@ std::optional<EncoderBinding> Mapping::getEncoderBinding (int encoder) const
     return std::nullopt;
 }
 
+std::optional<MacroBankSpec> Mapping::getBank (int bank) const
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+
+    if (current == nullptr)
+        return std::nullopt;
+
+    if (const auto* page = current->bankBinding (bank))
+        return *page;
+
+    return std::nullopt;
+}
+
+std::optional<SceneSpec> Mapping::getScene (int scene) const
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+
+    if (current == nullptr)
+        return std::nullopt;
+
+    if (const auto* selection = current->sceneBinding (scene))
+        return *selection;
+
+    return std::nullopt;
+}
+
 int Mapping::getActivePad() const noexcept
 {
     return activePad.load (std::memory_order_acquire);
+}
+
+int Mapping::getActiveBank() const noexcept
+{
+    return activeBank.load (std::memory_order_acquire);
+}
+
+int Mapping::getActiveScene() const noexcept
+{
+    return activeScene.load (std::memory_order_acquire);
 }
 
 int Mapping::getArmedSlot() const noexcept
@@ -1490,6 +1685,87 @@ bool Mapping::handleEncoder (int encoder, int value)
 
     if (listenersCopy.macroEvent)
         listenersCopy.macroEvent (change);
+
+    return true;
+}
+
+bool Mapping::handleButton (int cc, bool pressed)
+{
+    if (const auto topRow = Launchpad::topRowIndexForCC (cc))
+        return handleTopRow (*topRow, pressed);
+
+    if (const auto rightColumn = Launchpad::rightColumnIndexForCC (cc))
+        return handleRightColumn (*rightColumn, pressed);
+
+    return false;
+}
+
+bool Mapping::handleTopRow (int index, bool pressed)
+{
+    if (index < 0 || index >= SetMapping::maximumBanks)
+        return false;
+
+    Listeners listenersCopy;
+    std::optional<MacroBankSpec> page;
+    bool mapped = false;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        listenersCopy = listeners;
+
+        if (current != nullptr)
+        {
+            if (const auto* binding = current->bankBinding (index))
+            {
+                page = *binding;
+                mapped = true;
+
+                if (pressed)
+                    activeBank.store (index, std::memory_order_release);
+            }
+        }
+    }
+
+    if (! pressed || ! mapped)
+        return false;
+
+    if (listenersCopy.bankEvent)
+        listenersCopy.bankEvent (index, &*page);
+
+    return true;
+}
+
+bool Mapping::handleRightColumn (int index, bool pressed)
+{
+    if (index < 0 || index >= SetMapping::maximumScenes)
+        return false;
+
+    Listeners listenersCopy;
+    std::optional<SceneSpec> selection;
+    bool mapped = false;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        listenersCopy = listeners;
+
+        if (current != nullptr)
+        {
+            if (const auto* binding = current->sceneBinding (index))
+            {
+                selection = *binding;
+                mapped = true;
+
+                if (pressed)
+                    activeScene.store (index, std::memory_order_release);
+            }
+        }
+    }
+
+    if (! pressed || ! mapped)
+        return false;
+
+    if (listenersCopy.sceneEvent)
+        listenersCopy.sceneEvent (index, &*selection);
 
     return true;
 }

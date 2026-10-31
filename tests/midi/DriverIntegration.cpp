@@ -10,8 +10,7 @@
 //     -> simulator recording
 //
 // The simulator replays tests/midi/fixtures/pads-16.json one pad at a time.
-// Pads 0..7 are mapped by the shipped shared/set.yaml (slots 0,1,2,3,4,5,6,0);
-// pads 8..15 are deliberately unmapped and must not change the armed slot.
+// All 16 pads are mapped by the shipped shared/set.yaml; pad N arms slot N.
 //
 // Every outbound LED message is canonicalised to one hex line and compared,
 // exactly and in order, against tests/midi/fixtures/driver-integration-leds.golden.
@@ -66,12 +65,13 @@ constexpr int kNumChannels = 2;
 constexpr float kFadeMilliseconds = 3.0f;
 constexpr int kMaxFadeBlocks = 64;
 
-/** The shipped shared/set.yaml binds pads 0..7 to these slots, in order. */
-constexpr std::array<int, 8> kMappedSlots { 0, 1, 2, 3, 4, 5, 6, 0 };
+/** The shipped shared/set.yaml binds pads 0..15 to these slots, in order. */
+constexpr std::array<int, 16> kMappedSlots { 0, 1, 2, 3, 4, 5, 6, 7,
+                                             8, 9, 10, 11, 12, 13, 14, 15 };
 
-/** 16 startup LEDs + pads 0..7: 2 messages for the first press and 3 for each
+/** 16 startup LEDs + 16 pads: 2 messages for the first press and 3 for each
     later press (previous idle, new warming, new active). */
-constexpr std::size_t kExpectedLedMessages = 16 + 2 + 7 * 3;
+constexpr std::size_t kExpectedLedMessages = 16 + 2 + 15 * 3;
 
 int failures = 0;
 
@@ -260,7 +260,7 @@ int main()
     try
     {
         // ---------------------------------------------------------------------
-        // The app: a set mapping, seven fixed slots and the switcher.
+        // The app: a set mapping, sixteen fixed slots and the switcher.
         // ---------------------------------------------------------------------
         Controller::Mapping mapping;
         Controller::MappingError mappingError;
@@ -278,7 +278,7 @@ int main()
         std::vector<std::unique_ptr<AudioEngine::Slot>> slots;
         std::vector<AudioEngine::Slot*> slotPointers;
 
-        for (int slot = 0; slot < 7; ++slot)
+        for (int slot = 0; slot < 16; ++slot)
         {
             sources.push_back (std::make_unique<SineSource> (220.0 + 55.0 * slot,
                                                               0.37 * slot));
@@ -415,7 +415,7 @@ int main()
                "driver recognises the session-mode SysEx echo");
 
         // ---------------------------------------------------------------------
-        // Startup LED state: every pad idle, then pads 0..7 as they arrive.
+        // Startup LED state: every pad idle, then pads 0..15 as they arrive.
         // ---------------------------------------------------------------------
         simulator.clearRecording();
         driver.setAllPadStates (Controller::PadState::idle);
@@ -544,12 +544,12 @@ int main()
         const std::vector<int> expectedObserved (kMappedSlots.begin(),
                                                   kMappedSlots.end());
         check (observedArmedSlots == expectedObserved,
-               "the app switched through slots 0,1,2,3,4,5,6,0");
+               "the app switched through slots 0..15");
 
-        check (driver.getPadState (7) == Controller::PadState::active,
-               "pad 7 is the last active LED");
+        check (driver.getPadState (15) == Controller::PadState::active,
+               "pad 15 is the last active LED");
         check (driver.getPadState (0) == Controller::PadState::idle
-                   && driver.getPadState (6) == Controller::PadState::idle,
+                   && driver.getPadState (14) == Controller::PadState::idle,
                "previously selected pads returned to idle");
 
         // ---------------------------------------------------------------------

@@ -84,6 +84,36 @@ struct EncoderBinding
     bool operator== (const EncoderBinding&) const = default;
 };
 
+/** One macro page selected by the Launchpad's top row.
+
+    The Launchpad has no encoders, so the eight top-row buttons (CC 91..98)
+    select one of these pages instead. A page groups the macros the UI exposes
+    while it is selected; the controller itself only reports the selection.
+*/
+struct MacroBankSpec
+{
+    int bank = -1;
+    std::string name;
+    std::vector<std::string> macros;
+
+    bool operator== (const MacroBankSpec&) const = default;
+};
+
+/** One scene selected by the Launchpad's right column.
+
+    The right column (CC 89..19, top to bottom) selects a scene. A scene names
+    the family whose row of grid pads it refers to; selecting it is a controller
+    event, not a graph change.
+*/
+struct SceneSpec
+{
+    int scene = -1;
+    std::string name;
+    std::string family;
+
+    bool operator== (const SceneSpec&) const = default;
+};
+
 /** The full document, as parsed from `set.yaml`.
 
     A snapshot is immutable once published by `Mapping`; readers hold a
@@ -101,6 +131,10 @@ struct SetMapping
     /** Encoder bindings remain a software concept: the Launchpad has none. */
     static constexpr int maximumEncoders = 8;
 
+    /** Top-row macro pages and right-column scenes. */
+    static constexpr int maximumBanks = 8;
+    static constexpr int maximumScenes = 8;
+
     int schemaVersion = supportedSchemaVersion;
     std::string name;
 
@@ -109,16 +143,22 @@ struct SetMapping
 
     std::array<std::optional<PadBinding>, maximumPads> pads;
     std::array<std::optional<EncoderBinding>, maximumEncoders> encoders;
+    std::array<std::optional<MacroBankSpec>, maximumBanks> banks;
+    std::array<std::optional<SceneSpec>, maximumScenes> scenes;
 
     const PadBinding* padBinding (int pad) const noexcept;
     const EncoderBinding* encoderBinding (int encoder) const noexcept;
+    const MacroBankSpec* bankBinding (int bank) const noexcept;
+    const SceneSpec* sceneBinding (int scene) const noexcept;
 
     const InstrumentSpec* instrumentFor (const PadBinding& binding) const noexcept;
     const MacroSpec* macroFor (const EncoderBinding& binding) const noexcept;
 
-    /** Number of bound pads / encoders. */
+    /** Number of bound pads / encoders / banks / scenes. */
     int countPads() const noexcept;
     int countEncoders() const noexcept;
+    int countBanks() const noexcept;
+    int countScenes() const noexcept;
 
     /** Every instrument declared by every family, family by family. */
     std::vector<const InstrumentSpec*> allInstruments() const;
@@ -169,6 +209,14 @@ bool loadSetMappingFile (const std::filesystem::path& file,
 
     Encoders are resolved against the active pad's slot: encoder 0 with macro
     `cutoff` becomes a `MacroChange` for the slot the last pad selected.
+
+    ## Control rows
+
+    The Launchpad has no encoders and no row of transport keys. Its top row
+    (`CC 91..98`) selects one of the eight macro pages declared under `banks`,
+    and its right column (`CC 89..19`, top to bottom) selects one of the eight
+    scenes declared under `scenes`. Both are controller events: they change
+    what the UI exposes, never the audio graph.
 
     ## Hot reload
 
@@ -221,6 +269,13 @@ public:
 
         /** An encoder moved and resolved to a macro. */
         std::function<void (const MacroChange& change)> macroEvent;
+
+        /** A top-row button selected `bank`. `page` is valid for the call. */
+        std::function<void (int bank, const MacroBankSpec* page)> bankEvent;
+
+        /** A right-column button selected `scene`. `selection` is valid for
+            the call. */
+        std::function<void (int scene, const SceneSpec* selection)> sceneEvent;
 
         /** A new document was published. `hotReload` is false for the first
             successful load. */
@@ -279,12 +334,20 @@ public:
 
     std::optional<PadBinding> getPadBinding (int pad) const;
     std::optional<EncoderBinding> getEncoderBinding (int encoder) const;
+    std::optional<MacroBankSpec> getBank (int bank) const;
+    std::optional<SceneSpec> getScene (int scene) const;
 
     /** The pad that selected the armed slot, or -1 before the first press. */
     int getActivePad() const noexcept;
 
     /** The slot the active pad currently resolves to, or -1. */
     int getArmedSlot() const noexcept;
+
+    /** The selected top-row macro page, or -1 before the first selection. */
+    int getActiveBank() const noexcept;
+
+    /** The selected right-column scene, or -1 before the first selection. */
+    int getActiveScene() const noexcept;
 
     //==============================================================================
     // Controller events
@@ -296,6 +359,16 @@ public:
     /** Handles a raw 0..127 encoder value. Returns true when it resolved to a
         macro. */
     bool handleEncoder (int encoder, int value);
+
+    /** Handles a top-row / right-column / logo CC. Returns true when a press
+        selected a macro page or scene. */
+    bool handleButton (int cc, bool pressed);
+
+    /** Handles a top-row button by index 0..7 (left to right). */
+    bool handleTopRow (int index, bool pressed);
+
+    /** Handles a right-column button by index 0..7 (top to bottom). */
+    bool handleRightColumn (int index, bool pressed);
 
     //==============================================================================
     // Default set file discovery
@@ -327,6 +400,8 @@ private:
     bool hasAttempted = false;
     bool hasLoaded = false;
     std::atomic<int> activePad { -1 };
+    std::atomic<int> activeBank { -1 };
+    std::atomic<int> activeScene { -1 };
 
     std::mutex watchMutex;
     std::thread watcher;

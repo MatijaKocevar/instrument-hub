@@ -106,6 +106,9 @@ LaunchpadDriver::LaunchpadDriver()
 {
     for (auto& state : padStates)
         state.store (static_cast<std::uint8_t> (PadState::idle));
+
+    for (auto& state : buttonStates)
+        state.store (static_cast<std::uint8_t> (PadState::idle));
 }
 
 LaunchpadDriver::~LaunchpadDriver()
@@ -270,10 +273,76 @@ void LaunchpadDriver::setAllPadStates (PadState state)
     refreshLeds();
 }
 
+int LaunchpadDriver::controlButtonSlot (int cc) noexcept
+{
+    if (const auto topRow = Launchpad::topRowIndexForCC (cc))
+        return *topRow;
+
+    if (const auto rightColumn = Launchpad::rightColumnIndexForCC (cc))
+        return Launchpad::topRowCount + *rightColumn;
+
+    return -1;
+}
+
+void LaunchpadDriver::setButtonState (int cc, PadState state)
+{
+    const int slot = controlButtonSlot (cc);
+
+    if (slot < 0)
+        return;
+
+    buttonStates[static_cast<std::size_t> (slot)].store (
+        static_cast<std::uint8_t> (state));
+
+    sendButtonColour (cc, launchpadColourForState (state));
+}
+
+PadState LaunchpadDriver::getButtonState (int cc) const noexcept
+{
+    const int slot = controlButtonSlot (cc);
+
+    if (slot < 0)
+        return PadState::idle;
+
+    return static_cast<PadState> (
+        buttonStates[static_cast<std::size_t> (slot)].load());
+}
+
+void LaunchpadDriver::setAllButtonStates (PadState state)
+{
+    for (int index = 0; index < Launchpad::topRowCount; ++index)
+        buttonStates[static_cast<std::size_t> (index)].store (
+            static_cast<std::uint8_t> (state));
+
+    for (int index = 0; index < Launchpad::rightColumnCount; ++index)
+        buttonStates[static_cast<std::size_t> (Launchpad::topRowCount + index)]
+            .store (static_cast<std::uint8_t> (state));
+
+    for (int index = 0; index < Launchpad::topRowCount; ++index)
+        sendButtonColour (Launchpad::topRowCCForIndex (index),
+                          launchpadColourForState (state));
+
+    for (int index = 0; index < Launchpad::rightColumnCount; ++index)
+        sendButtonColour (Launchpad::rightColumnCCForIndex (index),
+                          launchpadColourForState (state));
+}
+
 void LaunchpadDriver::refreshLeds()
 {
     for (int pad = 0; pad < Launchpad::padCount; ++pad)
         sendPadColour (pad, launchpadColourForState (getPadState (pad)));
+
+    for (int index = 0; index < Launchpad::topRowCount; ++index)
+    {
+        const int cc = Launchpad::topRowCCForIndex (index);
+        sendButtonColour (cc, launchpadColourForState (getButtonState (cc)));
+    }
+
+    for (int index = 0; index < Launchpad::rightColumnCount; ++index)
+    {
+        const int cc = Launchpad::rightColumnCCForIndex (index);
+        sendButtonColour (cc, launchpadColourForState (getButtonState (cc)));
+    }
 }
 
 void LaunchpadDriver::clearLeds()
@@ -284,6 +353,17 @@ void LaunchpadDriver::clearLeds()
             static_cast<std::uint8_t> (PadState::idle));
         sendPadColour (pad, Launchpad::Colour::Off);
     }
+
+    for (auto& state : buttonStates)
+        state.store (static_cast<std::uint8_t> (PadState::idle));
+
+    for (int index = 0; index < Launchpad::topRowCount; ++index)
+        sendButtonColour (Launchpad::topRowCCForIndex (index),
+                          Launchpad::Colour::Off);
+
+    for (int index = 0; index < Launchpad::rightColumnCount; ++index)
+        sendButtonColour (Launchpad::rightColumnCCForIndex (index),
+                          Launchpad::Colour::Off);
 }
 
 bool LaunchpadDriver::sendPadColour (int padIndex,
@@ -297,12 +377,39 @@ bool LaunchpadDriver::sendPadColour (int padIndex,
     return sendBytes (bytes.data(), static_cast<int> (bytes.size()));
 }
 
+bool LaunchpadDriver::sendButtonColour (int cc,
+                                        Launchpad::Colour colour,
+                                        Launchpad::LedMode mode)
+{
+    const auto bytes = Launchpad::buttonColourMessage (cc, colour, mode);
+
+    if (bytes == std::array<std::uint8_t, 3> { 0, 0, 0 })
+        return false;
+
+    return sendBytes (bytes.data(), static_cast<int> (bytes.size()));
+}
+
 bool LaunchpadDriver::sendSysEx (const Launchpad::SysExFrame& frame)
 {
     if (! frame.isValid())
         return false;
 
     return sendBytes (frame.bytes.data(), static_cast<int> (frame.bytes.size()));
+}
+
+//==============================================================================
+// Scripted operation
+//==============================================================================
+
+void LaunchpadDriver::setMessageSink (MessageSink sink)
+{
+    const std::lock_guard<std::mutex> lock (sinkMutex);
+    messageSink = std::move (sink);
+}
+
+void LaunchpadDriver::injectMidiMessage (const juce::MidiMessage& message)
+{
+    handleIncomingMidiMessage (nullptr, message);
 }
 
 //==============================================================================
@@ -382,13 +489,27 @@ bool LaunchpadDriver::sendBytes (const std::uint8_t* bytes, int size)
     if (bytes == nullptr || size <= 0)
         return false;
 
-    const std::lock_guard<std::mutex> lock (sendMutex);
+    const juce::MidiMessage message (bytes, size);
+    MessageSink sink;
+    bool sent = false;
 
-    if (output == nullptr)
-        return false;
+    {
+        const std::lock_guard<std::mutex> lock (sendMutex);
 
-    output->sendMessageNow (juce::MidiMessage (bytes, size));
-    return true;
+        if (output != nullptr)
+        {
+            output->sendMessageNow (message);
+            sent = true;
+        }
+
+        const std::lock_guard<std::mutex> sinkLock (sinkMutex);
+        sink = messageSink;
+    }
+
+    if (sink)
+        sink (message);
+
+    return sent || sink != nullptr;
 }
 
 void LaunchpadDriver::setError (const juce::String& message)
