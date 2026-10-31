@@ -1,0 +1,178 @@
+# Instrument Hub set mapping
+#
+# This file is hot-reloadable. Editing a pad's family/instrument line re-routes
+# that pad to the instrument's audio slot within one watch interval (25 ms) and
+# arms the new slot with the normal 3 ms equal-power crossfade. The audio
+# stream is never stopped or rewired.
+#
+# Full contract: shared/schema/set.schema.json
+#
+# Layout:
+#   families  instrument definitions, grouped for the grid
+#   macros    named destinations for the 8 encoders
+#   pads      16 pad bindings (0..7 bottom row, 8..15 top row)
+#   encoders  8 knob bindings (0 = leftmost)
+
+schemaVersion: 1
+name: Starter Set
+
+families:
+  keys:
+    name: Keys
+    instruments:
+      - id: piano
+        name: Grand Piano
+        slot: 0
+      - id: strings
+        name: Warm Strings
+        slot: 1
+
+  drums:
+    name: Drums
+    instruments:
+      - id: kit
+        name: Acoustic Kit
+        slot: 2
+
+  bass:
+    name: Bass
+    instruments:
+      - id: sub
+        name: Sub Bass
+        slot: 3
+
+  pads:
+    name: Pads
+    instruments:
+      - id: air
+        name: Air Pad
+        slot: 4
+
+  lead:
+    name: Lead
+    instruments:
+      - id: saw
+        name: Saw Lead
+        slot: 5
+
+  fx:
+    name: FX
+    instruments:
+      - id: riser
+        name: Riser
+        slot: 6
+
+macros:
+  cutoff:
+    name: Cutoff
+    parameter: filter.cutoff
+    min: 0.0
+    max: 1.0
+    default: 0.75
+
+  resonance:
+    name: Resonance
+    parameter: filter.resonance
+    min: 0.0
+    max: 1.0
+    default: 0.2
+
+  reverb:
+    name: Reverb
+    parameter: reverb.mix
+    min: 0.0
+    max: 1.0
+    default: 0.25
+
+  delay:
+    name: Delay
+    parameter: delay.mix
+    min: 0.0
+    max: 1.0
+    default: 0.15
+
+  drive:
+    name: Drive
+    parameter: amp.drive
+    min: 0.0
+    max: 1.0
+    default: 0.0
+
+  tone:
+    name: Tone
+    parameter: eq.tone
+    min: -1.0
+    max: 1.0
+    default: 0.0
+
+  volume:
+    name: Volume
+    parameter: mixer.volume
+    min: 0.0
+    max: 1.0
+    default: 0.8
+
+  pan:
+    name: Pan
+    parameter: mixer.pan
+    min: -1.0
+    max: 1.0
+    default: 0.0
+
+pads:
+  - pad: 0
+    family: keys
+    instrument: piano
+
+  - pad: 1
+    family: keys
+    instrument: strings
+
+  - pad: 2
+    family: drums
+    instrument: kit
+
+  - pad: 3
+    family: bass
+    instrument: sub
+
+  - pad: 4
+    family: pads
+    instrument: air
+
+  - pad: 5
+    family: lead
+    instrument: saw
+
+  - pad: 6
+    family: fx
+    instrument: riser
+
+  - pad: 7
+    family: keys
+    instrument: piano
+
+encoders:
+  - encoder: 0
+    macro: cutoff
+
+  - encoder: 1
+    macro: resonance
+
+  - encoder: 2
+    macro: reverb
+
+  - encoder: 3
+    macro: delay
+
+  - encoder: 4
+    macro: drive
+
+  - encoder: 5
+    macro: tone
+
+  - encoder: 6
+    macro: volume
+
+  - encoder: 7
+    macro: pan

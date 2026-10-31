@@ -782,3 +782,63 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-launchkey-driver-test: ALSA simulator is Linux-only; skipping")
 endif()
+
+# --- set.yaml mapping and hot reload (T043) ---------------------------------
+#
+# Loads the shipped shared/set.yaml against its schema, rejects malformed
+# documents, then edits a per-test set.yaml while a SlotSwitcher renders:
+#
+#   pad 0 -> slot 0, edit instrument -> slot 1, watcher publishes the new
+#   document and arms slot 1 within 500 ms, every block keeps audio flowing and
+#   no sample-to-sample step appears. A malformed edit keeps the old routing.
+
+find_package(Threads REQUIRED)
+
+juce_add_console_app(ihub-mapping-test
+    PRODUCT_NAME "ihub-mapping-test"
+)
+
+target_sources(ihub-mapping-test
+    PRIVATE
+        controller/MappingTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+)
+
+target_include_directories(ihub-mapping-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-mapping-test
+    PRIVATE
+        "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+        "IHUB_SET_SCHEMA=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/schema/set.schema.json\""
+)
+
+target_link_libraries(ihub-mapping-test
+    PRIVATE
+        Threads::Threads
+        juce::juce_audio_basics
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-mapping-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-mapping
+    COMMAND ihub-mapping-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)

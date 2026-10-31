@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://instrument-hub.local/schema/set.schema.json",
+  "title": "Instrument Hub set mapping",
+  "description": "The hot-reloadable set.yaml document. Controller pads select an instrument (and therefore its fixed audio slot); encoders drive named macros on the armed slot.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "families", "macros", "pads", "encoders"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Document format version. Only version 1 is accepted.",
+      "const": 1
+    },
+    "name": {
+      "description": "Human-readable set name.",
+      "type": "string",
+      "minLength": 1
+    },
+    "families": {
+      "description": "Instrument families, keyed by family id. Family order is not significant; the pad list decides what is reachable.",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "instruments"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instruments": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "name", "slot"],
+              "properties": {
+                "id": {
+                  "description": "Unique within this family.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "slot": {
+                  "description": "Fixed audio-graph slot that hosts this instrument. Unique per running instance in practice: a pad press arms this slot.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 63
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "macros": {
+      "description": "Named encoder destinations, keyed by macro id.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "parameter"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parameter": {
+            "description": "Opaque parameter path resolved by the audio layer (for example filter.cutoff).",
+            "type": "string",
+            "minLength": 1
+          },
+          "min": {
+            "type": "number",
+            "default": 0.0
+          },
+          "max": {
+            "type": "number",
+            "default": 1.0
+          },
+          "default": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "pads": {
+      "description": "Pad bindings. Pad 0..7 is the bottom row left-to-right, 8..15 the top row left-to-right.",
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pad", "family", "instrument"],
+        "properties": {
+          "pad": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "family": {
+            "description": "Must match a key in families.",
+            "type": "string",
+            "minLength": 1
+          },
+          "instrument": {
+            "description": "Must match an instrument id inside the referenced family.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "encoders": {
+      "description": "Encoder bindings. Encoder 0 is the leftmost knob.",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["encoder", "macro"],
+        "properties": {
+          "encoder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "macro": {
+            "description": "Must match a key in macros.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

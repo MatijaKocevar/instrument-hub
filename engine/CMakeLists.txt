@@ -97,6 +97,7 @@ target_sources(instrument-hub
         src/audio/WarmPool.cpp
         src/controller/LaunchkeyDriver.cpp
         src/controller/LaunchkeyProtocol.cpp
+        src/controller/Mapping.cpp
         src/instruments/Instrument.cpp
         src/instruments/AudioInputInstrument.cpp
         src/plugins/PluginInstrument.cpp
