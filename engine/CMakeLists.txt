@@ -122,6 +122,9 @@ target_sources(instrument-hub
         src/dsp/Delay.cpp
         src/dsp/Eq.cpp
         src/dsp/Reverb.cpp
+        src/diag/CrashDump.cpp
+        src/diag/Diagnostics.cpp
+        src/diag/LogRing.cpp
         src/instruments/Instrument.cpp
         src/instruments/AudioInputInstrument.cpp
         src/instruments/PluginFx.cpp
