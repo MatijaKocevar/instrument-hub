@@ -59,12 +59,37 @@ MidiBridge::~MidiBridge()
     }
 
     launchpad.store (nullptr, std::memory_order_release);
+    setMidiSink (nullptr);
     closeInputs();
 }
 
 void MidiBridge::setLaunchpad (Controller::LaunchpadDriver* driver)
 {
     launchpad.store (driver, std::memory_order_release);
+}
+
+void MidiBridge::setMidiSink (std::function<bool (const juce::MidiMessage&)> sink)
+{
+    const std::lock_guard<std::mutex> lock (sinkMutex);
+    midiSink = std::move (sink);
+}
+
+bool MidiBridge::forwardMidiMessage (const juce::String& deviceName,
+                                     const juce::MidiMessage& message)
+{
+    // The Launchpad's MI port carries pad notes as controller events. They
+    // arm a patch through the driver/mapping path and must never reach an
+    // instrument as a playable note.
+    if (roleForName (deviceName) == "launchpad")
+        return false;
+
+    const std::lock_guard<std::mutex> sinkLock (sinkMutex);
+
+    if (! midiSink)
+        return false;
+
+    const std::lock_guard<std::mutex> writeLock (forwardMutex);
+    return midiSink (message);
 }
 
 void MidiBridge::setRestoreHandler (RestoreHandler handler)
@@ -471,15 +496,23 @@ void MidiBridge::handleIncomingMidiMessage (juce::MidiInput* source,
         return;
 
     const auto id = toStd (source->getIdentifier());
+    const auto name = source->getName();
 
-    const std::lock_guard<std::mutex> lock (monitorMutex);
-    const auto monitor = monitors.find (id);
+    {
+        const std::lock_guard<std::mutex> lock (monitorMutex);
+        const auto monitor = monitors.find (id);
 
-    if (monitor == monitors.end())
-        return;
+        if (monitor == monitors.end())
+            return;
 
-    monitor->second.events += 1;
-    monitor->second.lastEvent = describeMessage (message);
+        monitor->second.events += 1;
+        monitor->second.lastEvent = describeMessage (message);
+    }
+
+    // A monitor is opened only for a non-Launchpad input the user enabled in
+    // the MIDI page. Forward it into the session's lock-free queue; the audio
+    // callback drains it into the armed patch's block.
+    forwardMidiMessage (name, message);
 }
 
 } // namespace Api

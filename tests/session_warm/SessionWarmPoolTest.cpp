@@ -100,7 +100,7 @@ ihub::SessionConfig makeConfig()
     config.initialSlot = 0;
     config.neighbourCount = kNeighbours;
     config.loadDelayMilliseconds = 40; // make warming observable
-    config.slots = ihub::Session::makeDefaultSet();
+    config.slots = ihub::Session::makeDefaultSet (ihub::SessionSlotKind::initTone);
     return config;
 }
 

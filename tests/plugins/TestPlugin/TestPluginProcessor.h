@@ -19,6 +19,8 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <array>
+
 class TestPluginAudioProcessor final : public juce::AudioProcessor
 {
 public:
@@ -30,6 +32,7 @@ public:
     static constexpr const char* latencyParamID   = "latencyMs";
     static constexpr const char* sineLevelParamID = "sineLevel";
     static constexpr const char* stateMarkerParamID = "stateMarker";
+    static constexpr const char* midiGateParamID   = "midiGate";
 
     static constexpr float maxLatencyMs = 20.0f;
 
@@ -53,7 +56,7 @@ public:
 
     const juce::String getName() const override { return "TestPlugin"; }
 
-    bool acceptsMidi() const override { return false; }
+    bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
@@ -78,6 +81,7 @@ private:
     int reportedLatency = 0;
     double phase = 0.0;
     double currentSampleRate = 44100.0;
+    std::array<bool, 128> heldNotes {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestPluginAudioProcessor)
 };

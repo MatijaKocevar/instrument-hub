@@ -614,12 +614,13 @@ bool StateStore::applyPatchSource (int slot,
         return false;
     }
 
-    if (source.kind != "init-tone"
+    if (source.kind != "empty"
+        && source.kind != "init-tone"
         && source.kind != "sampler"
         && source.kind != "plugin"
         && source.kind != "audio-input")
     {
-        error = "kind must be init-tone, sampler, plugin or audio-input";
+        error = "kind must be empty, init-tone, sampler, plugin or audio-input";
         return false;
     }
 

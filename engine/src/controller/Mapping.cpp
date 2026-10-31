@@ -1011,10 +1011,11 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
                 if (! readString (*kindValue, instrument.kind, error, "patch kind"))
                     return false;
 
-            if (instrument.kind != "init-tone" && instrument.kind != "sampler"
+            if (instrument.kind != "empty" && instrument.kind != "init-tone"
+                && instrument.kind != "sampler"
                 && instrument.kind != "plugin" && instrument.kind != "audio-input")
                 return fail (error, *instrumentValue.find ("kind"),
-                             "patch kind must be init-tone, sampler, plugin or audio-input");
+                             "patch kind must be empty, init-tone, sampler, plugin or audio-input");
 
             const auto readOptional =
                 [&instrumentValue, &error] (const char* key, std::string& destination)

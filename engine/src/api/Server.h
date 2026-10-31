@@ -69,7 +69,7 @@ struct PatchInstrumentState
 {
     std::string id;
     std::string name;
-    std::string kind = "init-tone";
+    std::string kind = "empty";
     std::string pluginFormat = "VST3";
     std::string pluginId;
     std::string pluginName;
@@ -87,7 +87,7 @@ struct PatchInstrumentState
 */
 struct PatchSourceRequest
 {
-    std::string kind = "init-tone";
+    std::string kind = "empty";
     std::string name;
     std::string path;
     double frequency = 0.0;

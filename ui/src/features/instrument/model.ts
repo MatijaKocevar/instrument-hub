@@ -145,10 +145,12 @@ export function sourceKindLabel (kind: string): string
 {
     switch (kind)
     {
+        case "empty": return "Unassigned";
         case "plugin": return "VST3 plug-in";
         case "sampler": return "Sampler kit";
         case "audio-input": return "Live audio input";
-        default: return "Built-in tone";
+        case "init-tone": return "Built-in tone";
+        default: return "Unassigned";
     }
 }
 
@@ -174,6 +176,12 @@ export function sourceRequestForInitTone (frequency?: number): ControlPatchSourc
         kind: "init-tone",
         ...(frequency !== undefined ? { frequency } : {}),
     };
+}
+
+/** The source request that leaves a patch unassigned (silent). */
+export function sourceRequestForEmpty (): ControlPatchSourceRequest
+{
+    return { kind: "empty" };
 }
 
 /** The insert request that loads an installed effect plugin. */

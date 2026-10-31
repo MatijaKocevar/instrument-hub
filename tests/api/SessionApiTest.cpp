@@ -172,7 +172,7 @@ int main()
     config.device.numOutputChannels = 2;
     config.device.numInputChannels = 2;
     config.fadeMilliseconds = 3.0f;
-    config.slots = ihub::Session::makeDefaultSet();
+    config.slots = ihub::Session::makeDefaultSet (ihub::SessionSlotKind::initTone);
 
     ihub::Session session;
     juce::String error;

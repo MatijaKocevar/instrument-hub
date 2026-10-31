@@ -189,7 +189,7 @@ int main()
     config.device.numInputChannels = 2;
     config.fadeMilliseconds = 3.0f;
     config.neighbourCount = 1;
-    config.slots = ihub::Session::makeDefaultSet();
+    config.slots = ihub::Session::makeDefaultSet (ihub::SessionSlotKind::initTone);
     config.slots.resize (4);
 
     ihub::Session session;
