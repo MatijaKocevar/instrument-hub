@@ -3,12 +3,23 @@ import type {
     ControlAudioMeasurement,
     ControlAudioPatch,
     ControlAudioState,
+    ControlFxChain,
+    ControlFxInsertRequest,
+    ControlFxInsertUpdate,
     ControlPairingState,
+    ControlPatchSourceRequest,
     ControlPatchUpdate,
+    ControlPluginList,
     ControlState,
     ControlTransportPatch,
 } from "../api/client";
 import { ApiError } from "../api/client";
+import {
+    chainWithBypass,
+    chainWithMove,
+    chainWithoutInsert,
+    moveOrder,
+} from "../features/instrument/model";
 import {
     clearPairingToken,
     isPairingCode,
@@ -37,6 +48,22 @@ export interface AppSnapshot
     measurementError: string | null;
     /** True while a `POST /audio` is in flight. */
     audioBusy: boolean;
+    /** Insert chain of `fxSlot`, or null before the first load. */
+    fxChain: ControlFxChain | null;
+    /** Slot `fxChain` describes; -1 when no chain is loaded. */
+    fxSlot: number;
+    /** Message from the most recent chain failure. */
+    fxError: string | null;
+    /** True while an insert request is in flight. */
+    fxBusy: boolean;
+    /** True while a source change is in flight. */
+    sourceBusy: boolean;
+    /** Installed plug-in inventory, or null before the first load. */
+    plugins: ControlPluginList | null;
+    /** Message from the most recent inventory failure. */
+    pluginError: string | null;
+    /** True while a scan or inventory request is in flight. */
+    pluginBusy: boolean;
     /** Latest `GET /pairing`, or null when unavailable (e.g. on a tablet). */
     pairing: ControlPairingState | null;
     /** Message from the most recent pairing action. */
@@ -149,6 +176,14 @@ export class AppStore
         measurement: null,
         measurementError: null,
         audioBusy: false,
+        fxChain: null,
+        fxSlot: -1,
+        fxError: null,
+        fxBusy: false,
+        sourceBusy: false,
+        plugins: null,
+        pluginError: null,
+        pluginBusy: false,
         pairing: null,
         pairingError: null,
         pairingBusy: false,
@@ -167,6 +202,12 @@ export class AppStore
     private armInFlight = 0;
     /** Sequence of patch-colour requests; a stale response must not win. */
     private patchSequence = 0;
+    /** Number of patch requests in flight, used to keep the fader during polls. */
+    private patchInFlight = 0;
+    /** Latest optimistic patch while a request is in flight. */
+    private pendingPatch: { slot: number; patch: ControlPatchUpdate } | null = null;
+    /** Sequence of insert-chain requests; a stale response must not win. */
+    private fxSequence = 0;
     /** Sequence of transport requests; a stale response must not win. */
     private transportSequence = 0;
     /** Number of transport requests in flight, used to keep Play/Pause during polls. */
@@ -326,6 +367,8 @@ export class AppStore
 
         const sequence = this.patchSequence + 1;
         this.patchSequence = sequence;
+        this.patchInFlight += 1;
+        this.pendingPatch = { slot, patch };
 
         this.patch ({ state: withPatchUpdate (previous, slot, patch), error: null });
 
@@ -353,6 +396,13 @@ export class AppStore
 
             return false;
         }
+        finally
+        {
+            this.patchInFlight -= 1;
+
+            if (this.patchInFlight === 0 && sequence === this.patchSequence)
+                this.pendingPatch = null;
+        }
     };
 
     /**
@@ -377,6 +427,206 @@ export class AppStore
 
         return true;
     };
+
+    //==========================================================================
+    // Per-patch insert chain (T121) and instrument source (T124)
+
+    /**
+        Load one patch's insert chain.
+
+        The page calls this when its slot changes. A chain already loaded for
+        the same slot is reused unless `force` is set, so re-rendering the page
+        never spams the engine.
+    */
+    loadFxChain = async (slot: number, options: { force?: boolean } = {}): Promise<boolean> =>
+    {
+        if (! Number.isInteger (slot) || slot < 0)
+            return false;
+
+        if (options.force !== true && this.snapshot.fxSlot === slot && this.snapshot.fxChain !== null)
+            return true;
+
+        this.patch ({ fxBusy: true, fxError: null });
+
+        try
+        {
+            const chain = await this.api.getFxChain (slot);
+
+            this.patch ({ fxChain: chain, fxSlot: slot, fxBusy: false, fxError: null });
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ fxBusy: false, fxError: messageOf (error) });
+            return false;
+        }
+    };
+
+    /** Append an insert (built-in or VST3) to the patch's chain. */
+    addFxInsert = async (slot: number, insert: ControlFxInsertRequest): Promise<boolean> =>
+        this.runFx (slot, () => this.api.addFxInsert (slot, insert), null);
+
+    /** Bypass, re-balance or re-parameterise one insert. */
+    updateFxInsert = async (slot: number,
+                            index: number,
+                            update: ControlFxInsertUpdate): Promise<boolean> =>
+        this.runFx (
+            slot,
+            () => this.api.updateFxInsert (slot, index, update),
+            update.bypassed === undefined
+                ? null
+                : this.optimisticChain (slot, chain => chainWithBypass (chain, index, update.bypassed === true)));
+
+    /** Remove one insert, dropping it from the page on the next render. */
+    removeFxInsert = async (slot: number, index: number): Promise<boolean> =>
+        this.runFx (
+            slot,
+            () => this.api.removeFxInsert (slot, index),
+            this.optimisticChain (slot, chain => chainWithoutInsert (chain, index)));
+
+    /** Move one insert `from` -> `to`; the engine answers with the new order. */
+    moveFxInsert = async (slot: number, from: number, to: number): Promise<boolean> =>
+    {
+        const chain = this.snapshot.fxSlot === slot ? this.snapshot.fxChain : null;
+
+        if (chain === null)
+            return false;
+
+        const order = moveOrder (chain.inserts.length, from, to);
+
+        return this.runFx (
+            slot,
+            () => this.api.reorderFxChain (slot, order),
+            chainWithMove (chain, from, to));
+    };
+
+    /** Replace the chain with a played sequence, used by reload and tests. */
+    replaceFxChain = async (slot: number,
+                            inserts: readonly ControlFxInsertRequest[]): Promise<boolean> =>
+        this.runFx (slot, () => this.api.replaceFxChain (slot, inserts), null);
+
+    /**
+        Swap the patch's instrument source.
+
+        The engine re-binds the slot to a freshly instantiated source, so the
+        complete state is adopted and the chain is re-read for the new latency
+        budget.
+    */
+    changeInstrumentSource = async (slot: number,
+                                    source: ControlPatchSourceRequest): Promise<boolean> =>
+    {
+        this.patch ({ sourceBusy: true, error: null });
+
+        try
+        {
+            const state = await this.api.changePatchSource (slot, source);
+
+            this.patch ({
+                phase: "ready",
+                state,
+                sourceBusy: false,
+                error: null,
+                failedAttempts: 0,
+                updatedAt: this.options.now(),
+            });
+
+            await this.loadFxChain (slot, { force: true });
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ sourceBusy: false, error: messageOf (error) });
+            return false;
+        }
+    };
+
+    //==========================================================================
+    // Plug-in inventory (T122)
+
+    /** Read the installed VST3 inventory, optionally filtered by `search`. */
+    loadPlugins = async (search?: string): Promise<boolean> =>
+    {
+        this.patch ({ pluginBusy: true, pluginError: null });
+
+        try
+        {
+            const plugins = await this.api.listPlugins (
+                search === undefined || search.length === 0 ? {} : { search });
+
+            this.patch ({ plugins, pluginBusy: false, pluginError: null });
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ pluginBusy: false, pluginError: messageOf (error) });
+            return false;
+        }
+    };
+
+    /** Ask the engine to rescan the VST3 directories. */
+    rescanPlugins = async (): Promise<boolean> =>
+    {
+        this.patch ({ pluginBusy: true, pluginError: null });
+
+        try
+        {
+            const plugins = await this.api.rescanPlugins ();
+
+            this.patch ({ plugins, pluginBusy: false, pluginError: null });
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ pluginBusy: false, pluginError: messageOf (error) });
+            return false;
+        }
+    };
+
+    private optimisticChain (slot: number,
+                             change: (chain: ControlFxChain) => ControlFxChain): ControlFxChain | null
+    {
+        const chain = this.snapshot.fxSlot === slot ? this.snapshot.fxChain : null;
+
+        return chain === null ? null : change (chain);
+    }
+
+    private async runFx (slot: number,
+                         request: () => Promise<ControlFxChain>,
+                         optimistic: ControlFxChain | null): Promise<boolean>
+    {
+        const previous = this.snapshot.fxSlot === slot ? this.snapshot.fxChain : null;
+        const sequence = this.fxSequence + 1;
+        this.fxSequence = sequence;
+
+        this.patch ({
+            fxBusy: true,
+            fxError: null,
+            ...(optimistic !== null ? { fxChain: optimistic, fxSlot: slot } : {}),
+        });
+
+        try
+        {
+            const chain = await request ();
+
+            if (sequence === this.fxSequence)
+                this.patch ({ fxChain: chain, fxSlot: slot, fxBusy: false, fxError: null });
+
+            return true;
+        }
+        catch (error)
+        {
+            if (sequence === this.fxSequence)
+            {
+                this.patch ({
+                    fxBusy: false,
+                    fxError: messageOf (error),
+                    ...(previous !== null ? { fxChain: previous, fxSlot: slot } : {}),
+                });
+            }
+
+            return false;
+        }
+    }
 
     /**
         Start, stop or reposition the transport.
@@ -711,6 +961,11 @@ export class AppStore
         // Same for a Play/Pause that has not been confirmed yet.
         if (this.transportInFlight > 0 && this.snapshot.state !== null)
             state = { ...state, transport: this.snapshot.state.transport };
+
+        // A fader move that is still in flight must not snap back to the
+        // engine's previous value on the next poll.
+        if (this.patchInFlight > 0 && this.pendingPatch !== null)
+            state = withPatchUpdate (state, this.pendingPatch.slot, this.pendingPatch.patch);
 
         this.patch ({
             phase: "ready",

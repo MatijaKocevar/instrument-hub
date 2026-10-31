@@ -376,6 +376,14 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
         return false;
     }
 
+    {
+        // The pool factory reads this copy, so a later source swap can never
+        // race a load that is already in flight.
+        const std::lock_guard<std::mutex> lock (sourceMutex);
+        sourceConfigs = config.slots;
+        sourceRevision = 0;
+    }
+
     if (slotCount > defaultLogicalSlots)
     {
         error = "the session description has " + juce::String (slotCount)
@@ -515,13 +523,20 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
 std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIndex,
                                                                       juce::String& error)
 {
-    if (slotIndex < 0 || slotIndex >= static_cast<int> (config.slots.size()))
+    SessionSlotConfig slotConfig;
+
     {
-        error = "warm request addresses slot " + juce::String (slotIndex);
-        return nullptr;
+        const std::lock_guard<std::mutex> lock (sourceMutex);
+
+        if (slotIndex < 0 || slotIndex >= static_cast<int> (sourceConfigs.size()))
+        {
+            error = "warm request addresses slot " + juce::String (slotIndex);
+            return nullptr;
+        }
+
+        slotConfig = sourceConfigs[static_cast<std::size_t> (slotIndex)];
     }
 
-    const auto& slotConfig = config.slots[static_cast<std::size_t> (slotIndex)];
     const auto slotLabel = juce::String (slotIndex) + " (\"" + juce::String (slotConfig.name) + "\")";
 
     switch (slotConfig.kind)
@@ -935,6 +950,84 @@ bool Session::makeFxSnapshotLocked (int slot,
                              ? static_cast<double> (total) * 1000.0 / sampleRate
                              : 0.0;
     snapshot.inserts = rack.snapshots();
+    return true;
+}
+
+bool Session::setSlotSource (int slot,
+                             const SessionSlotConfig& source,
+                             std::string& error)
+{
+    const std::lock_guard<std::mutex> lock (armMutex);
+
+    if (warmPool == nullptr || switcher == nullptr
+        || slot < 0 || slot >= static_cast<int> (config.slots.size()))
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    // Keep the patch's identity, name, mix and insert chain: only the source
+    // fields are taken from the request.
+    auto& current = config.slots[static_cast<std::size_t> (slot)];
+    current.kind = source.kind;
+    current.path = source.path;
+    current.frequency = source.frequency >= 20.0 ? source.frequency
+                                                 : current.frequency;
+    current.inputChannel = source.inputChannel;
+    current.instrumentKind = source.instrumentKind.empty()
+                                 ? toString (source.kind)
+                                 : source.instrumentKind;
+    current.pluginFormat = source.pluginFormat;
+    current.pluginId = source.pluginId;
+    current.pluginName = source.pluginName;
+    current.pluginManufacturer = source.pluginManufacturer;
+    current.pluginVersion = source.pluginVersion;
+    current.samplePath = source.samplePath;
+
+    {
+        const std::lock_guard<std::mutex> sourceLock (sourceMutex);
+
+        if (slot < static_cast<int> (sourceConfigs.size()))
+            sourceConfigs[static_cast<std::size_t> (slot)] = current;
+    }
+
+    const bool wasActive = activeSlot.load (std::memory_order_relaxed) == slot;
+    const bool wasRequested = requestedSlot.load (std::memory_order_relaxed) == slot;
+
+    // Drop our pins before the request retires the old instance. The pool's
+    // destroy hook clears the fixed voice's pointer, so the audio thread never
+    // reads a deleted source.
+    if (pinnedActiveSlot == slot)
+        pinnedActiveSlot = -1;
+
+    if (pinnedPreviousSlot == slot)
+        pinnedPreviousSlot = -1;
+
+    warmPool->release (slot);
+
+    AudioEngine::WarmPool::Request request;
+    request.id = juce::String (slot) + ":" + toString (current.kind) + ":"
+               + current.path + ":" + juce::String (current.frequency) + ":"
+               + juce::String (++sourceRevision);
+    request.payload = slot;
+
+    // A changed id retires the warm instance and queues a fresh one when the
+    // slot is protected (the armed slot or a neighbour).
+    warmPool->setRequest (slot, std::move (request));
+
+    if (wasActive)
+    {
+        // Re-bind and re-arm through the normal warm hand-off once the new
+        // instance is resident.
+        pendingArmSlot.store (slot, std::memory_order_relaxed);
+        requestedSlot.store (slot, std::memory_order_relaxed);
+    }
+    else if (wasRequested)
+    {
+        // Still warming: the pending hand-off will bind the new instance.
+        pendingArmSlot.store (slot, std::memory_order_relaxed);
+    }
+
     return true;
 }
 

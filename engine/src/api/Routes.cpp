@@ -511,6 +511,128 @@ bool parseFxInsert (const juce::var& value, FxInsertRequest& insert, std::string
     return true;
 }
 
+bool parsePatchSource (const juce::var& value,
+                       PatchSourceRequest& source,
+                       std::string& error)
+{
+    const auto* object = value.getDynamicObject();
+
+    if (object == nullptr)
+    {
+        error = "request body must be a JSON object";
+        return false;
+    }
+
+    const auto& properties = object->getProperties();
+    bool hasKind = false;
+
+    for (int index = 0; index < properties.size(); ++index)
+    {
+        const auto& name = properties.getName (index);
+        const auto& item = properties.getValueAt (index);
+        const auto key = name.toString();
+
+        if (key == "kind")
+        {
+            if (! readString (item, "kind", source.kind, error))
+                return false;
+
+            hasKind = true;
+        }
+        else if (key == "name")
+        {
+            if (! readString (item, "name", source.name, error))
+                return false;
+        }
+        else if (key == "path")
+        {
+            if (! readString (item, "path", source.path, error))
+                return false;
+        }
+        else if (key == "frequency")
+        {
+            if (! readNumber (item, "frequency", 20.0, 20000.0,
+                              source.frequency, error))
+                return false;
+        }
+        else if (key == "inputChannel")
+        {
+            std::int64_t parsed = 0;
+
+            if (! readInteger (item, "inputChannel", 0, 63, parsed, error))
+                return false;
+
+            source.inputChannel = static_cast<int> (parsed);
+        }
+        else if (key == "pluginFormat")
+        {
+            if (! readString (item, "pluginFormat", source.pluginFormat, error))
+                return false;
+        }
+        else if (key == "pluginId")
+        {
+            if (! readString (item, "pluginId", source.pluginId, error))
+                return false;
+        }
+        else if (key == "pluginName")
+        {
+            if (! readString (item, "pluginName", source.pluginName, error))
+                return false;
+        }
+        else if (key == "pluginManufacturer")
+        {
+            if (! readString (item, "pluginManufacturer",
+                              source.pluginManufacturer, error))
+                return false;
+        }
+        else if (key == "pluginVersion")
+        {
+            if (! readString (item, "pluginVersion", source.pluginVersion, error))
+                return false;
+        }
+        else if (key == "samplePath")
+        {
+            if (! readString (item, "samplePath", source.samplePath, error))
+                return false;
+        }
+        else
+        {
+            error = "unknown source field: " + key.toStdString();
+            return false;
+        }
+    }
+
+    if (! hasKind)
+    {
+        error = "source field \"kind\" is required";
+        return false;
+    }
+
+    if (source.kind != "init-tone"
+        && source.kind != "sampler"
+        && source.kind != "plugin"
+        && source.kind != "audio-input")
+    {
+        error = "kind must be init-tone, sampler, plugin or audio-input";
+        return false;
+    }
+
+    if ((source.kind == "sampler" || source.kind == "plugin")
+        && source.path.empty())
+    {
+        error = "source field \"path\" is required for " + source.kind;
+        return false;
+    }
+
+    if (source.name.size() > 120)
+    {
+        error = "source field \"name\" is longer than 120 characters";
+        return false;
+    }
+
+    return true;
+}
+
 bool parseFxUpdate (const juce::var& value, FxUpdateRequest& update, std::string& error)
 {
     const auto* object = value.getDynamicObject();
@@ -889,6 +1011,72 @@ void registerRoutes (httplib::Server& server, RouteContext context)
         if (! context.state.updatePatch (slot, body, error))
         {
             setError (response, 400, error);
+            return;
+        }
+
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        setJson (response, 200, stateToVar (context.state.snapshot()));
+    });
+
+    // --- Instrument source (T124) ------------------------------------------
+
+    server.Post (R"(/patches/(\d+)/source)",
+                 [context] (const httplib::Request& request,
+                            httplib::Response& response)
+    {
+        int slot = -1;
+
+        if (request.matches.size() > 1)
+        {
+            const auto text = request.matches[1].str();
+            char* end = nullptr;
+            const long parsed = std::strtol (text.c_str(), &end, 10);
+
+            if (end != nullptr && *end == '\0'
+                && parsed >= 0 && parsed < context.state.getNumSlots())
+                slot = static_cast<int> (parsed);
+        }
+
+        if (slot < 0)
+        {
+            setError (response, 404, "patch slot is out of range");
+            return;
+        }
+
+        juce::var body;
+        std::string error;
+
+        if (! parseJsonObject (request, body, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        PatchSourceRequest source;
+
+        if (! parsePatchSource (body, source, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        // A sampler or plug-in source must point at something that exists;
+        // catching this here keeps a typo from silently silencing the slot.
+        if ((source.kind == "sampler" || source.kind == "plugin")
+            && ! juce::File (juce::String (source.path)).exists())
+        {
+            setError (response, 400, "source path does not exist: " + source.path);
+            return;
+        }
+
+        if (! context.state.applyPatchSource (slot, source, error))
+        {
+            const int status = error.find ("no audio session") != std::string::npos
+                ? 503
+                : 400;
+            setError (response, status, error);
             return;
         }
 

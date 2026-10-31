@@ -81,6 +81,37 @@ The grid-specific snapshot (`tests/artifacts/ui-grid-snapshot.html`) renders
 8 families × 8 columns with live meter values, and the arm test proves the
 highlight changes before the delayed HTTP response arrives.
 
+## Instrument page (`/instrument`)
+
+`src/features/instrument/` is the armed patch's page. It reads the same
+`/state` tree as the grid, so the name, family, colour, warm state and chain
+latency are the engine's real values.
+
+- **Following** — the page shows the *armed* patch: a Launchpad pad or a grid
+  click updates it in place on the next render. A `?slot=` link selects the
+  patch only while nothing is armed, so a stale URL cannot override the
+  controller. Arming never navigates the user off another page.
+- **Mixer** — the volume fader writes `PATCH /patches/{slot} {volumeDb}` (the
+  store applies it optimistically and keeps it across polls), balance writes
+  `pan`, and the mute/solo buttons write their booleans. The page publishes
+  the resolved linear gain it expects the engine to apply.
+- **Source** — the declared instrument source with its editor view (descriptor,
+  plug-in identity and path; sources are hosted headlessly in this build, so no
+  native plug-in window opens yet), and a picker over the `GET /plugins`
+  inventory that swaps the live source through `POST /patches/{slot}/source`.
+  The engine retires the old instance, warms the new one and re-arms the slot;
+  an armed slot is audible again once the new source is resident.
+- **Inserts** — the ordered chain from `GET /patches/{slot}/fx` with add,
+  remove, move up/down, bypass and a latency budget split into instrument and
+  insert totals. Bypass and remove update the chain optimistically and roll
+  back on a rejected request.
+- **Touch** — every control is at least 44 px (the row buttons use a 40 px
+  minimum inside a 44 px row) and the layout reflows at 720 px.
+
+The page is rendered by `tests/artifacts/ui-instrument-snapshot.html`; the
+fixture-backed test drives the fader, mute/solo, every chain edit and a source
+swap through the real HTTP client.
+
 ## Stage remote (`/remote`)
 
 `src/features/remote/` is the tablet route. Open `http://<engine>:8080/remote`

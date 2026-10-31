@@ -1,14 +1,19 @@
-import { useMemo, type ReactElement } from "react";
+import { useEffect, useMemo, type ReactElement } from "react";
 
-import type { ControlPatch, ControlState } from "./api/client";
+import type { ControlState } from "./api/client";
 import { AudioSettingsPanel } from "./features/audio-settings";
 import {
-    colourForIndex,
     GridView,
     gridFromState,
     metersUrlFor,
     useMeters,
 } from "./features/grid";
+import {
+    followsArmedSlot,
+    instrumentSlotForRoute,
+    InstrumentPage,
+    patchForInstrumentSlot,
+} from "./features/instrument";
 import { PairingPanel } from "./features/pairing";
 import { useAppState, useAppStore } from "./state/AppStoreContext";
 import {
@@ -162,98 +167,6 @@ function SystemPanels ({ state }: { readonly state: ControlState }): ReactElemen
     );
 }
 
-interface InstrumentPageProps
-{
-    readonly patch: ControlPatch | null;
-    readonly armedSlot: number;
-    readonly onBack: () => void;
-    readonly onColourChange: (slot: number, colorIndex: number) => void;
-}
-
-function InstrumentPage ({
-    patch,
-    armedSlot,
-    onBack,
-    onColourChange,
-}: InstrumentPageProps): ReactElement
-{
-    return (
-        <section
-            className="page page--instrument"
-            data-testid="instrument-page"
-            data-slot={patch?.slot ?? -1}
-        >
-            <header className="page__header">
-                <p className="page__eyebrow">Instrument</p>
-                <h2 className="page__title" data-testid="instrument-name">
-                    {patch?.name ?? "No patch selected"}
-                </h2>
-                <p className="page__lede">
-                    {patch === null
-                        ? "Arm a patch on the Grid page to open its instrument."
-                        : `${patch.familyName} · slot ${String (patch.slot + 1)} · ${patch.instrument.kind}`}
-                </p>
-            </header>
-
-            {patch === null
-                ? <button className="page__button" type="button" onClick={onBack}>
-                      Back to the grid
-                  </button>
-                : <>
-                      <dl className="page__meta">
-                          <div>
-                              <dt>Family</dt>
-                              <dd data-testid="instrument-family">{patch.familyName}</dd>
-                          </div>
-                          <div>
-                              <dt>Armed</dt>
-                              <dd>{patch.slot === armedSlot ? "Yes" : "No"}</dd>
-                          </div>
-                          <div>
-                              <dt>Warm state</dt>
-                              <dd data-testid="instrument-warm-state">{patch.warmState}</dd>
-                          </div>
-                          <div>
-                              <dt>Latency</dt>
-                              <dd data-testid="instrument-latency">{patch.latencyMs.toFixed (2)} ms</dd>
-                          </div>
-                          <div>
-                              <dt>Volume</dt>
-                              <dd>{patch.volumeDb.toFixed (1)} dB</dd>
-                          </div>
-                          <div>
-                              <dt>Balance</dt>
-                              <dd>{patch.pan.toFixed (2)}</dd>
-                          </div>
-                          <div>
-                              <dt>Mute / Solo</dt>
-                              <dd>{patch.mute ? "Muted" : patch.solo ? "Solo" : "Off"}</dd>
-                          </div>
-                      </dl>
-
-                      <div className="page__colours" aria-label="Patch colour">
-                          <span className="page__colour-swatch" data-testid="instrument-colour" data-colour-index={patch.colorIndex} style={{ background: colourForIndex (patch.colorIndex) }} />
-                          <button
-                              className="page__button"
-                              type="button"
-                              onClick={() => { onColourChange (patch.slot, (patch.colorIndex + 1) % 16); }}
-                          >
-                              Next colour
-                          </button>
-                      </div>
-
-                      <p className="page__note">
-                          The full instrument editor (source, fader, insert chain) is built in T124.
-                      </p>
-
-                      <button className="page__button" type="button" onClick={onBack}>
-                          Back to the grid
-                      </button>
-                  </>}
-        </section>
-    );
-}
-
 function PluginsPage (): ReactElement
 {
     return (
@@ -290,10 +203,25 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
 
     const armedSlot = state?.armedSlot ?? -1;
     const requestedSlot = slotFromSearch (router.search);
-    const instrumentSlot = requestedSlot ?? (armedSlot >= 0 ? armedSlot : null);
-    const instrumentPatch = state?.families
-        .flatMap (family => family.patches)
-        .find (patch => patch.slot === instrumentSlot) ?? null;
+    const instrumentSlot = instrumentSlotForRoute (router.route, requestedSlot, armedSlot);
+    const instrumentPatch = patchForInstrumentSlot (
+        state?.families.flatMap (family => family.patches) ?? [],
+        instrumentSlot);
+
+    // The insert chain and the plug-in inventory are only needed on the
+    // Instrument page, so they are fetched on arrival and whenever the page's
+    // slot changes. The store de-duplicates the chain request per slot.
+    useEffect (() =>
+    {
+        if (router.route !== "instrument")
+            return;
+
+        if (instrumentSlot !== null)
+            void store.loadFxChain (instrumentSlot);
+
+        if (app.plugins === null && ! app.pluginBusy)
+            void store.loadPlugins ();
+    }, [router.route, instrumentSlot, store, app.plugins, app.pluginBusy]);
 
     const openPatch = (slot: number): void =>
     {
@@ -407,8 +335,44 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
                         ? <InstrumentPage
                               patch={instrumentPatch}
                               armedSlot={armedSlot}
+                              following={followsArmedSlot (armedSlot)}
+                              chain={app.fxSlot === instrumentSlot ? app.fxChain : null}
+                              chainError={app.fxSlot === instrumentSlot ? app.fxError : null}
+                              chainBusy={app.fxBusy}
+                              sourceBusy={app.sourceBusy}
+                              plugins={app.plugins?.plugins ?? null}
+                              pluginError={app.pluginError}
+                              loading={state === null}
                               onBack={() => { router.navigate (pathForRoute ("grid")); }}
                               onColourChange={changeColour}
+                              onVolumeChange={(slot, volumeDb) => {
+                                  void store.updatePatch (slot, { volumeDb });
+                              }}
+                              onPanChange={(slot, pan) => {
+                                  void store.updatePatch (slot, { pan });
+                              }}
+                              onMuteChange={(slot, mute) => {
+                                  void store.updatePatch (slot, { mute });
+                              }}
+                              onSoloChange={(slot, solo) => {
+                                  void store.updatePatch (slot, { solo });
+                              }}
+                              onSourceChange={(slot, source) => {
+                                  void store.changeInstrumentSource (slot, source);
+                              }}
+                              onAddInsert={(slot, insert) => {
+                                  void store.addFxInsert (slot, insert);
+                              }}
+                              onRemoveInsert={(slot, index) => {
+                                  void store.removeFxInsert (slot, index);
+                              }}
+                              onToggleBypass={(slot, index, bypassed) => {
+                                  void store.updateFxInsert (slot, index, { bypassed });
+                              }}
+                              onMoveInsert={(slot, from, to) => {
+                                  void store.moveFxInsert (slot, from, to);
+                              }}
+                              onRetryChain={slot => { void store.loadFxChain (slot, { force: true }); }}
                           />
                         : router.route === "plugins"
                             ? <PluginsPage />
