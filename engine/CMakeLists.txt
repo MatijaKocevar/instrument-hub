@@ -89,6 +89,7 @@ target_sources(instrument-hub
         src/audio/Bus.cpp
         src/audio/DeviceManager.cpp
         src/audio/LatencyProbe.cpp
+        src/audio/RtGuard.cpp
         src/audio/Slot.cpp
         src/audio/TimingMonitor.cpp
 )
@@ -117,6 +118,45 @@ target_link_libraries(instrument-hub
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+# --- Realtime safety harness (T014) -----------------------------------------
+#
+# See the top-level CMakeLists.txt for the option. The linker wrap is what lets
+# RtGuard see raw malloc and pthread locks; the operator new replacement lives
+# in RtGuard.cpp and needs no linker help.
+
+if(IHUB_ENABLE_RT_GUARD)
+    target_compile_definitions(instrument-hub PRIVATE IHUB_RT_GUARD=1)
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_definitions(instrument-hub PRIVATE
+            IHUB_RT_GUARD_WRAP_MALLOC=1
+            IHUB_RT_GUARD_WRAP_LOCKS=1
+        )
+
+        target_link_options(instrument-hub PRIVATE
+            "-Wl,--wrap=malloc"
+            "-Wl,--wrap=calloc"
+            "-Wl,--wrap=realloc"
+            "-Wl,--wrap=pthread_mutex_lock"
+            "-Wl,--wrap=pthread_mutex_trylock"
+            "-Wl,--wrap=pthread_mutex_timedlock"
+            "-Wl,--wrap=pthread_spin_lock"
+            "-Wl,--wrap=pthread_spin_trylock"
+            "-Wl,--wrap=pthread_rwlock_rdlock"
+            "-Wl,--wrap=pthread_rwlock_wrlock"
+            "-Wl,--wrap=pthread_rwlock_tryrdlock"
+            "-Wl,--wrap=pthread_rwlock_trywrlock"
+        )
+
+        # The replacement operator new is backed by malloc/free, so GCC flags
+        # the pairing at call sites it inlines.
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(instrument-hub PRIVATE
+                $<$<COMPILE_LANGUAGE:CXX>:-Wno-mismatched-new-delete>)
+        endif()
+    endif()
+endif()
 
 # JUCE puts artefacts in engine/instrument-hub_artefacts/<config>/. The plan
 # (plan/TESTING.md) expects build/engine/instrument-hub, so emit the binary
