@@ -1331,6 +1331,51 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Transport core (T071) --------------------------------------------------
+#
+# Acceptance: feeding the exact frames of a 10 s render at 48 kHz and 120 BPM
+# must leave PPQ at 20.0 +/- one internal tick. Also covers start/stop/continue,
+# rewind and reposition, tempo changes, other sample rates, the tap-tempo
+# median, the external-sync hook, and allocation-free processing.
+
+add_executable(ihub-transport-test
+    audio/TransportTest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+)
+
+target_compile_features(ihub-transport-test PRIVATE cxx_std_20)
+
+target_include_directories(ihub-transport-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+# The replacement operator new is backed by malloc/free (which is a valid
+# implementation), so GCC's pairing heuristic fires at inlined call sites.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-transport-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(ihub-transport-test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+set_target_properties(ihub-transport-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-transport
+    COMMAND ihub-transport-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
