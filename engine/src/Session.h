@@ -29,6 +29,11 @@ namespace ihub::sampler
 class LoadedKit;
 }
 
+namespace ihub::plugins
+{
+class PluginInstrument;
+}
+
 namespace ihub
 {
 
@@ -402,6 +407,63 @@ public:
     int getOpenEditorCount() const noexcept;
 
     //==============================================================================
+    // Per-patch plugin state (control thread, T130)
+
+    /** Points the patch-state sidecar at a directory next to `set.yaml`.
+
+        The directory is created on the first capture. Any existing
+        `slot-<n>.bin` files are read immediately, so calling this before
+        `build()` means the initial warm-pool instances are created with their
+        restored state. Passing an empty file clears the directory without
+        touching anything on disk.
+
+        The sidecar is one binary file per patch; the opaque plugin blob is
+        never inlined in JSON (DECISIONS: persistence).
+    */
+    void setPluginStateDirectory (const juce::File& directory);
+
+    juce::File getPluginStateDirectory() const
+    {
+        const std::lock_guard<std::mutex> lock (pluginStateMutex);
+        return pluginStateDirectory;
+    }
+
+    /** Re-reads every `slot-<n>.bin` from the current directory. */
+    bool loadPluginStates();
+
+    /** Writes every in-memory patch blob to the current directory.
+
+        Captures already persist themselves; this is for an explicit save and
+        for tests. Returns false when the directory is not set or a write
+        failed.
+    */
+    bool savePluginStates();
+
+    /** Captures a live plugin patch's `getStateInformation()` into its blob
+        and writes the sidecar immediately.
+
+        Also called by the session when a patch is switched away from, when its
+        editor closes, and before the warm pool evicts it. Returns false when
+        the slot has no resident plugin instance. Capturing unchanged state is
+        a no-op, so the repeated calls are cheap.
+    */
+    bool capturePluginState (int slot);
+
+    /** True when this slot has a stored plugin blob. */
+    bool hasPluginState (int slot) const noexcept;
+
+    /** Size of the slot's stored plugin blob in bytes, 0 when none. */
+    juce::int64 getPluginStateSize (int slot) const noexcept;
+
+    /** The live hosted plugin for a slot, or nullptr.
+
+        Inspection only: the pointer is borrowed and may be retired by the
+        warm pool at any time. Used by the UI/diagnostics and by the state
+        tests to set a preset before a capture.
+    */
+    plugins::PluginInstrument* getPluginInstrument (int slot) const noexcept;
+
+    //==============================================================================
     // Per-patch insert chain (control thread)
     /** Reads one patch's insert chain and latency budget. */
     bool getSlotFxChain (int slot,
@@ -589,6 +651,20 @@ private:
                        int numOutputChannels,
                        int numSamples) noexcept;
 
+    // Per-patch plugin state helpers (T130). All run on a control thread.
+    void registerPluginInstrument (int slot, plugins::PluginInstrument& instrument) noexcept;
+    void unregisterPluginInstrument (plugins::PluginInstrument& instrument) noexcept;
+    void capturePluginStateForInstance (AudioEngine::SlotSource& instance);
+    void applyStoredPluginState (int slot,
+                                 plugins::PluginInstrument& instrument,
+                                 const juce::String& pluginPath,
+                                 const juce::String& pluginId,
+                                 const juce::String& pluginName);
+    void applyStoredPluginState (int slot) noexcept;
+    void clearPluginState (int slot);
+    bool writePluginState (int slot);
+    bool readPluginStateFile (int slot, const juce::File& file);
+
     // Per-patch insert chain helpers (control thread, `fxMutex` held).
     bool beginFxEditLocked (int slot, std::string& error);
     void endFxEditLocked (int slot) noexcept;
@@ -611,6 +687,36 @@ private:
 
     /** Editor windows and their live-instrument registry (T129). */
     std::unique_ptr<EditorHost> editorHost;
+
+    /** One opaque plugin-state blob per patch (T130).
+
+        `revision` advances when the live instance is captured; `appliedRevision`
+        is the revision currently loaded in the resident instance. The
+        difference is what makes "restore when armed again" a real operation
+        instead of blindly replacing a live edit.
+    */
+    struct StoredPluginState
+    {
+        juce::MemoryBlock data;
+        std::uint64_t revision = 0;
+        std::uint64_t appliedRevision = 0;
+        juce::String pluginPath;
+        juce::String pluginId;
+        juce::String pluginName;
+    };
+
+    /** Sidecar directory next to `set.yaml` (`set.plugin-state/`). */
+    juce::File pluginStateDirectory;
+
+    /** Guarded by `pluginStateMutex`: blob writes (capture), the pool factory
+        (restore) and the editor/destroy hooks all meet here. */
+    mutable std::mutex pluginStateMutex;
+    std::vector<StoredPluginState> pluginStates;
+
+    /** Registered by the warm-pool factory and forgotten by its destroy hook.
+        A raw pointer is safe because the hook runs on the message thread just
+        before the instance is deleted. */
+    std::array<plugins::PluginInstrument*, defaultLogicalSlots> pluginInstruments {};
 
     // Destruction order matters: the plugin format manager must outlive the
     // instruments, and the engine must be destroyed before the proxies its

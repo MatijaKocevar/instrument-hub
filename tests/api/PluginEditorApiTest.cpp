@@ -362,6 +362,10 @@ int main()
             response = deleteWithDispatch (client, "/patches/1/editor");
             check (response && response->status == 200,
                    "the Analog Lab V window closes cleanly");
+            check (session.hasPluginState (1),
+                   "closing the Analog Lab V editor captured its plugin state");
+            check (session.getPluginStateSize (1) > 0,
+                   "the Analog Lab V state blob is non-empty");
         }
         else
         {

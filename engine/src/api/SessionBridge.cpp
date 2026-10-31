@@ -381,8 +381,15 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         });
 
     // POST /arm -> SlotSwitcher::armSlot(): one lock-free atomic publish.
+    // The outgoing patch is captured before the switch so the API path has the
+    // same per-patch state guarantee as the controller path (T130).
     state.setArmHandler ([&session] (int slot)
     {
+        const int previous = session.getArmedSlot();
+
+        if (previous >= 0 && previous != slot)
+            (void) session.capturePluginState (previous);
+
         session.armSlot (slot);
     });
 

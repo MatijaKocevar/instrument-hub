@@ -1,0 +1,28 @@
+{
+  "sources": {
+    "0": {
+      "kind": "plugin",
+      "path": "/home/mkocevar/.vst3/vstbridge/Analog Lab V.vst3",
+      "frequency": 110.0,
+      "inputChannel": 0,
+      "pluginFormat": "VST3",
+      "pluginId": "VST3-Analog Lab V-c708e489-a7b9b8ab",
+      "pluginName": "Analog Lab V",
+      "pluginManufacturer": "Arturia",
+      "pluginVersion": "5.12.6.6914",
+      "samplePath": ""
+    },
+    "56": {
+      "kind": "plugin",
+      "path": "/home/mkocevar/.vst3/vstbridge/Analog Lab V.vst3",
+      "frequency": 524.5208740234375,
+      "inputChannel": 0,
+      "pluginFormat": "VST3",
+      "pluginId": "VST3-Analog Lab V-c708e489-a7b9b8ab",
+      "pluginName": "Analog Lab V",
+      "pluginManufacturer": "Arturia",
+      "pluginVersion": "5.12.6.6914",
+      "samplePath": ""
+    }
+  }
+}

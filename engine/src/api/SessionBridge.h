@@ -16,6 +16,8 @@ namespace Api
     After this call the HTTP surface drives the real graph instead of mirrors:
 
     - `POST /arm` publishes the slot into `SlotSwitcher` (`Session::armSlot`),
+      captures the outgoing patch's plugin state and closes any editor that is
+      not bound to the newly armed patch,
     - `POST /transport` starts/stops the session transport, sets the tempo and
       seeks it, and `GET /transport` / `/state` read the transport's live
       sample-accurate position,
