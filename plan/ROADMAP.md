@@ -513,3 +513,10 @@ file. If the check fails you are not done.
 - goal: One acceptance pass over the pages: grid click and Launchpad pad both arm the same patch, audio is non-silent, the LED matches the patch colour with the armed pad red; snapshots for Grid, Instrument, Plugins and Audio pages. Update `HANDOVER.md` and `BLOCKERS.md`.
 - files: `tests/e2e/`, `tests/ui/`, `HANDOVER.md`, `plan/BLOCKERS.md`, `docs/`
 - accept: `ctest -R 'ihub-e2e|ihub-ui'` passes and records the pad/click/LED/audio evidence; snapshots are produced; handover reflects the pages.
+
+## T128 · Live MIDI into the session
+- depends: T114, T126
+- size: M
+- goal: Forward enabled MIDI inputs (Keystation and any non-Launchpad input) into the audio session through a lock-free SPSC queue. The MIDI thread calls `Session::pushMidi()`; the audio callback drains the queue into the block's `MidiBuffer` without allocation or locks. Launchpad MI notes remain controller events (arm), never instrument notes. Add an `empty` source kind so unassigned patches are silent instead of `init-tone`, and make the shipping `shared/set.yaml` use `empty` (or a real assigned source) while tests keep their own init-tone fixture. The Instrument page source picker must persist the assignment.
+- files: `engine/src/Session.{h,cpp}`, `engine/src/api/MidiBridge.{h,cpp}`, `engine/src/Main.cpp`, `shared/set.yaml`, `tests/`
+- accept: an injected note on the armed plugin patch renders non-silent audio (and a note-off stops it); unassigned patches are silent; Launchpad pads arm but do not play notes; the e2e test uses a dedicated init-tone fixture instead of the shipping set; `ctest` stays green.
