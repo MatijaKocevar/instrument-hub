@@ -33,6 +33,7 @@ void AudioEngine::prepare (double newSampleRate, int newMaximumBlockSize, int ne
     renderBuffer.clear();
 
     bus.prepare (sampleRate, maximumBlockSize, numChannels);
+    timingMonitor.prepare (sampleRate, maximumBlockSize);
 
     for (auto& slot : slots)
         slot->prepare (sampleRate, maximumBlockSize, numChannels);
@@ -169,6 +170,10 @@ void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
         prepare (deviceSampleRate,
                  juce::jmax (deviceBlockSize, maximumBlockSize),
                  numChannels);
+
+    // The advertised buffer size can shrink without a re-prepare; the deadline
+    // must still follow what the device will actually ask for.
+    timingMonitor.prepare (deviceSampleRate, deviceBlockSize);
 }
 
 void AudioEngine::audioDeviceStopped()
@@ -184,8 +189,13 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const*,
                                                     int numSamples,
                                                     const juce::AudioIODeviceCallbackContext&)
 {
+    const auto timingToken = timingMonitor.beginCallback();
+
     if (outputChannelData == nullptr)
+    {
+        timingMonitor.endCallback (timingToken, 0);
         return;
+    }
 
     if (! prepared)
     {
@@ -193,6 +203,7 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const*,
             if (outputChannelData[channel] != nullptr)
                 juce::FloatVectorOperations::clear (outputChannelData[channel], numSamples);
 
+        timingMonitor.endCallback (timingToken, 0);
         return;
     }
 
@@ -218,6 +229,8 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const*,
             if (outputChannelData[channel] != nullptr)
                 juce::FloatVectorOperations::clear (outputChannelData[channel] + samples,
                                                     numSamples - samples);
+
+    timingMonitor.endCallback (timingToken, samples);
 }
 
 } // namespace AudioEngine

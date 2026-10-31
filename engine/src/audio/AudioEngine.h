@@ -3,6 +3,7 @@
 #include "Bus.h"
 #include "LatencyProbe.h"
 #include "Slot.h"
+#include "TimingMonitor.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
@@ -85,6 +86,14 @@ public:
     */
     LatencyResult measureRoundTripLatency (const LatencyProbeOptions& options = {});
 
+    /** Callback timing, overrun and dropped-block counters.
+
+        The device callback is measured automatically; the counters and the
+        rolling maximum are safe to read from the UI or control thread.
+    */
+    TimingMonitor& getTimingMonitor() noexcept { return timingMonitor; }
+    const TimingMonitor& getTimingMonitor() const noexcept { return timingMonitor; }
+
     //==============================================================================
     // Audio thread
 
@@ -122,6 +131,7 @@ private:
 
     std::vector<std::unique_ptr<Slot>> slots;
     Bus bus;
+    TimingMonitor timingMonitor;
 
     juce::AudioBuffer<float> renderBuffer;
     juce::MidiBuffer deviceMidi;
