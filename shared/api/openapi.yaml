@@ -1,0 +1,480 @@
+openapi: 3.1.0
+info:
+  title: Instrument Hub Control API
+  version: 1.0.0
+  description: |
+    Local HTTP + WebSocket control surface for the Instrument Hub engine.
+
+    The server binds `127.0.0.1:8080` by default. The React desktop UI and the
+    tablet remote use the same endpoints; there is no second protocol layer.
+
+    ### Authentication
+
+    Authentication is disabled unless the engine was started with a pairing
+    token. When enabled, every request (including the `/meters` upgrade) must
+    carry either:
+
+    - `X-Instrument-Hub-Token: <token>`, or
+    - `Authorization: Bearer <token>`
+
+    A missing or invalid token gets `401 Unauthorized` with a JSON body.
+
+    ### Meters
+
+    `/meters` is a WebSocket upgrade endpoint, not a normal JSON response. The
+    server coalesces meter values and broadcasts one frame per tick
+    (30 Hz by default, at least 10 Hz by contract). Slow clients skip frames
+    instead of queuing them: `sequence` is monotonic and can have gaps.
+
+servers:
+  - url: http://127.0.0.1:8080
+    description: Default loopback listener
+  - url: http://localhost:8080
+    description: Loopback listener via hostname
+
+tags:
+  - name: state
+  - name: control
+  - name: meters
+
+paths:
+  /state:
+    get:
+      tags: [state]
+      operationId: getState
+      summary: Read the complete control state
+      description: |
+        Returns the current slot list, armed slot, settings and transport in
+        one consistent snapshot. This is the UI's polling/reconnect endpoint.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Current state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /arm:
+    post:
+      tags: [control]
+      operationId: armSlot
+      summary: Arm or disarm an audio slot
+      description: |
+        Arms one slot. The engine crossfades to it with the normal 3 ms
+        equal-power ramp; arming the already armed slot is a no-op. Send
+        `null` (or `-1`) to disarm every slot.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArmRequest"
+            examples:
+              armSlot3:
+                value: { slot: 3 }
+              disarm:
+                value: { slot: null }
+      responses:
+        "200":
+          description: The state after the arm request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /settings:
+    get:
+      tags: [state]
+      operationId: getSettings
+      summary: Read the user settings
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Current settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [control]
+      operationId: updateSettings
+      summary: Update one or more settings
+      description: |
+        Accepts a partial JSON object. Every provided field is validated before
+        anything is applied, so an invalid request never half-updates the
+        settings. Unknown fields are rejected with `400`.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsPatch"
+            examples:
+              changeMasterGain:
+                value: { masterGain: 0.65 }
+              enableMetronome:
+                value: { metronome: true }
+      responses:
+        "200":
+          description: Settings after the update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /transport:
+    get:
+      tags: [state]
+      operationId: getTransport
+      summary: Read the transport state
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Current transport
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transport"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [control]
+      operationId: controlTransport
+      summary: Start, stop or reposition the transport
+      description: |
+        Accepts a partial JSON object. `bpm` is clamped by the engine to the
+        documented range; `positionSamples` is an absolute sample position at
+        the engine sample rate.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransportPatch"
+            examples:
+              startAt128:
+                value: { playing: true, bpm: 128.0 }
+              rewind:
+                value: { ppq: 0.0, positionSamples: 0 }
+      responses:
+        "200":
+          description: Transport after the update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transport"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /meters:
+    get:
+      tags: [meters]
+      operationId: metersWebSocket
+      summary: Meter stream (WebSocket upgrade)
+      description: |
+        Upgrade to a WebSocket. The server immediately sends the latest frame,
+        then one frame per broadcast tick (30 Hz by default, at least 10 Hz by
+        contract). Frames are coalesced: slow clients skip sequence numbers
+        rather than receiving a backlog.
+
+        Frame shape (`application/json` text message):
+
+        ```json
+        {
+          "type": "meters",
+          "sequence": 42,
+          "timestampMs": 1400.5,
+          "master": { "peak": 0.31 },
+          "slots": [
+            { "slot": 0, "peak": 0.0, "gain": 0.0, "armed": false },
+            { "slot": 1, "peak": 0.24, "gain": 1.0, "armed": true }
+          ]
+        }
+        ```
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "101":
+          description: WebSocket upgrade accepted; meter frames follow.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    tokenHeader:
+      type: apiKey
+      in: header
+      name: X-Instrument-Hub-Token
+      description: Pairing token in a custom header. Auth is only enforced when the server has a token configured.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "The same pairing token as an `Authorization: Bearer` header."
+
+  responses:
+    BadRequest:
+      description: The request body is missing, malformed or outside the allowed ranges
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "bpm must be between 20 and 300"
+    Unauthorized:
+      description: A token is required and the supplied token is missing or wrong
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "unauthorized"
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+          description: Human-readable reason for the rejection.
+
+    Application:
+      type: object
+      required: [name, version]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          example: Instrument Hub
+        version:
+          type: string
+          example: 0.1.0
+
+    Slot:
+      type: object
+      required: [index, name, armed]
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+          minimum: 0
+          description: Zero-based fixed audio-graph slot index.
+        name:
+          type: string
+          description: Display name; defaults to "Slot N".
+        armed:
+          type: boolean
+          description: True for the slot that keys and MIDI currently drive.
+
+    Settings:
+      type: object
+      required: [masterGain, inputGain, midiChannel, metronome]
+      additionalProperties: false
+      properties:
+        masterGain:
+          type: number
+          minimum: 0.0
+          maximum: 1.5
+          default: 0.8
+          description: Linear gain applied to the master bus.
+        inputGain:
+          type: number
+          minimum: 0.0
+          maximum: 2.0
+          default: 1.0
+          description: Linear gain applied to the live audio-input instrument.
+        midiChannel:
+          type: integer
+          minimum: 1
+          maximum: 16
+          default: 1
+          description: MIDI channel the engine listens on (1-based).
+        metronome:
+          type: boolean
+          default: false
+          description: Whether the built-in click is audible.
+
+    SettingsPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        masterGain:
+          type: number
+          minimum: 0.0
+          maximum: 1.5
+        inputGain:
+          type: number
+          minimum: 0.0
+          maximum: 2.0
+        midiChannel:
+          type: integer
+          minimum: 1
+          maximum: 16
+        metronome:
+          type: boolean
+
+    Transport:
+      type: object
+      required: [playing, bpm, ppq, positionSamples]
+      additionalProperties: false
+      properties:
+        playing:
+          type: boolean
+        bpm:
+          type: number
+          minimum: 20.0
+          maximum: 300.0
+          default: 120.0
+        ppq:
+          type: number
+          minimum: 0.0
+          description: Quarter notes elapsed since the transport was last rewound.
+        positionSamples:
+          type: integer
+          minimum: 0
+          description: Absolute transport position in engine sample frames.
+
+    TransportPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        playing:
+          type: boolean
+        bpm:
+          type: number
+          minimum: 20.0
+          maximum: 300.0
+        ppq:
+          type: number
+          minimum: 0.0
+        positionSamples:
+          type: integer
+          minimum: 0
+
+    ArmRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        slot:
+          type: [integer, "null"]
+          minimum: -1
+          description: Slot to arm. `null` or a negative value disarms.
+
+    State:
+      type: object
+      required:
+        [schemaVersion, application, armedSlot, uptimeMs, slots, settings, transport]
+      additionalProperties: false
+      properties:
+        schemaVersion:
+          type: integer
+          const: 1
+        application:
+          $ref: "#/components/schemas/Application"
+        armedSlot:
+          type: integer
+          minimum: -1
+          description: Armed slot index, or -1 when disarmed.
+        uptimeMs:
+          type: number
+          description: Milliseconds since the API state was created.
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Slot"
+        settings:
+          $ref: "#/components/schemas/Settings"
+        transport:
+          $ref: "#/components/schemas/Transport"
+
+    MeterFrame:
+      type: object
+      required: [type, sequence, timestampMs, master, slots]
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          const: meters
+        sequence:
+          type: integer
+          minimum: 1
+          description: Monotonic frame number. Gaps mean the client skipped frames.
+        timestampMs:
+          type: number
+          description: Milliseconds since the API state was created.
+        master:
+          type: object
+          required: [peak]
+          additionalProperties: false
+          properties:
+            peak:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeterSlot"
+
+    MeterSlot:
+      type: object
+      required: [slot, peak, gain, armed]
+      additionalProperties: false
+      properties:
+        slot:
+          type: integer
+          minimum: 0
+        peak:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Peak level of the most recent broadcast window.
+        gain:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Crossfade gain published by the slot switcher.
+        armed:
+          type: boolean

@@ -84,6 +84,8 @@ juce_add_gui_app(instrument-hub
 target_sources(instrument-hub
     PRIVATE
         src/Main.cpp
+        src/api/Routes.cpp
+        src/api/Server.cpp
         src/Bridge/WebView.cpp
         src/audio/AudioEngine.cpp
         src/audio/Bus.cpp
@@ -110,7 +112,15 @@ target_sources(instrument-hub
 target_include_directories(instrument-hub
     PRIVATE
         src
+        "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cpp-httplib"
 )
+
+# cpp-httplib is vendored header-only (MIT). Its header is included by the API
+# sources only; no find_package and no system dependency.
+add_library(ihub-httplib INTERFACE)
+target_include_directories(ihub-httplib SYSTEM INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cpp-httplib")
+target_link_libraries(instrument-hub PRIVATE ihub-httplib)
 
 target_compile_definitions(instrument-hub
     PRIVATE

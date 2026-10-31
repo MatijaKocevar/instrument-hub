@@ -916,3 +916,48 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-driver-integration-test: ALSA simulator is Linux-only; skipping")
 endif()
+
+# --- Control API (T050) -----------------------------------------------------
+#
+# Starts the HTTP + WebSocket server on an ephemeral port, exercises every
+# route (including token auth) and measures the `/meters` frame rate.
+
+juce_add_console_app(ihub-api-test
+    PRODUCT_NAME "ihub-api-test"
+)
+
+target_sources(ihub-api-test
+    PRIVATE
+        api/ApiTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+)
+
+target_include_directories(ihub-api-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-api-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_core
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-api-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-api
+    COMMAND ihub-api-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
