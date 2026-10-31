@@ -1768,6 +1768,73 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Kit format (T091) ------------------------------------------------------
+#
+# Acceptance: a 2-layer kit plays layer 1 below the split velocity and layer 2
+# above it. The test generates two soft variants and one hard sample, loads a
+# JSON kit, resolves at several velocities, renders the chosen one-shots and
+# measures their pitch. It also checks round-robin, gain/pan/tune composition,
+# path resolution, validation errors and that resolve() allocates nothing.
+
+juce_add_console_app(ihub-kit-loader-test
+    PRODUCT_NAME "ihub-kit-loader-test"
+)
+
+target_sources(ihub-kit-loader-test
+    PRIVATE
+        sampler/KitLoaderTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+)
+
+target_include_directories(ihub-kit-loader-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-kit-loader-test
+    PRIVATE
+        "IHUB_KIT_SCHEMA=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/schema/kit.schema.json\""
+)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-kit-loader-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_link_options(ihub-kit-loader-test PRIVATE
+        "-Wl,--wrap=malloc"
+        "-Wl,--wrap=calloc"
+        "-Wl,--wrap=realloc"
+    )
+endif()
+
+target_link_libraries(ihub-kit-loader-test
+    PRIVATE
+        juce::juce_audio_formats
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-kit-loader-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-kit-loader
+    COMMAND ihub-kit-loader-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
