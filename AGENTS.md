@@ -3,7 +3,7 @@
 Operating rules for any agent working in this repository.
 
 Instrument Hub: a JUCE 8 C++20 audio engine with an embedded React UI,
-driven by a Novation Launchkey Mini MK3, controlled over a local HTTP +
+driven by a Novation Launchpad Mini MK3, controlled over a local HTTP +
 WebSocket API.
 
 New machine? `docs/new-machine.md` holds the one-time human setup (clone,

@@ -41,12 +41,14 @@ public:
 
 ## Controller
 
-- **Target device:** Novation Launchkey Mini MK3 (16 pads, 8 encoders).
-- Drive it in the DAW/session mode used by Ableton's script: send the
-  documented session-mode SysEx, receive pads as note-on/off on channel 1,
-  colour LEDs by sending the pad's note back with a palette velocity.
+- **Target device:** Novation Launchpad Mini MK3 (64-pad 8×8 grid; no keys, no
+  encoders). Drive it in **programmer mode**: `F0 00 20 29 02 0D 0E 01 F7`.
+- Pads report notes 11..88 on the **MI** port and are lit by Note On on the same
+  note with a palette velocity. The DA port carries no pad or LED data.
 - Mapping lives in `set.yaml`, hot-reloadable. Never hardcode pad numbers.
-- Encoders → macros of the armed slot. Shift → pads become drum triggers.
+- With no encoders, macros/pages live on the top row (CC 91..98); the right
+  column (CC 89..19) selects scenes. Shift/modifier semantics belong to the
+  mapping, not the driver.
 
 ## Control API
 
@@ -62,7 +64,7 @@ public:
 
 - **Audio:** ALSA Loopback (`card 2`, already loaded) is the device for all
   round-trip and xrun tests.
-- **MIDI:** ALSA sequencer virtual port impersonating the Launchkey.
+- **MIDI:** ALSA sequencer virtual port impersonating the Launchpad.
 - **Plugins:** a JUCE VST3 we compile ourselves as `TestPlugin`, plus an
   optional third-party VST3 when one is installed.
 - **UI:** snapshot from inside JUCE (`createComponentSnapshot`), not a

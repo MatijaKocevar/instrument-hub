@@ -37,19 +37,6 @@ const juce::MidiDeviceInfo* chooseDevice (const juce::Array<juce::MidiDeviceInfo
 } // namespace
 
 //==============================================================================
-const char* toString (PadState state) noexcept
-{
-    switch (state)
-    {
-        case PadState::idle:    return "idle";
-        case PadState::warming: return "warming";
-        case PadState::active:  return "active";
-        case PadState::error:   return "error";
-    }
-
-    return "idle";
-}
-
 Launchkey::Colour colourForState (PadState state) noexcept
 {
     switch (state)

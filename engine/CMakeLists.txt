@@ -116,7 +116,9 @@ target_sources(instrument-hub
         src/audio/Transport.cpp
         src/audio/WarmPool.cpp
         src/controller/LaunchkeyDriver.cpp
+        src/controller/LaunchpadDriver.cpp
         src/controller/LaunchkeyProtocol.cpp
+        src/controller/LaunchpadProtocol.cpp
         src/controller/Mapping.cpp
         src/dsp/Compressor.cpp
         src/dsp/Delay.cpp

@@ -31,7 +31,7 @@ const InstrumentSpec* FamilySpec::findInstrument (const std::string& instrumentI
 
 const PadBinding* SetMapping::padBinding (int pad) const noexcept
 {
-    if (pad < 0 || pad >= Launchkey::padCount)
+    if (pad < 0 || pad >= SetMapping::maximumPads)
         return nullptr;
 
     const auto& entry = pads[static_cast<std::size_t> (pad)];
@@ -40,7 +40,7 @@ const PadBinding* SetMapping::padBinding (int pad) const noexcept
 
 const EncoderBinding* SetMapping::encoderBinding (int encoder) const noexcept
 {
-    if (encoder < 0 || encoder >= Launchkey::encoderCount)
+    if (encoder < 0 || encoder >= SetMapping::maximumEncoders)
         return nullptr;
 
     const auto& entry = encoders[static_cast<std::size_t> (encoder)];
@@ -898,9 +898,9 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
             || ! readString (*instrument, binding.instrument, error, "pad instrument"))
             return false;
 
-        if (binding.pad < 0 || binding.pad >= Launchkey::padCount)
+        if (binding.pad < 0 || binding.pad >= SetMapping::maximumPads)
             return fail (error, *padNumber,
-                         "pad must be within 0.." + std::to_string (Launchkey::padCount - 1));
+                         "pad must be within 0.." + std::to_string (SetMapping::maximumPads - 1));
 
         if (out.padBinding (binding.pad) != nullptr)
             return fail (error, *padNumber,
@@ -954,10 +954,10 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
             || ! readString (*macro, binding.macro, error, "encoder macro"))
             return false;
 
-        if (binding.encoder < 0 || binding.encoder >= Launchkey::encoderCount)
+        if (binding.encoder < 0 || binding.encoder >= SetMapping::maximumEncoders)
             return fail (error, *encoderNumber,
                          "encoder must be within 0.."
-                             + std::to_string (Launchkey::encoderCount - 1));
+                             + std::to_string (SetMapping::maximumEncoders - 1));
 
         if (out.encoderBinding (binding.encoder) != nullptr)
             return fail (error, *encoderNumber,
@@ -1417,7 +1417,7 @@ int Mapping::getArmedSlot() const noexcept
 
 bool Mapping::handlePad (int pad, bool pressed)
 {
-    if (pad < 0 || pad >= Launchkey::padCount)
+    if (pad < 0 || pad >= SetMapping::maximumPads)
         return false;
 
     Listeners listenersCopy;
@@ -1450,7 +1450,7 @@ bool Mapping::handlePad (int pad, bool pressed)
 
 bool Mapping::handleEncoder (int encoder, int value)
 {
-    if (encoder < 0 || encoder >= Launchkey::encoderCount)
+    if (encoder < 0 || encoder >= SetMapping::maximumEncoders)
         return false;
 
     Listeners listenersCopy;

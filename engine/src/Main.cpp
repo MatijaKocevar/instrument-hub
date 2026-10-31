@@ -4,6 +4,8 @@
 #include "audio/AudioSettings.h"
 #include "audio/DeviceManager.h"
 #include "audio/RtGuard.h"
+#include "controller/LaunchpadDriver.h"
+#include "controller/Mapping.h"
 #include "diag/CrashDump.h"
 #include "diag/Diagnostics.h"
 #include "diag/LogRing.h"
@@ -875,6 +877,8 @@ public:
             return;
         }
 
+        startController();
+
         mainWindow = std::make_unique<MainWindow> (getApplicationName(), [this] (const juce::String& url)
         {
             lastLoadedUrl = url;
@@ -904,6 +908,14 @@ public:
     {
         stopTimer();
 
+        if (launchpad != nullptr)
+        {
+            launchpad->disconnect();
+            launchpad.reset();
+        }
+
+        mapping.reset();
+
         if (apiServer != nullptr)
             apiServer->stop();
 
@@ -921,6 +933,74 @@ public:
     void anotherInstanceStarted (const juce::String&) override {}
 
 private:
+    /**
+        Starts the Launchpad and the set.yaml mapping.
+
+        Pads arm the slot their binding names, the API state mirrors that
+        selection for the UI, and the LED of the selected pad turns green while
+        every other pad goes dark. Diagnostic and snapshot modes skip this so a
+        test run never switches a connected controller out of Live mode.
+    */
+    void startController()
+    {
+        if (snapshotMode || uiCheckMode || selftestMode)
+            return;
+
+        const auto setFile = Controller::Mapping::findDefaultSetFile();
+
+        if (! setFile.empty())
+        {
+            mapping = std::make_unique<Controller::Mapping>();
+
+            Controller::Mapping::Listeners mappingListeners;
+
+            mappingListeners.armSlot = [this] (int slot)
+            {
+                if (slot >= 0 && apiState != nullptr)
+                    (void) apiState->setArmedSlot (slot);
+            };
+
+            mappingListeners.padEvent = [this] (int pad,
+                                                const Controller::PadBinding*,
+                                                bool pressed)
+            {
+                if (! pressed || launchpad == nullptr)
+                    return;
+
+                for (int index = 0; index < Launchpad::padCount; ++index)
+                    launchpad->setPadState (index,
+                                            index == pad ? Controller::PadState::active
+                                                         : Controller::PadState::idle);
+            };
+
+            mapping->setListeners (std::move (mappingListeners));
+
+            Controller::MappingError error;
+
+            if (! mapping->load (setFile, &error))
+                std::cerr << "mapping: " << error.message << std::endl;
+            else
+                mapping->startWatching();
+        }
+
+        launchpad = std::make_unique<Controller::LaunchpadDriver>();
+
+        Controller::LaunchpadDriver::DriverListeners driverListeners;
+
+        driverListeners.padEvent = [this] (int pad, bool pressed)
+        {
+            if (mapping != nullptr)
+                mapping->handlePad (pad, pressed);
+        };
+
+        launchpad->setListeners (std::move (driverListeners));
+
+        if (! launchpad->connect())
+            std::cerr << "controller: " << launchpad->getLastError() << std::endl;
+        else
+            launchpad->clearLeds();
+    }
+
     bool startControlApi (const juce::String& commandLine, bool required)
     {
         Api::Server::Options options;
@@ -1215,6 +1295,8 @@ private:
     }
 
     std::unique_ptr<MainWindow> mainWindow;
+    std::unique_ptr<Controller::Mapping> mapping;
+    std::unique_ptr<Controller::LaunchpadDriver> launchpad;
     std::unique_ptr<Api::StateStore> apiState;
     std::unique_ptr<Api::Server> apiServer;
     std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
