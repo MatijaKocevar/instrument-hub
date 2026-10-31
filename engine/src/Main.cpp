@@ -1,4 +1,5 @@
 #include "Bridge/WebView.h"
+#include "api/Server.h"
 #include "audio/AudioEngine.h"
 #include "audio/DeviceManager.h"
 #include "audio/RtGuard.h"
@@ -19,6 +20,27 @@ namespace
 constexpr int kWindowWidth = 1200;
 constexpr int kWindowHeight = 800;
 constexpr double kUiCheckTimeoutMs = 20000.0;
+
+/** Returns the value following `option`, or an empty string. Supports both
+    `--option value` and `--option=value`.
+*/
+juce::String getCommandLineValue (const juce::String& commandLine, const juce::String& option)
+{
+    const auto tokens = juce::StringArray::fromTokens (commandLine, true);
+
+    for (int i = 0; i < tokens.size(); ++i)
+    {
+        const auto& token = tokens[i];
+
+        if (token == option)
+            return i + 1 < tokens.size() ? tokens[i + 1].unquoted() : juce::String();
+
+        if (token.startsWith (option + "="))
+            return token.substring (option.length() + 1).unquoted();
+    }
+
+    return {};
+}
 
 //==============================================================================
 // --rt-strict (T014)
@@ -413,6 +435,7 @@ public:
     {
         uiCheckMode = commandLine.contains ("--ui-check");
         selftestMode = commandLine.contains ("--selftest");
+        serveMode = commandLine.contains ("--serve");
 
         if (commandLine.contains ("--scan-plugins"))
         {
@@ -443,6 +466,26 @@ public:
             return;
         }
 
+        // The control API is part of the normal application, but not of the
+        // single-purpose diagnostic modes above (they quit immediately).
+        const bool apiRequired = serveMode;
+
+        if (! startControlApi (commandLine, apiRequired))
+        {
+            if (apiRequired)
+            {
+                setApplicationReturnValue (1);
+                quit();
+                return;
+            }
+        }
+
+        if (serveMode)
+        {
+            std::cout << "serve: control API is running, press Ctrl-C to stop" << std::endl;
+            return;
+        }
+
         mainWindow = std::make_unique<MainWindow> (getApplicationName(), [this] (const juce::String& url)
         {
             lastLoadedUrl = url;
@@ -465,6 +508,12 @@ public:
     void shutdown() override
     {
         stopTimer();
+
+        if (apiServer != nullptr)
+            apiServer->stop();
+
+        apiServer.reset();
+        apiState.reset();
         mainWindow.reset();
     }
 
@@ -476,6 +525,44 @@ public:
     void anotherInstanceStarted (const juce::String&) override {}
 
 private:
+    bool startControlApi (const juce::String& commandLine, bool required)
+    {
+        Api::Server::Options options;
+
+        if (const auto port = getCommandLineValue (commandLine, "--api-port"); port.isNotEmpty())
+            options.port = port.getIntValue();
+
+        if (const auto address = getCommandLineValue (commandLine, "--api-host"); address.isNotEmpty())
+            options.address = address.toStdString();
+
+        options.authToken = getCommandLineValue (commandLine, "--api-token").toStdString();
+
+        apiState = std::make_unique<Api::StateStore> (AudioEngine::AudioEngine::defaultNumSlots);
+        apiServer = std::make_unique<Api::Server> (*apiState, options);
+
+        if (! apiServer->start())
+        {
+            std::cerr << "api: FAILED to bind " << options.address << ":" << options.port
+                      << (apiServer->hasAuthToken() ? " (auth enabled)" : "")
+                      << std::endl;
+            apiServer.reset();
+            apiState.reset();
+
+            if (! required)
+                std::cerr << "api: continuing without the control server" << std::endl;
+
+            return false;
+        }
+
+        std::cout << "api: listening on http://" << apiServer->getAddress() << ":"
+                  << apiServer->getPort()
+                  << " meters=" << options.meterHz << "Hz"
+                  << " auth=" << (apiServer->hasAuthToken() ? "enabled" : "disabled")
+                  << std::endl;
+
+        return true;
+    }
+
     void timerCallback() override
     {
         if (uiCheckMode)
@@ -561,8 +648,11 @@ private:
     }
 
     std::unique_ptr<MainWindow> mainWindow;
+    std::unique_ptr<Api::StateStore> apiState;
+    std::unique_ptr<Api::Server> apiServer;
     bool uiCheckMode = false;
     bool selftestMode = false;
+    bool serveMode = false;
     bool uiCheckPassed = false;
     bool evaluationInFlight = false;
     double uiCheckDeadline = 0.0;
