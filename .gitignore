@@ -35,6 +35,12 @@ pnpm-debug.log*
 
 # Autopilot driver scratch (briefs, results, per-task logs)
 plan/.autopilot/
+plan/__pycache__/
+__pycache__/
+*.pyc
+
+# Playwright MCP page dumps
+.playwright-mcp/
 
 # Test and runtime artifacts
 /tests/artifacts/

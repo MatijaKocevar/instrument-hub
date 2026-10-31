@@ -20,9 +20,23 @@ juce::WebBrowserComponent::Resource makeResource (const char* data, int size, co
     return resource;
 }
 
+std::optional<juce::WebBrowserComponent::Resource> provideIndex()
+{
+    return makeResource (BinaryData::index_html,
+                         BinaryData::index_htmlSize,
+                         "text/html");
+}
+
 std::optional<juce::WebBrowserComponent::Resource> provideResource (const juce::String& requestedPath)
 {
     auto path = requestedPath;
+
+    // WebKit appends a query string and/or fragment for some navigations;
+    // neither is part of the embedded file name.
+    if (const auto separator = path.indexOfAnyOf ("?#"); separator >= 0)
+        path = path.substring (0, separator);
+
+    path = juce::URL::removeEscapeChars (path);
 
     if (path.isEmpty())
         path = "/";
@@ -31,9 +45,7 @@ std::optional<juce::WebBrowserComponent::Resource> provideResource (const juce::
         path = "/" + path;
 
     if (path == "/" || path == "/index.html")
-        return makeResource (BinaryData::index_html,
-                             BinaryData::index_htmlSize,
-                             "text/html");
+        return provideIndex();
 
     if (path == "/assets/app.js")
         return makeResource (BinaryData::app_js,
@@ -45,15 +57,18 @@ std::optional<juce::WebBrowserComponent::Resource> provideResource (const juce::
                              BinaryData::index_cssSize,
                              "text/css");
 
-    // Never serve the HTML shell for a missing script or stylesheet: that
-    // would surface as a confusing MIME error instead of a missing asset.
+    // Never serve the HTML shell for a missing script, stylesheet or icon:
+    // that would surface as a confusing MIME error instead of a missing asset.
     if (path.startsWith ("/assets/"))
         return std::nullopt;
 
+    const auto lastSegment = path.fromLastOccurrenceOf ("/", false, false);
+
+    if (lastSegment.containsChar ('.'))
+        return std::nullopt;
+
     // Client-side routes all render the same index.html.
-    return makeResource (BinaryData::index_html,
-                         BinaryData::index_htmlSize,
-                         "text/html");
+    return provideIndex();
 }
 #endif
 

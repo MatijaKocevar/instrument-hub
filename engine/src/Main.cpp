@@ -14,13 +14,231 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <vector>
+
+#if JUCE_LINUX
+    #include <X11/Xlib.h>
+    #include <X11/Xutil.h>
+#endif
 
 namespace
 {
 constexpr int kWindowWidth = 1200;
 constexpr int kWindowHeight = 800;
+constexpr int kSnapshotWidth = 1200;
+constexpr int kSnapshotHeight = 800;
 constexpr double kUiCheckTimeoutMs = 20000.0;
+constexpr double kSnapshotTimeoutMs = 30000.0;
+constexpr double kSnapshotSettleMs = 400.0;
+
+/** Number of distinct colours in a coarse grid of an image.
+
+    A snapshot of the real UI has many (text antialiasing alone produces
+    hundreds); a blank or fallback-coloured component has one or two.
+*/
+int countDistinctColours (const juce::Image& image)
+{
+    if (image.isNull() || image.getWidth() <= 0 || image.getHeight() <= 0)
+        return 0;
+
+    std::set<juce::uint32> colours;
+    constexpr int steps = 64;
+
+    for (int y = 0; y < steps; ++y)
+    {
+        const int py = juce::jlimit (0, image.getHeight() - 1,
+                                     y * image.getHeight() / steps);
+
+        for (int x = 0; x < steps; ++x)
+        {
+            const int px = juce::jlimit (0, image.getWidth() - 1,
+                                         x * image.getWidth() / steps);
+            colours.insert (image.getPixelAt (px, py).getARGB());
+        }
+    }
+
+    return static_cast<int> (colours.size());
+}
+
+/** Number of sampled pixels that are clearly brighter than the dark chrome.
+
+    The app background is a dark gradient (#101014 with two faint radial
+    washes). The title, labels and panels paint near-white pixels, so a
+    background-only frame has none while a real render has thousands.
+*/
+int countBrightPixels (const juce::Image& image)
+{
+    if (image.isNull() || image.getWidth() <= 0 || image.getHeight() <= 0)
+        return 0;
+
+    int bright = 0;
+    constexpr int steps = 64;
+
+    for (int y = 0; y < steps; ++y)
+    {
+        const int py = juce::jlimit (0, image.getHeight() - 1,
+                                     y * image.getHeight() / steps);
+
+        for (int x = 0; x < steps; ++x)
+        {
+            const int px = juce::jlimit (0, image.getWidth() - 1,
+                                         x * image.getWidth() / steps);
+
+            if (image.getPixelAt (px, py).getPerceivedBrightness() > 0.55f)
+                ++bright;
+        }
+    }
+
+    return bright;
+}
+
+/** True when an image contains rendered UI, not just a flat/gradient fill. */
+bool looksRendered (const juce::Image& image)
+{
+    return countDistinctColours (image) >= 8
+           && countBrightPixels (image) >= 16;
+}
+
+#if JUCE_LINUX
+/** Expands a TrueColor pixel component to 8 bits. */
+juce::uint8 maskToByte (unsigned long pixel, unsigned long mask)
+{
+    if (mask == 0)
+        return 0;
+
+    int shift = 0;
+
+    while (((mask >> shift) & 1UL) == 0)
+        ++shift;
+
+    const auto max = mask >> shift;
+    const auto value = (pixel & mask) >> shift;
+
+    return static_cast<juce::uint8> ((value * 255 + max / 2) / max);
+}
+
+/** Captures the native window backing a JUCE component.
+
+    On Linux the web view is a separate GTK/WebKit process embedded through
+    XEmbed, so `createComponentSnapshot()` only sees the JUCE fallback fill.
+    Reading the peer window straight from the X server captures the real,
+    already-rendered UI without shelling out to an external screenshot tool.
+*/
+juce::Image captureNativeWindow (juce::Component& component)
+{
+    auto* peer = component.getPeer();
+
+    if (peer == nullptr)
+        return {};
+
+    auto* display = XOpenDisplay (nullptr);
+
+    if (display == nullptr)
+        return {};
+
+    const auto window = static_cast<Window> (reinterpret_cast<juce::pointer_sized_uint> (peer->getNativeHandle()));
+    XWindowAttributes attributes{};
+
+    if (XGetWindowAttributes (display, window, &attributes) == 0
+        || attributes.width <= 0 || attributes.height <= 0)
+    {
+        XCloseDisplay (display);
+        return {};
+    }
+
+    // The web view paints underneath the window manager, but a raise and a
+    // sync before reading makes the result deterministic on a shared desktop.
+    XRaiseWindow (display, window);
+    XSync (display, False);
+
+    Window child = 0;
+    int rootX = 0;
+    int rootY = 0;
+    XTranslateCoordinates (display, window, DefaultRootWindow (display),
+                           0, 0, &rootX, &rootY, &child);
+
+    const auto width = static_cast<unsigned int> (attributes.width);
+    const auto height = static_cast<unsigned int> (attributes.height);
+
+    // Reading the window itself includes the XEmbedded WebKit child window and
+    // is what desktop grabbers see. The root fallback covers window managers
+    // that draw the client into an off-screen frame.
+    XImage* source = XGetImage (display, window, 0, 0, width, height,
+                                AllPlanes, ZPixmap);
+
+    if (source == nullptr)
+        source = XGetImage (display, DefaultRootWindow (display),
+                            rootX, rootY, width, height, AllPlanes, ZPixmap);
+
+    if (source == nullptr)
+    {
+        XCloseDisplay (display);
+        return {};
+    }
+
+    juce::Image image (juce::Image::ARGB, attributes.width, attributes.height, true);
+
+    for (int y = 0; y < attributes.height; ++y)
+    {
+        for (int x = 0; x < attributes.width; ++x)
+        {
+            const auto pixel = XGetPixel (source, x, y);
+            const auto red = maskToByte (pixel, source->red_mask);
+            const auto green = maskToByte (pixel, source->green_mask);
+            const auto blue = maskToByte (pixel, source->blue_mask);
+
+            image.setPixelAt (x, y, juce::Colour (red, green, blue));
+        }
+    }
+
+    XDestroyImage (source);
+    XCloseDisplay (display);
+
+    return image;
+}
+#else
+juce::Image captureNativeWindow (juce::Component&)
+{
+    return {};
+}
+#endif
+
+/** Captures the live web view.
+
+    On Linux the page is rendered by an out-of-process GTK/WebKit fork that is
+    embedded with XEmbed, so `createComponentSnapshot()` only sees the blank
+    JUCE fallback. The native window is therefore the primary source and the
+    component snapshot is only the fallback (other platforms, or a window that
+    has not been mapped yet).
+*/
+juce::Image captureSnapshot (juce::Component& component)
+{
+    auto nativeImage = captureNativeWindow (component);
+
+    if (looksRendered (nativeImage))
+        return nativeImage;
+
+    auto componentImage = component.createComponentSnapshot (component.getLocalBounds());
+
+    if (looksRendered (componentImage))
+        return componentImage;
+
+    return nativeImage.isNull() ? componentImage : nativeImage;
+}
+
+bool writeSnapshot (const juce::Image& image, const juce::File& file)
+{
+    file.getParentDirectory().createDirectory();
+
+    auto stream = file.createOutputStream();
+
+    if (stream == nullptr || ! stream->openedOk())
+        return false;
+
+    juce::PNGImageFormat png;
+    return png.writeImageToStream (image, *stream);
+}
 
 /** Returns the value following `option`, or an empty string. Supports both
     `--option value` and `--option=value`.
@@ -405,7 +623,11 @@ public:
 
         setResizable (true, false);
         setResizeLimits (480, 320, 8192, 8192);
-        centreWithSize (kWindowWidth, kWindowHeight);
+
+        // The snapshot contract is a 1200x800 image. Sizing the *content* (not
+        // the decorated window) means the web view really is that size.
+        setContentComponentSize (kWindowWidth, kWindowHeight);
+        centreWithSize (getWidth(), getHeight());
         setVisible (true);
     }
 
@@ -437,6 +659,25 @@ public:
         uiCheckMode = commandLine.contains ("--ui-check");
         selftestMode = commandLine.contains ("--selftest");
         serveMode = commandLine.contains ("--serve");
+        snapshotMode = commandLine.contains ("--snapshot");
+
+        if (snapshotMode)
+        {
+            const auto path = getCommandLineValue (commandLine, "--snapshot");
+
+            if (path.isEmpty())
+            {
+                std::cerr << "snapshot: FAILED, --snapshot needs an output path" << std::endl;
+                setApplicationReturnValue (1);
+                quit();
+                return;
+            }
+
+            snapshotFile = juce::File (path);
+
+            if (! juce::File::isAbsolutePath (path))
+                snapshotFile = juce::File::getCurrentWorkingDirectory().getChildFile (path);
+        }
 
         if (commandLine.contains ("--scan-plugins"))
         {
@@ -490,10 +731,16 @@ public:
         mainWindow = std::make_unique<MainWindow> (getApplicationName(), [this] (const juce::String& url)
         {
             lastLoadedUrl = url;
+            snapshotPageLoaded = true;
             std::cout << "webview: loaded " << url << std::endl;
         });
 
-        if (uiCheckMode)
+        if (snapshotMode)
+        {
+            snapshotDeadline = juce::Time::getMillisecondCounterHiRes() + kSnapshotTimeoutMs;
+            startTimer (100);
+        }
+        else if (uiCheckMode)
         {
             uiCheckDeadline = juce::Time::getMillisecondCounterHiRes() + kUiCheckTimeoutMs;
             startTimer (200);
@@ -596,6 +843,12 @@ private:
 
     void timerCallback() override
     {
+        if (snapshotMode)
+        {
+            checkSnapshot();
+            return;
+        }
+
         if (uiCheckMode)
         {
             checkUi();
@@ -678,6 +931,140 @@ private:
             });
     }
 
+    //==============================================================================
+    // --snapshot <path> (T054)
+    //
+    // Waits until the web view has actually rendered the React tree (not just
+    // fired a load callback), then writes a 1200x800 PNG from inside the
+    // process. A snapshot is only accepted when it is the right size and has
+    // real image content, so a blank/fallback frame cannot masquerade as
+    // success.
+
+    void failSnapshot (const juce::String& reason)
+    {
+        stopTimer();
+        std::cerr << "snapshot: FAILED, " << reason
+                  << " (url: " << lastLoadedUrl << ")" << std::endl;
+        setApplicationReturnValue (1);
+        quit();
+    }
+
+    void checkSnapshot()
+    {
+        if (mainWindow == nullptr)
+            return;
+
+        const auto now = juce::Time::getMillisecondCounterHiRes();
+
+        if (now > snapshotDeadline)
+        {
+            failSnapshot ("the UI did not render within "
+                          + juce::String (static_cast<int> (kSnapshotTimeoutMs)) + " ms");
+            return;
+        }
+
+        if (! snapshotPageLoaded || evaluationInFlight)
+            return;
+
+        if (! snapshotProbePassed)
+        {
+            evaluationInFlight = true;
+
+            mainWindow->getMainComponent().getWebView().evaluateJavascript (
+                "(() => {"
+                "  const el = document.querySelector('[data-testid=\"app-title\"]');"
+                "  return el ? el.textContent.trim() : '';"
+                "})()",
+                [this] (const juce::WebBrowserComponent::EvaluationResult& result)
+                {
+                    evaluationInFlight = false;
+
+                    if (snapshotProbePassed)
+                        return;
+
+                    const auto* value = result.getResult();
+
+                    if (value == nullptr)
+                        return;
+
+                    const auto heading = value->toString().trim();
+
+                    if (heading.isNotEmpty())
+                        lastHeading = heading;
+
+                    if (heading == "Instrument Hub")
+                    {
+                        snapshotProbePassed = true;
+                        snapshotCaptureAt = juce::Time::getMillisecondCounterHiRes()
+                                            + kSnapshotSettleMs;
+
+                        // Give the compositor a chance to present the frame
+                        // before it is read back from the X server.
+                        mainWindow->toFront (true);
+                    }
+                });
+
+            return;
+        }
+
+        if (now < snapshotCaptureAt)
+            return;
+
+        auto& content = mainWindow->getMainComponent();
+        const auto image = captureSnapshot (content);
+        const auto colours = countDistinctColours (image);
+        const auto bright = countBrightPixels (image);
+
+        // The page paints its background immediately but the React tree lands
+        // a frame or two later. Keep sampling until the frame really contains
+        // the UI instead of trusting a single fixed delay.
+        if (image.isNull()
+            || image.getWidth() != kSnapshotWidth
+            || image.getHeight() != kSnapshotHeight
+            || ! looksRendered (image))
+        {
+            if (now <= snapshotDeadline)
+                return;
+
+            stopTimer();
+
+            if (image.isNull())
+                failSnapshot ("capture produced no image");
+            else if (image.getWidth() != kSnapshotWidth
+                     || image.getHeight() != kSnapshotHeight)
+                failSnapshot ("capture is " + juce::String (image.getWidth()) + "x"
+                              + juce::String (image.getHeight()) + ", expected "
+                              + juce::String (kSnapshotWidth) + "x"
+                              + juce::String (kSnapshotHeight));
+            else
+                failSnapshot ("capture is blank (" + juce::String (colours)
+                              + " distinct colours, " + juce::String (bright)
+                              + " bright samples)");
+            return;
+        }
+
+        stopTimer();
+
+        if (! writeSnapshot (image, snapshotFile))
+        {
+            failSnapshot ("could not write " + snapshotFile.getFullPathName());
+            return;
+        }
+
+        std::cout << "snapshot: wrote " << snapshotFile.getFullPathName()
+                  << " " << image.getWidth() << "x" << image.getHeight()
+                  << " colours=" << colours
+                  << " bright=" << bright
+                  << " url=" << lastLoadedUrl
+                  << " mode="
+                  << (WebView::isDevelopmentBuild() ? "debug-dev-server"
+                                                    : "release-embedded")
+                  << std::endl;
+
+        setApplicationReturnValue (0);
+        quit();
+    }
+
     std::unique_ptr<MainWindow> mainWindow;
     std::unique_ptr<Api::StateStore> apiState;
     std::unique_ptr<Api::Server> apiServer;
@@ -685,9 +1072,15 @@ private:
     bool uiCheckMode = false;
     bool selftestMode = false;
     bool serveMode = false;
+    bool snapshotMode = false;
     bool uiCheckPassed = false;
+    bool snapshotPageLoaded = false;
+    bool snapshotProbePassed = false;
     bool evaluationInFlight = false;
     double uiCheckDeadline = 0.0;
+    double snapshotDeadline = 0.0;
+    double snapshotCaptureAt = 0.0;
+    juce::File snapshotFile;
     juce::String lastLoadedUrl;
     juce::String lastHeading;
 };
