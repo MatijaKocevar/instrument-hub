@@ -4,6 +4,7 @@ import type {
     ControlAudioPatch,
     ControlAudioState,
     ControlState,
+    ControlTransportPatch,
 } from "../api/client";
 
 /** Connection lifecycle for the polling loop. */
@@ -119,6 +120,10 @@ export class AppStore
     private armSequence = 0;
     /** Number of arm requests in flight, used to keep the highlight during polls. */
     private armInFlight = 0;
+    /** Sequence of transport requests; a stale response must not win. */
+    private transportSequence = 0;
+    /** Number of transport requests in flight, used to keep Play/Pause during polls. */
+    private transportInFlight = 0;
 
     constructor (api: ControlApi, options: AppStoreOptions = {})
     {
@@ -253,6 +258,75 @@ export class AppStore
     };
 
     /**
+        Start, stop or reposition the transport.
+
+        The remote applies the change optimistically so Play/Pause reacts on
+        the next frame rather than after the HTTP round trip; a rejected
+        request restores the previous transport.
+    */
+    updateTransport = async (patch: ControlTransportPatch): Promise<boolean> =>
+    {
+        const previous = this.snapshot.state;
+        const sequence = this.transportSequence + 1;
+        this.transportSequence = sequence;
+        this.transportInFlight += 1;
+
+        if (previous !== null)
+            this.patch ({
+                state: { ...previous, transport: { ...previous.transport, ...patch } },
+                error: null,
+            });
+
+        try
+        {
+            const transport = await this.api.controlTransport (patch);
+
+            if (sequence === this.transportSequence && this.snapshot.state !== null)
+            {
+                this.patch ({
+                    state: { ...this.snapshot.state, transport },
+                    error: null,
+                });
+            }
+
+            return true;
+        }
+        catch (error)
+        {
+            if (sequence === this.transportSequence)
+            {
+                this.patch ({
+                    error: messageOf (error),
+                    ...(previous === null ? {} : { state: previous }),
+                });
+            }
+
+            return false;
+        }
+        finally
+        {
+            this.transportInFlight -= 1;
+        }
+    };
+
+    /**
+        Panic: silence the rig by stopping the transport and disarming every
+        slot. Both requests are attempted even if one fails, because a stuck
+        note is worse than a stale status line.
+    */
+    panic = async (): Promise<boolean> =>
+    {
+        const disarmed = await this.armSlot (null);
+        const stopped = await this.updateTransport ({
+            playing: false,
+            ppq: 0,
+            positionSamples: 0,
+        });
+
+        return disarmed && stopped;
+    };
+
+    /**
         Apply an audio settings change (buffer size, sample rate, device or
         channel mapping).
 
@@ -334,6 +408,10 @@ export class AppStore
         // arm response (or its rollback) arrives.
         if (this.armInFlight > 0 && this.snapshot.state !== null)
             state = withArmedSlot (state, this.snapshot.state.armedSlot);
+
+        // Same for a Play/Pause that has not been confirmed yet.
+        if (this.transportInFlight > 0 && this.snapshot.state !== null)
+            state = { ...state, transport: this.snapshot.state.transport };
 
         this.patch ({
             phase: "ready",

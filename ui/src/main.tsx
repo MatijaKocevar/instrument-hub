@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import App from "./App";
 import { createControlApi } from "./api/client";
+import { RemoteRoute, isRemotePath } from "./features/remote";
 import { AppStoreProvider } from "./state/AppStoreContext";
 import { AppStore } from "./state/store";
 import "./styles.css";
@@ -26,6 +27,11 @@ function defaultApiBaseUrl (): string
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl ();
 const token = import.meta.env.VITE_API_TOKEN ?? null;
 
+// The tablet remote is the same app on a different route. The engine's
+// resource provider serves index.html for extensionless paths, and Vite does
+// the same in development, so `/remote` is a full client-side route.
+const isRemoteRoute = isRemotePath (window.location.pathname);
+
 const store = new AppStore (createControlApi ({ baseUrl: apiBaseUrl, token }));
 
 const container = document.getElementById ("root");
@@ -36,7 +42,7 @@ if (container === null)
 createRoot (container).render (
     <StrictMode>
         <AppStoreProvider store={store}>
-            <App />
+            {isRemoteRoute ? <RemoteRoute /> : <App />}
         </AppStoreProvider>
     </StrictMode>,
 );
