@@ -193,6 +193,12 @@ bool Slot::processUnfaded (int numSamples, juce::MidiBuffer& midi) noexcept
     return true;
 }
 
+void Slot::feedDeviceInput (const float* const* channelData, int newNumChannels) noexcept
+{
+    if (source != nullptr && source->acceptsDeviceInput())
+        source->setInputBlock (channelData, newNumChannels);
+}
+
 bool Slot::renderSource (int numSamples, juce::MidiBuffer& midi) noexcept
 {
     view.setDataToReferTo (storage.getArrayOfWritePointers(), numChannels, numSamples);
@@ -201,7 +207,13 @@ bool Slot::renderSource (int numSamples, juce::MidiBuffer& midi) noexcept
 
     // instrument -> ordered FX chain -> bus. An empty chain returns without
     // touching the buffer, so this stays a bit-exact passthrough.
-    fxChain.process (view, midi);
+    //
+    // Direct monitoring asks the slot to leave the chain out of the audible
+    // path: the input reaches the bus at the source's own latency instead of
+    // waiting for a heavy effect.
+    if (! source->bypassesFxChain())
+        fxChain.process (view, midi);
+
     return true;
 }
 
@@ -257,6 +269,12 @@ void Slot::applyGains (int numSamples, bool applyFade) noexcept
 int Slot::latencySamples() const noexcept
 {
     const int sourceLatency = source != nullptr ? source->latencySamples() : 0;
+
+    // A bypassed chain adds no delay to the audible path, so plugin delay
+    // compensation must not over-delay the other slots for it.
+    if (source != nullptr && source->bypassesFxChain())
+        return sourceLatency;
+
     return sourceLatency + fxChain.latencySamples();
 }
 

@@ -36,6 +36,37 @@ public:
 
     /** Processing delay this source introduces, in samples. */
     virtual int latencySamples() const noexcept { return 0; }
+
+    //==============================================================================
+    // Device input
+
+    /** True when this source consumes the interface's input channels.
+
+        The engine hands such a source the current device input block once per
+        callback, before `process()`. Audio-thread call.
+    */
+    virtual bool acceptsDeviceInput() const noexcept { return false; }
+
+    /** Receives the current device input block.
+
+        Only called when `acceptsDeviceInput()` is true. The pointer array and
+        the samples it points at are valid until the next `process()` returns;
+        a source must not keep them across callbacks. Audio-thread call.
+    */
+    virtual void setInputBlock (const float* const* channelData,
+                                int numChannels) noexcept
+    {
+        juce::ignoreUnused (channelData, numChannels);
+    }
+
+    /** True when this source must reach the bus without the slot's FX chain.
+
+        Direct monitoring asks the slot to skip the chain entirely, so the
+        interface input keeps its own latency instead of the chain's and a
+        heavy effect cannot delay what the performer hears. Asked once per
+        rendered block and once per latency query; must be audio-thread safe.
+    */
+    virtual bool bypassesFxChain() const noexcept { return false; }
 };
 
 /** The four states a slot can be in.
@@ -138,6 +169,13 @@ public:
     */
     bool process (int numSamples, juce::MidiBuffer& midi) noexcept;
 
+    /** Hands the current device input block to the source.
+
+        Call once per callback, before `process()`. Audio thread and
+        real-time safe. Sources that do not accept device input ignore it.
+    */
+    void feedDeviceInput (const float* const* channelData, int numChannels) noexcept;
+
     /** Renders the source and FX chain without this slot's activation fade.
 
         `SlotSwitcher` owns the crossfade envelope for the slots it arms, so
@@ -164,7 +202,11 @@ public:
 
     int getIndex() const noexcept { return index; }
 
-    /** Latency reported by the current source plus the FX chain, in samples. */
+    /** Latency reported by the current source plus the FX chain, in samples.
+
+        When the source bypasses the chain (direct monitoring), the chain is
+        not in the audible path, so only the source latency is reported.
+    */
     int latencySamples() const noexcept;
 
     /** The same total expressed in milliseconds at the prepared sample rate.

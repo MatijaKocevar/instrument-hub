@@ -118,6 +118,10 @@ public:
     void audioDeviceAboutToStart (juce::AudioIODevice* device) override;
     void audioDeviceStopped() override;
 
+    /** The live path. Audio-input slots receive `inputChannelData` through
+        their source before the graph renders, so an `AudioInputInstrument`
+        works without the caller touching the device buffer.
+    */
     void audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
                                            int numInputChannels,
                                            float* const* outputChannelData,
@@ -126,6 +130,7 @@ public:
                                            const juce::AudioIODeviceCallbackContext& context) override;
 
 private:
+    void feedDeviceInput (const float* const* channelData, int numChannels) noexcept;
     void renderBlock (int numSamples, juce::MidiBuffer& midi) noexcept;
     void copyToOutput (juce::AudioBuffer<float>& output, int numSamples) noexcept;
 

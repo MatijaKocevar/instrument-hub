@@ -42,6 +42,42 @@ int AudioInputInstrument::latencySamples() const noexcept
     return cachedLatency.load (std::memory_order_relaxed);
 }
 
+//==============================================================================
+void AudioInputInstrument::setDirectMonitor (bool shouldMonitor) noexcept
+{
+    directMonitor.store (shouldMonitor, std::memory_order_relaxed);
+}
+
+bool AudioInputInstrument::isDirectMonitor() const noexcept
+{
+    return directMonitor.load (std::memory_order_relaxed);
+}
+
+void AudioInputInstrument::setLatencyBudgetSamples (int samples) noexcept
+{
+    latencyBudget.store (samples < 0 ? -1 : samples, std::memory_order_relaxed);
+}
+
+int AudioInputInstrument::latencyBudgetSamples() const noexcept
+{
+    return latencyBudget.load (std::memory_order_relaxed);
+}
+
+bool AudioInputInstrument::isWithinLatencyBudget() const noexcept
+{
+    const int budget = latencyBudget.load (std::memory_order_relaxed);
+
+    if (budget < 0)
+        return true;
+
+    return cachedLatency.load (std::memory_order_relaxed) <= budget;
+}
+
+bool AudioInputInstrument::bypassesFxChain() const noexcept
+{
+    return isDirectMonitor();
+}
+
 void AudioInputInstrument::setInputBlock (const float* const* channelData,
                                           int numChannels) noexcept
 {
