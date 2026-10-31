@@ -170,21 +170,42 @@ bool Slot::process (int numSamples, juce::MidiBuffer& midi) noexcept
         return false;
     }
 
-    view.setDataToReferTo (storage.getArrayOfWritePointers(), numChannels, samples);
+    if (! renderSource (samples, midi))
+        return false;
+
+    applyGains (samples, true);
+
+    publishedState.store (state, std::memory_order_relaxed);
+    return true;
+}
+
+bool Slot::processUnfaded (int numSamples, juce::MidiBuffer& midi) noexcept
+{
+    if (! prepared || numSamples <= 0 || source == nullptr)
+        return false;
+
+    const int samples = juce::jmin (numSamples, maximumBlockSize);
+
+    if (samples <= 0 || ! renderSource (samples, midi))
+        return false;
+
+    applyGains (samples, false);
+    return true;
+}
+
+bool Slot::renderSource (int numSamples, juce::MidiBuffer& midi) noexcept
+{
+    view.setDataToReferTo (storage.getArrayOfWritePointers(), numChannels, numSamples);
     view.clear();
     source->process (view, midi);
 
     // instrument -> ordered FX chain -> bus. An empty chain returns without
     // touching the buffer, so this stays a bit-exact passthrough.
     fxChain.process (view, midi);
-
-    applyGains (samples);
-
-    publishedState.store (state, std::memory_order_relaxed);
     return true;
 }
 
-void Slot::applyGains (int numSamples) noexcept
+void Slot::applyGains (int numSamples, bool applyFade) noexcept
 {
     auto* const* channels = view.getArrayOfWritePointers();
     const float target = juce::jlimit (0.0f, maximumGain,
@@ -192,7 +213,7 @@ void Slot::applyGains (int numSamples) noexcept
 
     for (int i = 0; i < numSamples; ++i)
     {
-        if (state == SlotState::fadingIn)
+        if (applyFade && state == SlotState::fadingIn)
         {
             fadeGain = juce::jmin (1.0f, fadeGain + fadeStep);
 
@@ -202,7 +223,7 @@ void Slot::applyGains (int numSamples) noexcept
                 state = SlotState::active;
             }
         }
-        else if (state == SlotState::fadingOut)
+        else if (applyFade && state == SlotState::fadingOut)
         {
             fadeGain = juce::jmax (0.0f, fadeGain - fadeStep);
 
@@ -221,7 +242,7 @@ void Slot::applyGains (int numSamples) noexcept
                 appliedGain = target;
         }
 
-        const float gain = fadeGain * appliedGain;
+        const float gain = (applyFade ? fadeGain : 1.0f) * appliedGain;
 
         // Unity is the overwhelmingly common case; skipping the multiply also
         // keeps bit-exact unity gain.

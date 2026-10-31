@@ -92,6 +92,7 @@ target_sources(instrument-hub
         src/audio/LatencyProbe.cpp
         src/audio/RtGuard.cpp
         src/audio/Slot.cpp
+        src/audio/SlotSwitcher.cpp
         src/audio/TimingMonitor.cpp
         src/instruments/Instrument.cpp
         src/instruments/AudioInputInstrument.cpp
