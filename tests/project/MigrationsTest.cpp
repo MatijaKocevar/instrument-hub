@@ -3,8 +3,8 @@
 // The central case is the committed v1 fixture, `fixtures/set-v1.ihub`: a real
 // `.ihub` container whose `set.json` declares schemaVersion 1 and therefore
 // has no `notes` field and no per-slot `colour`. Loading it through
-// `Serializer::load()` must migrate it to a complete v2 document: every v1
-// value preserved, and the v2 defaults filled in.
+// `Serializer::load()` must migrate it to a complete current-version document:
+// every v1 value preserved, and the v2/v3 defaults filled in.
 //
 // The chain itself is also exercised directly: migration is idempotent, a
 // newer schema is rejected instead of guessed at, and an explicit value is
@@ -127,7 +127,7 @@ int main()
            "a v1 container loads: " + error.toStdString());
     check (loaded.schemaVersion == currentSetSchemaVersion,
            "the loaded set is at the current schema version");
-    check (currentSetSchemaVersion == 2, "the current schema version is 2");
+    check (currentSetSchemaVersion == 3, "the current schema version is 3");
     check (loaded.validate (error),
            "the migrated set validates: " + error.toStdString());
 
@@ -149,6 +149,8 @@ int main()
         check (nearlyEqual (piano.gain, 0.8f), "slot 0 keeps its gain");
         check (piano.active && ! piano.muted, "slot 0 keeps its state");
         check (piano.colour == defaultSlotColour, "slot 0 gets the v2 colour default");
+        check (piano.colorIndex == 0 && nearlyEqual (piano.pan, 0.0f) && ! piano.solo,
+               "slot 0 gets the v3 patch defaults");
         check (piano.instrument.kind == SourceKind::plugin
                    && piano.instrument.id == "piano"
                    && piano.instrument.pluginState == "legacy-piano-state",
@@ -167,6 +169,8 @@ int main()
         check (nearlyEqual (input.gain, 0.5f), "slot 1 keeps its gain");
         check (! input.active && input.muted, "slot 1 keeps its mute state");
         check (input.colour == defaultSlotColour, "slot 1 gets the v2 colour default");
+        check (input.colorIndex == 0 && nearlyEqual (input.pan, 0.0f) && ! input.solo,
+               "slot 1 gets the v3 patch defaults");
         check (input.instrument.kind == SourceKind::audioInput
                    && input.instrument.inputChannel == 1
                    && input.instrument.directMonitor,
@@ -190,13 +194,13 @@ int main()
 
     check (loaded.mappingYaml == legacyMapping, "mapping.yaml survives migration byte for byte");
 
-    // --- The migrated set is written back as a complete v2 document --------
+    // --- The migrated set is written back as a current document -----------
     const juce::File migratedPath =
-        juce::File::getCurrentWorkingDirectory().getChildFile ("t082-migrated-v2.ihub");
+        juce::File::getCurrentWorkingDirectory().getChildFile ("t082-migrated-v3.ihub");
     migratedPath.deleteFile();
 
     check (Serializer::save (loaded, migratedPath, error),
-           "the migrated set saves as v2: " + error.toStdString());
+           "the migrated set saves as the current version: " + error.toStdString());
 
     {
         juce::ZipFile zip (migratedPath);
@@ -204,7 +208,7 @@ int main()
         const auto root = juce::JSON::parse (juce::String (manifest));
 
         check (readVersion (root) == currentSetSchemaVersion,
-               "the saved manifest declares schemaVersion 2");
+               "the saved manifest declares schemaVersion 3");
 
         const auto* object = root.getDynamicObject();
         check (object != nullptr && object->hasProperty ("notes"),
@@ -224,6 +228,20 @@ int main()
             check (slots->getReference (1).getDynamicObject()->getProperty ("colour").toString()
                        == juce::String (defaultSlotColour),
                    "the saved slot 1 carries the v2 default colour");
+
+            for (int i = 0; i < 2; ++i)
+            {
+                const auto slot = slots->getReference (i).getDynamicObject();
+                check (static_cast<int> (slot->getProperty ("colorIndex")) == 0,
+                       "the saved slot " + std::to_string (i)
+                           + " carries the v3 colorIndex default");
+                check (nearlyEqual (static_cast<float> (slot->getProperty ("pan")), 0.0f),
+                       "the saved slot " + std::to_string (i)
+                           + " carries the v3 pan default");
+                check (! static_cast<bool> (slot->getProperty ("solo")),
+                       "the saved slot " + std::to_string (i)
+                           + " carries the v3 solo default");
+            }
         }
     }
 
@@ -238,16 +256,21 @@ int main()
 
     // --- The chain itself ---------------------------------------------------
     check (migrationStepCount (1, 2) == 1, "the chain has one step from v1 to v2");
+    check (migrationStepCount (2, 3) == 1, "the chain has one step from v2 to v3");
+    check (migrationStepCount (1, 3) == 2, "the chain has two steps from v1 to v3");
     check (migrationStepCount (1, 1) == 0, "no steps are needed from v1 to v1");
     check (migrationStepCount (2, 2) == 0, "no steps are needed from v2 to v2");
+    check (migrationStepCount (3, 3) == 0, "no steps are needed from v3 to v3");
     check (migrationStepCount (2, 1) == -1, "the chain cannot go backwards");
-    check (migrationStepCount (0, 2) == -1, "a version older than the oldest is not connected");
-    check (migrationStepCount (1, 3) == -1, "the chain does not reach a future version");
+    check (migrationStepCount (0, 3) == -1, "a version older than the oldest is not connected");
+    check (migrationStepCount (1, 4) == -1, "the chain does not reach a future version");
 
     const auto* firstStep = findMigrationStep (1);
     check (firstStep != nullptr && firstStep->toVersion == 2,
            "the v1 step upgrades to v2");
-    check (findMigrationStep (2) == nullptr, "there is no step beyond v2");
+    check (findMigrationStep (2) != nullptr && findMigrationStep (2)->toVersion == 3,
+           "the v2 step upgrades to v3");
+    check (findMigrationStep (3) == nullptr, "there is no step beyond v3");
     check (findMigrationStep (0) == nullptr, "there is no step below v1");
 
     // --- Migration fills missing defaults only ------------------------------
@@ -266,8 +289,8 @@ int main()
                "a v1 document migrates: " + migrationError.toStdString());
 
         const auto* object = document.getDynamicObject();
-        check (object != nullptr && readVersion (document) == 2,
-               "the migrated document declares v2");
+        check (object != nullptr && readVersion (document) == 3,
+               "the migrated document declares v3");
         check (object != nullptr && object->hasProperty ("notes")
                    && object->getProperty ("notes").toString().isEmpty(),
                "the notes default is empty");
@@ -283,11 +306,58 @@ int main()
                    && slots->getReference (1).getDynamicObject()->getProperty ("colour").toString()
                           == juce::String (defaultSlotColour),
                "a missing colour gets the v2 default");
+        check (slots != nullptr && slots->size() == 2
+                   && static_cast<int> (slots->getReference (0)
+                                            .getDynamicObject()
+                                            ->getProperty ("colorIndex")) == 0
+                   && ! static_cast<bool> (slots->getReference (0)
+                                               .getDynamicObject()
+                                               ->getProperty ("solo")),
+               "a missing v3 patch field gets its default");
 
         check (migrateManifest (document, migrationError),
                "migrating an already-current document succeeds: "
                    + migrationError.toStdString());
-        check (readVersion (document) == 2, "migrating twice is idempotent");
+        check (readVersion (document) == 3, "migrating twice is idempotent");
+    }
+
+    // --- v2 -> v3 fills only the new patch fields ---------------------------
+    {
+        auto document = parseDocument (R"({
+            "schemaVersion": 2,
+            "name": "Direct v2",
+            "notes": "",
+            "slots": [
+                { "index": 0, "colour": "#ff0000", "pan": -0.5, "colorIndex": 4,
+                  "solo": true },
+                { "index": 1, "colour": "#00ff00" }
+            ]
+        })");
+
+        juce::String migrationError;
+        check (migrateManifest (document, migrationError),
+               "a v2 document migrates: " + migrationError.toStdString());
+
+        check (readVersion (document) == 3, "the migrated v2 document declares v3");
+
+        const auto slotsValue = document.getDynamicObject()->getProperty ("slots");
+        const auto* slots = slotsValue.getArray();
+        check (slots != nullptr && slots->size() == 2, "both v2 slots survive");
+
+        if (slots != nullptr && slots->size() == 2)
+        {
+            const auto first = slots->getReference (0).getDynamicObject();
+            const auto second = slots->getReference (1).getDynamicObject();
+
+            check (nearlyEqual (static_cast<float> (first->getProperty ("pan")), -0.5f)
+                       && static_cast<int> (first->getProperty ("colorIndex")) == 4
+                       && static_cast<bool> (first->getProperty ("solo")),
+                   "explicit v3 patch fields are not overwritten");
+            check (nearlyEqual (static_cast<float> (second->getProperty ("pan")), 0.0f)
+                       && static_cast<int> (second->getProperty ("colorIndex")) == 0
+                       && ! static_cast<bool> (second->getProperty ("solo")),
+                   "missing v3 patch fields get neutral defaults");
+        }
     }
 
     // --- Rejections ---------------------------------------------------------

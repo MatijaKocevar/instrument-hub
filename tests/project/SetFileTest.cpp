@@ -110,6 +110,9 @@ ihub::project::SetFile makeAcceptanceSet (const std::string& mappingYaml,
     piano.index = 0;
     piano.name = "Piano";
     piano.gain = 0.75f;
+    piano.pan = -0.25f;
+    piano.colorIndex = 3;
+    piano.solo = true;
     piano.active = true;
     piano.instrument.kind = SourceKind::plugin;
     piano.instrument.id = "piano";
@@ -268,6 +271,10 @@ int main()
            "the schema version survives the round-trip");
     check (loaded.mappingYaml == mappingYaml,
            "the mapping survives the round-trip");
+    check (nearlyEqual (loaded.slots[0].pan, -0.25f)
+               && loaded.slots[0].colorIndex == 3
+               && loaded.slots[0].solo,
+           "the reloaded patch keeps pan, colour index and solo");
 
     // --- Apply to a fresh engine -------------------------------------------
     AudioEngine::AudioEngine freshEngine (4);
@@ -325,6 +332,19 @@ int main()
         juce::String validationError;
         check (! dangling.validate (validationError),
                "a dangling plugin state reference is rejected");
+    }
+
+    {
+        auto cold = original;
+        cold.slots[0].instrument.pluginState.clear();
+        cold.slots[0].instrument.pluginId = "com.instrumenthub.cold";
+        cold.pluginStates.erase (cold.pluginStates.begin());
+        juce::String validationError;
+        check (cold.validate (validationError),
+               "a cold plugin descriptor without a state blob validates: "
+                   + validationError.toStdString());
+        check (! cold.slots[0].hasPluginState(),
+               "the cold patch reports no plugin state");
     }
 
     {

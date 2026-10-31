@@ -266,6 +266,42 @@ int main()
             check (shipped.countEncoders() == 8,
                    "set.yaml binds all eight encoders (got "
                        + std::to_string (shipped.countEncoders()) + ")");
+            check (shipped.countPatches() == 64,
+                   "set.yaml declares 64 patches (got "
+                       + std::to_string (shipped.countPatches()) + ")");
+
+            const auto keysFamily = shipped.families.find ("keys");
+            check (keysFamily != shipped.families.end()
+                       && keysFamily->second.colorIndex == 0,
+                   "the keys family declares its colour default");
+
+            const auto* pianoPatch = keysFamily != shipped.families.end()
+                                         ? keysFamily->second.findInstrument ("piano")
+                                         : nullptr;
+            const auto* stringsPatch = keysFamily != shipped.families.end()
+                                           ? keysFamily->second.findInstrument ("strings")
+                                           : nullptr;
+
+            check (pianoPatch != nullptr
+                       && pianoPatch->colorIndex == 1
+                       && pianoPatch->resolvedColorIndex == 1,
+                   "keys/piano overrides the family colour");
+            check (stringsPatch != nullptr
+                       && stringsPatch->colorIndex == -1
+                       && stringsPatch->resolvedColorIndex == 0,
+                   "keys/strings inherits the family colour");
+            check (pianoPatch != nullptr
+                       && std::abs (pianoPatch->volumeDb - (-2.5f)) <= 1.0e-5f
+                       && std::abs (pianoPatch->pan - (-0.15f)) <= 1.0e-5f
+                       && ! pianoPatch->muted && ! pianoPatch->solo,
+                   "keys/piano carries volume, pan, mute and solo");
+            check (pianoPatch != nullptr && pianoPatch->fxChain.size() == 1
+                       && pianoPatch->fxChain.front().id == "eq",
+                   "keys/piano carries its FX chain");
+
+            const auto* pianoPad = shipped.padBinding (0);
+            check (pianoPad != nullptr && shipped.colorIndexFor (*pianoPad) == 1,
+                   "the resolved colour reaches the pad binding");
 
             const auto* padZero = shipped.padBinding (0);
             check (padZero != nullptr && padZero->family == "keys"
@@ -521,6 +557,64 @@ macros:
 pads: []
 encoders: []
 )", "finite number");
+
+    expectInvalid ("an out-of-range patch colour", R"(schemaVersion: 1
+families:
+  keys:
+    name: Keys
+    instruments:
+      - id: piano
+        name: Piano
+        slot: 0
+        colorIndex: 99
+macros: {}
+pads: []
+encoders: []
+)", "colorIndex");
+
+    expectInvalid ("an out-of-range patch pan", R"(schemaVersion: 1
+families:
+  keys:
+    name: Keys
+    instruments:
+      - id: piano
+        name: Piano
+        slot: 0
+        pan: 2.0
+macros: {}
+pads: []
+encoders: []
+)", "pan");
+
+    expectInvalid ("an unknown FX field", R"(schemaVersion: 1
+families:
+  keys:
+    name: Keys
+    instruments:
+      - id: piano
+        name: Piano
+        slot: 0
+        fx:
+          - id: eq
+            wet: 0.5
+macros: {}
+pads: []
+encoders: []
+)", "unknown key 'wet'");
+
+    expectInvalid ("an unknown patch kind", R"(schemaVersion: 1
+families:
+  keys:
+    name: Keys
+    instruments:
+      - id: piano
+        name: Piano
+        slot: 0
+        kind: hologram
+macros: {}
+pads: []
+encoders: []
+)", "patch kind");
 
     //==========================================================================
     // 3. Hot reload while audio runs

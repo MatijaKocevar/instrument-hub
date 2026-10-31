@@ -301,6 +301,12 @@ var instrumentToVar (const InstrumentConfig& instrument)
     object->setProperty ("id", juce::String (instrument.id));
     object->setProperty ("name", juce::String (instrument.name));
     object->setProperty ("pluginState", juce::String (instrument.pluginState));
+    object->setProperty ("pluginFormat", juce::String (instrument.pluginFormat));
+    object->setProperty ("pluginId", juce::String (instrument.pluginId));
+    object->setProperty ("pluginName", juce::String (instrument.pluginName));
+    object->setProperty ("pluginManufacturer", juce::String (instrument.pluginManufacturer));
+    object->setProperty ("pluginVersion", juce::String (instrument.pluginVersion));
+    object->setProperty ("samplePath", juce::String (instrument.samplePath));
     object->setProperty ("inputChannel", instrument.inputChannel);
     object->setProperty ("gain", static_cast<double> (instrument.gain));
     object->setProperty ("directMonitor", instrument.directMonitor);
@@ -338,6 +344,9 @@ var slotToVar (const SlotConfig& slot)
     object->setProperty ("name", juce::String (slot.name));
     object->setProperty ("gain", static_cast<double> (slot.gain));
     object->setProperty ("colour", juce::String (slot.colour));
+    object->setProperty ("colorIndex", slot.colorIndex);
+    object->setProperty ("pan", static_cast<double> (slot.pan));
+    object->setProperty ("solo", slot.solo);
     object->setProperty ("active", slot.active);
     object->setProperty ("muted", slot.muted);
     object->setProperty ("instrument", instrumentToVar (slot.instrument));
@@ -497,6 +506,13 @@ bool parseInstrument (const var& value,
     if (! readString (value, "id", context, instrument.id, error, false)
         || ! readString (value, "name", context, instrument.name, error, false)
         || ! readString (value, "pluginState", context, instrument.pluginState, error, false)
+        || ! readString (value, "pluginFormat", context, instrument.pluginFormat, error, false)
+        || ! readString (value, "pluginId", context, instrument.pluginId, error, false)
+        || ! readString (value, "pluginName", context, instrument.pluginName, error, false)
+        || ! readString (value, "pluginManufacturer", context,
+                         instrument.pluginManufacturer, error, false)
+        || ! readString (value, "pluginVersion", context, instrument.pluginVersion, error, false)
+        || ! readString (value, "samplePath", context, instrument.samplePath, error, false)
         || ! readInteger (value, "inputChannel", context, inputChannel, 0, 63, error, false)
         || ! readNumber (value, "gain", context, gain, error, false)
         || ! readBool (value, "directMonitor", context, instrument.directMonitor, error, false))
@@ -575,16 +591,22 @@ bool parseSlot (const var& value,
     }
 
     double gain = static_cast<double> (slot.gain);
+    double pan = static_cast<double> (slot.pan);
 
     if (! readInteger (value, "index", context, slot.index, 0, 63, error)
         || ! readString (value, "name", context, slot.name, error, false)
         || ! readNumber (value, "gain", context, gain, error, false)
         || ! readString (value, "colour", context, slot.colour, error, false)
+        || ! readInteger (value, "colorIndex", context, slot.colorIndex, 0,
+                          maximumSlotColourIndex, error, false)
+        || ! readNumber (value, "pan", context, pan, error, false)
+        || ! readBool (value, "solo", context, slot.solo, error, false)
         || ! readBool (value, "active", context, slot.active, error, false)
         || ! readBool (value, "muted", context, slot.muted, error, false))
         return false;
 
     slot.gain = static_cast<float> (gain);
+    slot.pan = static_cast<float> (pan);
 
     var instrument;
 
