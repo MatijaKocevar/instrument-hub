@@ -625,3 +625,39 @@ add_test(
     COMMAND ihub-switch-continuity-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Launchkey protocol (T040) ----------------------------------------------
+#
+# Pure, hardware-free checks on the controller contract: the 36..51 pad note
+# map, palette velocity uniqueness, encoder CCs, key range, and the session-mode
+# SysEx frame documented in docs/launchkey-mini-mk3.md. No MIDI port is opened.
+
+add_executable(ihub-launchkey-protocol-test
+    controller/LaunchkeyProtocolTest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyProtocol.cpp"
+)
+
+target_compile_features(ihub-launchkey-protocol-test PRIVATE cxx_std_20)
+
+target_include_directories(ihub-launchkey-protocol-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(ihub-launchkey-protocol-test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+set_target_properties(ihub-launchkey-protocol-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-launchkey-protocol
+    COMMAND ihub-launchkey-protocol-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
