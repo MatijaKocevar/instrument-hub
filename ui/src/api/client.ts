@@ -16,6 +16,7 @@ export type ControlPairingState = components["schemas"]["PairingState"];
 export type ControlPairResponse = components["schemas"]["PairResponse"];
 export type ControlPatch = components["schemas"]["Patch"];
 export type ControlPatchUpdate = components["schemas"]["PatchUpdate"];
+export type ControlPatchEditor = components["schemas"]["PatchEditor"];
 export type ControlPatchSourceRequest = components["schemas"]["PatchSourceRequest"];
 export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
 export type ControlFxChain = components["schemas"]["FxChain"];
@@ -105,6 +106,20 @@ export interface ControlApi
     changePatchSource (slot: number,
                        source: ControlPatchSourceRequest,
                        options?: { signal?: AbortSignal }): Promise<ControlState>;
+
+    /**
+        Open (or focus) one patch's native plugin editor.
+
+        The engine opens the window on its message thread and answers with
+        `{ slot, open, reused }`. A generated or sampler source, or a plugin
+        that cannot create an editor, is rejected with a readable error.
+    */
+    openPatchEditor (slot: number,
+                     options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
+
+    /** Close one patch's native editor. Idempotent. */
+    closePatchEditor (slot: number,
+                      options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
 
     //==========================================================================
     // Per-patch insert chain (T121)
@@ -494,6 +509,23 @@ export function createControlApi (options: ControlApiOptions): ControlApi
             status);
     }
 
+    function requireEditor (data: ControlPatchEditor | undefined,
+                            error: unknown,
+                            status: number,
+                            what: string): ControlPatchEditor
+    {
+        if (data !== undefined
+            && typeof data.slot === "number"
+            && typeof data.open === "boolean")
+            return data;
+
+        const message = describeError (error);
+
+        throw new ApiError (
+            message.length > 0 ? message : `${what} failed with HTTP ${status}`,
+            status);
+    }
+
     function requirePluginList (data: ControlPluginList | undefined,
                                 error: unknown,
                                 status: number,
@@ -584,6 +616,28 @@ export function createControlApi (options: ControlApiOptions): ControlApi
 
             return requireState (data, error, response.status,
                                  `POST /patches/${String (slot)}/source`);
+        },
+
+        async openPatchEditor (slot, requestOptions)
+        {
+            const { data, error, response } = await client.POST ("/patches/{slot}/editor", {
+                params: { path: { slot } },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireEditor (data, error, response.status,
+                                  `POST /patches/${String (slot)}/editor`);
+        },
+
+        async closePatchEditor (slot, requestOptions)
+        {
+            const { data, error, response } = await client.DELETE ("/patches/{slot}/editor", {
+                params: { path: { slot } },
+                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
+            });
+
+            return requireEditor (data, error, response.status,
+                                  `DELETE /patches/${String (slot)}/editor`);
         },
 
         async getFxChain (slot, requestOptions)

@@ -240,6 +240,93 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /patches/{slot}/editor:
+    parameters:
+      - name: slot
+        in: path
+        required: true
+        description: Fixed audio-graph slot index, 0 .. 63.
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 63
+    post:
+      tags: [control]
+      operationId: openPatchEditor
+      summary: Open one patch's native plugin editor
+      description: |
+        Opens the native editor window of the plug-in hosted by the patch, or
+        brings the existing window to the front. One window is kept per slot.
+
+        The editor is never opened implicitly: selecting or arming a patch does
+        not create one. The patch must host a plugin source whose instance is
+        resident; a cold, sampler or generated source fails with a readable
+        error. The patch's `editorOpen` flag is also updated in `/state`.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Whether the editor is open
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchEditor"
+        "400":
+          description: The patch has no resident plugin or the editor failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No patch is hosted by that slot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: No audio session is attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags: [control]
+      operationId: closePatchEditor
+      summary: Close one patch's native plugin editor
+      description: |
+        Closes the patch's native editor window if one is open. Idempotent: a
+        slot with no window still answers with the current state. Switching or
+        unloading the patch closes its editor before the processor is retired.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Whether the editor is open
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchEditor"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No patch is hosted by that slot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: No audio session is attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /patches/{slot}/fx:
     parameters:
       - name: slot
@@ -1368,7 +1455,8 @@ components:
       type: object
       required:
         [slot, id, name, family, familyName, instrument, volumeDb, pan, mute,
-         solo, colorIndex, warmState, warm, latencySamples, latencyMs]
+         solo, colorIndex, warmState, warm, editorOpen, latencySamples,
+         latencyMs]
       additionalProperties: false
       properties:
         slot:
@@ -1415,6 +1503,9 @@ components:
         warm:
           type: boolean
           description: True when the instrument instance is resident.
+        editorOpen:
+          type: boolean
+          description: True while the patch's native plugin editor window is open.
         latencySamples:
           type: integer
           minimum: 0
@@ -1437,6 +1528,25 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Patch"
+
+    PatchEditor:
+      type: object
+      required: [slot, open]
+      additionalProperties: false
+      properties:
+        slot:
+          type: integer
+          minimum: 0
+          description: Fixed audio-graph slot that hosts this patch.
+        open:
+          type: boolean
+          description: True when the patch's native editor window is open.
+        reused:
+          type: boolean
+          description: POST only. True when an already-open window was focused.
+        wasOpen:
+          type: boolean
+          description: State before the request was applied.
 
     PatchUpdate:
       type: object

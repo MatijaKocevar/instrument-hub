@@ -243,6 +243,7 @@ juce::var stateToVar (const StateSnapshot& state)
             patchVar.getDynamicObject()->setProperty ("warmState",
                                                       juce::String (patch.warmState));
             patchVar.getDynamicObject()->setProperty ("warm", patch.warm);
+            patchVar.getDynamicObject()->setProperty ("editorOpen", patch.editorOpen);
             patchVar.getDynamicObject()->setProperty ("latencySamples",
                                                       patch.latencySamples);
             patchVar.getDynamicObject()->setProperty ("latencyMs", patch.latencyMs);
@@ -1140,6 +1141,89 @@ void registerRoutes (httplib::Server& server, RouteContext context)
             context.decorate (response);
 
         setJson (response, 200, stateToVar (context.state.snapshot()));
+    });
+
+    // --- Native plugin editor (T129) ---------------------------------------
+    //
+    // POST opens (or reuses) the patch's native window and DELETE closes it.
+    // Selecting or arming a patch never opens an editor on its own: only these
+    // explicit requests create one.
+
+    const auto readPatchSlot = [context] (const httplib::Request& request) -> int
+    {
+        if (request.matches.size() <= 1)
+            return -1;
+
+        const auto text = request.matches[1].str();
+        char* end = nullptr;
+        const long parsed = std::strtol (text.c_str(), &end, 10);
+
+        if (end == nullptr || *end != '\0'
+            || parsed < 0 || parsed >= context.state.getNumSlots())
+            return -1;
+
+        return static_cast<int> (parsed);
+    };
+
+    const auto respondEditor = [context, readPatchSlot] (const httplib::Request& request,
+                                                         httplib::Response& response,
+                                                         bool open)
+    {
+        const int slot = readPatchSlot (request);
+
+        if (slot < 0)
+        {
+            setError (response, 404, "patch slot is out of range");
+            return;
+        }
+
+        const bool wasOpen = context.state.getPatch (slot).editorOpen;
+        std::string error;
+
+        const bool applied = open ? context.state.openPatchEditor (slot, error)
+                                  : context.state.closePatchEditor (slot, error);
+
+        if (! applied)
+        {
+            const int status = error.find ("no audio session") != std::string::npos
+                                   ? 503
+                                   : 400;
+            setError (response, status, error);
+            return;
+        }
+
+        auto body = makeObject();
+        body.getDynamicObject()->setProperty ("slot", slot);
+        body.getDynamicObject()->setProperty ("open", open);
+
+        if (open)
+        {
+            body.getDynamicObject()->setProperty ("reused", wasOpen);
+            body.getDynamicObject()->setProperty ("wasOpen", wasOpen);
+        }
+        else
+        {
+            body.getDynamicObject()->setProperty ("wasOpen", wasOpen);
+        }
+
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        setJson (response, 200, body);
+    };
+
+    server.Post (R"(/patches/(\d+)/editor)",
+                 [respondEditor] (const httplib::Request& request,
+                                  httplib::Response& response)
+    {
+        respondEditor (request, response, true);
+    });
+
+    server.Delete (R"(/patches/(\d+)/editor)",
+                   [respondEditor] (const httplib::Request& request,
+                                    httplib::Response& response)
+    {
+        respondEditor (request, response, false);
     });
 
     // --- Per-patch insert chain (T121) -------------------------------------

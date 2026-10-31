@@ -52,13 +52,18 @@ public:
     /** Creates and shows the editor of `processor`.
 
         Returns false when the processor has no editor or `createEditor()`
-        returned null. Any previously shown editor is closed first.
+        returned null. Any previously shown editor is closed first. Calling it
+        again for the same processor brings the existing window to the front
+        instead of recreating it.
 
-        `owner` is optional and only used to position the window.
+        `owner` is optional and only used to position the window. When `error`
+        is not null it receives a readable reason on failure (and is cleared on
+        success), which is what the control API returns to the UI.
     */
     bool open (juce::AudioProcessor& processor,
                const juce::String& title = {},
-               juce::Component* owner = nullptr);
+               juce::Component* owner = nullptr,
+               juce::String* error = nullptr);
 
     /** Same as above, and also arranges for `instrument.unload()` (or a
         subsequent `load()`) to close this window before the plugin instance
@@ -66,7 +71,11 @@ public:
     */
     bool open (PluginInstrument& instrument,
                const juce::String& title = {},
-               juce::Component* owner = nullptr);
+               juce::Component* owner = nullptr,
+               juce::String* error = nullptr);
+
+    /** Why the most recent `open()` failed, or an empty string. */
+    const juce::String& getLastError() const noexcept { return lastError; }
 
     /** Hides and destroys the window and its editor. Safe to call repeatedly. */
     void close();
@@ -110,8 +119,14 @@ private:
         an editor, where the caller is still inside `this`. */
     void destroyWindow();
 
+    /** Removes this window from the previously opened instrument, so an old
+        instance's unload can never close a window that now shows a newer one. */
+    void clearInstrumentCallback() noexcept;
+
     std::unique_ptr<Window> window;
     juce::AudioProcessor* processor = nullptr;
+    PluginInstrument* instrument = nullptr;
+    mutable juce::String lastError;
     std::shared_ptr<Lifetime> lifetime;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginWindow)

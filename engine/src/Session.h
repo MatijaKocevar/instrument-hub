@@ -374,6 +374,34 @@ public:
     void setSourceAssignedHook (SourceAssignedHook hook);
 
     //==============================================================================
+    // Native plugin editor (control thread, T129)
+
+    /** Opens, or brings to the front, the native editor of a patch's hosted
+        plugin.
+
+        The patch's `PluginInstrument` is resolved from the live warm-pool
+        instance and the call is marshalled to the message thread, where JUCE
+        requires every editor and window to live. One window is kept per slot:
+        opening an already-open editor reuses it, opening after a source swap
+        creates a new one.
+
+        Only a plugin patch that is resident has an editor. A cold or non-plugin
+        patch returns false with a clear `error`; an editor is never opened
+        implicitly by selecting, arming or switching a patch.
+    */
+    bool openEditor (int slot, std::string& error);
+
+    /** Closes one slot's editor window. Idempotent: closing a slot with no
+        editor succeeds. Returns false only for an invalid slot. */
+    bool closeEditor (int slot, std::string& error);
+
+    /** True while this slot's native editor window is on screen. */
+    bool isEditorOpen (int slot) const noexcept;
+
+    /** Number of native editor windows the session currently keeps open. */
+    int getOpenEditorCount() const noexcept;
+
+    //==============================================================================
     // Per-patch insert chain (control thread)
     /** Reads one patch's insert chain and latency budget. */
     bool getSlotFxChain (int slot,
@@ -524,6 +552,13 @@ private:
     /** Permanent, real-time-safe proxy wired to one fixed engine slot. */
     struct Voice;
 
+    /** Message-thread owner of the native editor windows (T129).
+
+        Declared here and defined in Session.cpp so builds without the GUI
+        modules (headless offline tools) still link this translation unit.
+    */
+    struct EditorHost;
+
     /** One queued short MIDI message. Three bytes cover every channel event;
         SysEx is dropped instead of being forwarded in pieces. */
     struct QueuedMidi
@@ -573,6 +608,9 @@ private:
 
     SourceAssignedHook sourceAssignedHook;
     mutable std::mutex sourceAssignedMutex;
+
+    /** Editor windows and their live-instrument registry (T129). */
+    std::unique_ptr<EditorHost> editorHost;
 
     // Destruction order matters: the plugin format manager must outlive the
     // instruments, and the engine must be destroyed before the proxies its

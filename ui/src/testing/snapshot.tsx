@@ -286,6 +286,7 @@ const FIXTURE_PATCHES: ControlState["families"] = FIXTURE_FAMILIES.map (
                 colorIndex: familyIndex,
                 warmState: slot === 3 ? "active" : "warm",
                 warm: true,
+                editorOpen: false,
                 latencySamples: slot === 3 ? 240 : 0,
                 latencyMs: slot === 3 ? 5 : 0,
             };
@@ -609,6 +610,7 @@ interface FixtureServer
     readonly patchRequests: readonly { slot: number; patch: Record<string, unknown> }[];
     readonly fxRequests: readonly { method: string; slot: number; index: number; body: Record<string, unknown> }[];
     readonly sourceRequests: readonly { slot: number; body: Record<string, unknown> }[];
+    readonly editorRequests: readonly { slot: number; open: boolean }[];
     readonly pluginRequests: readonly string[];
     readonly midiRequests: readonly { id: string; enabled: boolean }[];
     readonly padTestRequests: number;
@@ -691,6 +693,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
     const patchRequests: { slot: number; patch: Record<string, unknown> }[] = [];
     const fxRequests: { method: string; slot: number; index: number; body: Record<string, unknown> }[] = [];
     const sourceRequests: { slot: number; body: Record<string, unknown> }[] = [];
+    const editorRequests: { slot: number; open: boolean }[] = [];
     const pluginRequests: string[] = [];
     const midi = cloneMidi (MIDI);
     const midiRequests: { id: string; enabled: boolean }[] = [];
@@ -866,6 +869,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         const fxReorderMatch = /^\/patches\/(\d+)\/fx\/reorder$/.exec (url);
         const fxIndexMatch = /^\/patches\/(\d+)\/fx\/(\d+)$/.exec (url);
         const sourceMatch = /^\/patches\/(\d+)\/source$/.exec (url);
+        const editorMatch = /^\/patches\/(\d+)\/editor$/.exec (url);
 
         const readBody = (done: (parsed: Record<string, unknown>) => void): void =>
         {
@@ -1081,6 +1085,42 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
             }
         }
 
+        if (editorMatch !== null
+            && (request.method === "POST" || request.method === "DELETE"))
+        {
+            const slot = Number.parseInt (editorMatch[1] ?? "", 10);
+            const target = findPatch (slot);
+            const open = request.method === "POST";
+
+            editorRequests.push ({ slot, open });
+
+            if (target === null)
+            {
+                response.statusCode = 404;
+                response.end (JSON.stringify ({ error: "patch slot is out of range" }));
+                return;
+            }
+
+            if (open && target.instrument.kind !== "plugin")
+            {
+                response.statusCode = 400;
+                response.end (JSON.stringify ({
+                    error: "the patch has no resident plugin to edit",
+                }));
+                return;
+            }
+
+            const wasOpen = target.editorOpen === true;
+            target.editorOpen = open;
+            response.statusCode = 200;
+            response.end (JSON.stringify ({
+                slot,
+                open,
+                ...(open ? { reused: wasOpen, wasOpen } : { wasOpen }),
+            }));
+            return;
+        }
+
         if (sourceMatch !== null && request.method === "POST")
         {
             const slot = Number.parseInt (sourceMatch[1] ?? "", 10);
@@ -1124,6 +1164,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
                 }
 
                 target.instrument = instrument;
+                target.editorOpen = false;
 
                 response.statusCode = 200;
                 response.end (JSON.stringify (state));
@@ -1604,6 +1645,7 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         get patchRequests () { return patchRequests; },
         get fxRequests () { return fxRequests; },
         get sourceRequests () { return sourceRequests; },
+        get editorRequests () { return editorRequests; },
         get pluginRequests () { return pluginRequests; },
         get midiRequests () { return midiRequests; },
         get padTestRequests () { return padTestRequests; },
@@ -2475,6 +2517,14 @@ async function backoffTest (): Promise<void>
             throw new Error ("connection refused");
         },
         changePatchSource: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        openPatchEditor: async () =>
+        {
+            throw new Error ("connection refused");
+        },
+        closePatchEditor: async () =>
         {
             throw new Error ("connection refused");
         },
@@ -3537,12 +3587,34 @@ async function instrumentPageTest (): Promise<void>
         check (pluginPage.includes ('data-testid="instrument-source" data-kind="plugin"'),
                "the page shows the new source kind");
         check (pluginPage.includes ('data-name="TestPlugin"'), "the page shows the plug-in name");
-        check (pluginPage.includes ('data-testid="source-format">VST3<'),
-               "the source editor shows the plug-in format");
-        check (pluginPage.includes ('data-testid="source-manufacturer">Instrument Hub<'),
-               "the source editor shows the manufacturer");
-        check (pluginPage.includes ("Instrument sources are hosted headlessly in this build"),
-               "a plug-in source explains that this build has no native window");
+        check (pluginPage.includes ("native window on the engine desktop"),
+               "a plug-in source offers its native window");
+        check (! pluginPage.includes ("hosted headlessly"),
+               "the page no longer claims plug-ins are hosted headlessly");
+
+        check (await store.openInstrumentEditor (3),
+               "the explicit Open editor action calls the API");
+        check (server.editorRequests.at (-1)?.slot === 3
+                   && server.editorRequests.at (-1)?.open === true,
+               "POST /patches/3/editor opens the window");
+
+        const openedPage = renderApp (store, "/instrument?slot=3");
+
+        check (openedPage.includes ('data-testid="source-editor" data-kind="plugin" data-open="true"'),
+               "the page reflects the open editor");
+        check (openedPage.includes ('data-testid="source-close-editor"'),
+               "an open editor offers a close control");
+
+        check (await store.closeInstrumentEditor (3),
+               "the explicit close action calls the API");
+        check (server.editorRequests.at (-1)?.slot === 3
+                   && server.editorRequests.at (-1)?.open === false,
+               "DELETE /patches/3/editor closes the window");
+
+        const closedPage = renderApp (store, "/instrument?slot=3");
+
+        check (closedPage.includes ('data-testid="source-editor" data-kind="plugin" data-open="false"'),
+               "the page reflects the closed editor");
 
         check (await store.changeInstrumentSource (3, sourceRequestForInitTone (880)),
                "switching back to the built-in tone succeeds");
@@ -3617,6 +3689,7 @@ function instrumentPluginEditorTest (): void
         colorIndex: 4,
         warmState: "warm",
         warm: true,
+        editorOpen: false,
         latencySamples: 96,
         latencyMs: 2,
     };
@@ -3633,8 +3706,8 @@ function instrumentPluginEditorTest (): void
     check (html.includes ('data-testid="instrument-source" data-kind="plugin"'),
            "a plugin patch renders its source");
     check (html.includes ('data-testid="source-open-editor"'), "a plugin patch offers its editor");
-    check (html.includes ("Instrument sources are hosted headlessly in this build"),
-           "the plugin editor explains that no native window opens");
+    check (html.includes ("native window on the engine desktop"),
+           "the plugin editor offers the native window");
     check (html.includes ('data-testid="fx-loading"') && html.includes ('aria-busy="true"'),
            "a chain that has not loaded shows its loading state");
     check (html.includes ('data-testid="pan-value">L 50<'), "a left balance reads L 50");

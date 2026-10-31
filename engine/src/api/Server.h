@@ -56,6 +56,9 @@ struct SlotSnapshot
     int latencySamples = 0;
     /** The same total at the sample rate it was measured at. */
     double latencyMs = 0.0;
+
+    /** True while this slot's native editor is open (not serialised in `slots`). */
+    bool editorOpen = false;
 };
 
 /** Instrument descriptor published with every patch in the family tree.
@@ -129,6 +132,9 @@ struct PatchState
     /** Live warm-pool state: cold, warming, warm, active or fading. */
     std::string warmState = "cold";
     bool warm = false;
+
+    /** True while the patch's native plugin editor window is on screen. */
+    bool editorOpen = false;
 
     /** Instrument + FX latency of this patch's chain. */
     int latencySamples = 0;
@@ -279,6 +285,7 @@ struct SlotRuntimeState
     std::string state = "idle";
     std::string warmState = "cold";
     bool warm = false;
+    bool editorOpen = false;
 };
 
 /** Supplies one slot's live state. */
@@ -714,6 +721,26 @@ public:
                            const PatchSourceRequest& source,
                            std::string& error);
 
+    //==========================================================================
+    // Native plugin editor (T129)
+
+    /** Opens or closes the patch's native editor window.
+
+        The handler resolves the live hosted plugin, marshals to the message
+        thread and returns a readable error when the window cannot be created.
+        It runs on an HTTP thread, never the audio thread. Empty means no audio
+        session is attached.
+    */
+    using PatchEditorHandler = std::function<bool (int slot, std::string& error)>;
+    void setPatchEditorHandlers (PatchEditorHandler openEditor,
+                                 PatchEditorHandler closeEditor);
+
+    /** Applies `POST /patches/{slot}/editor`. */
+    bool openPatchEditor (int slot, std::string& error);
+
+    /** Applies `DELETE /patches/{slot}/editor`. Idempotent. */
+    bool closePatchEditor (int slot, std::string& error);
+
     /** Applies a patch's effective linear gain to the audio graph.
 
         `gain` already includes the mute/solo decision, so the handler only has
@@ -780,6 +807,7 @@ private:
     std::vector<double> slotLatencyMs;
     std::vector<PatchInstrumentState> slotInstruments;
     std::vector<PatchMixState> slotMixes;
+    std::vector<bool> slotEditorOpen;
     std::vector<FamilyState> families;
     SettingsState settings;
     TransportState transport;
@@ -789,6 +817,8 @@ private:
     ChangeHandler changeHandler;
     PatchHandler patchHandler;
     PatchSourceHandler patchSourceHandler;
+    PatchEditorHandler patchEditorHandler;
+    PatchEditorHandler patchEditorCloseHandler;
     FxChainProvider fxProvider;
     FxCommandHandler fxHandler;
     TransportProvider transportProvider;
@@ -814,6 +844,8 @@ private:
     - `POST /transport`
     - `PATCH /patches/{slot}`
     - `POST /patches/{slot}/source`
+    - `POST /patches/{slot}/editor`
+    - `DELETE /patches/{slot}/editor`
     - `GET  /patches/{slot}/fx`
     - `POST /patches/{slot}/fx`
     - `PUT  /patches/{slot}/fx`
