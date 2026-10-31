@@ -30,11 +30,13 @@ from pathlib import Path
 
 # ---------------------------------------------------------------- config
 
-# The ledger, roadmap and blockers live in the repo, not next to whatever copy
-# of this script happens to be executing. Deriving PLAN_DIR from __file__ is how
-# a run started from a copy drifted for 23 tasks: sessions and commits landed in
-# the repo while STATE.json was written to the copy's folder.
-REPO = Path(os.environ.get("IH_REPO", "/home/mkocevar/Projects/instrument-hub")).resolve()
+# The ledger, roadmap and blockers live in the repo that owns this script.
+# A run once drifted for 23 tasks because REPO was hardcoded while PLAN_DIR was
+# derived from __file__: sessions and commits landed in the repo, STATE.json in
+# the copy's folder. Keep both derived from the same place. IH_REPO still wins
+# for the rare case of driving a checkout from elsewhere.
+_SCRIPT_REPO = Path(__file__).resolve().parent.parent
+REPO = Path(os.environ.get("IH_REPO", _SCRIPT_REPO)).resolve()
 PLAN_DIR = Path(os.environ.get("IH_PLAN", REPO / "plan")).resolve()
 MODEL = os.environ.get("IH_MODEL", "deepseek/deepseek-flash")
 AGENT = os.environ.get("IH_AGENT", "build")
