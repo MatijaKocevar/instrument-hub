@@ -39,7 +39,7 @@ from pathlib import Path
 _SCRIPT_REPO = Path(__file__).resolve().parent.parent
 REPO = Path(os.environ.get("IH_REPO", _SCRIPT_REPO)).resolve()
 PLAN_DIR = Path(os.environ.get("IH_PLAN", REPO / "plan")).resolve()
-MODEL = os.environ.get("IH_MODEL", "deepseek/deepseek-flash")
+MODEL = os.environ.get("IH_MODEL", "deepseek/deepseek-v4-pro#max")
 AGENT = os.environ.get("IH_AGENT", "build")
 SERVE_URL = os.environ.get("IH_SERVE_URL", "")  # e.g. http://localhost:4096
 
