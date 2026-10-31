@@ -5,6 +5,9 @@
 #   scripts/build.sh [preset]   # preset defaults to "default" (RelWithDebInfo)
 #
 # Presets live in CMakePresets.json: default, debug, release.
+#
+# Every non-Debug build embeds the React UI from ui/dist, so the UI is built
+# first. Debug builds load the Vite dev server instead (scripts/dev.sh).
 
 set -euo pipefail
 
@@ -18,7 +21,45 @@ if [[ ! -f third_party/JUCE/CMakeLists.txt ]]; then
     exit 1
 fi
 
-cmake --preset "$PRESET"
-cmake --build --preset "$PRESET" --parallel
+build_ui() {
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "error: npm is required to build the React UI" >&2
+        exit 1
+    fi
 
-echo "built: $ROOT/build/engine/instrument-hub"
+    if [[ ! -d ui/node_modules ]]; then
+        if [[ -f ui/package-lock.json ]]; then
+            npm --prefix ui ci
+        else
+            npm --prefix ui install
+        fi
+    fi
+
+    npm --prefix ui run build
+}
+
+case "$PRESET" in
+    debug)
+        BUILD_DIR="$ROOT/build-debug"
+        ;;
+    release)
+        BUILD_DIR="$ROOT/build-release"
+        build_ui
+        ;;
+    default|relwithdebinfo)
+        BUILD_DIR="$ROOT/build"
+        BUILD_PRESET="default"
+        build_ui
+        ;;
+    *)
+        echo "error: unknown preset '$PRESET' (expected default, debug or release)" >&2
+        exit 1
+        ;;
+esac
+
+BUILD_PRESET="${BUILD_PRESET:-$PRESET}"
+
+cmake --preset "$BUILD_PRESET"
+cmake --build --preset "$BUILD_PRESET" --parallel
+
+echo "built: $BUILD_DIR/engine/instrument-hub"
