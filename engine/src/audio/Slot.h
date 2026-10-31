@@ -1,5 +1,7 @@
 #pragma once
 
+#include "FxChain.h"
+
 #include <juce_audio_basics/juce_audio_basics.h>
 
 #include <atomic>
@@ -55,15 +57,21 @@ const char* toString (SlotState state) noexcept;
 /**
     One fixed slot in the audio graph.
 
-    A slot owns its render buffer (allocated in `prepare()` at the maximum block
-    size) and a 2-5 ms gain ramp that hides activation and deactivation. Wiring
-    never changes: the engine calls `process()` on every slot whose state is not
+    A slot is the path instrument -> ordered `FxChain` -> bus. It owns its
+    render buffer (allocated in `prepare()` at the maximum block size) and a
+    2-5 ms gain ramp that hides activation and deactivation. Wiring never
+    changes: the engine calls `process()` on every slot whose state is not
     `idle`, then sums the results on its bus.
+
+    The FX chain holds non-owning `juce::AudioProcessor*` entries, so built-in
+    and hosted effects use the same path. An empty chain is a bit-exact
+    passthrough.
 
     `activate()`, `deactivate()`, `setGain()`, `setSource()`, `prepare()` and
     `reset()` are message-thread calls and must not race with `process()`; stop
-    the stream (or call them between blocks) before using them. `process()` and
-    the state getters are safe from the audio thread.
+    the stream (or call them between blocks) before using them. Editing the
+    chain through `getFxChain()` follows the same rule. `process()` and the
+    state getters are safe from the audio thread.
 */
 class Slot
 {
@@ -94,6 +102,14 @@ public:
     */
     void setSource (SlotSource* newSource) noexcept;
     SlotSource* getSource() const noexcept { return source; }
+
+    /** The effect chain between the source and the bus.
+
+        Non-owning entries: the caller keeps each `juce::AudioProcessor` alive
+        while it is in the chain. Edit it only with the stream stopped.
+    */
+    FxChain& getFxChain() noexcept { return fxChain; }
+    const FxChain& getFxChain() const noexcept { return fxChain; }
 
     //==============================================================================
     // Control (off the audio thread, lock-free)
@@ -133,7 +149,7 @@ public:
 
     int getIndex() const noexcept { return index; }
 
-    /** Latency reported by the current source, in samples. */
+    /** Latency reported by the current source plus the FX chain, in samples. */
     int latencySamples() const noexcept;
 
 private:
@@ -145,6 +161,7 @@ private:
     juce::AudioBuffer<float> storage;
     juce::AudioBuffer<float> view;
     SlotSource* source = nullptr;
+    FxChain fxChain;
 
     double sampleRate = 0.0;
     int maximumBlockSize = 0;

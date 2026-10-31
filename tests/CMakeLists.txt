@@ -110,6 +110,7 @@ target_sources(ihub-audio-engine-test
         audio_engine/AudioEngineTest.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
@@ -123,6 +124,7 @@ target_include_directories(ihub-audio-engine-test
 target_link_libraries(ihub-audio-engine-test
     PRIVATE
         juce::juce_audio_devices
+        juce::juce_audio_processors_headless
         juce::juce_events
     PUBLIC
         juce::juce_recommended_config_flags
@@ -179,6 +181,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
     )
 
@@ -191,6 +194,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             ALSA::ALSA
             juce::juce_audio_basics
+            juce::juce_audio_processors_headless
             juce::juce_events
         PUBLIC
             juce::juce_recommended_config_flags
@@ -320,6 +324,7 @@ if(IHUB_ENABLE_RT_GUARD)
             rt_guard/RtGuardTest.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -336,6 +341,7 @@ if(IHUB_ENABLE_RT_GUARD)
     target_link_libraries(ihub-rt-guard-test
         PRIVATE
             juce::juce_audio_devices
+            juce::juce_audio_processors_headless
             juce::juce_core
             juce::juce_events
         PUBLIC
@@ -386,3 +392,60 @@ if(IHUB_ENABLE_RT_GUARD)
 else()
     message(STATUS "ihub-rt-guard-test: disabled (IHUB_ENABLE_RT_GUARD=OFF)")
 endif()
+
+# --- Slot FX chain (T031) ---------------------------------------------------
+#
+# 1. An empty chain is a bit-exact passthrough, both directly through FxChain
+#    and through the full Slot path (instrument -> chain -> output).
+# 2. Two TestPlugin instances loaded as effects apply in list order:
+#    gain-then-sine produces a different result from sine-then-gain.
+# 3. Slot::latencySamples() sums the source latency and the chain latency.
+
+juce_add_console_app(ihub-fx-chain-test
+    PRODUCT_NAME "ihub-fx-chain-test"
+)
+
+target_sources(ihub-fx-chain-test
+    PRIVATE
+        fx_chain/FxChainTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+)
+
+target_include_directories(ihub-fx-chain-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-fx-chain-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+)
+
+target_link_libraries(ihub-fx-chain-test
+    PRIVATE
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_dependencies(ihub-fx-chain-test TestPlugin_VST3)
+
+set_target_properties(ihub-fx-chain-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-fx-chain
+    COMMAND ihub-fx-chain-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
