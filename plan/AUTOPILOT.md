@@ -30,7 +30,7 @@ For each task the driver:
 
 1. Extracts that task's block from `ROADMAP.md` into `.autopilot/<TASK>.md`
 2. Deletes any stale `.autopilot/<TASK>.result`
-3. Runs `opencode run --auto` with that brief
+3. Runs `opencode run --standalone --auto` with that brief
 4. Reads `.autopilot/<TASK>.result`
 
 Your job inside a session:
@@ -64,6 +64,22 @@ REASON: how far you got and what remains
 
 Writing `done` when the acceptance check does not pass is the worst
 possible outcome. Prefer `partial`.
+
+### Retries
+
+A session that dies before writing a result file (`rc != 0`, a transport
+error, a timeout) has not judged the task. The driver backs off (1m, then
+5m) and retries it, up to three attempts, then blocks it with a
+`BLOCKERS.md` entry carrying the last error line.
+
+Each retry's brief carries an `## Attempt history` section: the previous
+session's edits are still in the working tree, so the session verifies and
+finishes that work instead of starting the task over. Two sessions
+rewriting the same files is how a task ends up looking like it runs forever.
+
+Sessions run with `--standalone`. The shared background service is not
+involved, so a dead CLI cannot leave a session editing the repo while the
+driver retries the same task.
 
 ---
 

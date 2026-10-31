@@ -154,6 +154,17 @@ target_link_libraries(instrument-hub
         juce::juce_recommended_warning_flags
 )
 
+# --- Native snapshot capture (T054) -----------------------------------------
+#
+# On Linux the web view is rendered by a separate WebKit process and composited
+# by X, so `--snapshot` reads the real window back with XGetImage. That needs
+# the Xlib symbols linked explicitly; JUCE does not export them.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(X11 REQUIRED)
+    target_link_libraries(instrument-hub PRIVATE X11::X11)
+endif()
+
 # --- Realtime safety harness (T014) -----------------------------------------
 #
 # See the top-level CMakeLists.txt for the option. The linker wrap is what lets

@@ -77,10 +77,12 @@ the machine timezone does not matter. `--max-sessions N` bounds a run,
 
 ## Stopping cleanly
 
-`opencode run` executes the session inside the shared background service.
-Killing the driver or the CLI does **not** stop it: the session keeps
-editing files server-side, and the driver treats the dead CLI as `rc=1` and
-retries the same task.
+`opencode run` starts each autopilot session with `--standalone`, so the
+session runs in a private server that lives and dies with that process.
+Killing the driver, or the session timing out, therefore stops the work
+too. Sessions started by hand without `--standalone` use the shared background
+service instead, where killing the CLI does **not** stop them. Interrupt
+those through the API:
 
 ```bash
 pkill -TERM -f "autopilot.py"

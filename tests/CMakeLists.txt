@@ -1018,3 +1018,55 @@ add_test(
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-audio-settings PROPERTIES DISABLED TRUE)
 endif()
+
+# --- UI snapshot (T054) -----------------------------------------------------
+#
+# Launches the real application with `--snapshot <path>` and validates the
+# produced PNG: 1200x800, decodable and non-blank. In non-Debug builds it also
+# checks that the web view served the embedded assets instead of the Vite dev
+# server. Debug builds need `pnpm dev` running, so their ctest entry is
+# disabled; snapshot acceptance is a Release check.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-ui-snapshot-test
+        PRODUCT_NAME "ihub-ui-snapshot-test"
+    )
+
+    target_sources(ihub-ui-snapshot-test
+        PRIVATE
+            ui/screenshot.cpp
+    )
+
+    target_link_libraries(ihub-ui-snapshot-test
+        PRIVATE
+            juce::juce_graphics
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-ui-snapshot-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_dependencies(ihub-ui-snapshot-test instrument-hub)
+
+    add_test(
+        NAME ihub-ui-snapshot
+        COMMAND ihub-ui-snapshot-test
+                $<TARGET_FILE:instrument-hub>
+                "${CMAKE_CURRENT_BINARY_DIR}/ui-snapshot.png"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set_tests_properties(ihub-ui-snapshot PROPERTIES DISABLED TRUE)
+    endif()
+else()
+    message(STATUS "ihub-ui-snapshot-test: X11/WebKit snapshot is Linux-only; skipping")
+endif()

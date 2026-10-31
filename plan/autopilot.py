@@ -22,6 +22,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import time
 import sys
@@ -48,14 +49,26 @@ STATE = PLAN_DIR / "STATE.json"
 ROADMAP = PLAN_DIR / "ROADMAP.md"
 BLOCKERS = PLAN_DIR / "BLOCKERS.md"
 
+# The child session currently running, so a Ctrl-C or SIGTERM takes its whole
+# process group down instead of leaving it editing the repo.
+ACTIVE: subprocess.Popen | None = None
+
 PEAK_BLOCKS = [(1, 4), (6, 10)]  # UTC hours, Monday-Friday
-HOLIDAYS: set[str] = set()       # 'YYYY-MM-DD', add Chinese holidays here
+HOLIDAYS: set[str] = set()  # 'YYYY-MM-DD', add Chinese holidays here
 PEAK_MARGIN = timedelta(minutes=20)
-SESSION_TIMEOUT = 3 * 60 * 60    # seconds
+SESSION_TIMEOUT = 3 * 60 * 60  # seconds
+
+MAX_ATTEMPTS = 3
+# Seconds to wait before attempt 2, 3, 4. A session that dies on a transport
+# error has not judged the task, so retrying it immediately just re-runs the
+# same work against an endpoint that is still flapping.
+RETRY_BACKOFF = [60, 300, 900]
 
 # Inherited from the parent agent; must not leak into a nested run.
 NESTED_ENV_BLOCK = {
-    "OPENCODE_SESSION_ID", "OPENCODE", "OPENCODE_TERMINAL",
+    "OPENCODE_SESSION_ID",
+    "OPENCODE",
+    "OPENCODE_TERMINAL",
     "OPENCODE_DISABLE_CHANNEL_DB",
 }
 
@@ -133,6 +146,50 @@ def human_delta(seconds: float) -> str:
     return f"{m // 60}h{m % 60:02d}m" if m >= 60 else f"{m}m"
 
 
+ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
+
+
+def plain_lines(text: str) -> list[str]:
+    """Session output without colour codes, blank lines already dropped."""
+    out = (ANSI_RE.sub("", line).rstrip() for line in (text or "").splitlines())
+    return [line for line in out if line.strip()]
+
+
+def tail_lines(path: Path, n: int, width: int = 180) -> list[str]:
+    if not path.exists():
+        return []
+    try:
+        return [
+            line[:width] for line in plain_lines(path.read_text(errors="replace"))[-n:]
+        ]
+    except OSError:
+        return []
+
+
+def last_error(output: str) -> str:
+    """The line a human would point at when a session died: the last one
+    that looks like an error, else the last line it managed to print."""
+    lines = plain_lines(output)
+    for line in reversed(lines):
+        if re.search(
+            r"(?i)\b(error|failed|failure|exception|traceback|econn\w*|timeout|aborted)\b",
+            line,
+        ):
+            return line[:180]
+    return lines[-1][:180] if lines else "no output"
+
+
+def stop_active_session(signum: int, _frame) -> None:
+    """SIGINT/SIGTERM must not leave a session working on the repo."""
+    proc = ACTIVE
+    if proc is not None and proc.poll() is None:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            pass
+    raise SystemExit(128 + signum)
+
+
 # ---------------------------------------------------------------- roadmap
 
 
@@ -151,9 +208,11 @@ def parse_roadmap() -> list[dict]:
             return fm.group(1).strip() if fm else ""
 
         deps = field("depends")
-        task["deps"] = [] if deps in ("", "none") else [
-            d.strip() for d in deps.split(",") if d.strip()
-        ]
+        task["deps"] = (
+            []
+            if deps in ("", "none")
+            else [d.strip() for d in deps.split(",") if d.strip()]
+        )
         task["accept"] = field("accept")
         tasks.append(task)
     return tasks
@@ -211,9 +270,10 @@ def propagate_blocks(tasks: list[dict], state: dict) -> int:
 # ---------------------------------------------------------------- execution
 
 
-def write_brief(task: dict) -> Path:
-    brief = WORK / f"{task['id']}.md"
-    brief.write_text(
+def write_brief(task: dict, entry: dict) -> Path:
+    tid = task["id"]
+    brief = WORK / f"{tid}.md"
+    text = (
         task["raw"]
         + f"\n\n---\n\nRepo: `{REPO}`\n"
         + f"Plan folder: `{PLAN_DIR}`\n\n"
@@ -224,40 +284,77 @@ def write_brief(task: dict) -> Path:
         + f"- `{PLAN_DIR / 'AUTOPILOT.md'}` — the session and blocker protocol\n\n"
         + "Do only this task. Run its acceptance check before declaring done.\n"
     )
+    prior = int(entry.get("attempts", 0))
+    if prior:
+        # A retry is not a fresh start: the previous session's edits are still
+        # in the tree. Say so, or the next session redoes the whole task and
+        # the two attempts fight over the same files.
+        text += (
+            f"\n## Attempt history\n\n"
+            f"This is attempt {prior + 1} of {MAX_ATTEMPTS}; attempt {prior} did not finish.\n"
+            f"Reported: {entry.get('note') or 'the session ended without a result file'}\n\n"
+            "Nothing was reverted: the previous session's edits (and untracked files)\n"
+            "are still in the working tree. Begin with `git status` and `git diff`,\n"
+            "then verify and finish that work. Only start over if the tree is wrong.\n"
+        )
+        previous = tail_lines(WORK / f"{tid}.log", 12)
+        if previous:
+            text += (
+                "\nLast lines of the previous session, for context only:\n\n```\n"
+                + "\n".join(previous)
+                + "\n```\n"
+            )
+    brief.write_text(text)
     return brief
 
 
-def append_blocker_stub(task: dict) -> None:
+def append_blocker_stub(task: dict, reason: str = "") -> None:
     tid = task["id"]
     text = BLOCKERS.read_text()
     if f"task: {tid}" in text:
         return
     n = len(re.findall(r"^## B\d{3}", text, flags=re.M)) + 1
+    what = reason or "task reported blocked without an explanation"
     with BLOCKERS.open("a") as fh:
         fh.write(
             f"\n## B{n:03d} · Autopilot blocked on {tid}\n"
             f"- task: {tid}\n- severity: hard\n- status: open\n"
-            f"- what: task reported blocked without an explanation\n"
-            f"- why: see the session log in `.autopilot/autopilot.log`\n"
+            f"- what: {what}\n"
+            f"- why: see the session log in `.autopilot/{tid}.log`\n"
             f"- human must: read the log for {tid}\n- workaround: none recorded\n"
         )
     log(f"  appended blocker stub B{n:03d} for {tid}")
 
 
-def run_task(task: dict, state: dict, attach: str) -> str:
+def run_task(task: dict, entry: dict, attach: str) -> tuple[str, str]:
+    """Run one session and say what happened: (outcome, detail).
+
+    `done`/`blocked`/`partial` come from the result file the session wrote.
+    `crashed` means the process died before writing one, which is a transport
+    or tooling failure, not a verdict on the task.
+    """
     tid = task["id"]
-    brief = write_brief(task)
+    attempt = int(entry.get("attempts", 0)) + 1
+    brief = write_brief(task, entry)
     result = WORK / f"{tid}.result"
     result.unlink(missing_ok=True)
 
     cmd = [
-        "opencode", "run", "--auto",
-        "--agent", AGENT,
-        "--title", f"{tid} {task['title']}"[:80],
-        "-m", MODEL,
+        "opencode",
+        "run",
+        "--auto",
+        "--agent",
+        AGENT,
+        "--title",
+        f"{tid} {task['title']}"[:80],
+        "-m",
+        MODEL,
     ]
     if attach:
         cmd += ["--server", attach]
+    # No --standalone: sessions run on the shared background service, so the
+    # TUI lists them and animates their status. Trade-off: killing this CLI
+    # does not stop the session server-side.
     cmd += ["--file", str(brief), RESULT_PROMPT.format(result=result)]
 
     # Never inherit the parent session's identity into a nested run.
@@ -266,31 +363,65 @@ def run_task(task: dict, state: dict, attach: str) -> str:
     # Without this the session is filed under the plan folder.
     env["PWD"] = str(REPO)
 
-    log(f"START {tid} · {task['title']}")
+    log(f"START {tid} · {task['title']} · attempt {attempt}/{MAX_ATTEMPTS}")
     started = datetime.now(timezone.utc)
+    output = ""
+    rc = 0
+    timed_out = False
+    proc = None
+    global ACTIVE
     try:
-        proc = subprocess.run(
-            cmd, cwd=str(REPO), env=env, timeout=SESSION_TIMEOUT,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        # Own process group: a timeout must take the MCP children and browsers
+        # with it. An orphaned session would keep editing the repo while the
+        # retry works on the same files.
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(REPO),
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            start_new_session=True,
         )
-        WORK.mkdir(parents=True, exist_ok=True)
-        (WORK / f"{tid}.log").write_text(proc.stdout or "")
-        rc = proc.returncode
-    except subprocess.TimeoutExpired:
-        log(f"TIMEOUT {tid} after {SESSION_TIMEOUT}s")
-        rc = -1
+        ACTIVE = proc
+        try:
+            output, _ = proc.communicate(timeout=SESSION_TIMEOUT)
+            rc = proc.returncode
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            output, _ = proc.communicate()
+            log(f"TIMEOUT {tid} after {SESSION_TIMEOUT}s (process group killed)")
+            rc = -1
+            timed_out = True
     except FileNotFoundError:
         log("FATAL: `opencode` not found on PATH")
         sys.exit(2)
+    finally:
+        ACTIVE = None
+
+    WORK.mkdir(parents=True, exist_ok=True)
+    (WORK / f"{tid}.log").write_text(output or "")
 
     elapsed = int((datetime.now(timezone.utc) - started).total_seconds())
     log(f"END   {tid} rc={rc} in {human_delta(elapsed)}")
 
-    if not result.exists():
-        return "partial"
-    body = result.read_text()
+    body = result.read_text().strip() if result.exists() else ""
     m = re.search(r"^\s*STATUS:\s*(done|blocked|partial)\s*$", body, flags=re.M | re.I)
-    return m.group(1).lower() if m else "partial"
+    if m:
+        return m.group(1).lower(), ""
+
+    if timed_out:
+        return "crashed", f"timeout after {SESSION_TIMEOUT}s (process group killed)"
+
+    detail = last_error(output)
+    if rc != 0:
+        log(f"CRASH {tid} rc={rc} before a result file was written: {detail}")
+        return "crashed", detail
+    log(f"PARTIAL {tid} exited cleanly but wrote no usable result: {detail}")
+    return "partial", "session exited without a result file"
 
 
 def git_commit(task: dict) -> None:
@@ -330,9 +461,15 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--max-sessions", type=int, default=0)
     ap.add_argument("--ignore-schedule", action="store_true")
-    ap.add_argument("--reset-failed", action="store_true",
-                    help="set every non-done task back to todo")
+    ap.add_argument(
+        "--reset-failed",
+        action="store_true",
+        help="set every non-done task back to todo",
+    )
     args = ap.parse_args()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, stop_active_session)
 
     WORK.mkdir(parents=True, exist_ok=True)
     tasks = parse_roadmap()
@@ -343,6 +480,7 @@ def main() -> int:
             if status(state, t["id"]) != "done":
                 state["tasks"].setdefault(t["id"], {})["status"] = "todo"
                 state["tasks"][t["id"]]["attempts"] = 0
+                state["tasks"][t["id"]].pop("note", None)
         save_state(state)
 
     if state.get("_roadmap_count") != len(tasks):
@@ -384,30 +522,42 @@ def main() -> int:
             continue
 
         wait_for_offpeak(args.ignore_schedule)
-        outcome = run_task(task, state, SERVE_URL)
+        entry = state["tasks"].setdefault(task["id"], {"status": "todo", "attempts": 0})
+        outcome, detail = run_task(task, entry, SERVE_URL)
         sessions += 1
 
-        entry = state["tasks"].setdefault(task["id"], {"status": "todo", "attempts": 0})
+        entry["attempts"] = int(entry.get("attempts", 0)) + 1
         if outcome == "done":
             entry["status"] = "done"
-            entry["attempts"] = entry.get("attempts", 0) + 1
+            entry.pop("note", None)
             # Persist before committing: the checkpoint must contain the status
             # it is checking in, or the ledger lags one task forever.
             save_state(state)
             git_commit(task)
         elif outcome == "blocked":
             entry["status"] = "blocked"
-            entry["attempts"] = entry.get("attempts", 0) + 1
-            append_blocker_stub(task)
+            entry["note"] = detail or "session reported blocked"
+            append_blocker_stub(task, entry["note"])
             save_state(state)
             git_commit(task)
         else:
-            entry["status"] = "todo"
-            entry["attempts"] = entry.get("attempts", 0) + 1
-            if entry["attempts"] >= 3:
+            entry["note"] = f"{outcome}: {detail}" if detail else outcome
+            if entry["attempts"] >= MAX_ATTEMPTS:
                 entry["status"] = "blocked"
-                log(f"  {task['id']} failed 3 times → blocked")
-                append_blocker_stub(task)
+                log(
+                    f"  {task['id']} failed {entry['attempts']} times → blocked ({entry['note']})"
+                )
+                append_blocker_stub(task, entry["note"])
+                save_state(state)
+                git_commit(task)
+            else:
+                entry["status"] = "todo"
+                save_state(state)
+                delay = RETRY_BACKOFF[
+                    min(entry["attempts"] - 1, len(RETRY_BACKOFF) - 1)
+                ]
+                log(f"RETRY {task['id']} in {human_delta(delay)} · {entry['note']}")
+                time.sleep(delay)
         save_state(state)
 
     done = sum(1 for t in tasks if status(state, t["id"]) == "done")
