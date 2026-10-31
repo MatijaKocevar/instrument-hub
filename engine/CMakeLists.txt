@@ -95,6 +95,7 @@ target_sources(instrument-hub
         src/audio/SlotSwitcher.cpp
         src/audio/TimingMonitor.cpp
         src/audio/WarmPool.cpp
+        src/controller/LaunchkeyProtocol.cpp
         src/instruments/Instrument.cpp
         src/instruments/AudioInputInstrument.cpp
         src/plugins/PluginInstrument.cpp
