@@ -1121,6 +1121,24 @@ private:
                     slotConfig.family = binding->family;
                     slotConfig.familyName = binding->family;
 
+                    // Persisted mix/colour/descriptor (T119). The audio source
+                    // stays an init tone until a real kit or plugin is loaded,
+                    // but the API publishes the set's full patch tree.
+                    slotConfig.gain = instrument->volumeDb <= -60.0f
+                                          ? 0.0f
+                                          : std::pow (10.0f, instrument->volumeDb / 20.0f);
+                    slotConfig.pan = instrument->pan;
+                    slotConfig.muted = instrument->muted;
+                    slotConfig.solo = instrument->solo;
+                    slotConfig.colorIndex = instrument->resolvedColorIndex;
+                    slotConfig.instrumentKind = instrument->kind;
+                    slotConfig.pluginFormat = instrument->pluginFormat;
+                    slotConfig.pluginId = instrument->pluginId;
+                    slotConfig.pluginName = instrument->pluginName;
+                    slotConfig.pluginManufacturer = instrument->pluginManufacturer;
+                    slotConfig.pluginVersion = instrument->pluginVersion;
+                    slotConfig.samplePath = instrument->samplePath;
+
                     if (const auto family = document.families.find (binding->family);
                         family != document.families.end())
                     {

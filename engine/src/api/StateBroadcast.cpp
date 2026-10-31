@@ -24,6 +24,7 @@ const char* eventKindName (StateEventKind kind) noexcept
         case StateEventKind::settings:   return "settings";
         case StateEventKind::transport:  return "transport";
         case StateEventKind::slot:       return "slot";
+        case StateEventKind::patch:      return "patch";
     }
 
     return "state";
@@ -44,6 +45,9 @@ StateEventKind kindForChange (const char* kind) noexcept
 
     if (name == "transport")
         return StateEventKind::transport;
+
+    if (name == "patch")
+        return StateEventKind::patch;
 
     return StateEventKind::slot;
 }

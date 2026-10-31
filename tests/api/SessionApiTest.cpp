@@ -24,6 +24,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -56,6 +57,66 @@ juce::var property (const juce::var& object, const char* name)
         return {};
 
     return object.getDynamicObject()->getProperty (name);
+}
+
+/** Finds the patch with `slot` in a `/state` document's family tree. */
+juce::var patchForSlot (const juce::var& state, int slot)
+{
+    const auto families = property (state, "families");
+
+    if (const auto* familyArray = families.getArray())
+    {
+        for (const auto& family : *familyArray)
+        {
+            const auto patches = property (family, "patches");
+
+            if (const auto* patchArray = patches.getArray())
+            {
+                for (const auto& patch : *patchArray)
+                {
+                    if (static_cast<int> (property (patch, "slot")) == slot)
+                        return patch;
+                }
+            }
+        }
+    }
+
+    return {};
+}
+
+/** Reads `/events` frames until `matches` accepts one or the timeout expires. */
+bool readEventUntil (httplib::ws::WebSocketClient& websocket,
+                     const std::function<bool (const juce::var&)>& matches,
+                     int timeoutMs,
+                     juce::var& result)
+{
+    const auto deadline = std::chrono::steady_clock::now()
+                          + std::chrono::milliseconds (timeoutMs);
+    std::string message;
+
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        const auto read = websocket.read (message);
+
+        if (read == httplib::ws::ReadResult::Fail)
+            return false;
+
+        if (read != httplib::ws::ReadResult::Text)
+            continue;
+
+        auto frame = parseJson (message);
+
+        if (! frame.isObject())
+            continue;
+
+        if (matches (frame))
+        {
+            result = frame;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void renderBlocks (ihub::Session& session, int blocks)
@@ -243,6 +304,123 @@ int main()
     {
         check (false, "GET /state returns 200 while slot 1 is armed");
     }
+
+    // --- PATCH /patches/{slot}: mix, colour and /events (T120) -------------
+    auto patchResponse = client.Get ("/state");
+
+    if (patchResponse && patchResponse->status == 200)
+    {
+        const auto body = parseJson (patchResponse->body);
+        const auto patch = patchForSlot (body, 1);
+
+        check (patch.isObject(), "GET /state publishes slot 1 in the patch tree");
+        check (property (patch, "instrument").isObject(),
+               "the patch tree carries the instrument descriptor");
+        check (property (patch, "warmState").toString() == "active",
+               "the patch tree carries the live warm state");
+        check (static_cast<int> (property (patch, "latencySamples")) >= 0
+                   && property (patch, "latencyMs").isDouble(),
+               "the patch tree carries chain latency");
+        check (property (patch, "volumeDb").isDouble()
+                   && property (patch, "pan").isDouble()
+                   && property (patch, "mute").isBool()
+                   && property (patch, "solo").isBool()
+                   && property (patch, "colorIndex").isInt(),
+               "the patch tree carries volume, pan, mute, solo and colour");
+    }
+    else
+    {
+        check (false, "GET /state returns 200 for the patch tree");
+    }
+
+    httplib::ws::WebSocketClient events ("ws://127.0.0.1:"
+                                         + std::to_string (server.getPort())
+                                         + "/events");
+    events.set_connection_timeout (2, 0);
+    events.set_read_timeout (1, 0);
+    const auto eventsConnected = events.connect();
+    check (static_cast<bool> (eventsConnected), "WebSocket /events connects");
+
+    patchResponse = client.Patch ("/patches/1",
+                                  "{\"volumeDb\":-12,\"colorIndex\":5}",
+                                  "application/json");
+    check (patchResponse && patchResponse->status == 200,
+           "PATCH /patches/1 returns 200");
+
+    // -12 dB is 0.2512 linear; the fixed slot's audio gain is the proof that
+    // the mixer reached the graph, not just the JSON document.
+    const float expectedGain = static_cast<float> (std::pow (10.0, -12.0 / 20.0));
+    check (std::abs (session.getEngine().getSlot (1).getGain() - expectedGain) < 0.001f,
+           "PATCH volumeDb applies the linear gain to the audio slot");
+
+    if (patchResponse && patchResponse->status == 200)
+    {
+        const auto body = parseJson (patchResponse->body);
+        const auto patch = patchForSlot (body, 1);
+
+        check (std::abs (static_cast<double> (property (patch, "volumeDb")) + 12.0)
+                   < 1.0e-9,
+               "PATCH volumeDb is published in the patch tree");
+        check (static_cast<int> (property (patch, "colorIndex")) == 5,
+               "PATCH colorIndex is published in the patch tree");
+    }
+
+    if (eventsConnected)
+    {
+        juce::var event;
+
+        const bool sawPatch = readEventUntil (
+            events,
+            [] (const juce::var& frame)
+            {
+                return property (property (frame, "event"), "kind").toString() == "patch"
+                       && static_cast<int> (property (property (frame, "event"), "slot")) == 1;
+            },
+            2000, event);
+
+        check (sawPatch, "the /events WebSocket delivers the patch change");
+
+        if (sawPatch)
+        {
+            const auto patch = patchForSlot (property (event, "state"), 1);
+            check (std::abs (static_cast<double> (property (patch, "volumeDb")) + 12.0)
+                       < 1.0e-9,
+                   "the event frame carries the new patch volume");
+            check (static_cast<int> (property (patch, "colorIndex")) == 5,
+                   "the event frame carries the new patch colour");
+        }
+    }
+
+    // Mute is resolved against the slot gain, so the audio goes silent.
+    patchResponse = client.Patch ("/patches/1", "{\"mute\":true}",
+                                  "application/json");
+    check (patchResponse && patchResponse->status == 200,
+           "PATCH mute returns 200");
+    check (session.getEngine().getSlot (1).getGain() < 1.0e-6f,
+           "PATCH mute silences the audio slot");
+
+    patchResponse = client.Patch ("/patches/1",
+                                  "{\"mute\":false,\"volumeDb\":0,\"colorIndex\":0}",
+                                  "application/json");
+    check (patchResponse && patchResponse->status == 200,
+           "PATCH restores the patch mix");
+
+    patchResponse = client.Patch ("/patches/999", "{\"volumeDb\":-3}",
+                                  "application/json");
+    check (patchResponse && patchResponse->status == 404,
+           "PATCH rejects an out-of-range patch slot");
+
+    patchResponse = client.Patch ("/patches/1", "{\"colour\":3}",
+                                  "application/json");
+    check (patchResponse && patchResponse->status == 400,
+           "PATCH rejects an unknown patch field");
+
+    patchResponse = client.Patch ("/patches/1", "{\"colorIndex\":99}",
+                                  "application/json");
+    check (patchResponse && patchResponse->status == 400,
+           "PATCH rejects an out-of-range colour");
+
+    events.close();
 
     // --- /meters WebSocket reads the real engine peaks ---------------------
     httplib::ws::WebSocketClient websocket ("ws://127.0.0.1:"

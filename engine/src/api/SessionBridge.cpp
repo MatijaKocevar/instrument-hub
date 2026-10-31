@@ -3,6 +3,7 @@
 #include "Session.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 #include <utility>
 
@@ -19,6 +20,29 @@ TransportState toTransportState (const AudioEngine::Transport::Snapshot& snapsho
     result.ppq = snapshot.ppq;
     result.positionSamples = snapshot.positionSamples;
     return result;
+}
+
+double gainToDb (float gain) noexcept
+{
+    if (gain <= 0.0f)
+        return -60.0;
+
+    return juce::jlimit (-60.0, 12.0, 20.0 * std::log10 (static_cast<double> (gain)));
+}
+
+PatchInstrumentState toPatchInstrument (const ihub::SessionSlotConfig& slotConfig)
+{
+    PatchInstrumentState instrument;
+    instrument.id = slotConfig.patch;
+    instrument.name = slotConfig.name;
+    instrument.kind = slotConfig.instrumentKind;
+    instrument.pluginFormat = slotConfig.pluginFormat;
+    instrument.pluginId = slotConfig.pluginId;
+    instrument.pluginName = slotConfig.pluginName;
+    instrument.pluginManufacturer = slotConfig.pluginManufacturer;
+    instrument.pluginVersion = slotConfig.pluginVersion;
+    instrument.samplePath = slotConfig.samplePath;
+    return instrument;
 }
 } // namespace
 
@@ -43,6 +67,13 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
                                    slotConfig.familyName,
                                    slotConfig.patch,
                                    slotConfig.patchName);
+            state.setPatchInstrument (index, toPatchInstrument (slotConfig));
+            state.setPatchMix (index,
+                               gainToDb (slotConfig.gain),
+                               static_cast<double> (slotConfig.pan),
+                               slotConfig.muted,
+                               slotConfig.solo,
+                               slotConfig.colorIndex);
 
             if (! slotConfig.family.empty())
             {
@@ -79,6 +110,13 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
     }
 
     state.setFamilyTree (std::move (families));
+
+    // PATCH /patches/{slot} -> the fixed slot's atomic gain. The store has
+    // already resolved mute/solo, so this only publishes the effective gain.
+    state.setPatchHandler ([&session] (int slot, const PatchState&, float gain)
+    {
+        session.setSlotGain (slot, gain);
+    });
 
     // POST /arm -> SlotSwitcher::armSlot(): one lock-free atomic publish.
     state.setArmHandler ([&session] (int slot)

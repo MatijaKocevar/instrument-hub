@@ -47,6 +47,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/patches/{slot}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change one patch's mix or colour
+         * @description Accepts a partial object for the patch hosted by `slot`. The provided
+         *     fields are validated before anything is applied, so an invalid request
+         *     never half-updates the patch. The instrument descriptor and the live
+         *     warm/latency values are read-only here (they come from the set and the
+         *     warm pool).
+         *
+         *     `volumeDb`, `mute` and `solo` are resolved by the engine into the slot's
+         *     effective gain, so the change is audible on the next block. A mute or a
+         *     solo anywhere in the set updates every patch's effective gain. The
+         *     response is the complete state after the change, and the same change is
+         *     published as an `event.kind: "patch"` frame on `/events`.
+         */
+        patch: operations["updatePatch"];
+        trace?: never;
+    };
     "/settings": {
         parameters: {
             query?: never;
@@ -200,7 +230,9 @@ export interface paths {
          *     - a hardware pad is pressed or released (`event.kind: "pad"`),
          *     - `POST /arm` changes the armed slot (`"arm"`),
          *     - `POST /settings` or `POST /transport` succeeds,
-         *     - a slot name or measured latency changes (`"slot"`).
+         *     - a slot name or measured latency changes (`"slot"`),
+         *     - `PATCH /patches/{slot}` changes a patch's volume, pan, mute, solo or
+         *       colour (`"patch"`).
          *
          *     Frames are coalesced: a slow client skips sequence numbers instead of
          *     receiving a backlog. Each frame embeds the same document as
@@ -396,6 +428,69 @@ export interface components {
             /** @description Slot to arm. `null` or a negative value disarms. */
             slot?: number | null;
         };
+        PatchInstrument: {
+            /** @description Stable instrument id inside the set. */
+            id: string;
+            /** @description Display name. */
+            name: string;
+            /**
+             * @description Instrument source described by the patch.
+             * @enum {string}
+             */
+            kind: "init-tone" | "sampler" | "plugin" | "audio-input";
+            /** @description Plugin format for a plugin patch (`VST3`). */
+            pluginFormat?: string;
+            pluginId?: string;
+            pluginName?: string;
+            pluginManufacturer?: string;
+            pluginVersion?: string;
+            /** @description Kit document for a sampler patch. */
+            samplePath?: string;
+        };
+        Patch: {
+            /** @description Fixed audio-graph slot that hosts this patch. */
+            slot: number;
+            /** @description Patch id inside its family. */
+            id: string;
+            name: string;
+            /** @description Family id. */
+            family: string;
+            familyName: string;
+            instrument: components["schemas"]["PatchInstrument"];
+            /** @description Patch volume in dB (-60 is silence). */
+            volumeDb: number;
+            /** @description Stereo balance, -1 left .. +1 right. */
+            pan: number;
+            /** @description Muted patches are silent. */
+            mute: boolean;
+            /** @description When any patch is soloed, the others are silent. */
+            solo: boolean;
+            /** @description Resolved palette index (family default or patch override). */
+            colorIndex: number;
+            /**
+             * @description Warm-pool state of the patch.
+             * @enum {string}
+             */
+            warmState: "cold" | "warming" | "warm" | "active" | "fading";
+            /** @description True when the instrument instance is resident. */
+            warm: boolean;
+            /** @description Instrument + FX latency of this patch's chain, in samples. */
+            latencySamples: number;
+            /** @description The same chain latency in milliseconds. */
+            latencyMs: number;
+        };
+        Family: {
+            id: string;
+            name: string;
+            patches: components["schemas"]["Patch"][];
+        };
+        PatchUpdate: {
+            volumeDb?: number;
+            pan?: number;
+            mute?: boolean;
+            solo?: boolean;
+            colorIndex?: number;
+        };
         State: {
             /** @constant */
             schemaVersion: 1;
@@ -405,6 +500,8 @@ export interface components {
             /** @description Milliseconds since the API state was created. */
             uptimeMs: number;
             slots: components["schemas"]["Slot"][];
+            /** @description Family -> patch tree, one entry per patch. */
+            families: components["schemas"]["Family"][];
             settings: components["schemas"]["Settings"];
             transport: components["schemas"]["Transport"];
         };
@@ -606,6 +703,44 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    updatePatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchUpdate"];
+            };
+        };
+        responses: {
+            /** @description The state after the patch change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     getSettings: {
