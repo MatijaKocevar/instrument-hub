@@ -75,6 +75,11 @@ This removes all third-party dependency from CI. Optical plugins
 - A snapshot is valid only if it is non-blank and the expected widget count is
   found. "It rendered" is not a test; assert on pixels or on the DOM via the
   web view's JS bridge.
+- The React app has a headless snapshot test that needs no browser at all:
+  `cd ui && pnpm test:snapshot` renders the real tree with `react-dom/server`
+  against a fixture API, asserts the widget count and content, and writes the
+  markup to `tests/artifacts/`. Pass `--api=http://127.0.0.1:18080` to the
+  built harness to render live engine state from `instrument-hub --serve`.
 
 ---
 

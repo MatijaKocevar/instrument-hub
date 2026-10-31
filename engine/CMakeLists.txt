@@ -6,9 +6,10 @@
 # --- React UI ---------------------------------------------------------------
 #
 # `ui/dist` is a build artefact (gitignored). These custom commands make the
-# normal CMake build produce it, so a clean checkout only needs npm available:
-# package-lock.json drives `npm ci`, then Vite writes the three stable files the
-# embedding below expects.
+# normal CMake build produce it, so a clean checkout only needs Node.js: pnpm
+# (through the corepack shim when it is not installed globally) installs the
+# locked dependencies, then Vite writes the three stable files the embedding
+# below expects.
 
 get_filename_component(IHUB_UI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ui" ABSOLUTE)
 set(IHUB_UI_DIST "${IHUB_UI_DIR}/dist")
@@ -16,10 +17,18 @@ set(IHUB_UI_INDEX "${IHUB_UI_DIST}/index.html")
 set(IHUB_UI_JS "${IHUB_UI_DIST}/assets/app.js")
 set(IHUB_UI_CSS "${IHUB_UI_DIST}/assets/index.css")
 
-find_program(IHUB_NPM_EXECUTABLE npm DOC "npm executable used to build the React UI")
+find_program(IHUB_PNPM_EXECUTABLE pnpm DOC "pnpm executable used to build the React UI")
 
-if(NOT IHUB_NPM_EXECUTABLE)
-    message(FATAL_ERROR "npm was not found. Install Node.js/npm to build ui/.")
+if(IHUB_PNPM_EXECUTABLE)
+    set(IHUB_PNPM_COMMAND "${IHUB_PNPM_EXECUTABLE}")
+else()
+    find_program(IHUB_COREPACK_EXECUTABLE corepack DOC "corepack, used to run pnpm")
+
+    if(NOT IHUB_COREPACK_EXECUTABLE)
+        message(FATAL_ERROR "pnpm (or corepack) was not found. Install Node.js to build ui/.")
+    endif()
+
+    set(IHUB_PNPM_COMMAND "${IHUB_COREPACK_EXECUTABLE}" pnpm)
 endif()
 
 file(GLOB_RECURSE IHUB_UI_SOURCES CONFIGURE_DEPENDS "${IHUB_UI_DIR}/src/*")
@@ -27,28 +36,29 @@ file(GLOB_RECURSE IHUB_UI_SOURCES CONFIGURE_DEPENDS "${IHUB_UI_DIR}/src/*")
 set(IHUB_UI_BUILD_INPUTS
     "${IHUB_UI_DIR}/index.html"
     "${IHUB_UI_DIR}/package.json"
-    "${IHUB_UI_DIR}/package-lock.json"
+    "${IHUB_UI_DIR}/pnpm-lock.yaml"
     "${IHUB_UI_DIR}/tsconfig.json"
     "${IHUB_UI_DIR}/vite.config.ts"
     ${IHUB_UI_SOURCES}
 )
 
 set(IHUB_UI_NODE_MODULES "${IHUB_UI_DIR}/node_modules")
+set(IHUB_UI_INSTALL_STAMP "${IHUB_UI_NODE_MODULES}/.modules.yaml")
 
 add_custom_command(
-    OUTPUT "${IHUB_UI_NODE_MODULES}/.package-lock.json"
-    COMMAND "${IHUB_NPM_EXECUTABLE}" ci --no-audit --no-fund
+    OUTPUT "${IHUB_UI_INSTALL_STAMP}"
+    COMMAND ${IHUB_PNPM_COMMAND} install --frozen-lockfile
     WORKING_DIRECTORY "${IHUB_UI_DIR}"
-    DEPENDS "${IHUB_UI_DIR}/package.json" "${IHUB_UI_DIR}/package-lock.json"
+    DEPENDS "${IHUB_UI_DIR}/package.json" "${IHUB_UI_DIR}/pnpm-lock.yaml"
     COMMENT "Installing React UI dependencies"
     VERBATIM
 )
 
 add_custom_command(
     OUTPUT "${IHUB_UI_INDEX}" "${IHUB_UI_JS}" "${IHUB_UI_CSS}"
-    COMMAND "${IHUB_NPM_EXECUTABLE}" run build
+    COMMAND ${IHUB_PNPM_COMMAND} run build
     WORKING_DIRECTORY "${IHUB_UI_DIR}"
-    DEPENDS "${IHUB_UI_NODE_MODULES}/.package-lock.json" ${IHUB_UI_BUILD_INPUTS}
+    DEPENDS "${IHUB_UI_INSTALL_STAMP}" ${IHUB_UI_BUILD_INPUTS}
     COMMENT "Building React UI into ui/dist"
     VERBATIM
 )

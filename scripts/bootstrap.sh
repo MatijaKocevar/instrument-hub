@@ -210,7 +210,12 @@ if (( BUILD )); then
     if [[ ! -d ui/node_modules ]]; then
         echo
         echo "ui dependencies"
-        npm --prefix ui ci || { echo "npm ci failed" >&2; exit 1; }
+        if command -v pnpm >/dev/null 2>&1; then
+            (cd ui && pnpm install --frozen-lockfile) || { echo "pnpm install failed" >&2; exit 1; }
+        else
+            (cd ui && corepack pnpm install --frozen-lockfile) \
+                || { echo "pnpm install failed" >&2; exit 1; }
+        fi
     fi
 
     echo

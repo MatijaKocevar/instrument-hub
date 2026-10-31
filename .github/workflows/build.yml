@@ -35,12 +35,15 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: ui/package-lock.json
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
 
       # Packages from third_party/JUCE/docs/Linux Dependencies.md.
       - name: Install Linux build dependencies
@@ -74,15 +77,10 @@ jobs:
           fi
 
       - name: Build React UI (scripts/build.sh build_ui)
+        working-directory: ui
         run: |
-          if [[ ! -d ui/node_modules ]]; then
-            if [[ -f ui/package-lock.json ]]; then
-              npm --prefix ui ci
-            else
-              npm --prefix ui install
-            fi
-          fi
-          npm --prefix ui run build
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Configure (cmake --preset default)
         run: cmake --preset default
@@ -102,12 +100,15 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: ui/package-lock.json
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
 
       # engine/CMakeLists.txt uses NEEDS_WEBVIEW2, and JUCE's FindWebView2
       # only looks in the local NuGet package folder (it does not download).
@@ -126,13 +127,10 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Build React UI
+        working-directory: ui
         run: |
-          if [[ -f ui/package-lock.json ]]; then
-            npm --prefix ui ci
-          else
-            npm --prefix ui install
-          fi
-          npm --prefix ui run build
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Configure (cmake --preset default)
         run: cmake --preset default
@@ -152,21 +150,21 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: ui/package-lock.json
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
 
       - name: Build React UI
+        working-directory: ui
         run: |
-          if [[ -f ui/package-lock.json ]]; then
-            npm --prefix ui ci
-          else
-            npm --prefix ui install
-          fi
-          npm --prefix ui run build
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Configure (cmake --preset default)
         run: cmake --preset default
