@@ -3440,6 +3440,185 @@ else()
     message(STATUS "ihub-e2e-test: the ALSA Loopback acceptance is Linux-only; skipping")
 endif()
 
+# --- Per-patch state acceptance (T131) --------------------------------------
+#
+# Automated half of T131. Eight patches, one per Launchpad family, host the
+# in-repo TestPlugin. The test uses the normal asynchronous warm pool: every
+# arm calls armSlot() and then pumps the JUCE message loop until the slot is
+# active or a 5 s deadline expires. Two captured states are loaded into the
+# eight patches, the sweep makes the pool evict and reload the early slots, and
+# a fresh session verifies all eight state hashes after the restart. No editor
+# is created and no synchronous loading mode exists.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-per-patch-state-test
+        PRODUCT_NAME "ihub-per-patch-state-test"
+    )
+
+    target_sources(ihub-per-patch-state-test
+        PRIVATE
+            e2e/PerPatchStateTest.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+    )
+
+    target_include_directories(ihub-per-patch-state-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-per-patch-state-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+    )
+
+    target_link_libraries(ihub-per-patch-state-test
+        PRIVATE
+            Threads::Threads
+            juce::juce_audio_devices
+            juce::juce_audio_formats
+            juce::juce_audio_processors_headless
+            juce::juce_core
+            juce::juce_dsp
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_dependencies(ihub-per-patch-state-test TestPlugin_VST3)
+
+    set_target_properties(ihub-per-patch-state-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-per-patch-state
+        COMMAND ihub-per-patch-state-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-per-patch-state-test: Linux VST3 hosting; skipping")
+endif()
+
+# --- Two-patch Analog Lab V state pass (T131) -------------------------------
+#
+# Real-plugin half of T131. Two patches host Analog Lab V through the normal
+# asynchronous warm pool, two captured states are checked across A -> B -> A
+# and a restart, and both patches must render non-silent, different audio.
+# The test is headless, never opens an editor and never holds more than two
+# Analog Lab instances. It skips (exit 77) only when no bundle is installed.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-analog-lab-state-test
+        PRODUCT_NAME "ihub-analog-lab-state-test"
+    )
+
+    target_sources(ihub-analog-lab-state-test
+        PRIVATE
+            e2e/AnalogLabStateTest.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+    )
+
+    target_include_directories(ihub-analog-lab-state-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-analog-lab-state-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+    )
+
+    target_link_libraries(ihub-analog-lab-state-test
+        PRIVATE
+            Threads::Threads
+            juce::juce_audio_devices
+            juce::juce_audio_formats
+            juce::juce_audio_processors_headless
+            juce::juce_core
+            juce::juce_dsp
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-analog-lab-state-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-analog-lab-state
+        COMMAND ihub-analog-lab-state-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    set_tests_properties(ihub-analog-lab-state PROPERTIES
+        SKIP_RETURN_CODE 77
+    )
+else()
+    message(STATUS "ihub-analog-lab-state-test: Linux VST3 bridge; skipping")
+endif()
+
 # --- Hang guard -------------------------------------------------------------
 #
 # Every test gets a hard 120 s timeout. A deadlocked test fails the suite

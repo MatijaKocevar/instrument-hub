@@ -659,7 +659,8 @@ private:
                                  plugins::PluginInstrument& instrument,
                                  const juce::String& pluginPath,
                                  const juce::String& pluginId,
-                                 const juce::String& pluginName);
+                                 const juce::String& pluginName,
+                                 bool force = false);
     void applyStoredPluginState (int slot) noexcept;
     void clearPluginState (int slot);
     bool writePluginState (int slot);
