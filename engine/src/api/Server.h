@@ -467,6 +467,83 @@ using PluginInventoryProvider =
 /** Starts a background rescan. Returns false when one is already running. */
 using PluginRescanHandler = std::function<bool()>;
 
+//==============================================================================
+// MIDI inputs and the pad test (T126)
+//==============================================================================
+
+/** One MIDI input as returned by `GET /midi`.
+
+    `id` is the JUCE device identifier (stable across resumes), `role` is
+    `launchpad`, `keystation` or `input`, and `enabled` is the user's switch.
+    `open` is true when the engine currently owns the port; for the Launchpad
+    that means the driver is connected.
+*/
+struct MidiInputState
+{
+    std::string id;
+    std::string name;
+    std::string role = "input";
+
+    /** Short port label (`MI`, `DA`, `USB`) when the device name carries one. */
+    std::string port;
+
+    bool enabled = false;
+    bool open = false;
+    std::uint64_t events = 0;
+    std::string lastEvent;
+};
+
+/** Status of one named controller port (Launchpad MI, Keystation USB). */
+struct MidiPortState
+{
+    /** Device name, empty when the device is not present. */
+    std::string name;
+
+    /** Short port label: `MI`, `DA` or `USB`. */
+    std::string port;
+
+    bool connected = false;
+
+    /** True once the controller echoed its programmer/session-mode frame. */
+    bool handshake = false;
+
+    std::string inputName;
+    std::string outputName;
+    std::string error;
+};
+
+/** Result of the most recent pad test. */
+struct MidiPadTestState
+{
+    bool active = false;
+    int lit = 0;
+    int durationMs = 0;
+};
+
+/** Everything `GET /midi` returns. */
+struct MidiStateSnapshot
+{
+    std::vector<MidiInputState> inputs;
+    MidiPortState launchpad;
+    MidiPortState keystation;
+    MidiPadTestState padTest;
+    std::string error;
+};
+
+/** Supplies the current MIDI device and controller state. Called on an HTTP
+    thread; a live implementation must not block the audio callback. */
+using MidiStateProvider = std::function<MidiStateSnapshot()>;
+
+/** Enables or disables one MIDI input. Returns false with a message when the
+    port cannot be opened. */
+using MidiInputHandler = std::function<bool (const std::string& id,
+                                             bool enabled,
+                                             std::string& error)>;
+
+/** Runs the Launchpad pad test. Returns false with a message when there is no
+    connected Launchpad. */
+using MidiPadTestHandler = std::function<bool (std::string& error)>;
+
 /** Supplies the current audio state. Called on an HTTP thread. */
 using AudioStateProvider = std::function<AudioStateSnapshot()>;
 
@@ -747,6 +824,9 @@ private:
     - `POST /audio/measure`
     - `GET  /plugins`
     - `POST /plugins/rescan`
+    - `GET  /midi`
+    - `POST /midi/inputs`
+    - `POST /midi/pad-test`
     - `GET  /meters` (WebSocket upgrade)
     - `GET  /events` (WebSocket upgrade, live state mirror)
     - `GET  /pairing` (loopback only)
@@ -836,6 +916,15 @@ public:
     */
     void setPluginHandlers (PluginInventoryProvider provider,
                             PluginRescanHandler rescan);
+
+    /** Installs the MIDI device enumeration and controller controls behind
+        `/midi` (T126). Call before `start()`; the objects they close over must
+        outlive this server. Without a provider `GET /midi` reports no inputs
+        and the mutating endpoints answer `503`.
+    */
+    void setMidiHandlers (MidiStateProvider provider,
+                          MidiInputHandler enableInput,
+                          MidiPadTestHandler padTest);
 
     /** Enables/disables token auth. Takes effect on the next request. */
     void setAuthToken (std::string token);

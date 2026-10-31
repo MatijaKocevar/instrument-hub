@@ -75,6 +75,8 @@ juce::var audioMeasurementToVar (const AudioMeasurementState& measurement);
 
 juce::var pairingToVar (const PairingSnapshot& pairing);
 
+juce::var midiStateToVar (const MidiStateSnapshot& midi);
+
 //==============================================================================
 // Route registration
 //==============================================================================
@@ -101,6 +103,11 @@ struct RouteContext
     /** Optional read-only plug-in inventory behind `/plugins` (T122). */
     PluginInventoryProvider pluginProvider;
     PluginRescanHandler pluginRescan;
+
+    /** Optional MIDI enumeration and controller controls behind `/midi` (T126). */
+    MidiStateProvider midiProvider;
+    MidiInputHandler midiEnableInput;
+    MidiPadTestHandler midiPadTest;
 };
 
 /** Installs every HTTP route and the WebSocket meter upgrade.

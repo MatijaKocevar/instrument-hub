@@ -246,6 +246,15 @@ bool LaunchpadDriver::isConnected() const noexcept
     return connected.load();
 }
 
+bool LaunchpadDriver::canSendLeds() const noexcept
+{
+    if (connected.load())
+        return true;
+
+    const std::lock_guard<std::mutex> lock (sinkMutex);
+    return messageSink != nullptr;
+}
+
 juce::String LaunchpadDriver::getInputName() const
 {
     return inputName;

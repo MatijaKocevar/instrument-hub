@@ -14,6 +14,7 @@ import {
     InstrumentPage,
     patchForInstrumentSlot,
 } from "./features/instrument";
+import { MidiPanel } from "./features/midi";
 import { PairingPanel } from "./features/pairing";
 import { PluginsPage, pluginAssignmentsFromState } from "./features/plugins";
 import { useAppState, useAppStore } from "./state/AppStoreContext";
@@ -206,6 +207,16 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
             void store.loadPlugins ();
     }, [router.route, instrumentSlot, store, app.plugins, app.pluginBusy]);
 
+    // The audio page also shows the MIDI inputs. The normal poll carries them,
+    // but a direct route render (and the snapshot test) may arrive first.
+    useEffect (() =>
+    {
+        if (router.route !== "audio" || app.midi !== null || app.midiBusy)
+            return;
+
+        void store.loadMidi ();
+    }, [router.route, store, app.midi, app.midiBusy]);
+
     const openPatch = (slot: number): void =>
     {
         armAndOpenInstrument (
@@ -376,6 +387,19 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
                                       loading={state === null && app.audio === null}
                                       onChange={patch => { void store.updateAudio (patch); }}
                                       onMeasure={() => { void store.measureLatency (); }}
+                                  />
+
+                                  <MidiPanel
+                                      midi={app.midi}
+                                      error={app.midiError}
+                                      busy={app.midiBusy}
+                                      padTestBusy={app.padTestBusy}
+                                      padTestError={app.padTestError}
+                                      loading={app.midi === null}
+                                      onToggleInput={(id, enabled) => {
+                                          void store.toggleMidiInput (id, enabled);
+                                      }}
+                                      onPadTest={() => { void store.runPadTest (); }}
                                   />
 
                                   <PairingPanel

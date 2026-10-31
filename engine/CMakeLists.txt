@@ -95,6 +95,7 @@ target_sources(instrument-hub
     PRIVATE
         src/Main.cpp
         src/api/Discovery.cpp
+        src/api/MidiBridge.cpp
         src/api/Pairing.cpp
         src/api/PluginBridge.cpp
         src/api/Routes.cpp

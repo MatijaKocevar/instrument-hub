@@ -909,6 +909,61 @@ juce::var pluginInventoryToVar (const PluginInventoryState& inventory)
     return root;
 }
 
+juce::var midiStateToVar (const MidiStateSnapshot& midi)
+{
+    auto root = makeObject();
+    auto* object = root.getDynamicObject();
+
+    juce::Array<juce::var> inputs;
+
+    for (const auto& input : midi.inputs)
+    {
+        auto item = makeObject();
+        auto* itemObject = item.getDynamicObject();
+
+        itemObject->setProperty ("id", juce::String (input.id));
+        itemObject->setProperty ("name", juce::String (input.name));
+        itemObject->setProperty ("role", juce::String (input.role));
+        itemObject->setProperty ("port", juce::String (input.port));
+        itemObject->setProperty ("enabled", input.enabled);
+        itemObject->setProperty ("open", input.open);
+        itemObject->setProperty ("events", static_cast<juce::int64> (input.events));
+        itemObject->setProperty ("lastEvent", juce::String (input.lastEvent));
+        inputs.add (item);
+    }
+
+    object->setProperty ("inputs", juce::var (inputs));
+    object->setProperty ("inputCount", static_cast<int> (midi.inputs.size()));
+
+    const auto portToVar = [] (const MidiPortState& port)
+    {
+        auto item = makeObject();
+        auto* itemObject = item.getDynamicObject();
+
+        itemObject->setProperty ("name", juce::String (port.name));
+        itemObject->setProperty ("port", juce::String (port.port));
+        itemObject->setProperty ("connected", port.connected);
+        itemObject->setProperty ("handshake", port.handshake);
+        itemObject->setProperty ("inputName", juce::String (port.inputName));
+        itemObject->setProperty ("outputName", juce::String (port.outputName));
+        itemObject->setProperty ("error", juce::String (port.error));
+        return item;
+    };
+
+    object->setProperty ("launchpad", portToVar (midi.launchpad));
+    object->setProperty ("keystation", portToVar (midi.keystation));
+
+    auto padTest = makeObject();
+    padTest.getDynamicObject()->setProperty ("active", midi.padTest.active);
+    padTest.getDynamicObject()->setProperty ("lit", midi.padTest.lit);
+    padTest.getDynamicObject()->setProperty ("durationMs", midi.padTest.durationMs);
+    object->setProperty ("padTest", padTest);
+
+    object->setProperty ("error", juce::String (midi.error));
+
+    return root;
+}
+
 //==============================================================================
 void registerRoutes (httplib::Server& server, RouteContext context)
 {
@@ -1712,6 +1767,120 @@ void registerRoutes (httplib::Server& server, RouteContext context)
             context.decorate (response);
 
         setJson (response, started ? 202 : 200, body);
+    });
+
+    // --- MIDI inputs and the pad test (T126) --------------------------------
+
+    const auto readMidiState = [context]
+    {
+        if (context.midiProvider == nullptr)
+            return MidiStateSnapshot {};
+
+        try
+        {
+            return context.midiProvider();
+        }
+        catch (...)
+        {
+            MidiStateSnapshot failed;
+            failed.error = "the MIDI device list failed";
+            return failed;
+        }
+    };
+
+    server.Get ("/midi", [context, readMidiState] (const httplib::Request&,
+                                                    httplib::Response& response)
+    {
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        setJson (response, 200, midiStateToVar (readMidiState()));
+    });
+
+    server.Post ("/midi/inputs", [context, readMidiState] (const httplib::Request& request,
+                                                           httplib::Response& response)
+    {
+        if (context.midiEnableInput == nullptr)
+        {
+            setError (response, 503, "MIDI inputs are not available");
+            return;
+        }
+
+        juce::var body;
+        std::string error;
+
+        if (! parseJsonObject (request, body, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        auto* object = body.getDynamicObject();
+
+        if (! object->hasProperty ("id"))
+        {
+            setError (response, 400, "body must contain \"id\" (a string)");
+            return;
+        }
+
+        if (! object->hasProperty ("enabled"))
+        {
+            setError (response, 400, "body must contain \"enabled\" (boolean)");
+            return;
+        }
+
+        std::string id;
+
+        if (! readString (object->getProperty ("id"), "id", id, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        bool enabled = false;
+
+        if (! readBool (object->getProperty ("enabled"), "enabled", enabled, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        if (! context.midiEnableInput (id, enabled, error))
+        {
+            const int status = error.find ("unknown MIDI input") != std::string::npos
+                                   ? 404
+                                   : 400;
+            setError (response, status, error);
+            return;
+        }
+
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        setJson (response, 200, midiStateToVar (readMidiState()));
+    });
+
+    server.Post ("/midi/pad-test", [context, readMidiState] (const httplib::Request&,
+                                                             httplib::Response& response)
+    {
+        if (context.midiPadTest == nullptr)
+        {
+            setError (response, 503, "the Launchpad pad test is not available");
+            return;
+        }
+
+        std::string error;
+
+        if (! context.midiPadTest (error))
+        {
+            setError (response, 409, error);
+            return;
+        }
+
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        setJson (response, 200, midiStateToVar (readMidiState()));
     });
 
     // --- LAN pairing (T101) ------------------------------------------------

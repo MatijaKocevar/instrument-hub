@@ -542,6 +542,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/midi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List MIDI inputs and controller status
+         * @description Returns the ALSA MIDI inputs JUCE can see, each with the user's enable
+         *     switch, plus the status of the Launchpad Mini MK3 (pads and LEDs on the
+         *     **MI** port) and an optional Keystation keyboard. `padTest` reports the
+         *     most recent grid test. This endpoint only enumerates devices; enabling
+         *     a generic input opens it through the engine.
+         */
+        get: operations["getMidi"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/midi/inputs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable or disable one MIDI input
+         * @description Opens or closes one input. The Launchpad row is owned by its driver:
+         *     enabling it connects the controller to the MI port, disabling it
+         *     disconnects. Every other input is opened by the control engine and its
+         *     messages are counted for the page. The response is the complete MIDI
+         *     state after the change.
+         */
+        post: operations["setMidiInput"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/midi/pad-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Light the Launchpad grid
+         * @description Lights every pad and walks a bright column across the 8x8 grid for about
+         *     900 ms, then clears the surface and repaints the real grid. Requires a
+         *     connected Launchpad or a scripted LED sink; otherwise the request fails
+         *     with `409` and the reason. The response is the MIDI state with
+         *     `padTest.active: true` and `lit: 64` while the animation runs.
+         */
+        post: operations["runMidiPadTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -961,6 +1033,73 @@ export interface components {
             error: string;
             /** @description Only on `POST /plugins/rescan`; true when a scan was started. */
             started?: boolean;
+        };
+        MidiInput: {
+            /**
+             * @description JUCE device identifier, stable across resumes.
+             * @example ALSA:5:0
+             */
+            id: string;
+            /**
+             * @description ALSA device name.
+             * @example Keystation Mini 32 MK3 USB Audio
+             */
+            name: string;
+            /**
+             * @description What the engine uses this input for.
+             * @enum {string}
+             */
+            role: "launchpad" | "keystation" | "input";
+            /** @description Short port label (`MI`, `DA`, `USB`), empty when the name has none. */
+            port: string;
+            /** @description The user's switch for this input. */
+            enabled: boolean;
+            /** @description True while the engine owns the port. */
+            open: boolean;
+            /** @description MIDI messages received since the input was opened. */
+            events: number;
+            /** @description A human-readable summary of the last message, empty when none. */
+            lastEvent: string;
+        };
+        MidiPort: {
+            /** @description Device name, empty when not present. */
+            name: string;
+            /** @description Short port label (`MI`, `DA` or `USB`). */
+            port: string;
+            /** @description True when the controller is open. */
+            connected: boolean;
+            /** @description True once the controller echoed its mode frame. */
+            handshake: boolean;
+            /** @description Open input name, empty when disconnected. */
+            inputName: string;
+            /** @description Open output name, empty when disconnected. */
+            outputName: string;
+            /** @description Last connection error, empty on success. */
+            error: string;
+        };
+        MidiPadTest: {
+            /** @description True while the grid test animation is running. */
+            active: boolean;
+            /** @description Pads currently lit by the test; 64 while it runs. */
+            lit: number;
+            /** @description Length of the animation in milliseconds. */
+            durationMs: number;
+        };
+        MidiState: {
+            inputs: components["schemas"]["MidiInput"][];
+            /** @description Number of MIDI inputs in this snapshot. */
+            inputCount: number;
+            launchpad: components["schemas"]["MidiPort"];
+            keystation: components["schemas"]["MidiPort"];
+            padTest: components["schemas"]["MidiPadTest"];
+            /** @description Enumeration error, empty on success. */
+            error: string;
+        };
+        MidiInputUpdate: {
+            /** @description Identifier from `GET /midi`. */
+            id: string;
+            /** @description Desired switch state. */
+            enabled: boolean;
         };
     };
     responses: {
@@ -1819,6 +1958,110 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             /** @description The server has no plug-in inventory attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getMidi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current MIDI devices and controllers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MidiState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    setMidiInput: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MidiInputUpdate"];
+            };
+        };
+        responses: {
+            /** @description MIDI state after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MidiState"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No MIDI input has that identifier */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The server has no MIDI backend attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    runMidiPadTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pad test started */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MidiState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No Launchpad output is available */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The server has no pad-test handler attached */
             503: {
                 headers: {
                     [name: string]: unknown;

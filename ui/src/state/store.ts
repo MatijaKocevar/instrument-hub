@@ -6,6 +6,7 @@ import type {
     ControlFxChain,
     ControlFxInsertRequest,
     ControlFxInsertUpdate,
+    ControlMidiState,
     ControlPairingState,
     ControlPatchSourceRequest,
     ControlPatchUpdate,
@@ -64,6 +65,16 @@ export interface AppSnapshot
     pluginError: string | null;
     /** True while a scan or inventory request is in flight. */
     pluginBusy: boolean;
+    /** MIDI inputs and controller status, or null before the first load. */
+    midi: ControlMidiState | null;
+    /** Message from the most recent MIDI failure. */
+    midiError: string | null;
+    /** True while a MIDI input toggle or reload is in flight. */
+    midiBusy: boolean;
+    /** True while the Launchpad pad test is starting. */
+    padTestBusy: boolean;
+    /** Message from the most recent pad test. */
+    padTestError: string | null;
     /** Latest `GET /pairing`, or null when unavailable (e.g. on a tablet). */
     pairing: ControlPairingState | null;
     /** Message from the most recent pairing action. */
@@ -184,6 +195,11 @@ export class AppStore
         plugins: null,
         pluginError: null,
         pluginBusy: false,
+        midi: null,
+        midiError: null,
+        midiBusy: false,
+        padTestBusy: false,
+        padTestError: null,
         pairing: null,
         pairingError: null,
         pairingBusy: false,
@@ -582,6 +598,66 @@ export class AppStore
         }
     };
 
+    //==========================================================================
+    // MIDI inputs and the pad test (T126)
+
+    /** Read the ALSA inputs and controller status behind `GET /midi`. */
+    loadMidi = async (): Promise<boolean> =>
+    {
+        this.patch ({ midiBusy: true, midiError: null });
+
+        try
+        {
+            const midi = await this.api.getMidi ();
+
+            this.patch ({ midi, midiBusy: false, midiError: null });
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ midiBusy: false, midiError: messageOf (error) });
+            return false;
+        }
+    };
+
+    /** Open or close one MIDI input. */
+    toggleMidiInput = async (id: string, enabled: boolean): Promise<boolean> =>
+    {
+        this.patch ({ midiBusy: true, midiError: null });
+
+        try
+        {
+            const midi = await this.api.setMidiInput (id, enabled);
+
+            this.patch ({ midi, midiBusy: false, midiError: null });
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ midiBusy: false, midiError: messageOf (error) });
+            return false;
+        }
+    };
+
+    /** Light the Launchpad grid for the pad-test animation. */
+    runPadTest = async (): Promise<boolean> =>
+    {
+        this.patch ({ padTestBusy: true, padTestError: null });
+
+        try
+        {
+            const midi = await this.api.runMidiPadTest ();
+
+            this.patch ({ midi, padTestBusy: false, padTestError: null });
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ padTestBusy: false, padTestError: messageOf (error) });
+            return false;
+        }
+    };
+
     private optimisticChain (slot: number,
                              change: (chain: ControlFxChain) => ControlFxChain): ControlFxChain | null
     {
@@ -928,10 +1004,11 @@ export class AppStore
         if (this.snapshot.state === null)
             this.patch ({ phase: "connecting" });
 
-        const [stateResult, audioResult, pairingResult] = await Promise.allSettled ([
+        const [stateResult, audioResult, pairingResult, midiResult] = await Promise.allSettled ([
             this.api.getState (),
             this.api.getAudio (),
             this.api.getPairing (),
+            this.api.getMidi (),
         ]);
 
         if (stateResult.status === "rejected")
@@ -941,6 +1018,9 @@ export class AppStore
                 error: messageOf (stateResult.reason),
                 audioError: audioResult.status === "rejected"
                     ? messageOf (audioResult.reason)
+                    : null,
+                midiError: midiResult.status === "rejected"
+                    ? messageOf (midiResult.reason)
                     : null,
                 unauthorized: stateResult.reason instanceof ApiError
                     && stateResult.reason.status === 401,
@@ -976,6 +1056,9 @@ export class AppStore
             ...(pairingResult.status === "fulfilled"
                 ? { pairing: pairingResult.value }
                 : {}),
+            ...(midiResult.status === "fulfilled"
+                ? { midi: midiResult.value, midiError: null }
+                : { midiError: messageOf (midiResult.reason) }),
             error: null,
             unauthorized: false,
             failedAttempts: 0,
