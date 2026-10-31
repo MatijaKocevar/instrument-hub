@@ -177,6 +177,8 @@ juce::var stateToVar (const StateSnapshot& state)
         slotVar.getDynamicObject()->setProperty ("index", slot.index);
         slotVar.getDynamicObject()->setProperty ("name", juce::String (slot.name));
         slotVar.getDynamicObject()->setProperty ("armed", slot.armed);
+        slotVar.getDynamicObject()->setProperty ("state", juce::String (slot.state));
+        slotVar.getDynamicObject()->setProperty ("gain", static_cast<double> (slot.gain));
         slotVar.getDynamicObject()->setProperty ("latencySamples", slot.latencySamples);
         slotVar.getDynamicObject()->setProperty ("latencyMs", slot.latencyMs);
         slots.add (slotVar);

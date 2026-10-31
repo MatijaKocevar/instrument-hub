@@ -29,6 +29,12 @@ constexpr double defaultFrequencies[] = {
 
 constexpr double silenceFloor = 1.0e-12;
 
+/** Per-block peak-meter decay. At 48 kHz / 128 frames a full-scale peak falls
+    by about 20 dB in 26 ms, so a meter frame read at 30 Hz sees a steady value
+    while a slot plays instead of the tone's per-block zero crossings.
+*/
+constexpr float meterDecay = 0.85f;
+
 double toDbfs (double linear) noexcept
 {
     return 20.0 * std::log10 (juce::jmax (linear, silenceFloor));
@@ -155,6 +161,7 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     error.clear();
     closeDevice();
     prepared = false;
+    transport.reset();
 
     // Drop the graph before its sources: the slots hold non-owning pointers.
     switcher.reset();
@@ -338,6 +345,23 @@ void Session::prepare (double newSampleRate, int newMaximumBlockSize, int newNum
     if (switcher != nullptr)
         switcher->prepare (sampleRate, maximumBlockSize, numChannels);
 
+    transport.prepare (sampleRate, maximumBlockSize);
+
+    const int slotCount = juce::jmax (1, engine->getNumSlots());
+
+    if (slotMeterPeaks == nullptr || meterSlotCount != slotCount)
+    {
+        slotMeterPeaks = std::make_unique<std::atomic<float>[]> (
+            static_cast<std::size_t> (slotCount));
+        meterSlotCount = slotCount;
+    }
+
+    for (int slot = 0; slot < meterSlotCount; ++slot)
+        slotMeterPeaks[static_cast<std::size_t> (slot)].store (0.0f,
+                                                              std::memory_order_relaxed);
+
+    masterMeterPeak.store (0.0f, std::memory_order_relaxed);
+
     renderBuffer.setSize (numChannels, maximumBlockSize, false, true, true);
     renderBuffer.clear();
     blockMidi.clear();
@@ -352,6 +376,14 @@ void Session::resetGraph() noexcept
 
     if (switcher != nullptr)
         switcher->reset();
+
+    transport.rewind();
+
+    for (int slot = 0; slot < meterSlotCount; ++slot)
+        slotMeterPeaks[static_cast<std::size_t> (slot)].store (0.0f,
+                                                              std::memory_order_relaxed);
+
+    masterMeterPeak.store (0.0f, std::memory_order_relaxed);
 
     renderBuffer.clear();
     blockMidi.clear();
@@ -392,6 +424,19 @@ int Session::getSlotLatencySamples (int slot) const noexcept
         return 0;
 
     return engine->getSlot (slot).latencySamples();
+}
+
+float Session::getSlotMeterPeak (int slot) const noexcept
+{
+    if (slotMeterPeaks == nullptr || slot < 0 || slot >= meterSlotCount)
+        return 0.0f;
+
+    return slotMeterPeaks[static_cast<std::size_t> (slot)].load (std::memory_order_relaxed);
+}
+
+float Session::getMasterMeterPeak() const noexcept
+{
+    return masterMeterPeak.load (std::memory_order_relaxed);
 }
 
 //==============================================================================
@@ -541,6 +586,58 @@ int Session::getArmedSlot() const noexcept
 }
 
 //==============================================================================
+void Session::updateMeters (int numSamples) noexcept
+{
+    if (slotMeterPeaks == nullptr || engine == nullptr || switcher == nullptr)
+        return;
+
+    const int slots = juce::jmin (meterSlotCount, engine->getNumSlots());
+
+    for (int index = 0; index < slots; ++index)
+    {
+        float peak = 0.0f;
+
+        const auto state = switcher->getSlotState (index);
+        const float gain = switcher->getSlotGain (index);
+
+        if (state != AudioEngine::SlotSwitcher::State::idle && gain > 0.0f)
+        {
+            const auto& rendered = engine->getSlot (index).getOutputBuffer();
+            const int channels = rendered.getNumChannels();
+            const int frames = juce::jmin (numSamples, rendered.getNumSamples());
+
+            for (int channel = 0; channel < channels; ++channel)
+            {
+                const auto* samples = rendered.getReadPointer (channel);
+
+                for (int frame = 0; frame < frames; ++frame)
+                    peak = juce::jmax (peak, std::abs (samples[frame]));
+            }
+
+            peak *= gain;
+        }
+
+        auto& meter = slotMeterPeaks[static_cast<std::size_t> (index)];
+        const float decayed = meter.load (std::memory_order_relaxed) * meterDecay;
+        meter.store (juce::jmax (peak, decayed), std::memory_order_relaxed);
+    }
+
+    float masterPeak = 0.0f;
+    const int channels = renderBuffer.getNumChannels();
+    const int frames = juce::jmin (numSamples, renderBuffer.getNumSamples());
+
+    for (int channel = 0; channel < channels; ++channel)
+    {
+        const auto* samples = renderBuffer.getReadPointer (channel);
+
+        for (int frame = 0; frame < frames; ++frame)
+            masterPeak = juce::jmax (masterPeak, std::abs (samples[frame]));
+    }
+
+    const float decayed = masterMeterPeak.load (std::memory_order_relaxed) * meterDecay;
+    masterMeterPeak.store (juce::jmax (masterPeak, decayed), std::memory_order_relaxed);
+}
+
 void Session::renderInternal (int numSamples, juce::MidiBuffer& midi) noexcept
 {
     const int samples = juce::jmin (numSamples, maximumBlockSize);
@@ -556,6 +653,12 @@ void Session::renderInternal (int numSamples, juce::MidiBuffer& midi) noexcept
         bus.add (switcher->getOutputBuffer(), samples);
 
     bus.finish (renderBuffer, samples);
+
+    // The transport counts rendered frames, so `/transport.positionSamples`
+    // advances with the same block sizes the graph actually processed.
+    transport.process (samples);
+
+    updateMeters (samples);
 }
 
 void Session::render (juce::AudioBuffer<float>& output,

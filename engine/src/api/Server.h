@@ -31,6 +31,15 @@ struct SlotSnapshot
     std::string name;
     bool armed = false;
 
+    /** Audio-thread state of the fixed graph slot: idle, warming, active or
+        fading. Supplied by a runtime provider when one is attached; "idle"
+        otherwise.
+    */
+    std::string state = "idle";
+
+    /** Crossfade gain published by `SlotSwitcher`, 0 .. 1. */
+    float gain = 0.0f;
+
     /** Instrument + FX latency of this slot's chain. */
     int latencySamples = 0;
     /** The same total at the sample rate it was measured at. */
@@ -59,6 +68,25 @@ struct TransportState
     double ppq = 0.0;
     std::int64_t positionSamples = 0;
 };
+
+/** Live values for one slot, read from the audio graph rather than the store.
+
+    A provider that reads a running session must only touch lock-free/atomic
+    values; `snapshot()` calls it on the HTTP thread, never from the audio
+    callback.
+*/
+struct SlotRuntimeState
+{
+    bool armed = false;
+    float gain = 0.0f;
+    std::string state = "idle";
+};
+
+/** Supplies one slot's live state. */
+using SlotRuntimeProvider = std::function<SlotRuntimeState (int slot)>;
+
+/** Supplies the live transport. */
+using TransportProvider = std::function<TransportState()>;
 
 /** A consistent-enough snapshot of everything `GET /state` returns. */
 struct StateSnapshot
@@ -205,9 +233,10 @@ using AudioMeasureHandler = std::function<AudioMeasurementState()>;
     Thread-safe control state behind the HTTP API.
 
     Every method is safe to call from the HTTP server threads, the UI and the
-    message thread. The store never touches the audio thread; a later task
-    attaches `setArmHandler()` / `setTransportHandler()` to bridge requests
-    into the lock-free graph controls.
+    message thread. The store never touches the audio thread; `setArmHandler()`
+    and `setTransportHandler()` bridge requests into the lock-free graph
+    controls, and the runtime providers let `snapshot()` read the real session
+    state without putting a lock on the audio path.
 */
 class StateStore
 {
@@ -244,8 +273,26 @@ public:
     TransportState getTransport() const;
     bool updateTransport (const juce::var& patch, std::string& error);
 
-    using TransportHandler = std::function<void (const TransportState&)>;
+    /** Applies the accepted patch to the audio graph.
+
+        `next` is the merged store state and `patch` is the original JSON
+        object, so the handler can apply only the fields the request changed
+        and leave a running position alone when the request only toggles
+        `playing`.
+    */
+    using TransportHandler = std::function<void (const TransportState& next,
+                                                 const juce::var& patch)>;
     void setTransportHandler (TransportHandler handler);
+
+    /** Reads `GET /transport` and `/state` from the session instead of the
+        synthetic store values. Must be lock-free if the session is running.
+    */
+    void setTransportProvider (TransportProvider provider);
+
+    /** Reads each slot's armed flag, crossfade gain and graph state from the
+        session. Replaces the synthetic `armed` value in `snapshot()`.
+    */
+    void setSlotRuntimeProvider (SlotRuntimeProvider provider);
 
     //==============================================================================
     // Change notification (T103)
@@ -298,6 +345,8 @@ private:
     ArmHandler armHandler;
     TransportHandler transportHandler;
     ChangeHandler changeHandler;
+    TransportProvider transportProvider;
+    SlotRuntimeProvider slotRuntimeProvider;
 
     const std::chrono::steady_clock::time_point startedAt;
 };

@@ -833,7 +833,9 @@ target_sources(ihub-session-smoke-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -920,6 +922,87 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ENVIRONMENT "DISPLAY=:0"
     )
 endif()
+
+# --- Session behind the control API (T115) ---------------------------------
+#
+# Builds the headless default session, attaches the HTTP + WebSocket server
+# through Api::attachSession() and proves the API drives the real graph:
+# POST /arm switches the audible slot (the rendered tone moves from 110 Hz to
+# 123.47 Hz), /meters reports the playing slot's real peak, GET /state reports
+# the live slot states, and POST /transport starts/stops the session transport.
+
+juce_add_console_app(ihub-session-api-test
+    PRODUCT_NAME "ihub-session-api-test"
+)
+
+target_sources(ihub-session-api-test
+    PRIVATE
+        api/SessionApiTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+)
+
+target_include_directories(ihub-session-api-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-session-api-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        IHUB_RT_GUARD=1
+)
+
+target_link_libraries(ihub-session-api-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_audio_devices
+        juce::juce_audio_formats
+        juce::juce_audio_processors_headless
+        juce::juce_core
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-session-api-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-session-api
+    COMMAND ihub-session-api-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
 
 # --- Launchkey protocol (T040) ----------------------------------------------
 #
