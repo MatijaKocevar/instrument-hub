@@ -1,4 +1,7 @@
+import { useMemo } from "react";
+
 import type { ControlState } from "./api/client";
+import { GridView, gridFromState, metersUrlFor, useMeters } from "./features/grid";
 import { useAppState, useAppStore } from "./state/AppStoreContext";
 import type { ConnectionPhase } from "./state/store";
 
@@ -53,6 +56,8 @@ export default function App ()
     const store = useAppStore();
     const state = app.state;
     const armedSlot = state?.slots.find (slot => slot.armed) ?? null;
+    const grid = useMemo (() => gridFromState (state), [state]);
+    const meters = useMeters ({ url: metersUrlFor (store.baseUrl) });
 
     return (
         <main className="app">
@@ -179,38 +184,12 @@ export default function App ()
                       </article>
                   </section>}
 
-            <section className="app__slots" aria-label="Instrument slots">
-                {state === null
-                    ? Array.from ({ length: 8 }, (_, index) => (
-                          <article
-                              className="slot slot--empty"
-                              key={`placeholder-${index}`}
-                              data-testid="slot-placeholder"
-                          >
-                              <span className="slot__number">
-                                  {(index + 1).toString ().padStart (2, "0")}
-                              </span>
-                              <span className="slot__name">Waiting…</span>
-                          </article>
-                      ))
-                    : state.slots.map (slot => (
-                          <article
-                              className={`slot${slot.armed ? " slot--armed" : ""}`}
-                              key={slot.index}
-                              data-testid="slot"
-                              data-slot={slot.index}
-                              data-armed={slot.armed ? "true" : "false"}
-                          >
-                              <span className="slot__number">
-                                  {(slot.index + 1).toString ().padStart (2, "0")}
-                              </span>
-                              <span className="slot__name">{slot.name}</span>
-                              {slot.armed
-                                  ? <span className="slot__badge">Armed</span>
-                                  : null}
-                          </article>
-                      ))}
-            </section>
+            <GridView
+                model={grid}
+                meters={meters}
+                loading={state === null}
+                onArm={slot => { void store.armSlot (slot); }}
+            />
 
             <footer className="app__footer">
                 <span className="app__status" data-testid="app-status">

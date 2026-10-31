@@ -53,3 +53,30 @@ node dist-test/snapshot.mjs --api=http://127.0.0.1:18080
 ```
 
 The live snapshot lands in `tests/artifacts/ui-state-live.html`.
+
+## Instrument grid
+
+`src/features/grid/` is the main 8×8 grid: families down the side, patches
+across, with one level meter per patch and a master meter in the header.
+
+- **Arming** — pressing a patch calls `AppStore.armSlot()`, which updates the
+  store optimistically in the same tick and then sends `POST /arm`. The
+  highlight therefore moves on the next render (one frame), never after the
+  2 s poll. A rejected request rolls the highlight back.
+- **Meters** — `MeterStore` subscribes to the `/meters` WebSocket, keeps only
+  the newest frame, and reconnects with backoff. `useMeters()` starts it from
+  an effect, so server rendering never opens a socket.
+- **Loading** — before the first `GET /state`, the grid renders an 8×8
+  skeleton (`data-testid="grid-loading"`) instead of flashing an empty grid.
+- **Touch** — every patch cell is at least 44 px wide and 68 px high, uses
+  `touch-action: manipulation`, and the 8 columns scroll inside the grid on
+  narrow screens rather than shrinking below the touch minimum.
+
+The control API currently publishes flat slots, not the set's family tree.
+`gridFromState()` maps each slot to a one-patch family so every playable slot
+is visible; the view itself is fully family/patch shaped, so the adapter can
+be replaced when `/state` carries families.
+
+The grid-specific snapshot (`tests/artifacts/ui-grid-snapshot.html`) renders
+8 families × 8 columns with live meter values, and the arm test proves the
+highlight changes before the delayed HTTP response arrives.
