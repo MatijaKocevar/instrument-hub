@@ -39,6 +39,13 @@ else()
     message(STATUS "ihub-selftest: ALSA smoke test is Linux-only; skipping")
 endif()
 
+# --- Test plugins -----------------------------------------------------------
+#
+# TestPlugin.vst3 is built from source so plugin tests (scanner, hosting,
+# state, editor) never depend on a third-party binary being installed.
+
+add_subdirectory(plugins)
+
 # --- Audio device manager ---------------------------------------------------
 #
 # Opens the ALSA Loopback device through AudioEngine::DeviceManager, then
