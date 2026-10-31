@@ -1519,6 +1519,66 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Set file container (T080) ----------------------------------------------
+#
+# Builds a four-slot set with two plugin state chunks, writes a real `.ihub`
+# ZIP (set.json + mapping.yaml + plugin-state/<uuid>.bin), inspects the
+# container, reloads it into a fresh model and a fresh AudioEngine, and asserts
+# deep equality of every field including the opaque blobs and mapping bytes.
+# Also rejects unsafe ids, duplicate ids, dangling references, out-of-range
+# values, corrupt archives and unsupported schema versions.
+
+juce_add_console_app(ihub-set-file-test
+    PRODUCT_NAME "ihub-set-file-test"
+)
+
+target_sources(ihub-set-file-test
+    PRIVATE
+        project/SetFileTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+)
+
+target_include_directories(ihub-set-file-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-set-file-test
+    PRIVATE
+        "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+)
+
+target_link_libraries(ihub-set-file-test
+    PRIVATE
+        juce::juce_audio_devices
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-set-file-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-set-file
+    COMMAND ihub-set-file-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- UI snapshot (T054) -----------------------------------------------------
 #
 # Launches the real application with `--snapshot <path>` and validates the
