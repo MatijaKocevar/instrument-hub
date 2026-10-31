@@ -10,5 +10,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Single-config generators keep the binary at build/engine/<name>.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+enable_testing()
+
 add_subdirectory(third_party/JUCE)
 add_subdirectory(engine)
+add_subdirectory(tests)
