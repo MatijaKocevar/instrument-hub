@@ -24,6 +24,7 @@ import re
 import shutil
 import signal
 import subprocess
+import threading
 import time
 import sys
 from datetime import datetime, timedelta, timezone
@@ -101,6 +102,56 @@ def log(msg: str) -> None:
     WORK.mkdir(parents=True, exist_ok=True)
     with LOG.open("a") as fh:
         fh.write(line + "\n")
+
+
+def kill_stuck_tests(test_seconds: int = 150, ctest_seconds: int = 300) -> None:
+    """Kill test binaries that have outlived their budget.
+
+    The session is told to use scripts/test.sh (120 s per test), but a
+    forgotten flag must not stall the run. Only ihub-* test binaries,
+    vstbridge hosts and ctest are touched; a build or the agent is never
+    killed.
+    """
+    try:
+        listing = subprocess.run(
+            ["ps", "-eo", "pid=,etimes=,comm="],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return
+
+    for line in listing.splitlines():
+        parts = line.split(None, 2)
+        if len(parts) != 3:
+            continue
+
+        pid_text, age_text, name = parts
+
+        try:
+            pid = int(pid_text)
+            age = int(age_text)
+        except ValueError:
+            continue
+
+        limit = None
+        if name.startswith("ihub-") or name.startswith("vstbridge-host"):
+            limit = test_seconds
+        elif name.startswith("ctest"):
+            limit = ctest_seconds
+
+        if limit is not None and age > limit:
+            log(f"WATCHDOG killing stuck {name} pid={pid} age={age}s")
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError:
+                pass
+
+
+def watchdog_session(stop: threading.Event) -> None:
+    while not stop.wait(5):
+        kill_stuck_tests()
 
 
 def is_peak(dt: datetime) -> bool:
@@ -376,6 +427,7 @@ def run_task(task: dict, entry: dict, attach: str) -> tuple[str, str]:
     rc = 0
     timed_out = False
     proc = None
+    stop_watchdog = threading.Event()
     global ACTIVE
     try:
         # Own process group: a timeout must take the MCP children and browsers
@@ -391,6 +443,9 @@ def run_task(task: dict, entry: dict, attach: str) -> tuple[str, str]:
             start_new_session=True,
         )
         ACTIVE = proc
+        threading.Thread(
+            target=watchdog_session, args=(stop_watchdog,), daemon=True
+        ).start()
         try:
             output, _ = proc.communicate(timeout=SESSION_TIMEOUT)
             rc = proc.returncode
@@ -407,6 +462,7 @@ def run_task(task: dict, entry: dict, attach: str) -> tuple[str, str]:
         log("FATAL: `opencode` not found on PATH")
         sys.exit(2)
     finally:
+        stop_watchdog.set()
         ACTIVE = None
 
     WORK.mkdir(parents=True, exist_ok=True)
