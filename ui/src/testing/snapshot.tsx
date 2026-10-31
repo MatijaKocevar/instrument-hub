@@ -53,11 +53,23 @@ import {
     type MeterSocketLike,
 } from "../features/grid";
 import {
+    DEFAULT_REMOTE_CONTRAST,
     formatPosition,
+    INITIAL_LINK,
     isRemotePath,
+    loadRemoteContrast,
+    MeterLink,
+    nextContrast,
     RemoteView,
+    remoteBanner,
     remoteFromState,
+    saveRemoteContrast,
     stepPatch,
+    WakeLockController,
+    type RemoteLinkSnapshot,
+    type WakeLockCapableNavigator,
+    type WakeLockSentinelLike,
+    type WakeLockStatus,
 } from "../features/remote";
 import { AppStoreProvider } from "../state/AppStoreContext";
 import { AppStore } from "../state/store";
@@ -1450,6 +1462,14 @@ function remoteSnapshotTest (): void
     check (html.includes ('data-playing="true"'), "remote root reports playing state");
     check (html.includes ('data-testid="remote-position">Bar 5.1'),
            "remote shows the musical position");
+    check (html.includes ('data-theme="stage"'), "remote uses the stage theme");
+    check (html.includes ('data-contrast="high"'), "the stage remote starts in high contrast");
+    check (html.includes ('data-testid="remote-contrast"'),
+           "the remote exposes a contrast control");
+    check (! html.includes ('data-testid="remote-banner"'),
+           "a healthy remote shows no reconnect banner");
+    check (! html.includes ('data-testid="remote-wake-lock"'),
+           "the server-rendered remote claims no wake lock");
 
     const css = readFileSync (
         fileURLToPath (new URL ("../src/features/remote/remote.css", import.meta.url)), "utf8");
@@ -1582,6 +1602,322 @@ async function remoteInteractionTest (): Promise<void>
     }
 }
 
+function remoteBannerTest (): void
+{
+    const live: RemoteLinkSnapshot = {
+        connected: true,
+        everConnected: true,
+        lastLiveAt: 1,
+        failures: 0,
+    };
+
+    const lost: RemoteLinkSnapshot = { ...live, connected: false, failures: 1 };
+
+    check (! remoteBanner ("ready", live).visible, "a live WS shows no banner");
+    check (! remoteBanner ("connecting", live).visible, "connecting does not show the banner");
+
+    const lostBanner = remoteBanner ("ready", lost);
+
+    check (lostBanner.visible && lostBanner.tone === "warning",
+           "a lost WS shows the reconnecting banner");
+    check (lostBanner.title === "Live link lost", "the banner names the lost link");
+    check (lostBanner.detail.includes ("Reconnecting automatically"),
+           "the banner promises an automatic reconnect");
+    check (! remoteBanner ("ready", { ...INITIAL_LINK }).visible,
+           "no banner before the first connection");
+
+    const offline = remoteBanner ("offline", live);
+
+    check (offline.visible && offline.tone === "critical",
+           "an offline control API shows the critical banner");
+    check (offline.title === "Engine unreachable", "the critical banner names the engine");
+}
+
+class FakeWakeLockSentinel implements WakeLockSentinelLike
+{
+    released = false;
+    private readonly listeners: (() => void)[] = [];
+
+    async release (): Promise<void>
+    {
+        this.released = true;
+
+        for (const listener of this.listeners)
+            listener ();
+    }
+
+    addEventListener (_type: "release", listener: () => void): void
+    {
+        this.listeners.push (listener);
+    }
+}
+
+class FakeWakeLockNavigator implements WakeLockCapableNavigator
+{
+    readonly requests: string[] = [];
+    readonly sentinels: FakeWakeLockSentinel[] = [];
+    fail = false;
+
+    readonly wakeLock = {
+        request: async (type: "screen"): Promise<WakeLockSentinelLike> =>
+        {
+            this.requests.push (type);
+
+            if (this.fail)
+                throw new Error ("wake lock denied");
+
+            const sentinel = new FakeWakeLockSentinel ();
+            this.sentinels.push (sentinel);
+
+            return sentinel;
+        },
+    };
+}
+
+async function remoteWakeLockTest (): Promise<void>
+{
+    const none = new WakeLockController ({ navigator: {} });
+
+    check (await none.start () === "unavailable",
+           "a browser without the wake-lock API reports unavailable");
+
+    const fake = new FakeWakeLockNavigator ();
+    const statuses: WakeLockStatus[] = [];
+    const controller = new WakeLockController ({
+        navigator: fake,
+        onStatus: status => { statuses.push (status); },
+    });
+
+    check (await controller.start () === "active", "the remote asks for a screen wake lock");
+    check (fake.requests.length === 1 && fake.requests[0] === "screen",
+           "the request is for the screen");
+    check (controller.status === "active", "an acquired wake lock reports active");
+    check (statuses.includes ("requesting"), "the status passes through requesting");
+
+    check (await controller.visibilityChanged (false) === "idle",
+           "hiding the page drops the lock");
+    check (fake.sentinels[0]?.released === true, "the hidden page's sentinel is released");
+
+    check (await controller.visibilityChanged (true) === "active",
+           "returning to the page re-acquires the lock");
+    check (fake.requests.length === 2, "a second request is made after visibility returns");
+
+    await controller.release ();
+
+    check (controller.status === "idle", "releasing the controller returns to idle");
+    check (fake.sentinels.every (sentinel => sentinel.released),
+           "every sentinel is released");
+
+    const blocked = new FakeWakeLockNavigator ();
+    blocked.fail = true;
+
+    const denied = new WakeLockController ({ navigator: blocked });
+
+    check (await denied.start () === "denied", "a rejected request reports denied");
+    check (denied.status === "denied", "the denied status is kept for the badge");
+
+    await denied.release ();
+}
+
+function remoteContrastTest (): void
+{
+    const storage = new MemoryStorage ();
+
+    check (DEFAULT_REMOTE_CONTRAST === "high", "the stage remote defaults to high contrast");
+    check (loadRemoteContrast (null) === "high", "contrast loads high without storage");
+    check (loadRemoteContrast (storage) === "high", "a fresh browser gets the high-contrast theme");
+
+    saveRemoteContrast (storage, "standard");
+    check (loadRemoteContrast (storage) === "standard", "the contrast choice is persisted");
+
+    check (nextContrast ("high") === "standard" && nextContrast ("standard") === "high",
+           "the contrast toggle flips both ways");
+    check (loadRemoteContrast ({ getItem: () => "neon", setItem: () => {} }) === "high",
+           "an unknown stored value falls back to high contrast");
+    check (loadRemoteContrast ({
+               getItem: () => { throw new Error ("storage blocked"); },
+               setItem: () => {},
+           }) === "high",
+           "blocked storage falls back to high contrast");
+
+    const high = renderToStaticMarkup (
+        <RemoteView
+            model={remoteFromState (FIXTURE)}
+            connection="ready"
+            contrast="high"
+            wakeLock="active"
+        />);
+
+    check (high.includes ('data-theme="stage"'), "remote declares the stage theme");
+    check (high.includes ('data-contrast="high"'), "remote renders the high-contrast mode");
+    check (high.includes ('data-testid="remote-contrast" data-contrast="high" aria-pressed="true"'),
+           "the contrast control reports high contrast");
+    check (high.includes (">High contrast<"), "the contrast control is labelled");
+    check (high.includes ('data-testid="remote-wake-lock" data-state="active"'),
+           "the remote reports the screen wake lock");
+    check (high.includes (">Screen on<"), "the wake-lock badge explains itself");
+
+    const standard = renderToStaticMarkup (
+        <RemoteView
+            model={remoteFromState (FIXTURE)}
+            connection="ready"
+            contrast="standard"
+        />);
+
+    check (standard.includes ('data-contrast="standard"')
+               && standard.includes ('aria-pressed="false"'),
+           "standard contrast renders when selected");
+    check (standard.includes (">Standard<"), "the standard mode is labelled");
+    check (! standard.includes ('data-testid="remote-wake-lock"'),
+           "no wake-lock badge while the lock is idle");
+
+    const css = readFileSync (
+        fileURLToPath (new URL ("../src/features/remote/remote.css", import.meta.url)), "utf8");
+
+    check (/\.remote\[data-contrast="high"\]\s*\{[^}]*--remote-bg:\s*#000000/s.test (css),
+           "the high-contrast palette paints a pure black background");
+    check (/\.remote\[data-contrast="high"\]\s*\{[^}]*--remote-text:\s*#ffffff/s.test (css),
+           "the high-contrast palette paints pure white text");
+    check (/\.remote\[data-contrast="high"\]\s+button\s*\{[^}]*border-color:\s*#ffffff/s.test (css),
+           "high-contrast buttons get a white outline");
+    check (/\.remote__banner--warning/.test (css) && /\.remote__banner--critical/.test (css),
+           "both reconnect banner tones have styles");
+}
+
+async function remoteLinkTest (): Promise<void>
+{
+    const sockets: FakeMeterSocket[] = [];
+    const link = new MeterLink (new MeterStore ({
+        url: "ws://127.0.0.1:9/meters",
+        socketFactory: () =>
+        {
+            const socket = new FakeMeterSocket ();
+            sockets.push (socket);
+            return socket;
+        },
+        reconnectBaseMs: 250,
+        reconnectMaxMs: 250,
+    }));
+
+    link.start ();
+
+    check (sockets.length === 1, "the remote opens one live WS");
+
+    sockets[0]!.emit ("open", {});
+    check (link.getSnapshot ().connected, "the live WS reports connected");
+    check (link.getSnapshot ().everConnected, "the remote remembers the link came up");
+
+    const liveHtml = renderToStaticMarkup (
+        <RemoteView
+            model={remoteFromState (FIXTURE)}
+            connection="ready"
+            link={link.getSnapshot ()}
+        />);
+
+    check (! liveHtml.includes ('data-testid="remote-banner"'),
+           "no banner while the WS is up");
+
+    const killedAt = Date.now ();
+    sockets[0]!.close ();
+
+    check (! link.getSnapshot ().connected, "killing the WS marks the link down");
+    check (link.getSnapshot ().failures === 1, "the drop is counted");
+
+    const downHtml = renderToStaticMarkup (
+        <RemoteView
+            model={remoteFromState (FIXTURE)}
+            connection="ready"
+            link={link.getSnapshot ()}
+        />);
+
+    check (downHtml.includes ('data-testid="remote-banner"'),
+           "killing the WS shows the reconnect banner");
+    check (downHtml.includes ('data-tone="warning"'),
+           "the banner warns instead of blocking the set list");
+    check (downHtml.includes ("Live link lost"), "the banner names the lost link");
+
+    await waitFor (() => sockets.length >= 2, 3000);
+
+    sockets[1]!.emit ("open", {});
+    const recoveredMs = Date.now () - killedAt;
+
+    check (recoveredMs < 3000,
+           `the WS reconnects within 3 s (${String (recoveredMs)} ms)`);
+    check (link.getSnapshot ().connected, "the reconnected WS reports connected");
+
+    const recoveredHtml = renderToStaticMarkup (
+        <RemoteView
+            model={remoteFromState (FIXTURE)}
+            connection="ready"
+            link={link.getSnapshot ()}
+        />);
+
+    check (! recoveredHtml.includes ('data-testid="remote-banner"'),
+           "the banner clears after the automatic reconnect");
+
+    link.stop ();
+
+    check (! link.getSnapshot ().connected && ! link.getSnapshot ().everConnected,
+           "stopping the link resets its state");
+}
+
+async function remoteOptimisticTest (): Promise<void>
+{
+    const server = await startFixtureServer ({ armDelayMs: 250 });
+
+    try
+    {
+        const store = new AppStore (
+            createControlApi ({ baseUrl: server.baseUrl }),
+            { pollIntervalMs: 60_000 });
+
+        await store.refresh ();
+
+        const before = renderToStaticMarkup (
+            <RemoteView model={remoteFromState (store.getSnapshot ().state)} connection="ready" />);
+
+        check (before.includes ('data-testid="remote-set-item" data-slot="3" data-armed="true"'),
+               "the remote starts on the armed slot");
+
+        const startedAt = Date.now ();
+        const pendingArm = store.armSlot (5);
+
+        const optimistic = renderToStaticMarkup (
+            <RemoteView model={remoteFromState (store.getSnapshot ().state)} connection="ready" />);
+
+        check (optimistic.includes ('data-testid="remote-set-item" data-slot="5" data-armed="true"'),
+               "the remote highlight moves before POST /arm answers");
+        check (optimistic.includes ('data-testid="remote-current-name">Analog Brass<'),
+               "the now-playing card follows the tap optimistically");
+        check (! optimistic.includes ('data-slot="3" data-armed="true"'),
+               "the old highlight is gone immediately");
+        check (Date.now () - startedAt < 200,
+               "the highlight moves before the delayed arm response");
+
+        check (await pendingArm, "POST /arm confirms the optimistic arm");
+        check (server.armRequests.length === 1 && server.armRequests[0]?.slot === 5,
+               "the engine received the tapped slot");
+
+        const pendingTransport = store.updateTransport ({ playing: false });
+
+        const paused = renderToStaticMarkup (
+            <RemoteView model={remoteFromState (store.getSnapshot ().state)} connection="ready" />);
+
+        check (paused.includes ('data-testid="remote-transport-state">Stopped<'),
+               "Play/Pause flips before POST /transport answers");
+        check (paused.includes ('data-testid="remote-play"') && paused.includes (">Play<"),
+               "the play button flips optimistically");
+
+        check (await pendingTransport, "POST /transport confirms the optimistic pause");
+        check (server.transportRequests.at (-1)?.playing === false,
+               "the engine received playing: false");
+    }
+    finally
+    {
+        await server.close ();
+    }
+}
+
 async function main (): Promise<void>
 {
     await snapshotTest ();
@@ -1595,6 +1931,11 @@ async function main (): Promise<void>
     remoteSnapshotTest ();
     remoteModelTest ();
     await remoteInteractionTest ();
+    remoteBannerTest ();
+    await remoteWakeLockTest ();
+    remoteContrastTest ();
+    await remoteLinkTest ();
+    await remoteOptimisticTest ();
     await reconnectTest ();
     await backoffTest ();
 
