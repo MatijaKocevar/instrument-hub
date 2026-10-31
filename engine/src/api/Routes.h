@@ -70,6 +70,9 @@ juce::var settingsToVar (const SettingsState& settings);
 juce::var transportToVar (const TransportState& transport);
 juce::var meterFrameToVar (const MeterFrame& frame);
 
+juce::var audioStateToVar (const AudioStateSnapshot& audio);
+juce::var audioMeasurementToVar (const AudioMeasurementState& measurement);
+
 //==============================================================================
 // Route registration
 //==============================================================================
@@ -81,6 +84,11 @@ struct RouteContext
 
     /** Extra response headers for every JSON reply. */
     std::function<void (httplib::Response&)> decorate;
+
+    /** Optional audio device backend; all empty means "no backend". */
+    AudioStateProvider audioProvider;
+    AudioApplyHandler audioApply;
+    AudioMeasureHandler audioMeasure;
 };
 
 /** Installs every HTTP route and the WebSocket meter upgrade.

@@ -20,6 +20,7 @@ export default defineConfig({
       "/arm": "http://127.0.0.1:8080",
       "/settings": "http://127.0.0.1:8080",
       "/transport": "http://127.0.0.1:8080",
+      "/audio": "http://127.0.0.1:8080",
       "/meters": { target: "ws://127.0.0.1:8080", ws: true },
     },
   },

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import type { ControlState } from "./api/client";
+import { AudioSettingsPanel } from "./features/audio-settings";
 import { GridView, gridFromState, metersUrlFor, useMeters } from "./features/grid";
 import { useAppState, useAppStore } from "./state/AppStoreContext";
 import type { ConnectionPhase } from "./state/store";
@@ -183,6 +184,17 @@ export default function App ()
                           </dl>
                       </article>
                   </section>}
+
+            <AudioSettingsPanel
+                audio={app.audio}
+                measurement={app.measurement}
+                error={app.audioError}
+                measurementError={app.measurementError}
+                busy={app.audioBusy}
+                loading={state === null && app.audio === null}
+                onChange={patch => { void store.updateAudio (patch); }}
+                onMeasure={() => { void store.measureLatency (); }}
+            />
 
             <GridView
                 model={grid}

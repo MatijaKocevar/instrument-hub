@@ -18,7 +18,17 @@ import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import App from "../App";
-import { createControlApi, type ControlState } from "../api/client";
+import {
+    createControlApi,
+    type ControlAudioMeasurement,
+    type ControlAudioPatch,
+    type ControlAudioState,
+    type ControlState,
+} from "../api/client";
+import {
+    AudioSettingsPanel,
+    bufferSizePatch,
+} from "../features/audio-settings";
 import {
     createGridModel,
     EMPTY_METERS,
@@ -50,6 +60,41 @@ const FIXTURE: ControlState = {
     ],
     settings: { masterGain: 0.82, inputGain: 1.0, midiChannel: 2, metronome: true },
     transport: { playing: true, bpm: 128, ppq: 16.5, positionSamples: 384_512 },
+};
+
+/** Audio device fixture for the settings panel and its live readout. */
+const AUDIO: ControlAudioState = {
+    open: true,
+    deviceType: "ALSA",
+    deviceName: "Loopback",
+    deviceTypes: ["ALSA"],
+    devices: [
+        { type: "ALSA", name: "Loopback" },
+        { type: "ALSA", name: "UR22mkII" },
+    ],
+    sampleRate: 48000,
+    bufferSize: 128,
+    sampleRates: [44100, 48000, 96000],
+    bufferSizes: [64, 128, 256, 512],
+    inputChannels: [
+        { index: 0, name: "channel 1", active: true },
+        { index: 1, name: "channel 2", active: true },
+    ],
+    outputChannels: [
+        { index: 0, name: "channel 1", active: true },
+        { index: 1, name: "channel 2", active: true },
+    ],
+    latency: {
+        bufferMs: (128 * 1000) / 48000,
+        deviceMs: 1.33,
+        chainMs: 5,
+        totalMs: (128 * 1000) / 48000 + 1.33 + 5,
+    },
+    xruns: 2,
+    deviceXruns: 1,
+    callbackOverruns: 1,
+    callbacks: 128000,
+    loadPercent: 7.5,
 };
 
 /** Eight families for the feature-level grid snapshot. */
@@ -95,6 +140,9 @@ interface FixtureServer
     baseUrl: string;
     readonly stateRequests: number;
     readonly armRequests: readonly { slot: number | null }[];
+    readonly audioRequests: readonly ControlAudioPatch[];
+    readonly measureRequests: number;
+    readonly audio: ControlAudioState;
     close: () => Promise<void>;
 }
 
@@ -131,6 +179,22 @@ function cloneState (state: ControlState): ControlState
     return JSON.parse (JSON.stringify (state)) as ControlState;
 }
 
+function cloneAudio (audio: ControlAudioState): ControlAudioState
+{
+    return JSON.parse (JSON.stringify (audio)) as ControlAudioState;
+}
+
+function recalculateLatency (audio: ControlAudioState): void
+{
+    const bufferMs = (audio.bufferSize * 1000) / Math.max (1, audio.sampleRate);
+
+    audio.latency = {
+        ...audio.latency,
+        bufferMs,
+        totalMs: bufferMs + audio.latency.deviceMs + audio.latency.chainMs,
+    };
+}
+
 /**
     Serve the control API from a mutable fixture.
 
@@ -142,8 +206,11 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
     const failFirst = options.failFirst ?? 0;
     const armDelayMs = options.armDelayMs ?? 0;
     const state = cloneState (FIXTURE);
+    const audio = cloneAudio (AUDIO);
     const armRequests: { slot: number | null }[] = [];
+    const audioRequests: ControlAudioPatch[] = [];
     let stateRequests = 0;
+    let measureRequests = 0;
 
     const server = createServer ((request, response) =>
     {
@@ -228,6 +295,107 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
             return;
         }
 
+        if (request.method === "GET" && request.url === "/audio")
+        {
+            response.statusCode = 200;
+            response.end (JSON.stringify (audio));
+            return;
+        }
+
+        if (request.method === "POST" && request.url === "/audio")
+        {
+            let body = "";
+
+            request.on ("data", (chunk: Buffer) => { body += chunk.toString ("utf8"); });
+
+            request.on ("end", () =>
+            {
+                let parsed: ControlAudioPatch;
+
+                try
+                {
+                    parsed = JSON.parse (body) as ControlAudioPatch;
+                }
+                catch
+                {
+                    response.statusCode = 400;
+                    response.end (JSON.stringify ({ error: "body must be a JSON object" }));
+                    return;
+                }
+
+                if (parsed.bufferSize !== undefined
+                    && (! Number.isInteger (parsed.bufferSize)
+                        || parsed.bufferSize < 16
+                        || parsed.bufferSize > 8192))
+                {
+                    response.statusCode = 400;
+                    response.end (JSON.stringify ({ error: "bufferSize must be between 16 and 8192" }));
+                    return;
+                }
+
+                audioRequests.push (parsed);
+
+                if (parsed.deviceType !== undefined)
+                    audio.deviceType = parsed.deviceType;
+
+                if (parsed.deviceName !== undefined)
+                    audio.deviceName = parsed.deviceName;
+
+                if (parsed.sampleRate !== undefined)
+                    audio.sampleRate = parsed.sampleRate;
+
+                if (parsed.bufferSize !== undefined)
+                    audio.bufferSize = parsed.bufferSize;
+
+                if (parsed.inputChannels !== undefined)
+                {
+                    const active = new Set (parsed.inputChannels);
+                    audio.inputChannels = audio.inputChannels.map (channel => ({
+                        ...channel,
+                        active: active.has (channel.index),
+                    }));
+                }
+
+                if (parsed.outputChannels !== undefined)
+                {
+                    const active = new Set (parsed.outputChannels);
+                    audio.outputChannels = audio.outputChannels.map (channel => ({
+                        ...channel,
+                        active: active.has (channel.index),
+                    }));
+                }
+
+                recalculateLatency (audio);
+
+                response.statusCode = 200;
+                response.end (JSON.stringify (audio));
+            });
+
+            return;
+        }
+
+        if (request.method === "POST" && request.url === "/audio/measure")
+        {
+            measureRequests += 1;
+
+            const expectedSamples = audio.bufferSize * 2;
+            const roundTripSamples = expectedSamples;
+            const expectedMs = (expectedSamples * 1000) / audio.sampleRate;
+
+            response.statusCode = 200;
+            response.end (JSON.stringify ({
+                valid: true,
+                roundTripSamples,
+                roundTripMs: (roundTripSamples * 1000) / audio.sampleRate,
+                expectedMs,
+                confidence: 0.94,
+                sampleRate: audio.sampleRate,
+                bufferSize: audio.bufferSize,
+                error: "",
+            }));
+            return;
+        }
+
         response.statusCode = 404;
         response.end (JSON.stringify ({ error: "not found" }));
     });
@@ -238,6 +406,9 @@ async function startFixtureServer (options: FixtureOptions = {}): Promise<Fixtur
         baseUrl: `http://127.0.0.1:${String (port)}`,
         get stateRequests () { return stateRequests; },
         get armRequests () { return armRequests; },
+        get audioRequests () { return audioRequests; },
+        get measureRequests () { return measureRequests; },
+        get audio () { return audio; },
         close: () => new Promise ((resolve, reject) =>
         {
             server.close (error => { error === undefined ? resolve () : reject (error); });
@@ -360,6 +531,21 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     check (html.includes ('data-testid="connection-status"'), "snapshot shows the connection widget");
     check (html.includes ('data-testid="transport-bpm"'), "snapshot shows the transport widget");
     check (html.includes ('data-testid="instrument-grid"'), "snapshot shows the instrument grid");
+    check (html.includes ('data-testid="audio-settings"'), "snapshot shows the audio settings panel");
+    check (html.includes ('data-testid="device-type-select"'), "panel shows the device type control");
+    check (html.includes ('data-testid="device-select"'), "panel shows the device control");
+    check (html.includes ('data-testid="sample-rate-select"'), "panel shows the sample rate control");
+    check (html.includes ('data-testid="buffer-size-select"'), "panel shows the buffer size control");
+    check (html.includes ('data-testid="latency-buffer"'), "panel shows the buffer latency");
+    check (html.includes ('data-testid="latency-device"'), "panel shows the device latency");
+    check (html.includes ('data-testid="latency-chain"'), "panel shows the chain latency");
+    check (html.includes ('data-testid="latency-total"'), "panel shows the total latency");
+    check (html.includes ('data-testid="xrun-count"'), "panel shows the xrun counter");
+    check (html.includes ('data-testid="measure-button"'), "panel shows the Measure button");
+    check (html.includes ('data-open="true"'), "panel reports the device is open");
+    check (countOf (html, 'data-testid="output-channel"')
+               === (store.getSnapshot ().audio?.outputChannels.length ?? 0),
+           "panel maps every output channel the engine reports");
 
     // The markup must agree with the state the API actually returned.
     const armedSlot = store.getSnapshot ().state?.armedSlot ?? -1;
@@ -612,6 +798,18 @@ async function backoffTest (): Promise<void>
         {
             throw new Error ("connection refused");
         },
+        getAudio: async (): Promise<ControlAudioState> =>
+        {
+            throw new Error ("connection refused");
+        },
+        updateAudio: async (): Promise<ControlAudioState> =>
+        {
+            throw new Error ("connection refused");
+        },
+        measureLatency: async (): Promise<ControlAudioMeasurement> =>
+        {
+            throw new Error ("connection refused");
+        },
     };
 
     const store = new AppStore (failingApi, { retryBaseMs: 5, retryMaxMs: 15 });
@@ -629,6 +827,102 @@ async function backoffTest (): Promise<void>
     check (store.getSnapshot ().error === "connection refused", "store keeps the failure message");
 }
 
+async function audioSettingsTest (): Promise<void>
+{
+    const server = await startFixtureServer ();
+
+    try
+    {
+        const store = new AppStore (
+            createControlApi ({ baseUrl: server.baseUrl }),
+            { pollIntervalMs: 60_000 });
+
+        const loaded = await store.refresh ();
+        check (loaded, "audio fixture loads with GET /state + GET /audio");
+        check (store.getSnapshot ().audio?.bufferSize === 128,
+               "store holds the fetched 128-frame buffer");
+        check (store.getSnapshot ().audio?.latency.bufferMs === (128 * 1000) / 48000,
+               "fetched buffer latency is one buffer at 48 kHz");
+
+        const initial = renderApp (store);
+
+        check (initial.includes ('data-buffer-size="128"'),
+               "panel renders the fetched buffer size");
+        check (initial.includes ('data-testid="latency-buffer">2.67 ms'),
+               "buffer latency readout shows 2.67 ms at 128 frames / 48 kHz");
+        check (initial.includes ('data-testid="latency-chain">5.00 ms'),
+               "chain latency readout shows the summed chain total");
+        check (initial.includes ('data-testid="latency-total">9.00 ms'),
+               "total latency is buffer + device + chain");
+        check (initial.includes ('data-testid="xrun-count">2<'),
+               "xrun counter shows the device + callback total");
+
+        const changed = await store.updateAudio (bufferSizePatch (256));
+
+        check (changed, "changing the buffer size succeeds");
+        check (server.audioRequests.length === 1
+                   && server.audioRequests[0]?.bufferSize === 256,
+               "the UI sent { bufferSize: 256 } to POST /audio");
+        check (server.audio.bufferSize === 256,
+               "the engine fixture applied 256 frames");
+        check (store.getSnapshot ().audio?.bufferSize === 256,
+               "store adopts the post-change buffer size");
+
+        const after = renderApp (store);
+
+        check (after.includes ('data-buffer-size="256"'),
+               "the readout updates to 256 frames");
+        check (after.includes ('data-testid="latency-buffer">5.33 ms'),
+               "buffer latency updates to 5.33 ms at 256 frames / 48 kHz");
+        check (after.includes ('data-testid="latency-total">11.7 ms'),
+               "total latency readout updates with the buffer size");
+        check (after.includes ("256 frames"),
+               "the buffer control lists the new current value");
+
+        const measured = await store.measureLatency ();
+        const measurement = store.getSnapshot ().measurement;
+
+        check (measured && measurement?.valid === true,
+               "Measure returns a valid loopback measurement");
+        check (server.measureRequests === 1,
+               "the Measure button path called POST /audio/measure");
+        check (measurement !== null && Math.abs (measurement.roundTripMs - 10.6667) < 0.1,
+               "measured round trip is two buffers at 256 frames (10.7 ms)");
+
+        const measuredHtml = renderApp (store);
+
+        check (measuredHtml.includes ('data-testid="measure-result" data-valid="true"'),
+               "the panel renders the successful measurement");
+        check (measuredHtml.includes ("10.7 ms"),
+               "the panel shows the measured round-trip in milliseconds");
+        check (measuredHtml.includes ("512 samples"),
+               "the panel shows the measured sample count");
+
+        const remapped = await store.updateAudio ({ outputChannels: [0] });
+
+        check (remapped && store.getSnapshot ().audio?.outputChannels[1]?.active === false,
+               "channel mapping changes reach the engine and come back");
+
+        const rejected = await store.updateAudio ({ bufferSize: 0 });
+
+        check (! rejected, "an invalid buffer size is rejected");
+        check (store.getSnapshot ().audioError?.includes ("bufferSize") === true,
+               "the panel surfaces the engine rejection");
+
+        const loadingHtml = renderToStaticMarkup (
+            <AudioSettingsPanel audio={null} loading />);
+
+        check (loadingHtml.includes ('data-testid="audio-settings-loading"'),
+               "audio panel shows a loading state before the first GET /audio");
+        check (loadingHtml.includes ('aria-busy="true"'),
+               "loading audio panel is marked busy");
+    }
+    finally
+    {
+        await server.close ();
+    }
+}
+
 async function main (): Promise<void>
 {
     await snapshotTest ();
@@ -636,6 +930,7 @@ async function main (): Promise<void>
     await armTest ();
     meterTest ();
     loadingTest ();
+    await audioSettingsTest ();
     await reconnectTest ();
     await backoffTest ();
 

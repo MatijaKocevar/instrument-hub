@@ -58,6 +58,13 @@ struct LatencyProbeOptions
 
     /** Where the impulse starts in the emitted signal, in samples. */
     int impulseOffset = 512;
+
+    /** ALSA subdevice to use, or -1 for the default (subdevice 0).
+
+        The Loopback card has eight subdevices, so the probe can measure while
+        another stream owns subdevice 0.
+    */
+    int subdevice = -1;
 };
 
 /**

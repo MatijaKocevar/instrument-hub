@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <limits>
+#include <set>
 
 namespace Api
 {
@@ -212,6 +213,158 @@ juce::var transportToVar (const TransportState& transport)
     return root;
 }
 
+namespace
+{
+juce::var channelArrayToVar (const std::vector<AudioChannelState>& channels)
+{
+    juce::Array<juce::var> result;
+
+    for (const auto& channel : channels)
+    {
+        auto item = makeObject();
+        item.getDynamicObject()->setProperty ("index", channel.index);
+        item.getDynamicObject()->setProperty ("name", juce::String (channel.name));
+        item.getDynamicObject()->setProperty ("active", channel.active);
+        result.add (item);
+    }
+
+    return juce::var (result);
+}
+
+bool readString (const juce::var& value,
+                 const char* name,
+                 std::string& destination,
+                 std::string& error)
+{
+    if (! value.isString())
+    {
+        error = std::string (name) + " must be a string";
+        return false;
+    }
+
+    destination = value.toString().toStdString();
+    return true;
+}
+
+bool readChannelList (const juce::var& value,
+                      const char* name,
+                      std::vector<int>& destination,
+                      std::string& error)
+{
+    const auto* array = value.getArray();
+
+    if (array == nullptr)
+    {
+        error = std::string (name) + " must be an array of channel indices";
+        return false;
+    }
+
+    std::vector<int> channels;
+    std::set<int> seen;
+
+    for (const auto& item : *array)
+    {
+        std::int64_t parsed = 0;
+
+        if (! readInteger (item, name, 0, 63, parsed, error))
+            return false;
+
+        if (! seen.insert (static_cast<int> (parsed)).second)
+        {
+            error = std::string (name) + " contains duplicate channel "
+                    + juce::String (parsed).toStdString();
+            return false;
+        }
+
+        channels.push_back (static_cast<int> (parsed));
+    }
+
+    destination = std::move (channels);
+    return true;
+}
+} // namespace
+
+juce::var audioStateToVar (const AudioStateSnapshot& audio)
+{
+    auto root = makeObject();
+    auto* object = root.getDynamicObject();
+
+    object->setProperty ("open", audio.open);
+    object->setProperty ("deviceType", juce::String (audio.deviceType));
+    object->setProperty ("deviceName", juce::String (audio.deviceName));
+
+    juce::Array<juce::var> types;
+
+    for (const auto& type : audio.deviceTypes)
+        types.add (juce::String (type));
+
+    object->setProperty ("deviceTypes", juce::var (types));
+
+    juce::Array<juce::var> devices;
+
+    for (const auto& device : audio.devices)
+    {
+        auto item = makeObject();
+        item.getDynamicObject()->setProperty ("type", juce::String (device.type));
+        item.getDynamicObject()->setProperty ("name", juce::String (device.name));
+        devices.add (item);
+    }
+
+    object->setProperty ("devices", juce::var (devices));
+
+    object->setProperty ("sampleRate", audio.sampleRate);
+    object->setProperty ("bufferSize", audio.bufferSize);
+
+    juce::Array<juce::var> rates;
+
+    for (const auto rate : audio.sampleRates)
+        rates.add (rate);
+
+    object->setProperty ("sampleRates", juce::var (rates));
+
+    juce::Array<juce::var> buffers;
+
+    for (const auto size : audio.bufferSizes)
+        buffers.add (size);
+
+    object->setProperty ("bufferSizes", juce::var (buffers));
+
+    object->setProperty ("inputChannels", channelArrayToVar (audio.inputChannels));
+    object->setProperty ("outputChannels", channelArrayToVar (audio.outputChannels));
+
+    auto latency = makeObject();
+    latency.getDynamicObject()->setProperty ("bufferMs", audio.latency.bufferMs);
+    latency.getDynamicObject()->setProperty ("deviceMs", audio.latency.deviceMs);
+    latency.getDynamicObject()->setProperty ("chainMs", audio.latency.chainMs);
+    latency.getDynamicObject()->setProperty ("totalMs", audio.latency.totalMs);
+    object->setProperty ("latency", latency);
+
+    object->setProperty ("xruns", static_cast<juce::int64> (audio.xruns));
+    object->setProperty ("deviceXruns", static_cast<juce::int64> (audio.deviceXruns));
+    object->setProperty ("callbackOverruns", static_cast<juce::int64> (audio.callbackOverruns));
+    object->setProperty ("callbacks", static_cast<juce::int64> (audio.callbacks));
+    object->setProperty ("loadPercent", audio.loadPercent);
+
+    return root;
+}
+
+juce::var audioMeasurementToVar (const AudioMeasurementState& measurement)
+{
+    auto root = makeObject();
+    auto* object = root.getDynamicObject();
+
+    object->setProperty ("valid", measurement.valid);
+    object->setProperty ("roundTripSamples", measurement.roundTripSamples);
+    object->setProperty ("roundTripMs", measurement.roundTripMs);
+    object->setProperty ("expectedMs", measurement.expectedMs);
+    object->setProperty ("confidence", static_cast<double> (measurement.confidence));
+    object->setProperty ("sampleRate", measurement.sampleRate);
+    object->setProperty ("bufferSize", measurement.bufferSize);
+    object->setProperty ("error", juce::String (measurement.error));
+
+    return root;
+}
+
 juce::var meterFrameToVar (const MeterFrame& frame)
 {
     auto root = makeObject();
@@ -369,6 +522,163 @@ void registerRoutes (httplib::Server& server, RouteContext context)
             context.decorate (response);
 
         setJson (response, 200, transportToVar (context.state.getTransport()));
+    });
+
+    // --- Audio device settings (T053) --------------------------------------
+
+    server.Get ("/audio", [context] (const httplib::Request&, httplib::Response& response)
+    {
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        const auto audio = context.audioProvider != nullptr
+                               ? context.audioProvider()
+                               : AudioStateSnapshot {};
+
+        setJson (response, 200, audioStateToVar (audio));
+    });
+
+    server.Post ("/audio", [context] (const httplib::Request& request,
+                                     httplib::Response& response)
+    {
+        juce::var body;
+        std::string error;
+
+        if (! parseJsonObject (request, body, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        AudioSettingsPatch patch;
+        const auto& properties = body.getDynamicObject()->getProperties();
+
+        if (properties.isEmpty())
+        {
+            setError (response, 400, "body must contain at least one audio setting");
+            return;
+        }
+
+        for (int index = 0; index < properties.size(); ++index)
+        {
+            const auto& name = properties.getName (index);
+            const auto& value = properties.getValueAt (index);
+            const auto key = name.toString();
+
+            if (key == "deviceType")
+            {
+                std::string parsed;
+
+                if (! readString (value, "deviceType", parsed, error))
+                {
+                    setError (response, 400, error);
+                    return;
+                }
+
+                patch.deviceType = std::move (parsed);
+            }
+            else if (key == "deviceName")
+            {
+                std::string parsed;
+
+                if (! readString (value, "deviceName", parsed, error))
+                {
+                    setError (response, 400, error);
+                    return;
+                }
+
+                patch.deviceName = std::move (parsed);
+            }
+            else if (key == "sampleRate")
+            {
+                double parsed = 0.0;
+
+                if (! readNumber (value, "sampleRate", 8000.0, 384000.0, parsed, error))
+                {
+                    setError (response, 400, error);
+                    return;
+                }
+
+                patch.sampleRate = parsed;
+            }
+            else if (key == "bufferSize")
+            {
+                std::int64_t parsed = 0;
+
+                if (! readInteger (value, "bufferSize", 16, 8192, parsed, error))
+                {
+                    setError (response, 400, error);
+                    return;
+                }
+
+                patch.bufferSize = static_cast<int> (parsed);
+            }
+            else if (key == "inputChannels")
+            {
+                std::vector<int> parsed;
+
+                if (! readChannelList (value, "inputChannels", parsed, error))
+                {
+                    setError (response, 400, error);
+                    return;
+                }
+
+                patch.inputChannels = std::move (parsed);
+            }
+            else if (key == "outputChannels")
+            {
+                std::vector<int> parsed;
+
+                if (! readChannelList (value, "outputChannels", parsed, error))
+                {
+                    setError (response, 400, error);
+                    return;
+                }
+
+                patch.outputChannels = std::move (parsed);
+            }
+            else
+            {
+                setError (response, 400, "unknown audio setting: " + key.toStdString());
+                return;
+            }
+        }
+
+        if (context.audioApply == nullptr)
+        {
+            setError (response, 503, "no audio backend is attached");
+            return;
+        }
+
+        if (! context.audioApply (patch, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        const auto audio = context.audioProvider != nullptr
+                               ? context.audioProvider()
+                               : AudioStateSnapshot {};
+
+        setJson (response, 200, audioStateToVar (audio));
+    });
+
+    server.Post ("/audio/measure", [context] (const httplib::Request&,
+                                             httplib::Response& response)
+    {
+        if (context.audioMeasure == nullptr)
+        {
+            setError (response, 503, "no audio backend is attached");
+            return;
+        }
+
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        setJson (response, 200, audioMeasurementToVar (context.audioMeasure()));
     });
 }
 

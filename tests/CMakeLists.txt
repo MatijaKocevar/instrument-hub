@@ -961,3 +961,60 @@ add_test(
     COMMAND ihub-api-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Audio settings panel backend (T053) ------------------------------------
+#
+# Part 1 starts the control server against an in-memory audio backend and
+# exercises GET/POST /audio plus POST /audio/measure. Part 2 drives the real
+# AudioSettingsBridge on the ALSA Loopback: buffer 128 -> 256 -> 128, channel
+# remapping, and a round-trip measurement.
+
+juce_add_console_app(ihub-audio-settings-test
+    PRODUCT_NAME "ihub-audio-settings-test"
+)
+
+target_sources(ihub-audio-settings-test
+    PRIVATE
+        api/AudioSettingsTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+)
+
+target_include_directories(ihub-audio-settings-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-audio-settings-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_audio_devices
+        juce::juce_core
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-audio-settings-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-audio-settings
+    COMMAND ihub-audio-settings-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set_tests_properties(ihub-audio-settings PROPERTIES DISABLED TRUE)
+endif()

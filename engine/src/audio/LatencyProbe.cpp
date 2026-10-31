@@ -208,6 +208,17 @@ LatencyResult LatencyProbe::measureOnce (const LatencyProbeOptions& options)
     if (options.inputDeviceName.isNotEmpty())
         pair.capture = options.inputDeviceName;
 
+    if (options.subdevice >= 0)
+    {
+        const auto suffix = ",SUBDEV=" + juce::String (options.subdevice);
+
+        if (! pair.playback.contains (",SUBDEV="))
+            pair.playback += suffix;
+
+        if (! pair.capture.contains (",SUBDEV="))
+            pair.capture += suffix;
+    }
+
     result.outputDeviceName = pair.playback;
     result.inputDeviceName = pair.capture;
 

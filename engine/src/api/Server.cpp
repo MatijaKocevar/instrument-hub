@@ -460,6 +460,9 @@ struct Server::Impl
 
     mutable std::mutex configMutex;
     MeterProvider meterProvider;
+    AudioStateProvider audioProvider;
+    AudioApplyHandler audioApply;
+    AudioMeasureHandler audioMeasure;
     std::string authToken;
     const int meterHz;
 
@@ -495,10 +498,11 @@ bool Server::start()
     self.http->set_pre_routing_handler ([&self] (const httplib::Request& request,
                                                  httplib::Response& response)
     {
-        addCorsHeaders (response);
-
+        // Route handlers add the CORS headers through setJson()/setError();
+        // only a pre-flight response needs them before a handler runs.
         if (request.method == "OPTIONS")
         {
+            addCorsHeaders (response);
             response.status = 204;
             return httplib::Server::HandlerResponse::Handled;
         }
@@ -512,7 +516,15 @@ bool Server::start()
         return httplib::Server::HandlerResponse::Unhandled;
     });
 
-    RouteContext context { self.state, {} };
+    RouteContext context { self.state, {}, {}, {}, {} };
+
+    {
+        const std::lock_guard<std::mutex> lock (self.configMutex);
+        context.audioProvider = self.audioProvider;
+        context.audioApply = self.audioApply;
+        context.audioMeasure = self.audioMeasure;
+    }
+
     registerRoutes (*self.http, context);
     self.registerMeterRoute();
 
@@ -603,6 +615,16 @@ void Server::setMeterProvider (MeterProvider provider)
 {
     const std::lock_guard<std::mutex> lock (impl->configMutex);
     impl->meterProvider = std::move (provider);
+}
+
+void Server::setAudioHandlers (AudioStateProvider provider,
+                               AudioApplyHandler apply,
+                               AudioMeasureHandler measure)
+{
+    const std::lock_guard<std::mutex> lock (impl->configMutex);
+    impl->audioProvider = std::move (provider);
+    impl->audioApply = std::move (apply);
+    impl->audioMeasure = std::move (measure);
 }
 
 void Server::setAuthToken (std::string token)
