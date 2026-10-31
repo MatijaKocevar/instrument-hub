@@ -1,0 +1,55 @@
+# Build output
+/build/
+/build-*/
+/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.lib
+*.exe
+*.pdb
+*.ilk
+
+# CMake / Ninja generated
+.ninja_deps
+.ninja_log
+build.ninja
+
+# Node / React UI
+node_modules/
+ui/dist/
+ui/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Test and runtime artifacts
+/tests/artifacts/
+*.ihub.tmp
+*.wav.tmp
+/out/
+/tmp/
+*.log
+!plan/*.log
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# Local environment
+.env
+.env.local
