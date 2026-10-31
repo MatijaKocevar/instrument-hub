@@ -1,6 +1,7 @@
 #include "Bridge/WebView.h"
 #include "Session.h"
 #include "api/Server.h"
+#include "api/SessionBridge.h"
 #include "audio/AudioEngine.h"
 #include "audio/AudioSettings.h"
 #include "audio/DeviceManager.h"
@@ -1212,33 +1213,14 @@ private:
         apiServer = std::make_unique<Api::Server> (*apiState, options);
         audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
 
-        // The session is the single owner of the audio device. Mirror its
-        // slots into the state store and route arm requests into the
-        // SlotSwitcher; the UI and the controller then drive real audio.
+        // The session is the single owner of the audio device. Wire the API to
+        // it: arm requests reach SlotSwitcher, transport commands drive the
+        // session transport, /state reports the live slot states and /meters
+        // reads the real slot and master peaks.
         if (session != nullptr)
         {
-            apiState->setArmHandler ([this] (int slot)
-            {
-                if (session != nullptr)
-                    session->armSlot (slot);
-            });
-
-            const auto& slotConfigs = session->getSlotConfigs();
-            const auto engineSampleRate = session->getEngine().getSampleRate();
-
-            for (int index = 0; index < apiState->getNumSlots(); ++index)
-            {
-                if (index < static_cast<int> (slotConfigs.size()))
-                    apiState->setSlotName (index,
-                                           slotConfigs[static_cast<std::size_t> (index)].name);
-
-                apiState->setSlotLatency (index,
-                                          session->getSlotLatencySamples (index),
-                                          engineSampleRate);
-            }
-
+            Api::attachSession (*apiState, *apiServer, *session);
             audioSettings->setTimingMonitor (&session->getEngine().getTimingMonitor());
-            (void) apiState->setArmedSlot (0);
         }
 
         if (session == nullptr

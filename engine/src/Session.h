@@ -3,10 +3,12 @@
 #include "audio/AudioEngine.h"
 #include "audio/DeviceManager.h"
 #include "audio/SlotSwitcher.h"
+#include "audio/Transport.h"
 #include "instruments/Instrument.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -224,6 +226,25 @@ public:
     AudioEngine::SlotSwitcher& getSwitcher() noexcept;
     const AudioEngine::SlotSwitcher& getSwitcher() const noexcept;
 
+    /** The session transport. `render()` advances it by the frames it renders
+        while it is playing, so `/transport` position is sample-accurate.
+
+        Control-thread setters are lock-free; the audio thread only calls
+        `process()`.
+    */
+    AudioEngine::Transport& getTransport() noexcept { return transport; }
+    const AudioEngine::Transport& getTransport() const noexcept { return transport; }
+
+    /** Most recent crossfade-weighted peak of one slot, 0 when silent.
+
+        Written by `render()` / the device callback and read by the meter
+        broadcaster: plain relaxed atomics, no locks and no audio-thread work.
+    */
+    float getSlotMeterPeak (int slot) const noexcept;
+
+    /** Most recent peak of the mixed master bus. */
+    float getMasterMeterPeak() const noexcept;
+
     const SessionConfig& getConfig() const noexcept { return config; }
     const std::vector<SessionSlotConfig>& getSlotConfigs() const noexcept
     {
@@ -285,6 +306,7 @@ private:
                                            juce::String& error);
     bool resolveDevice (AudioEngine::DeviceSetup& setup, juce::String& error);
     void renderInternal (int numSamples, juce::MidiBuffer& midi) noexcept;
+    void updateMeters (int numSamples) noexcept;
     void copyToOutput (float* const* outputChannelData,
                        int numOutputChannels,
                        int numSamples) noexcept;
@@ -302,9 +324,15 @@ private:
     std::unique_ptr<AudioEngine::AudioEngine> engine;
     std::unique_ptr<AudioEngine::SlotSwitcher> switcher;
     AudioEngine::DeviceManager devices;
+    AudioEngine::Transport transport;
 
     juce::AudioBuffer<float> renderBuffer;
     juce::MidiBuffer blockMidi;
+
+    // Peak meters published by the audio thread. Allocated once in prepare().
+    std::unique_ptr<std::atomic<float>[]> slotMeterPeaks;
+    std::atomic<float> masterMeterPeak { 0.0f };
+    int meterSlotCount = 0;
 
     double sampleRate = 48000.0;
     int maximumBlockSize = 0;

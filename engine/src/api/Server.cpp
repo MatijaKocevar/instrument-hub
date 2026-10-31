@@ -172,8 +172,28 @@ bool StateStore::updateSettings (const juce::var& patch, std::string& error)
 
 TransportState StateStore::getTransport() const
 {
-    const std::lock_guard<std::mutex> lock (mutex);
-    return transport;
+    TransportProvider provider;
+    TransportState current;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        current = transport;
+        provider = transportProvider;
+    }
+
+    if (provider != nullptr)
+    {
+        try
+        {
+            return provider();
+        }
+        catch (...)
+        {
+            // A broken provider must not take the HTTP thread down.
+        }
+    }
+
+    return current;
 }
 
 bool StateStore::updateTransport (const juce::var& patch, std::string& error)
@@ -247,7 +267,7 @@ bool StateStore::updateTransport (const juce::var& patch, std::string& error)
     }
 
     if (handler != nullptr)
-        handler (next);
+        handler (next, patch);
 
     if (changed != nullptr)
         changed ("transport", -1);
@@ -259,6 +279,18 @@ void StateStore::setTransportHandler (TransportHandler handler)
 {
     const std::lock_guard<std::mutex> lock (mutex);
     transportHandler = std::move (handler);
+}
+
+void StateStore::setTransportProvider (TransportProvider provider)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    transportProvider = std::move (provider);
+}
+
+void StateStore::setSlotRuntimeProvider (SlotRuntimeProvider provider)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    slotRuntimeProvider = std::move (provider);
 }
 
 void StateStore::setChangeHandler (ChangeHandler handler)
@@ -317,6 +349,8 @@ void StateStore::setSlotLatency (int slot, int samples, double sampleRate)
 StateSnapshot StateStore::snapshot() const
 {
     StateSnapshot result;
+    TransportProvider transportReader;
+    SlotRuntimeProvider slotReader;
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
@@ -337,6 +371,40 @@ StateSnapshot StateStore::snapshot() const
             slot.latencySamples = slotLatencySamples[position];
             slot.latencyMs = slotLatencyMs[position];
             result.slots.push_back (std::move (slot));
+        }
+
+        transportReader = transportProvider;
+        slotReader = slotRuntimeProvider;
+    }
+
+    // The providers read the live session. They run outside the store's lock
+    // and only touch lock-free audio-graph values.
+    if (transportReader != nullptr)
+    {
+        try
+        {
+            result.transport = transportReader();
+        }
+        catch (...)
+        {
+        }
+    }
+
+    if (slotReader != nullptr)
+    {
+        for (auto& slot : result.slots)
+        {
+            try
+            {
+                const auto runtime = slotReader (slot.index);
+                slot.armed = runtime.armed;
+                slot.gain = runtime.gain;
+                slot.state = runtime.state;
+            }
+            catch (...)
+            {
+                // Keep the store's synthetic values for this slot.
+            }
         }
     }
 
