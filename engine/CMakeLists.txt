@@ -92,6 +92,8 @@ target_sources(instrument-hub
         src/audio/RtGuard.cpp
         src/audio/Slot.cpp
         src/audio/TimingMonitor.cpp
+        src/plugins/Scanner.cpp
+        src/plugins/ScannerProcess.cpp
 )
 
 target_include_directories(instrument-hub
@@ -103,6 +105,7 @@ target_compile_definitions(instrument-hub
     PRIVATE
         JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:instrument-hub,JUCE_PRODUCT_NAME>"
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:instrument-hub,JUCE_VERSION>"
+        JUCE_PLUGINHOST_VST3=1
 )
 
 target_link_libraries(instrument-hub
@@ -169,3 +172,53 @@ set_target_properties(instrument-hub PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
     RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Out-of-process plugin scanner (T021) -----------------------------------
+#
+# A tiny console helper, launched once per plugin bundle:
+#
+#     ihub-scanner --scan <bundle.vst3> --out <result.xml> [--format VST3]
+#
+# It is the only binary that ever loads plugin code, so a VST3 that segfaults
+# during scan cannot take the application down with it. ScannerProcess looks
+# for it next to instrument-hub.
+
+juce_add_console_app(ihub-scanner
+    PRODUCT_NAME "ihub-scanner"
+)
+
+target_sources(ihub-scanner
+    PRIVATE
+        src/plugins/scanner_main.cpp
+)
+
+target_include_directories(ihub-scanner
+    PRIVATE
+        src
+)
+
+target_compile_definitions(ihub-scanner
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+)
+
+target_link_libraries(ihub-scanner
+    PRIVATE
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-scanner PROPERTIES
+    OUTPUT_NAME "ihub-scanner"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# The app shells out to the helper; building the app should always produce it.
+add_dependencies(instrument-hub ihub-scanner)
