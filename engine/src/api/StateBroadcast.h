@@ -28,7 +28,8 @@ enum class StateEventKind
     arm,         ///< the armed slot changed (`POST /arm`, pad selection)
     settings,    ///< `POST /settings`
     transport,   ///< `POST /transport`
-    slot         ///< a slot name or latency changed
+    slot,        ///< a slot name or latency changed
+    patch        ///< `PATCH /patches/{slot}` changed mix or colour
 };
 
 /** One mirrored pad. */

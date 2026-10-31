@@ -80,6 +80,30 @@ struct SessionSlotConfig
     /** Post-instrument gain, 0 .. 4. */
     float gain = 1.0f;
 
+    /** Stereo balance, -1 (left) .. +1 (right). Published by the API; the
+        graph has no panner yet. */
+    float pan = 0.0f;
+
+    /** Patch mute. Applied to the slot gain (muted patches are silent). */
+    bool muted = false;
+
+    /** Patch solo. When any patch is soloed, the others are silent. */
+    bool solo = false;
+
+    /** Resolved palette index, 0 .. 15. */
+    int colorIndex = 0;
+
+    /** Instrument descriptor published by `/state`. `kind` above is the audio
+        source this session actually instantiates; a set may describe a plugin
+        patch while the default session renders the initialisation tone. */
+    std::string instrumentKind = "init-tone";
+    std::string pluginFormat = "VST3";
+    std::string pluginId;
+    std::string pluginName;
+    std::string pluginManufacturer;
+    std::string pluginVersion;
+    std::string samplePath;
+
     /** Interface channel copied by an audio-input slot. */
     int inputChannel = 0;
 
@@ -349,6 +373,11 @@ public:
     /** The most recently requested slot, including a cold slot still warming.
         -1 when disarmed. */
     int getArmedSlot() const noexcept;
+
+    /** Publishes a patch's effective linear gain (already including mute and
+        solo) to its fixed engine slot. Lock-free atomic store; call from a
+        control thread, never the audio thread. */
+    void setSlotGain (int slot, float linearGain) noexcept;
 
     //==============================================================================
     // Audio thread / offline rendering

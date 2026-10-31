@@ -3,6 +3,7 @@
 #include <juce_core/juce_core.h>
 
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <set>
 
@@ -109,7 +110,7 @@ std::string toJson (const juce::var& value)
 void addCorsHeaders (httplib::Response& response)
 {
     response.set_header ("Access-Control-Allow-Origin", "*");
-    response.set_header ("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response.set_header ("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
     response.set_header ("Access-Control-Allow-Headers",
                          "Content-Type, Authorization, X-Instrument-Hub-Token");
     response.set_header ("Access-Control-Max-Age", "600");
@@ -211,6 +212,39 @@ juce::var stateToVar (const StateSnapshot& state)
             patchVar.getDynamicObject()->setProperty ("family", juce::String (patch.family));
             patchVar.getDynamicObject()->setProperty ("familyName",
                                                       juce::String (patch.familyName));
+
+            auto instrument = makeObject();
+            instrument.getDynamicObject()->setProperty (
+                "id", juce::String (patch.instrument.id));
+            instrument.getDynamicObject()->setProperty (
+                "name", juce::String (patch.instrument.name));
+            instrument.getDynamicObject()->setProperty (
+                "kind", juce::String (patch.instrument.kind));
+            instrument.getDynamicObject()->setProperty (
+                "pluginFormat", juce::String (patch.instrument.pluginFormat));
+            instrument.getDynamicObject()->setProperty (
+                "pluginId", juce::String (patch.instrument.pluginId));
+            instrument.getDynamicObject()->setProperty (
+                "pluginName", juce::String (patch.instrument.pluginName));
+            instrument.getDynamicObject()->setProperty (
+                "pluginManufacturer", juce::String (patch.instrument.pluginManufacturer));
+            instrument.getDynamicObject()->setProperty (
+                "pluginVersion", juce::String (patch.instrument.pluginVersion));
+            instrument.getDynamicObject()->setProperty (
+                "samplePath", juce::String (patch.instrument.samplePath));
+            patchVar.getDynamicObject()->setProperty ("instrument", instrument);
+
+            patchVar.getDynamicObject()->setProperty ("volumeDb", patch.volumeDb);
+            patchVar.getDynamicObject()->setProperty ("pan", patch.pan);
+            patchVar.getDynamicObject()->setProperty ("mute", patch.mute);
+            patchVar.getDynamicObject()->setProperty ("solo", patch.solo);
+            patchVar.getDynamicObject()->setProperty ("colorIndex", patch.colorIndex);
+            patchVar.getDynamicObject()->setProperty ("warmState",
+                                                      juce::String (patch.warmState));
+            patchVar.getDynamicObject()->setProperty ("warm", patch.warm);
+            patchVar.getDynamicObject()->setProperty ("latencySamples",
+                                                      patch.latencySamples);
+            patchVar.getDynamicObject()->setProperty ("latencyMs", patch.latencyMs);
             patches.add (patchVar);
         }
 
@@ -504,6 +538,52 @@ void registerRoutes (httplib::Server& server, RouteContext context)
         if (! context.state.setArmedSlot (slot))
         {
             setError (response, 400, "slot is out of range");
+            return;
+        }
+
+        if (context.decorate != nullptr)
+            context.decorate (response);
+
+        setJson (response, 200, stateToVar (context.state.snapshot()));
+    });
+
+    // --- Patch mix / colour (T120) -----------------------------------------
+
+    server.Patch (R"(/patches/(\d+))",
+                  [context] (const httplib::Request& request,
+                             httplib::Response& response)
+    {
+        int slot = -1;
+
+        if (request.matches.size() > 1)
+        {
+            const auto text = request.matches[1].str();
+            char* end = nullptr;
+            const long parsed = std::strtol (text.c_str(), &end, 10);
+
+            if (end != nullptr && *end == '\0'
+                && parsed >= 0 && parsed < context.state.getNumSlots())
+                slot = static_cast<int> (parsed);
+        }
+
+        if (slot < 0)
+        {
+            setError (response, 404, "patch slot is out of range");
+            return;
+        }
+
+        juce::var body;
+        std::string error;
+
+        if (! parseJsonObject (request, body, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        if (! context.state.updatePatch (slot, body, error))
+        {
+            setError (response, 400, error);
             return;
         }
 

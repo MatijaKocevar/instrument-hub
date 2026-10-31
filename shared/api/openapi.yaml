@@ -105,6 +105,65 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /patches/{slot}:
+    patch:
+      tags: [control]
+      operationId: updatePatch
+      summary: Change one patch's mix or colour
+      description: |
+        Accepts a partial object for the patch hosted by `slot`. The provided
+        fields are validated before anything is applied, so an invalid request
+        never half-updates the patch. The instrument descriptor and the live
+        warm/latency values are read-only here (they come from the set and the
+        warm pool).
+
+        `volumeDb`, `mute` and `solo` are resolved by the engine into the slot's
+        effective gain, so the change is audible on the next block. A mute or a
+        solo anywhere in the set updates every patch's effective gain. The
+        response is the complete state after the change, and the same change is
+        published as an `event.kind: "patch"` frame on `/events`.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: slot
+          in: path
+          required: true
+          description: Fixed audio-graph slot index, 0 .. 63.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 63
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchUpdate"
+            examples:
+              quieter:
+                value: { volumeDb: -12, colorIndex: 5 }
+              mute:
+                value: { mute: true }
+      responses:
+        "200":
+          description: The state after the patch change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No patch is hosted by that slot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /settings:
     get:
       tags: [state]
@@ -356,7 +415,9 @@ paths:
         - a hardware pad is pressed or released (`event.kind: "pad"`),
         - `POST /arm` changes the armed slot (`"arm"`),
         - `POST /settings` or `POST /transport` succeeds,
-        - a slot name or measured latency changes (`"slot"`).
+        - a slot name or measured latency changes (`"slot"`),
+        - `PATCH /patches/{slot}` changes a patch's volume, pan, mute, solo or
+          colour (`"patch"`).
 
         Frames are coalesced: a slow client skips sequence numbers instead of
         receiving a backlog. Each frame embeds the same document as
@@ -704,10 +765,137 @@ components:
           minimum: -1
           description: Slot to arm. `null` or a negative value disarms.
 
+    PatchInstrument:
+      type: object
+      required: [id, name, kind]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Stable instrument id inside the set.
+        name:
+          type: string
+          description: Display name.
+        kind:
+          type: string
+          enum: [init-tone, sampler, plugin, audio-input]
+          description: Instrument source described by the patch.
+        pluginFormat:
+          type: string
+          description: Plugin format for a plugin patch (`VST3`).
+        pluginId:
+          type: string
+        pluginName:
+          type: string
+        pluginManufacturer:
+          type: string
+        pluginVersion:
+          type: string
+        samplePath:
+          type: string
+          description: Kit document for a sampler patch.
+
+    Patch:
+      type: object
+      required:
+        [slot, id, name, family, familyName, instrument, volumeDb, pan, mute,
+         solo, colorIndex, warmState, warm, latencySamples, latencyMs]
+      additionalProperties: false
+      properties:
+        slot:
+          type: integer
+          minimum: 0
+          description: Fixed audio-graph slot that hosts this patch.
+        id:
+          type: string
+          description: Patch id inside its family.
+        name:
+          type: string
+        family:
+          type: string
+          description: Family id.
+        familyName:
+          type: string
+        instrument:
+          $ref: "#/components/schemas/PatchInstrument"
+        volumeDb:
+          type: number
+          minimum: -60
+          maximum: 12
+          description: Patch volume in dB (-60 is silence).
+        pan:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Stereo balance, -1 left .. +1 right.
+        mute:
+          type: boolean
+          description: Muted patches are silent.
+        solo:
+          type: boolean
+          description: When any patch is soloed, the others are silent.
+        colorIndex:
+          type: integer
+          minimum: 0
+          maximum: 15
+          description: Resolved palette index (family default or patch override).
+        warmState:
+          type: string
+          enum: [cold, warming, warm, active, fading]
+          description: Warm-pool state of the patch.
+        warm:
+          type: boolean
+          description: True when the instrument instance is resident.
+        latencySamples:
+          type: integer
+          minimum: 0
+          description: Instrument + FX latency of this patch's chain, in samples.
+        latencyMs:
+          type: number
+          minimum: 0
+          description: The same chain latency in milliseconds.
+
+    Family:
+      type: object
+      required: [id, name, patches]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        patches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Patch"
+
+    PatchUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        volumeDb:
+          type: number
+          minimum: -60
+          maximum: 12
+        pan:
+          type: number
+          minimum: -1
+          maximum: 1
+        mute:
+          type: boolean
+        solo:
+          type: boolean
+        colorIndex:
+          type: integer
+          minimum: 0
+          maximum: 15
+
     State:
       type: object
       required:
-        [schemaVersion, application, armedSlot, uptimeMs, slots, settings, transport]
+        [schemaVersion, application, armedSlot, uptimeMs, slots, families,
+         settings, transport]
       additionalProperties: false
       properties:
         schemaVersion:
@@ -726,6 +914,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Slot"
+        families:
+          type: array
+          description: Family -> patch tree, one entry per patch.
+          items:
+            $ref: "#/components/schemas/Family"
         settings:
           $ref: "#/components/schemas/Settings"
         transport:

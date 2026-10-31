@@ -422,6 +422,11 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
 
     voices.reserve (static_cast<std::size_t> (slotCount));
 
+    bool anySolo = false;
+
+    for (const auto& slotConfig : config.slots)
+        anySolo = anySolo || slotConfig.solo;
+
     std::vector<AudioEngine::Slot*> slotPointers;
     slotPointers.reserve (static_cast<std::size_t> (slotCount));
 
@@ -431,9 +436,12 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
         auto* source = static_cast<AudioEngine::SlotSource*> (voice.get());
         voices.push_back (std::move (voice));
 
+        const auto& slotConfig = config.slots[static_cast<std::size_t> (index)];
+        const bool silent = slotConfig.muted || (anySolo && ! slotConfig.solo);
+
         auto& slot = engine->getSlot (index);
         slot.setSource (source);
-        slot.setGain (config.slots[static_cast<std::size_t> (index)].gain);
+        slot.setGain (silent ? 0.0f : slotConfig.gain);
 
         slotPointers.push_back (&slot);
     }
@@ -1124,6 +1132,18 @@ void Session::armSlot (int slot)
 int Session::getArmedSlot() const noexcept
 {
     return requestedSlot.load (std::memory_order_relaxed);
+}
+
+void Session::setSlotGain (int slot, float linearGain) noexcept
+{
+    if (slot < 0 || slot >= static_cast<int> (config.slots.size()))
+        return;
+
+    const float clamped = juce::jlimit (0.0f, 4.0f, linearGain);
+    config.slots[static_cast<std::size_t> (slot)].gain = clamped;
+
+    if (engine != nullptr && slot < engine->getNumSlots())
+        engine->getSlot (slot).setGain (clamped);
 }
 
 //==============================================================================

@@ -57,7 +57,31 @@ struct SlotSnapshot
     double latencyMs = 0.0;
 };
 
-/** One patch in the family tree exposed by `GET /state`. */
+/** Instrument descriptor published with every patch in the family tree.
+
+    The descriptor is read-only over the control API: changing the source is
+    the instrument page's job. It is present for every patch, hot or cold, so
+    the grid can show a plugin/sampler patch before its instance is loaded.
+*/
+struct PatchInstrumentState
+{
+    std::string id;
+    std::string name;
+    std::string kind = "init-tone";
+    std::string pluginFormat = "VST3";
+    std::string pluginId;
+    std::string pluginName;
+    std::string pluginManufacturer;
+    std::string pluginVersion;
+    std::string samplePath;
+};
+
+/** One patch in the family tree exposed by `GET /state`.
+
+    Every patch carries its instrument descriptor, mixer state, resolved colour
+    and live warm/latency values, so the UI can render the whole grid from one
+    state document.
+*/
 struct PatchState
 {
     int slot = -1;
@@ -65,6 +89,26 @@ struct PatchState
     std::string name;
     std::string family;
     std::string familyName;
+
+    PatchInstrumentState instrument;
+
+    /** Patch volume in dB, -60 .. +12. */
+    double volumeDb = 0.0;
+    /** Stereo balance, -1 (left) .. +1 (right). */
+    double pan = 0.0;
+    bool mute = false;
+    bool solo = false;
+
+    /** Resolved palette index, 0 .. 15 (family default or patch override). */
+    int colorIndex = 0;
+
+    /** Live warm-pool state: cold, warming, warm, active or fading. */
+    std::string warmState = "cold";
+    bool warm = false;
+
+    /** Instrument + FX latency of this patch's chain. */
+    int latencySamples = 0;
+    double latencyMs = 0.0;
 };
 
 /** One instrument family in the family tree. */
@@ -333,10 +377,11 @@ public:
 
     /** Called after every successful mutation of the store.
 
-        `kind` is `"arm"`, `"settings"`, `"transport"` or `"slot"`; `slot` is
-        the affected slot for `"arm"`/`"slot"` and -1 otherwise. The handler
-        runs outside the store's lock, on the thread that made the change, so
-        it must not block the audio path (it never is on it).
+        `kind` is `"arm"`, `"settings"`, `"transport"`, `"slot"` or `"patch"`;
+        `slot` is the affected slot for `"arm"`/`"slot"`/`"patch"` and -1
+        otherwise. The handler runs outside the store's lock, on the thread that
+        made the change, so it must not block the audio path (it never is on
+        it).
 
         `StateBroadcast` installs this to mirror API and controller changes to
         the connected clients. There is one handler per store.
@@ -369,12 +414,71 @@ public:
     std::vector<FamilyState> getFamilyTree() const;
 
     //==============================================================================
+    // Patch mix / colour (T120)
+
+    /** Seeds the instrument descriptor of one patch. Called when a set is
+        composed; it does not broadcast a change. Ignored for an invalid slot.
+    */
+    void setPatchInstrument (int slot, PatchInstrumentState instrument);
+
+    /** Seeds the persistent mixer/colour state of one patch.
+
+        Values are clamped to the API ranges (`volumeDb` -60..12, `pan` -1..1,
+        `colorIndex` 0..15). Called when a set is composed; it does not
+        broadcast a change.
+    */
+    void setPatchMix (int slot,
+                      double volumeDb,
+                      double pan,
+                      bool mute,
+                      bool solo,
+                      int colorIndex);
+
+    /** The stored patch, without live warm/latency values. */
+    PatchState getPatch (int slot) const;
+
+    /** Applies a partial patch update from `PATCH /patches/{slot}`.
+
+        Accepts `volumeDb`, `pan`, `mute` (or `muted`), `solo` and `colorIndex`.
+        Unknown fields and out-of-range values are rejected before anything is
+        applied. On success every slot's effective gain is recomputed (mute and
+        solo are global) and the patch handler is called once per slot.
+    */
+    bool updatePatch (int slot, const juce::var& patch, std::string& error);
+
+    /** Applies a patch's effective linear gain to the audio graph.
+
+        `gain` already includes the mute/solo decision, so the handler only has
+        to publish it to the slot. It runs outside the store's lock, on the
+        thread that made the change, and must be lock-free (never the audio
+        thread).
+    */
+    using PatchHandler = std::function<void (int slot,
+                                             const PatchState& patch,
+                                             float gain)>;
+    void setPatchHandler (PatchHandler handler);
+
+    //==============================================================================
     // Inspection
 
     StateSnapshot snapshot() const;
     double getUptimeMs() const noexcept;
 
 private:
+    /** Persistent mixer/colour state of one slot (T120). */
+    struct PatchMixState
+    {
+        double volumeDb = 0.0;
+        double pan = 0.0;
+        bool mute = false;
+        bool solo = false;
+        int colorIndex = 0;
+    };
+
+    PatchState makePatchLocked (int slot) const;
+    void collectEffectiveGainsLocked (const std::vector<PatchMixState>& mixes,
+                                      std::vector<float>& gains) const;
+
     mutable std::mutex mutex;
 
     const int numSlots;
@@ -386,6 +490,8 @@ private:
     std::vector<std::string> slotPatchNames;
     std::vector<int> slotLatencySamples;
     std::vector<double> slotLatencyMs;
+    std::vector<PatchInstrumentState> slotInstruments;
+    std::vector<PatchMixState> slotMixes;
     std::vector<FamilyState> families;
     SettingsState settings;
     TransportState transport;
@@ -393,6 +499,7 @@ private:
     ArmHandler armHandler;
     TransportHandler transportHandler;
     ChangeHandler changeHandler;
+    PatchHandler patchHandler;
     TransportProvider transportProvider;
     SlotRuntimeProvider slotRuntimeProvider;
 
@@ -414,6 +521,7 @@ private:
     - `GET  /settings`
     - `POST /settings`
     - `POST /transport`
+    - `PATCH /patches/{slot}`
     - `GET  /audio`
     - `POST /audio`
     - `POST /audio/measure`
