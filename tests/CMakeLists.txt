@@ -1535,6 +1535,7 @@ juce_add_console_app(ihub-set-file-test
 target_sources(ihub-set-file-test
     PRIVATE
         project/SetFileTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
@@ -1579,6 +1580,67 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Set migrations (T082) --------------------------------------------------
+#
+# Loads the committed v1 fixture (fixtures/set-v1.ihub) through
+# Serializer::load() and asserts it arrives as a complete v2 document: every v1
+# value preserved, `notes` and every slot `colour` filled in with their
+# defaults, and the migrated result writable and reloadable as v2. Also checks
+# the chain directly (step count, idempotence, explicit values preserved) and
+# that a newer schema version is rejected rather than guessed at.
+
+juce_add_console_app(ihub-migrations-test
+    PRODUCT_NAME "ihub-migrations-test"
+)
+
+target_sources(ihub-migrations-test
+    PRIVATE
+        project/MigrationsTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+)
+
+target_include_directories(ihub-migrations-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-migrations-test
+    PRIVATE
+        "IHUB_V1_SET_FIXTURE=\"${CMAKE_CURRENT_SOURCE_DIR}/project/fixtures/set-v1.ihub\""
+)
+
+target_link_libraries(ihub-migrations-test
+    PRIVATE
+        juce::juce_audio_devices
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-migrations-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-migrations
+    COMMAND ihub-migrations-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- Plugin state store (T081) ----------------------------------------------
 #
 # Acceptance: a set whose second slot names a plugin that is not installed
@@ -1594,6 +1656,7 @@ juce_add_console_app(ihub-plugin-state-store-test
 target_sources(ihub-plugin-state-store-test
     PRIVATE
         project/PluginStateStoreTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/PluginStateStore.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"

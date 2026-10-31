@@ -127,6 +127,7 @@ target_sources(instrument-hub
         src/plugins/PluginWindow.cpp
         src/plugins/Scanner.cpp
         src/plugins/ScannerProcess.cpp
+        src/project/Migrations.cpp
         src/project/PluginStateStore.cpp
         src/project/SetFile.cpp
         src/project/Serializer.cpp

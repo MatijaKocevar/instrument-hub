@@ -48,9 +48,10 @@ public:
 
     /** Reads `file` into `destination`.
 
-        Returns false and fills `error` on a missing file, a malformed or
-        hostile archive, an unsupported schema version, or a document that
-        fails `SetFile::validate()`.
+        Older `set.json` documents are migrated to the current schema version
+        before they are validated (see `Migrations.h`). Returns false and fills
+        `error` on a missing file, a malformed or hostile archive, a document
+        newer than this build, or a document that fails `SetFile::validate()`.
     */
     static bool load (const juce::File& file, SetFile& destination, juce::String& error);
 };

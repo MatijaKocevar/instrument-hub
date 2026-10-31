@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Migrations.h"
+
 #include <juce_core/juce_core.h>
 
 #include <map>
@@ -14,13 +16,6 @@ class AudioEngine;
 
 namespace ihub::project
 {
-
-/** Version of the `set.json` document stored in a `.ihub` container.
-
-    A loaded document with a different version is rejected by the serializer
-    until a migration exists (T082).
-*/
-inline constexpr int currentSetSchemaVersion = 1;
 
 /** Directory inside the container that holds plugin state blobs. */
 inline constexpr const char* pluginStateDirectory = "plugin-state";
@@ -37,6 +32,12 @@ bool isValidPluginStateId (std::string_view id) noexcept;
 
 /** Generates a fresh UUID suitable for a plugin state chunk. */
 std::string makePluginStateId();
+
+/** True when `colour` is a `#rrggbb` hex string (ASCII, either case). */
+bool isValidSlotColour (std::string_view colour) noexcept;
+
+/** Longest accepted `SetFile::notes` text, in bytes. */
+inline constexpr std::size_t maximumSetNotesBytes = 64 * 1024;
 
 /** What produces audio for a slot. */
 enum class SourceKind
@@ -120,6 +121,9 @@ struct SlotConfig
     /** Slot gain, 0 .. 4. A muted slot is applied as gain 0. */
     float gain = 1.0f;
 
+    /** Grid colour as `#rrggbb`. Added by schema v2. */
+    std::string colour = defaultSlotColour;
+
     bool active = false;
     bool muted = false;
 
@@ -177,6 +181,9 @@ struct SetFile
 
     int schemaVersion = currentVersion;
     std::string name = "Untitled Set";
+
+    /** Free-form set notes. Added by schema v2 (empty in a migrated v1 set). */
+    std::string notes;
 
     std::vector<SlotConfig> slots;
     std::vector<PluginStateChunk> pluginStates;
