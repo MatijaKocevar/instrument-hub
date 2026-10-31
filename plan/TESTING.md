@@ -1,0 +1,100 @@
+# Testing Without Hardware
+
+Everything here runs on this machine. No controller, no interface, no plugins.
+
+---
+
+## Audio: ALSA loopback
+
+`card 2: Loopback` is already loaded — playback device 0 feeds capture device 0.
+Find it by name, never by index:
+
+```bash
+aplay -l | grep -i loopback
+```
+
+Rules:
+
+- Prefer `hw:Loopback,0,0` for playback and `hw:Loopback,1,0` for capture.
+- 48 kHz, 128 frames unless the task says otherwise.
+- If silence comes back, check that nothing else holds the capture side
+  (`fuser -v /dev/snd/pcmC2D0p`), and remember loopback has 8 subdevices —
+  a previous test may still own one.
+
+Round-trip latency: play an impulse, capture it, cross-correlate, report
+`lag_samples * 1000 / sample_rate` ms. Expect roughly `2 * buffer / sr`
+plus a small constant.
+
+Xruns: time `processBlock` against `buffer / sr`. On the loopback this is
+a *lower bound* — real hardware is slower. Record that caveat.
+
+---
+
+## MIDI: virtual Launchkey
+
+ALSA sequencer (`/dev/snd/seq`) is present. The simulator creates a port
+literally named `Launchkey Mini MK3 SIM` so the driver's device matching
+can be tested unmodified.
+
+Fixture format (JSON):
+
+```json
+{ "events": [
+  { "t": 0,    "type": "sysex", "hex": "F0 00 20 29 02 0F 00 ... F7" },
+  { "t": 120,  "type": "noteon", "ch": 1, "note": 36, "vel": 100 },
+  { "t": 360,  "type": "noteoff","ch": 1, "note": 36, "vel": 0 }
+] }
+```
+
+Timestamps are milliseconds from start. The simulator also records every
+message the app emits, so LED output can be compared against a golden file.
+
+Anything the driver says is untested without this is not tested.
+
+---
+
+## Plugins: our own
+
+`tests/plugins/TestPlugin` is a JUCE VST3 we build ourselves:
+
+- a sine generator with a settable frequency
+- a gain parameter
+- a settable artificial latency (0–20 ms)
+- a non-default parameter used to prove state round-trips
+
+This removes all third-party dependency from CI. Optical plugins
+(Analog Lab, EZdrummer) are only ever exercised by a human — see `BLOCKERS.md`.
+
+---
+
+## UI
+
+- Headless-ish: `DISPLAY=:0` is available, so the real window can run.
+- Screenshots come from inside JUCE (`Component::createComponentSnapshot`),
+  exposed as `--snapshot out.png`. Do not shell out to a desktop screenshot tool.
+- A snapshot is valid only if it is non-blank and the expected widget count is
+  found. "It rendered" is not a test; assert on pixels or on the DOM via the
+  web view's JS bridge.
+
+---
+
+## Determinism
+
+- Render to file and compare against goldens with a tolerance, never exact bytes,
+  for anything touching floating point.
+- Randomised tests must seed from a constant.
+- Audio tests must not depend on wall-clock timing.
+
+---
+
+## Commands you will use constantly
+
+```bash
+scripts/build.sh                       # configure + build
+./build/engine/instrument-hub --selftest
+./build/engine/instrument-hub --list-devices
+./build/engine/instrument-hub --measure-latency
+./build/engine/instrument-hub --snapshot out.png
+./build/tests/ihub-selftest --midi-probe
+ctest --test-dir build --output-on-failure
+```
