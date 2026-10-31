@@ -1,6 +1,7 @@
 #include "Bridge/WebView.h"
 #include "api/Server.h"
 #include "audio/AudioEngine.h"
+#include "audio/AudioSettings.h"
 #include "audio/DeviceManager.h"
 #include "audio/RtGuard.h"
 #include "plugins/Scanner.h"
@@ -513,6 +514,7 @@ public:
             apiServer->stop();
 
         apiServer.reset();
+        audioSettings.reset();
         apiState.reset();
         mainWindow.reset();
     }
@@ -539,6 +541,34 @@ private:
 
         apiState = std::make_unique<Api::StateStore> (AudioEngine::AudioEngine::defaultNumSlots);
         apiServer = std::make_unique<Api::Server> (*apiState, options);
+        audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
+
+        if (commandLine.contains ("--audio")
+            || commandLine.contains ("--audio-loopback"))
+        {
+            juce::String audioError;
+
+            if (audioSettings->openLoopback (&audioError))
+            {
+                std::cout << "audio: opened Loopback at "
+                          << audioSettings->snapshot().sampleRate << " Hz / "
+                          << audioSettings->snapshot().bufferSize << " frames"
+                          << std::endl;
+            }
+            else
+            {
+                std::cerr << "audio: could not open the Loopback device: "
+                          << audioError << std::endl;
+            }
+        }
+
+        apiServer->setAudioHandlers (
+            [this] { return audioSettings->snapshot(); },
+            [this] (const Api::AudioSettingsPatch& patch, std::string& error)
+            {
+                return audioSettings->apply (patch, error);
+            },
+            [this] { return audioSettings->measure(); });
 
         if (! apiServer->start())
         {
@@ -546,6 +576,7 @@ private:
                       << (apiServer->hasAuthToken() ? " (auth enabled)" : "")
                       << std::endl;
             apiServer.reset();
+            audioSettings.reset();
             apiState.reset();
 
             if (! required)
@@ -650,6 +681,7 @@ private:
     std::unique_ptr<MainWindow> mainWindow;
     std::unique_ptr<Api::StateStore> apiState;
     std::unique_ptr<Api::Server> apiServer;
+    std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
     bool uiCheckMode = false;
     bool selftestMode = false;
     bool serveMode = false;

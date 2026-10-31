@@ -98,6 +98,7 @@ target_sources(instrument-hub
         src/api/Server.cpp
         src/Bridge/WebView.cpp
         src/audio/AudioEngine.cpp
+        src/audio/AudioSettings.cpp
         src/audio/Bus.cpp
         src/audio/DeviceManager.cpp
         src/audio/FxChain.cpp

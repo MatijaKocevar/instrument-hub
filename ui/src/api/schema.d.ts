@@ -93,6 +93,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the audio device settings and live latency readout
+         * @description Returns the open device (or the device the engine would open), the
+         *     available device types/devices, sample rates and buffer sizes, the
+         *     active channel mapping, the latency budget (one buffer + device latency
+         *     + summed chain latency) and the xrun counters.
+         */
+        get: operations["getAudio"];
+        put?: never;
+        /**
+         * Change device, sample rate, buffer size or channel mapping
+         * @description Accepts a partial object. Every field is validated before anything is
+         *     applied. Changing the sample rate or buffer size on the open device
+         *     hot-swaps it without restarting the application; changing a device
+         *     field opens that device. The response is the state after the change,
+         *     so the caller can reconcile the readout in one round trip.
+         */
+        post: operations["updateAudio"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audio/measure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the round-trip latency probe
+         * @description Plays an impulse through the ALSA Loopback, captures it and
+         *     cross-correlates the two. Blocks for a few hundred milliseconds.
+         *     A failed measurement is still `200`, with `valid: false` and `error`
+         *     set, so the UI can show the reason next to the readout.
+         */
+        post: operations["measureAudioLatency"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/meters": {
         parameters: {
             query?: never;
@@ -211,6 +265,72 @@ export interface components {
             slots: components["schemas"]["Slot"][];
             settings: components["schemas"]["Settings"];
             transport: components["schemas"]["Transport"];
+        };
+        AudioChannel: {
+            /** @description Zero-based channel index inside the device. */
+            index: number;
+            /** @description Device channel label, e.g. "channel 1". */
+            name: string;
+            /** @description Whether the channel is part of the engine's active mapping. */
+            active: boolean;
+        };
+        AudioDevice: {
+            /** @example ALSA */
+            type: string;
+            /** @example Loopback */
+            name: string;
+        };
+        AudioLatency: {
+            /** @description One device buffer, in milliseconds. */
+            bufferMs: number;
+            /** @description Input + output latency JUCE reports for the open device. */
+            deviceMs: number;
+            /** @description Summed instrument + FX latency of the longest slot chain. */
+            chainMs: number;
+            /** @description bufferMs + deviceMs + chainMs. */
+            totalMs: number;
+        };
+        AudioState: {
+            /** @description Whether an audio device is currently streaming. */
+            open: boolean;
+            deviceType: string;
+            deviceName: string;
+            deviceTypes: string[];
+            devices: components["schemas"]["AudioDevice"][];
+            sampleRate: number;
+            bufferSize: number;
+            sampleRates: number[];
+            bufferSizes: number[];
+            inputChannels: components["schemas"]["AudioChannel"][];
+            outputChannels: components["schemas"]["AudioChannel"][];
+            latency: components["schemas"]["AudioLatency"];
+            /** @description Total xruns (device driver + callback overruns). */
+            xruns: number;
+            deviceXruns: number;
+            callbackOverruns: number;
+            callbacks: number;
+            loadPercent: number;
+        };
+        AudioPatch: {
+            deviceType?: string;
+            deviceName?: string;
+            sampleRate?: number;
+            bufferSize?: number;
+            /** @description Channel indices to activate on the input side. */
+            inputChannels?: number[];
+            /** @description Channel indices to activate on the output side. */
+            outputChannels?: number[];
+        };
+        AudioMeasurement: {
+            valid: boolean;
+            roundTripSamples: number;
+            roundTripMs: number;
+            /** @description Expected loopback round trip, two buffers. */
+            expectedMs: number;
+            confidence: number;
+            sampleRate: number;
+            bufferSize: number;
+            error: string;
         };
         MeterFrame: {
             /** @constant */
@@ -409,6 +529,92 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    getAudio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current audio settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    updateAudio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudioPatch"];
+            };
+        };
+        responses: {
+            /** @description Audio settings after the update */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioState"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No audio backend is attached (for example `--serve` without `--audio`) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    measureAudioLatency: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Measurement result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioMeasurement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No audio backend is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     metersWebSocket: {

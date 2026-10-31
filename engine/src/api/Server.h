@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -90,6 +91,105 @@ struct MeterFrame
     must not add locks to the audio path.
 */
 using MeterProvider = std::function<MeterFrame()>;
+
+//==============================================================================
+// Audio device settings (T053)
+//==============================================================================
+
+/** One physical channel exposed by the open device. */
+struct AudioChannelState
+{
+    int index = 0;
+    std::string name;
+    bool active = false;
+};
+
+/** One (type, device) pair the engine can open. */
+struct AudioDeviceState
+{
+    std::string type;
+    std::string name;
+};
+
+/** The latency budget shown in the audio settings panel, in milliseconds.
+
+    `bufferMs` is one device buffer, `deviceMs` is the input + output latency
+    JUCE reports for the open device, `chainMs` is the summed instrument + FX
+    latency of the longest slot chain, and `totalMs` is their sum.
+*/
+struct AudioLatencyState
+{
+    double bufferMs = 0.0;
+    double deviceMs = 0.0;
+    double chainMs = 0.0;
+    double totalMs = 0.0;
+};
+
+/** Everything `GET /audio` returns. */
+struct AudioStateSnapshot
+{
+    bool open = false;
+
+    std::string deviceType;
+    std::string deviceName;
+
+    std::vector<std::string> deviceTypes;
+    std::vector<AudioDeviceState> devices;
+
+    double sampleRate = 0.0;
+    int bufferSize = 0;
+
+    std::vector<double> sampleRates;
+    std::vector<int> bufferSizes;
+
+    std::vector<AudioChannelState> inputChannels;
+    std::vector<AudioChannelState> outputChannels;
+
+    AudioLatencyState latency;
+
+    /** Device driver xruns. */
+    std::uint64_t deviceXruns = 0;
+    /** Callback overruns counted by TimingMonitor. */
+    std::uint64_t callbackOverruns = 0;
+    /** Total xruns (`deviceXruns + callbackOverruns`). */
+    std::uint64_t xruns = 0;
+
+    std::uint64_t callbacks = 0;
+    double loadPercent = 0.0;
+};
+
+/** A partial audio settings update from `POST /audio`. */
+struct AudioSettingsPatch
+{
+    std::optional<std::string> deviceType;
+    std::optional<std::string> deviceName;
+    std::optional<double> sampleRate;
+    std::optional<int> bufferSize;
+    std::optional<std::vector<int>> inputChannels;
+    std::optional<std::vector<int>> outputChannels;
+};
+
+/** The result of `POST /audio/measure`. */
+struct AudioMeasurementState
+{
+    bool valid = false;
+    int roundTripSamples = 0;
+    double roundTripMs = 0.0;
+    double expectedMs = 0.0;
+    float confidence = 0.0f;
+    double sampleRate = 0.0;
+    int bufferSize = 0;
+    std::string error;
+};
+
+/** Supplies the current audio state. Called on an HTTP thread. */
+using AudioStateProvider = std::function<AudioStateSnapshot()>;
+
+/** Applies a settings patch. Returns false with a message on rejection. */
+using AudioApplyHandler = std::function<bool (const AudioSettingsPatch&, std::string&)>;
+
+/** Runs the latency probe. Blocks for up to a few seconds. */
+using AudioMeasureHandler = std::function<AudioMeasurementState()>;
 
 /**
     Thread-safe control state behind the HTTP API.
@@ -179,6 +279,9 @@ private:
     - `GET  /settings`
     - `POST /settings`
     - `POST /transport`
+    - `GET  /audio`
+    - `POST /audio`
+    - `POST /audio/measure`
     - `GET  /meters` (WebSocket upgrade)
 
     Binding defaults to `127.0.0.1:8080` (plan/DECISIONS.md). Authentication is
@@ -233,6 +336,16 @@ public:
 
     /** Replaces the meter source. Safe before or after `start()`. */
     void setMeterProvider (MeterProvider provider);
+
+    /** Installs the audio device backend behind `/audio` and `/audio/measure`.
+
+        Call before `start()`; the handlers are copied into the route table.
+        A missing provider makes `GET /audio` report a closed device, and the
+        mutating endpoints answer `503`.
+    */
+    void setAudioHandlers (AudioStateProvider provider,
+                           AudioApplyHandler apply,
+                           AudioMeasureHandler measure);
 
     /** Enables/disables token auth. Takes effect on the next request. */
     void setAuthToken (std::string token);

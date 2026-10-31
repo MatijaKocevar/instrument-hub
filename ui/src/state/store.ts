@@ -1,4 +1,10 @@
-import type { ControlApi, ControlState } from "../api/client";
+import type {
+    ControlApi,
+    ControlAudioMeasurement,
+    ControlAudioPatch,
+    ControlAudioState,
+    ControlState,
+} from "../api/client";
 
 /** Connection lifecycle for the polling loop. */
 export type ConnectionPhase = "idle" | "connecting" | "ready" | "offline";
@@ -9,8 +15,18 @@ export interface AppSnapshot
     phase: ConnectionPhase;
     /** Last successful `GET /state`, kept during reconnects. */
     state: ControlState | null;
-    /** Message from the most recent failure, cleared on success. */
+    /** Last successful `GET /audio`, kept during reconnects. */
+    audio: ControlAudioState | null;
+    /** Message from the most recent state failure, cleared on success. */
     error: string | null;
+    /** Message from the most recent audio-settings failure. */
+    audioError: string | null;
+    /** Last latency probe result. */
+    measurement: ControlAudioMeasurement | null;
+    /** Message from the most recent failed probe. */
+    measurementError: string | null;
+    /** True while a `POST /audio` is in flight. */
+    audioBusy: boolean;
     /** Consecutive failures; drives the exponential backoff. */
     failedAttempts: number;
     /** `Date.now()` of the last successful snapshot, `null` before the first. */
@@ -85,7 +101,12 @@ export class AppStore
     private snapshot: AppSnapshot = {
         phase: "idle",
         state: null,
+        audio: null,
         error: null,
+        audioError: null,
+        measurement: null,
+        measurementError: null,
+        audioBusy: false,
         failedAttempts: 0,
         updatedAt: null,
     };
@@ -231,41 +252,101 @@ export class AppStore
         }
     };
 
-    private async load (): Promise<boolean>
+    /**
+        Apply an audio settings change (buffer size, sample rate, device or
+        channel mapping).
+
+        The response carries the post-change readout, so the panel updates
+        from the same round trip that changed the engine.
+    */
+    updateAudio = async (patch: ControlAudioPatch): Promise<boolean> =>
     {
-        if (this.snapshot.state === null)
-            this.patch ({ phase: "connecting" });
+        this.patch ({ audioBusy: true, audioError: null });
 
         try
         {
-            let state = await this.api.getState();
-
-            // A poll that lands while an arm request is in flight may still
-            // describe the old slot. Keep the optimistic highlight until the
-            // arm response (or its rollback) arrives.
-            if (this.armInFlight > 0 && this.snapshot.state !== null)
-                state = withArmedSlot (state, this.snapshot.state.armedSlot);
+            const audio = await this.api.updateAudio (patch);
 
             this.patch ({
-                phase: "ready",
-                state,
-                error: null,
-                failedAttempts: 0,
-                updatedAt: this.options.now(),
+                audio,
+                audioBusy: false,
+                audioError: null,
+                measurement: null,
+                measurementError: null,
             });
 
             return true;
         }
         catch (error)
         {
+            this.patch ({ audioBusy: false, audioError: messageOf (error) });
+            return false;
+        }
+    };
+
+    /** Run the latency probe and show its result next to the readout. */
+    measureLatency = async (): Promise<boolean> =>
+    {
+        this.patch ({ measurementError: null });
+
+        try
+        {
+            const measurement = await this.api.measureLatency();
+
+            this.patch ({ measurement, measurementError: null });
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ measurementError: messageOf (error) });
+            return false;
+        }
+    };
+
+    private async load (): Promise<boolean>
+    {
+        if (this.snapshot.state === null)
+            this.patch ({ phase: "connecting" });
+
+        const [stateResult, audioResult] = await Promise.allSettled ([
+            this.api.getState (),
+            this.api.getAudio (),
+        ]);
+
+        if (stateResult.status === "rejected")
+        {
             this.patch ({
                 phase: "offline",
-                error: messageOf (error),
+                error: messageOf (stateResult.reason),
+                audioError: audioResult.status === "rejected"
+                    ? messageOf (audioResult.reason)
+                    : null,
                 failedAttempts: this.snapshot.failedAttempts + 1,
             });
 
             return false;
         }
+
+        let state = stateResult.value;
+
+        // A poll that lands while an arm request is in flight may still
+        // describe the old slot. Keep the optimistic highlight until the
+        // arm response (or its rollback) arrives.
+        if (this.armInFlight > 0 && this.snapshot.state !== null)
+            state = withArmedSlot (state, this.snapshot.state.armedSlot);
+
+        this.patch ({
+            phase: "ready",
+            state,
+            ...(audioResult.status === "fulfilled"
+                ? { audio: audioResult.value, audioError: null }
+                : { audioError: messageOf (audioResult.reason) }),
+            error: null,
+            failedAttempts: 0,
+            updatedAt: this.options.now(),
+        });
+
+        return true;
     }
 
     private schedule (delayMs: number): void
