@@ -490,7 +490,7 @@ file. If the check fails you are not done.
 - depends: T121, T122, T123
 - size: L
 - goal: The armed instrument's page: name/family/colour, warm state, latency, volume fader, balance, mute/solo, instrument source (change/open editor), and the insert FX chain editor with add/remove/reorder/bypass. The page follows the controller selection without yanking the user off other pages.
-- files: `ui/src/features/instrument/`, `ui/src/features/instrument/`, `ui/src/api/`, tests
+- files: `ui/src/features/instrument/`, `ui/src/api/`, tests
 - accept: selecting a patch shows its real data; moving the fader changes the rendered level; the chain can be edited; snapshot and `ctest` stay green.
 
 ## T125 · Plugins inventory page
