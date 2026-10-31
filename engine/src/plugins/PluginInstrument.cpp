@@ -129,11 +129,27 @@ std::unique_ptr<PluginInstrument> PluginInstrument::create (juce::AudioPluginFor
 
 void PluginInstrument::unload()
 {
+    // An AudioProcessor must not be destroyed while it still has an active
+    // editor (JUCE asserts on it). Move the hook out first so a callback that
+    // clears itself through close() cannot destroy the function it is running
+    // in.
+    if (beforeUnloadCallback != nullptr)
+    {
+        auto callback = std::move (beforeUnloadCallback);
+        beforeUnloadCallback = nullptr;
+        callback();
+    }
+
     plugin.reset();
     description = {};
     cachedLatency.store (0, std::memory_order_relaxed);
     clearPendingMidi();
     midiScratch.clear();
+}
+
+void PluginInstrument::setBeforeUnloadCallback (std::function<void()> callback)
+{
+    beforeUnloadCallback = std::move (callback);
 }
 
 juce::String PluginInstrument::getName() const
