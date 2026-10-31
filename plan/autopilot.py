@@ -30,8 +30,12 @@ from pathlib import Path
 
 # ---------------------------------------------------------------- config
 
-PLAN_DIR = Path(__file__).resolve().parent
-REPO = Path(os.environ.get("IH_REPO", "/home/mkocevar/Projects/instrument-hub"))
+# The ledger, roadmap and blockers live in the repo, not next to whatever copy
+# of this script happens to be executing. Deriving PLAN_DIR from __file__ is how
+# a run started from a copy drifted for 23 tasks: sessions and commits landed in
+# the repo while STATE.json was written to the copy's folder.
+REPO = Path(os.environ.get("IH_REPO", "/home/mkocevar/Projects/instrument-hub")).resolve()
+PLAN_DIR = Path(os.environ.get("IH_PLAN", REPO / "plan")).resolve()
 MODEL = os.environ.get("IH_MODEL", "deepseek/deepseek-flash")
 AGENT = os.environ.get("IH_AGENT", "build")
 SERVE_URL = os.environ.get("IH_SERVE_URL", "")  # e.g. http://localhost:4096
@@ -256,6 +260,9 @@ def run_task(task: dict, state: dict, attach: str) -> str:
 
     # Never inherit the parent session's identity into a nested run.
     env = {k: v for k, v in os.environ.items() if k not in NESTED_ENV_BLOCK}
+    # opencode resolves the project from PWD, not the process cwd.
+    # Without this the session is filed under the plan folder.
+    env["PWD"] = str(REPO)
 
     log(f"START {tid} · {task['title']}")
     started = datetime.now(timezone.utc)
@@ -343,6 +350,7 @@ def main() -> int:
         save_state(state)
 
     log(f"roadmap: {len(tasks)} tasks · repo: {REPO}")
+    log(f"plan: {PLAN_DIR} · state: {STATE}")
     log(f"config: agent={AGENT} model={MODEL} server={SERVE_URL or 'local'}")
     done = sum(1 for t in tasks if status(state, t["id"]) == "done")
     blocked = sum(1 for t in tasks if status(state, t["id"]) == "blocked")
@@ -381,11 +389,15 @@ def main() -> int:
         if outcome == "done":
             entry["status"] = "done"
             entry["attempts"] = entry.get("attempts", 0) + 1
+            # Persist before committing: the checkpoint must contain the status
+            # it is checking in, or the ledger lags one task forever.
+            save_state(state)
             git_commit(task)
         elif outcome == "blocked":
             entry["status"] = "blocked"
             entry["attempts"] = entry.get("attempts", 0) + 1
             append_blocker_stub(task)
+            save_state(state)
             git_commit(task)
         else:
             entry["status"] = "todo"
