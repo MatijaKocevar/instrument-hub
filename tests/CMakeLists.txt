@@ -509,6 +509,69 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Hosted VST3 FX slot (T063) ---------------------------------------------
+#
+# Loads TestPlugin through PluginFx in FX mode (input + output bus), inserts
+# it into an FxChain, proves its gain is applied, checks that its 5 ms latency
+# is included in the chain total, round-trips its state into a second
+# instance, and opens/closes its native editor in an app-owned window.
+
+juce_add_console_app(ihub-plugin-fx-test
+    PRODUCT_NAME "ihub-plugin-fx-test"
+)
+
+target_sources(ihub-plugin-fx-test
+    PRIVATE
+        instruments/PluginFxTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/PluginFx.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginWindow.cpp"
+)
+
+target_include_directories(ihub-plugin-fx-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-plugin-fx-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
+        "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+)
+
+target_link_libraries(ihub-plugin-fx-test
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+add_dependencies(ihub-plugin-fx-test TestPlugin_VST3)
+
+set_target_properties(ihub-plugin-fx-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-plugin-fx
+    COMMAND ihub-plugin-fx-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+set_tests_properties(ihub-plugin-fx PROPERTIES
+    ENVIRONMENT "DISPLAY=:0"
+)
+
 # --- Gain-ramp switching (T032) ---------------------------------------------
 #
 # Switches between two sine-generating slots and compares the output against a
