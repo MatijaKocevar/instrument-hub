@@ -210,8 +210,10 @@ bool Slot::renderSource (int numSamples, juce::MidiBuffer& midi) noexcept
     //
     // Direct monitoring asks the slot to leave the chain out of the audible
     // path: the input reaches the bus at the source's own latency instead of
-    // waiting for a heavy effect.
-    if (! source->bypassesFxChain())
+    // waiting for a heavy effect. An FX-chain edit takes the same dry path for
+    // one block, so the control thread can rebuild the chain safely.
+    if (! source->bypassesFxChain()
+        && ! fxChainEditing.load (std::memory_order_acquire))
         fxChain.process (view, midi);
 
     return true;

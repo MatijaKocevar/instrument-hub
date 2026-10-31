@@ -44,6 +44,63 @@ PatchInstrumentState toPatchInstrument (const ihub::SessionSlotConfig& slotConfi
     instrument.samplePath = slotConfig.samplePath;
     return instrument;
 }
+
+FxChainState toFxChainState (const AudioEngine::FxChainSnapshot& snapshot)
+{
+    FxChainState chain;
+    chain.slot = snapshot.slot;
+    chain.instrumentLatencySamples = snapshot.instrumentLatencySamples;
+    chain.fxLatencySamples = snapshot.fxLatencySamples;
+    chain.latencySamples = snapshot.latencySamples;
+    chain.latencyMs = snapshot.latencyMs;
+    chain.inserts.reserve (snapshot.inserts.size());
+
+    for (const auto& insert : snapshot.inserts)
+    {
+        FxInsertState state;
+        state.index = insert.index;
+        state.type = AudioEngine::toString (insert.type);
+        state.kind = insert.kind;
+        state.id = insert.id;
+        state.name = insert.name;
+        state.bypassed = insert.bypassed;
+        state.wet = static_cast<double> (insert.wet);
+        state.latencySamples = insert.latencySamples;
+
+        for (const auto& [key, value] : insert.parameters)
+            state.parameters[key] = static_cast<double> (value);
+
+        chain.inserts.push_back (std::move (state));
+    }
+
+    return chain;
+}
+
+bool toFxInsertConfig (const FxInsertRequest& request,
+                       AudioEngine::FxInsertConfig& config,
+                       std::string& error)
+{
+    AudioEngine::FxInsertType type;
+
+    if (! AudioEngine::fxInsertTypeFromString (request.type, type))
+    {
+        error = "unknown fx type: \"" + request.type + "\"";
+        return false;
+    }
+
+    config = {};
+    config.type = type;
+    config.path = request.path.empty() ? request.id : request.path;
+    config.id = request.id;
+    config.name = request.name;
+    config.bypassed = request.bypassed;
+    config.wet = static_cast<float> (juce::jlimit (0.0, 1.0, request.wet));
+
+    for (const auto& [key, value] : request.parameters)
+        config.parameters[key] = static_cast<float> (value);
+
+    return true;
+}
 } // namespace
 
 void attachSession (StateStore& state, Server& server, ihub::Session& session)
@@ -118,6 +175,118 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         session.setSlotGain (slot, gain);
     });
 
+    // GET/POST/PUT/PATCH/DELETE /patches/{slot}/fx -> the live insert rack.
+    // The session owns the processors, gates the slot for one block while it
+    // rebuilds the chain, and publishes fresh latency into the store.
+    state.setFxHandlers (
+        [&session] (int slot, FxChainState& chain, std::string& error)
+        {
+            AudioEngine::FxChainSnapshot snapshot;
+
+            if (! session.getSlotFxChain (slot, snapshot, error))
+                return false;
+
+            chain = toFxChainState (snapshot);
+            return true;
+        },
+        [&session, &state] (int slot,
+                            const FxCommand& command,
+                            FxChainState& chain,
+                            std::string& error)
+        {
+            AudioEngine::FxChainSnapshot snapshot;
+            bool applied = false;
+
+            switch (command.kind)
+            {
+                case FxCommandKind::add:
+                {
+                    if (command.inserts.empty())
+                    {
+                        error = "no insert was supplied";
+                        return false;
+                    }
+
+                    AudioEngine::FxInsertConfig config;
+
+                    if (! toFxInsertConfig (command.inserts.front(), config, error))
+                        return false;
+
+                    applied = session.addSlotFx (slot, config,
+                                                 command.inserts.front().position,
+                                                 snapshot, error);
+                    break;
+                }
+
+                case FxCommandKind::replace:
+                {
+                    std::vector<AudioEngine::FxInsertConfig> configs;
+                    configs.reserve (command.inserts.size());
+
+                    for (const auto& request : command.inserts)
+                    {
+                        AudioEngine::FxInsertConfig config;
+
+                        if (! toFxInsertConfig (request, config, error))
+                            return false;
+
+                        configs.push_back (std::move (config));
+                    }
+
+                    applied = session.replaceSlotFx (slot, configs, snapshot, error);
+                    break;
+                }
+
+                case FxCommandKind::update:
+                {
+                    AudioEngine::FxInsertPatch patch;
+                    patch.bypassed = command.update.bypassed;
+
+                    if (command.update.wet.has_value())
+                        patch.wet = static_cast<float> (*command.update.wet);
+
+                    patch.position = command.update.position;
+
+                    if (command.update.parameters.has_value())
+                    {
+                        std::map<std::string, float> parameters;
+
+                        for (const auto& [key, value] : *command.update.parameters)
+                            parameters[key] = static_cast<float> (value);
+
+                        patch.parameters = std::move (parameters);
+                    }
+
+                    applied = session.updateSlotFx (slot, command.index, patch,
+                                                    snapshot, error);
+                    break;
+                }
+
+                case FxCommandKind::remove:
+                    applied = session.removeSlotFx (slot, command.index,
+                                                    snapshot, error);
+                    break;
+
+                case FxCommandKind::reorder:
+                    applied = session.reorderSlotFx (slot, command.order,
+                                                     snapshot, error);
+                    break;
+
+                case FxCommandKind::clear:
+                    applied = session.clearSlotFx (slot, snapshot, error);
+                    break;
+            }
+
+            if (! applied)
+                return false;
+
+            state.setSlotLatency (slot,
+                                  snapshot.latencySamples,
+                                  session.getEngine().getSampleRate());
+            chain = toFxChainState (snapshot);
+            return true;
+        });
+
     // POST /arm -> SlotSwitcher::armSlot(): one lock-free atomic publish.
     state.setArmHandler ([&session] (int slot)
     {
@@ -151,6 +320,9 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
 
         if (object->hasProperty ("positionSamples"))
             transport.setPositionSamples (next.positionSamples);
+
+        // Tempo-synced delay inserts follow the transport BPM.
+        session.updateFxTransport();
     });
 
     // GET /state (and the /events mirror): real slot states and gains.
