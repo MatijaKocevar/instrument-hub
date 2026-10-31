@@ -548,3 +548,45 @@ file. If the check fails you are not done.
 - goal: Add a visible "Save sound to patch" action on the Instrument page and `POST /patches/{slot}/state/capture`, which immediately captures the running plugin's state into that patch and confirms it. Auto-capture on switch/editor close/eviction stays; this is for tweaking a sound and saving it without switching away.
 - files: `engine/src/api/`, `ui/src/features/instrument/`, `shared/api/openapi.yaml`, `tests/`
 - accept: change a preset, press Save, switch away and back, restart and verify the patch restores; `ctest`, typecheck and snapshots stay green.
+
+## T133 · Architecture map and call paths
+- depends: T132
+- size: S
+- goal: Write `docs/architecture.md`: module responsibilities, dependency direction, and the exact call paths for (a) Launchpad pad -> arm -> audio, (b) UI click -> `/arm` -> session, (c) patch edit -> plugin state capture, (d) the audio callback and warm pool. List the oversized files and their target decomposition, and a "start reading here" path for a new contributor. Link it from `HANDOVER.md`.
+- files: `docs/architecture.md`, `HANDOVER.md`
+- accept: the document covers every directory under `engine/src`, all four call paths, and names the files to split; Markdown links resolve; no code changes.
+
+## T134 · Split the mapping layer
+- depends: T133
+- size: M
+- goal: Preserve behavior with characterization tests, then split `engine/src/controller/Mapping.cpp` (~2000 lines) into a YAML parser, a validator, the `SetMapping` model and a watcher/facade. No logic rewrites; move code.
+- files: `engine/src/controller/Mapping.{h,cpp}`, new controller files, `tests/controller/MappingTest.cpp`
+- accept: no file above ~800 lines; every mapping test passes unchanged; hot reload, validation errors and bounds behave exactly as before; `ctest` green.
+
+## T135 · Split the API routes by resource
+- depends: T134
+- size: L
+- goal: Split `engine/src/api/Routes.cpp` (~2100 lines) into small route modules (state, patches, audio, MIDI, plugins, transport, pairing) registered through one helper. `Server` keeps transport, auth and the WebSocket loop. No endpoint, JSON or status-code changes.
+- files: `engine/src/api/Routes.{h,cpp}`, new `api/routes/*`, `tests/api/`
+- accept: `shared/api/openapi.yaml` unchanged; all API tests pass; each route module under ~600 lines; `ctest` green.
+
+## T136 · Decompose Session
+- depends: T135
+- size: L
+- goal: Keep `Session` as a thin facade and extract collaborators: warm-pool management, per-patch plugin state, editor windows, meter bridge and transport control. Preserve the audio-thread contract and all public behavior.
+- files: `engine/src/Session.{h,cpp}`, new `engine/src/session/*`, `tests/`
+- accept: `Session.cpp` under ~800 lines; the 64-slot, warm-pool, editor, state-persistence and e2e tests pass; `--rt-strict` reports no allocations/locks in the callback; `ctest` green.
+
+## T137 · Split Main into app modes and shell
+- depends: T136
+- size: M
+- goal: Extract diagnostics, selftest, snapshot and serve modes out of `engine/src/Main.cpp` (~2000 lines), leaving an entry point and UI shell. Every command-line mode keeps its exact behavior and output.
+- files: `engine/src/Main.cpp`, new `engine/src/app/*`, tests
+- accept: `--diagnostics`, `--selftest`, `--snapshot`, `--serve`, `--list-devices` and `--session-smoke` behave as before; `Main.cpp` under ~600 lines; `ctest` green.
+
+## T138 · Remove superseded code
+- depends: T137
+- size: S
+- goal: Remove or clearly quarantine the superseded Launchkey controller layer and its docs/tests, remove duplicate controller docs, and either wire `project/PluginStateStore` into the live session or delete it. Update AGENTS/DECISIONS/HANDOVER references so only the Launchpad path remains.
+- files: `engine/src/controller/`, `engine/src/project/PluginStateStore.*`, `tests/`, docs
+- accept: the build has no unused controller sources; `ctest` green; no document or code path still presents Launchkey as the target device.
