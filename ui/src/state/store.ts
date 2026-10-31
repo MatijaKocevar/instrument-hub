@@ -59,6 +59,12 @@ export interface AppSnapshot
     fxBusy: boolean;
     /** True while a source change is in flight. */
     sourceBusy: boolean;
+    /** Slot whose native editor is open, or -1. */
+    editorOpenSlot: number;
+    /** True while an editor open/close request is in flight. */
+    editorBusy: boolean;
+    /** Message from the most recent editor failure. */
+    editorError: string | null;
     /** Installed plug-in inventory, or null before the first load. */
     plugins: ControlPluginList | null;
     /** Message from the most recent inventory failure. */
@@ -162,6 +168,20 @@ function withPatchUpdate (state: ControlState,
     };
 }
 
+/** Return `state` with one patch's `editorOpen` flag updated. */
+function withEditorOpen (state: ControlState, slot: number, open: boolean): ControlState
+{
+    return {
+        ...state,
+        families: state.families.map (family => ({
+            ...family,
+            patches: family.patches.map (candidate => candidate.slot === slot
+                ? { ...candidate, editorOpen: open }
+                : candidate),
+        })),
+    };
+}
+
 /**
     Holds the control state and keeps it fresh.
 
@@ -192,6 +212,9 @@ export class AppStore
         fxError: null,
         fxBusy: false,
         sourceBusy: false,
+        editorOpenSlot: -1,
+        editorBusy: false,
+        editorError: null,
         plugins: null,
         pluginError: null,
         pluginBusy: false,
@@ -541,6 +564,8 @@ export class AppStore
                 phase: "ready",
                 state,
                 sourceBusy: false,
+                editorOpenSlot: -1,
+                editorError: null,
                 error: null,
                 failedAttempts: 0,
                 updatedAt: this.options.now(),
@@ -552,6 +577,72 @@ export class AppStore
         catch (error)
         {
             this.patch ({ sourceBusy: false, error: messageOf (error) });
+            return false;
+        }
+    };
+
+    /**
+        Open the patch's native plugin editor.
+
+        Only this explicit action creates a window; selecting or arming a patch
+        never does. The engine answers with `{ slot, open, reused }`, and the
+        page's patch is updated in place so the button flips immediately.
+    */
+    openInstrumentEditor = async (slot: number): Promise<boolean> =>
+    {
+        this.patch ({ editorBusy: true, editorError: null });
+
+        try
+        {
+            const result = await this.api.openPatchEditor (slot);
+            const current = this.snapshot.state;
+
+            this.patch ({
+                phase: "ready",
+                state: current === null ? null : withEditorOpen (current, slot, result.open),
+                editorOpenSlot: result.open ? slot : -1,
+                editorBusy: false,
+                editorError: null,
+                error: null,
+                failedAttempts: 0,
+                updatedAt: this.options.now(),
+            });
+
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ editorBusy: false, editorError: messageOf (error) });
+            return false;
+        }
+    };
+
+    /** Close the patch's native editor. Idempotent. */
+    closeInstrumentEditor = async (slot: number): Promise<boolean> =>
+    {
+        this.patch ({ editorBusy: true, editorError: null });
+
+        try
+        {
+            const result = await this.api.closePatchEditor (slot);
+            const current = this.snapshot.state;
+
+            this.patch ({
+                phase: "ready",
+                state: current === null ? null : withEditorOpen (current, slot, result.open),
+                editorOpenSlot: result.open ? slot : -1,
+                editorBusy: false,
+                editorError: null,
+                error: null,
+                failedAttempts: 0,
+                updatedAt: this.options.now(),
+            });
+
+            return true;
+        }
+        catch (error)
+        {
+            this.patch ({ editorBusy: false, editorError: messageOf (error) });
             return false;
         }
     };

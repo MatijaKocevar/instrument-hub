@@ -62,6 +62,7 @@ StateStore::StateStore (int numSlotsToUse)
     slotLatencyMs.assign (static_cast<std::size_t> (numSlots), 0.0);
     slotInstruments.assign (static_cast<std::size_t> (numSlots), {});
     slotMixes.assign (static_cast<std::size_t> (numSlots), {});
+    slotEditorOpen.assign (static_cast<std::size_t> (numSlots), false);
 
     for (int index = 0; index < numSlots; ++index)
     {
@@ -414,6 +415,7 @@ PatchState StateStore::makePatchLocked (int slot) const
     patch.mute = mix.mute;
     patch.solo = mix.solo;
     patch.colorIndex = mix.colorIndex;
+    patch.editorOpen = slotEditorOpen[index];
 
     return patch;
 }
@@ -686,12 +688,111 @@ bool StateStore::applyPatchSource (int slot,
         }
 
         slotInstruments[static_cast<std::size_t> (slot)] = next;
+        // The session closes the old editor before the source is retired.
+        slotEditorOpen[static_cast<std::size_t> (slot)] = false;
         changed = changeHandler;
     }
 
     if (changed != nullptr)
         changed ("patch", slot);
 
+    return true;
+}
+
+//==============================================================================
+// Native plugin editor (T129)
+
+void StateStore::setPatchEditorHandlers (PatchEditorHandler openEditor,
+                                         PatchEditorHandler closeEditor)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    patchEditorHandler = std::move (openEditor);
+    patchEditorCloseHandler = std::move (closeEditor);
+}
+
+bool StateStore::openPatchEditor (int slot, std::string& error)
+{
+    if (slot < 0 || slot >= numSlots)
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    PatchEditorHandler open;
+    ChangeHandler changed;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        open = patchEditorHandler;
+    }
+
+    if (open == nullptr)
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    std::string handlerError;
+
+    if (! open (slot, handlerError))
+    {
+        error = handlerError.empty() ? "could not open the plugin editor" : handlerError;
+        return false;
+    }
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        slotEditorOpen[static_cast<std::size_t> (slot)] = true;
+        changed = changeHandler;
+    }
+
+    if (changed != nullptr)
+        changed ("patch", slot);
+
+    error.clear();
+    return true;
+}
+
+bool StateStore::closePatchEditor (int slot, std::string& error)
+{
+    if (slot < 0 || slot >= numSlots)
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    PatchEditorHandler close;
+    ChangeHandler changed;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        close = patchEditorCloseHandler;
+    }
+
+    if (close == nullptr)
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    std::string handlerError;
+
+    if (! close (slot, handlerError))
+    {
+        error = handlerError.empty() ? "could not close the plugin editor" : handlerError;
+        return false;
+    }
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        slotEditorOpen[static_cast<std::size_t> (slot)] = false;
+        changed = changeHandler;
+    }
+
+    if (changed != nullptr)
+        changed ("patch", slot);
+
+    error.clear();
     return true;
 }
 
@@ -814,6 +915,7 @@ StateSnapshot StateStore::snapshot() const
     SlotRuntimeProvider slotReader;
     std::vector<PatchInstrumentState> instruments;
     std::vector<PatchMixState> mixes;
+    std::vector<bool> editors;
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
@@ -843,6 +945,7 @@ StateSnapshot StateStore::snapshot() const
         result.families = families;
         instruments = slotInstruments;
         mixes = slotMixes;
+        editors = slotEditorOpen;
 
         transportReader = transportProvider;
         slotReader = slotRuntimeProvider;
@@ -873,6 +976,7 @@ StateSnapshot StateStore::snapshot() const
                 slot.state = runtime.state;
                 slot.warmState = runtime.warmState;
                 slot.warm = runtime.warm;
+                slot.editorOpen = runtime.editorOpen;
             }
             catch (...)
             {
@@ -908,6 +1012,9 @@ StateSnapshot StateStore::snapshot() const
 
             patch.warmState = live.warmState;
             patch.warm = live.warm;
+            patch.editorOpen = slotReader != nullptr
+                                   ? live.editorOpen
+                                   : (index < editors.size() && editors[index]);
             patch.latencySamples = live.latencySamples;
             patch.latencyMs = live.latencyMs;
         }

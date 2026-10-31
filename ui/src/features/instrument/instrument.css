@@ -274,6 +274,13 @@
     padding-top: 0.5rem;
 }
 
+.instrument__editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .instrument__select {
     width: 100%;
     min-height: 44px;

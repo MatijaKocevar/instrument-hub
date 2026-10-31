@@ -107,28 +107,47 @@ PluginWindow::~PluginWindow()
 //==============================================================================
 bool PluginWindow::open (juce::AudioProcessor& processorToShow,
                          const juce::String& title,
-                         juce::Component* owner)
+                         juce::Component* owner,
+                         juce::String* error)
 {
-    return showEditor (processorToShow, title, owner);
+    // Showing a processor directly cannot rely on an instrument's unload hook.
+    if (instrument != nullptr)
+        clearInstrumentCallback();
+
+    const bool opened = showEditor (processorToShow, title, owner);
+
+    if (error != nullptr)
+        *error = opened ? juce::String() : lastError;
+
+    return opened;
 }
 
-bool PluginWindow::open (PluginInstrument& instrument,
+bool PluginWindow::open (PluginInstrument& instrumentToShow,
                          const juce::String& title,
-                         juce::Component* owner)
+                         juce::Component* owner,
+                         juce::String* error)
 {
-    auto* processorToShow = instrument.getPlugin();
+    auto* processorToShow = instrumentToShow.getPlugin();
 
     if (processorToShow == nullptr)
     {
         close();
+        lastError = "the plugin instance is not loaded";
+        if (error != nullptr)
+            *error = lastError;
         return false;
     }
+
+    // A different instance is being shown: drop the old unload hook first, so
+    // the retired instrument cannot close the new window later.
+    if (instrument != nullptr && instrument != &instrumentToShow)
+        clearInstrumentCallback();
 
     // Close the editor while the processor is still alive. unload() moves the
     // callback out before invoking it, so clearing it from close() is safe.
     std::weak_ptr<Lifetime> weakLifetime = lifetime;
 
-    instrument.setBeforeUnloadCallback ([weakLifetime]
+    instrumentToShow.setBeforeUnloadCallback ([weakLifetime]
     {
         if (auto locked = weakLifetime.lock();
             locked != nullptr && locked->alive && locked->owner != nullptr)
@@ -137,11 +156,18 @@ bool PluginWindow::open (PluginInstrument& instrument,
         }
     });
 
+    instrument = &instrumentToShow;
+
     if (! showEditor (*processorToShow, title, owner))
     {
-        instrument.setBeforeUnloadCallback (nullptr);
+        clearInstrumentCallback();
+        if (error != nullptr)
+            *error = lastError;
         return false;
     }
+
+    if (error != nullptr)
+        error->clear();
 
     return true;
 }
@@ -150,24 +176,45 @@ bool PluginWindow::showEditor (juce::AudioProcessor& processorToShow,
                                const juce::String& title,
                                juce::Component* owner)
 {
+    lastError.clear();
+
+    // Reusing the window keeps a repeat click from flickering the editor.
+    if (window != nullptr && processor == &processorToShow)
+    {
+        window->toFront (true);
+        return true;
+    }
+
     // Replacing the editor must not invoke onClose(): the caller may be inside
     // a member function of this object.
     destroyWindow();
 
+    const auto pluginName = processorToShow.getName();
+
     if (! processorToShow.hasEditor())
+    {
+        lastError = pluginName.isNotEmpty()
+                        ? "\"" + pluginName + "\" does not provide an editor"
+                        : "the plugin does not provide an editor";
         return false;
+    }
 
     // Registers the editor as the processor's active editor and asserts if one
     // is already open. showEditor() closed ours; a leak here is the caller's.
     auto* editor = processorToShow.createEditorAndMakeActive();
 
     if (editor == nullptr)
+    {
+        lastError = pluginName.isNotEmpty()
+                        ? "\"" + pluginName + "\" failed to create its editor window"
+                        : "the plugin failed to create its editor window";
         return false;
+    }
 
     std::weak_ptr<Lifetime> weakLifetime = lifetime;
 
     auto newWindow = std::make_unique<Window> (
-        title.isNotEmpty() ? title : processorToShow.getName(),
+        title.isNotEmpty() ? title : pluginName,
         [weakLifetime]
         {
             if (auto locked = weakLifetime.lock();
@@ -206,6 +253,19 @@ bool PluginWindow::showEditor (juce::AudioProcessor& processorToShow,
     return true;
 }
 
+void PluginWindow::clearInstrumentCallback() noexcept
+{
+    if (instrument == nullptr)
+        return;
+
+    auto* previous = instrument;
+    instrument = nullptr;
+
+    // A destroyed wrapper is not reachable here: this is the before-unload
+    // path, and the instrument owned by the session outlives the window.
+    previous->setBeforeUnloadCallback (nullptr);
+}
+
 void PluginWindow::destroyWindow()
 {
     if (window == nullptr)
@@ -224,6 +284,10 @@ void PluginWindow::close()
     const bool wasOpen = window != nullptr;
 
     destroyWindow();
+
+    // Detach from the instrument on every close. Re-opening installs a fresh
+    // hook; leaving a stale one would let an old unload close a new window.
+    clearInstrumentCallback();
 
     // The callback may destroy this object. Nothing is touched afterwards, and
     // it is deliberately not called from the destructor (Lifetime is cleared).

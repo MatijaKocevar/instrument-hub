@@ -112,6 +112,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/patches/{slot}/editor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open one patch's native plugin editor
+         * @description Opens the native editor window of the plug-in hosted by the patch, or
+         *     brings the existing window to the front. One window is kept per slot.
+         *
+         *     The editor is never opened implicitly: selecting or arming a patch does
+         *     not create one. The patch must host a plugin source whose instance is
+         *     resident; a cold, sampler or generated source fails with a readable
+         *     error. The patch's `editorOpen` flag is also updated in `/state`.
+         */
+        post: operations["openPatchEditor"];
+        /**
+         * Close one patch's native plugin editor
+         * @description Closes the patch's native editor window if one is open. Idempotent: a
+         *     slot with no window still answers with the current state. Switching or
+         *     unloading the patch closes its editor before the processor is retired.
+         */
+        delete: operations["closePatchEditor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/patches/{slot}/fx": {
         parameters: {
             query?: never;
@@ -733,6 +768,8 @@ export interface components {
             warmState: "cold" | "warming" | "warm" | "active" | "fading";
             /** @description True when the instrument instance is resident. */
             warm: boolean;
+            /** @description True while the patch's native plugin editor window is open. */
+            editorOpen: boolean;
             /** @description Instrument + FX latency of this patch's chain, in samples. */
             latencySamples: number;
             /** @description The same chain latency in milliseconds. */
@@ -742,6 +779,16 @@ export interface components {
             id: string;
             name: string;
             patches: components["schemas"]["Patch"][];
+        };
+        PatchEditor: {
+            /** @description Fixed audio-graph slot that hosts this patch. */
+            slot: number;
+            /** @description True when the patch's native editor window is open. */
+            open: boolean;
+            /** @description POST only. True when an already-open window was focused. */
+            reused?: boolean;
+            /** @description State before the request was applied. */
+            wasOpen?: boolean;
         };
         PatchUpdate: {
             volumeDb?: number;
@@ -1250,6 +1297,99 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    openPatchEditor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Whether the editor is open */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatchEditor"];
+                };
+            };
+            /** @description The patch has no resident plugin or the editor failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    closePatchEditor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Whether the editor is open */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatchEditor"];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             /** @description No patch is hosted by that slot */
             404: {

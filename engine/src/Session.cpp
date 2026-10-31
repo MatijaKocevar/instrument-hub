@@ -6,6 +6,17 @@
 #include "sampler/KitLoader.h"
 #include "sampler/SamplerInstrument.h"
 
+// The editor host needs JUCE's GUI modules. Headless offline tools (scanner,
+// session smoke, most API tests) link only `juce_audio_processors_headless`,
+// so the editor path compiles to a stub that reports a clear error instead of
+// dragging a window system into every test binary.
+#if defined (JUCE_MODULE_AVAILABLE_juce_gui_basics) && JUCE_MODULE_AVAILABLE_juce_gui_basics
+ #include "plugins/PluginWindow.h"
+ #define IHUB_SESSION_HAS_EDITORS 1
+#else
+ #define IHUB_SESSION_HAS_EDITORS 0
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <iterator>
@@ -300,20 +311,369 @@ struct Session::Voice final : public AudioEngine::SlotSource
 };
 
 //==============================================================================
+#if IHUB_SESSION_HAS_EDITORS
+/** Message-thread owner of one native editor per logical slot.
+
+    Instances are registered by the warm-pool factory and forgotten by the
+    pool's destroy hook. Destroy is posted to the message thread, so a pointer
+    read here cannot be freed while an editor is being opened.
+
+    The window array is message-thread only. `openEditor`/`closeEditor` marshal
+    from HTTP or controller threads with `MessageManager::callSync`; the flags
+    read by `isEditorOpen()` are atomics so the UI can poll them safely.
+*/
+struct Session::EditorHost final
+{
+    explicit EditorHost (Session& ownerToUse) : session (ownerToUse) {}
+
+    bool open (int slot, std::string& error)
+    {
+        auto* manager = juce::MessageManager::getInstanceWithoutCreating();
+
+        if (manager == nullptr)
+        {
+            error = "the message loop is not running; cannot create a native editor";
+            return false;
+        }
+
+        // Assigning a plug-in source queues its instance on the warm pool. A
+        // click that arrives before the pool has published the instance waits
+        // here (the HTTP thread) instead of racing the loader. The message
+        // thread keeps running, so plugin creation itself can complete.
+        if (! manager->isThisTheMessageThread() && isPluginSlot (slot))
+        {
+            const double deadline = juce::Time::getMillisecondCounterHiRes() + 20000.0;
+
+            while (findInstrument (slot) == nullptr
+                   && juce::Time::getMillisecondCounterHiRes() < deadline)
+                juce::Thread::sleep (5);
+        }
+
+        auto result = juce::MessageManager::callSync ([this, slot]
+        {
+            return openOnMessageThread (slot);
+        });
+
+        if (! result.has_value())
+        {
+            error = "could not reach the message thread";
+            return false;
+        }
+
+        error = std::move (result->second);
+        return result->first;
+    }
+
+    bool close (int slot, std::string& error)
+    {
+        if (slot < 0 || slot >= Session::defaultLogicalSlots)
+        {
+            error = "patch slot is out of range";
+            return false;
+        }
+
+        auto* manager = juce::MessageManager::getInstanceWithoutCreating();
+
+        if (manager == nullptr)
+        {
+            error = "the message loop is not running; cannot close a native editor";
+            return false;
+        }
+
+        auto result = juce::MessageManager::callSync ([this, slot]
+        {
+            return closeOnMessageThread (slot);
+        });
+
+        if (! result.has_value())
+        {
+            error = "could not reach the message thread";
+            return false;
+        }
+
+        error = std::move (result->second);
+        return result->first;
+    }
+
+    bool isOpen (int slot) const noexcept
+    {
+        return slot >= 0 && slot < Session::defaultLogicalSlots
+            && openFlags[static_cast<std::size_t> (slot)].load (std::memory_order_acquire);
+    }
+
+    int openCount() const noexcept
+    {
+        return openWindowCount.load (std::memory_order_acquire);
+    }
+
+    void registerInstrument (int slot, plugins::PluginInstrument* instrument)
+    {
+        if (instrument == nullptr || slot < 0 || slot >= Session::defaultLogicalSlots)
+            return;
+
+        const std::lock_guard<std::mutex> lock (instrumentMutex);
+        instruments[static_cast<std::size_t> (slot)] = instrument;
+    }
+
+    /** Pool destroy hook, on the message thread, before the processor dies. */
+    void closeBeforeDestroy (AudioEngine::SlotSource& instance) noexcept
+    {
+        auto* instrument = dynamic_cast<plugins::PluginInstrument*> (&instance);
+
+        if (instrument == nullptr)
+            return;
+
+        {
+            const std::lock_guard<std::mutex> lock (instrumentMutex);
+
+            for (auto& entry : instruments)
+                if (entry == instrument)
+                    entry = nullptr;
+        }
+
+        auto slot = findSlotForProcessor (instrument->getPlugin());
+
+        if (slot >= 0)
+            (void) closeOnMessageThread (slot);
+    }
+
+    /** Closes every window. Must run on the message thread when possible. */
+    void closeAll()
+    {
+        auto closeHere = [this]
+        {
+            for (auto& window : windows)
+            {
+                if (window == nullptr)
+                    continue;
+
+                window->onClose = nullptr;
+                window->close();
+                window.reset();
+            }
+
+            for (auto& flag : openFlags)
+                flag.store (false, std::memory_order_release);
+
+            openWindowCount.store (0, std::memory_order_release);
+
+            const std::lock_guard<std::mutex> lock (instrumentMutex);
+
+            for (auto& entry : instruments)
+                entry = nullptr;
+        };
+
+        auto* manager = juce::MessageManager::getInstanceWithoutCreating();
+
+        if (manager != nullptr && ! manager->isThisTheMessageThread())
+            juce::MessageManager::callSync (closeHere);
+        else
+            closeHere();
+    }
+
+private:
+    bool isPluginSlot (int slot) const
+    {
+        const std::lock_guard<std::mutex> lock (session.sourceMutex);
+
+        return slot >= 0
+            && slot < static_cast<int> (session.sourceConfigs.size())
+            && session.sourceConfigs[static_cast<std::size_t> (slot)].kind
+                   == SessionSlotKind::plugin;
+    }
+
+    bool readSlotConfig (int slot, SessionSlotConfig& config) const
+    {
+        const std::lock_guard<std::mutex> lock (session.sourceMutex);
+
+        if (slot < 0 || slot >= static_cast<int> (session.sourceConfigs.size()))
+            return false;
+
+        config = session.sourceConfigs[static_cast<std::size_t> (slot)];
+        return true;
+    }
+
+    std::pair<bool, std::string> openOnMessageThread (int slot)
+    {
+        SessionSlotConfig slotConfig;
+
+        if (! readSlotConfig (slot, slotConfig))
+            return { false, "patch slot is out of range" };
+
+        const auto label = "slot " + std::to_string (slot);
+
+        if (slotConfig.kind != SessionSlotKind::plugin)
+            return { false, label + " is a " + toString (slotConfig.kind)
+                                + " source; only plugin patches have a native editor" };
+
+        auto* instrument = findInstrument (slot);
+
+        if (instrument == nullptr)
+            return { false, "the plugin for " + label
+                                + " is not loaded; arm the patch and wait for it to warm" };
+
+        auto* processor = instrument->getPlugin();
+
+        if (processor == nullptr)
+            return { false, "the plugin for " + label + " has no live instance" };
+
+        auto& window = windows[static_cast<std::size_t> (slot)];
+
+        if (window == nullptr)
+        {
+            window = std::make_unique<plugins::PluginWindow>();
+
+            window->onClose = [this, slot]
+            {
+                const auto index = static_cast<std::size_t> (slot);
+                openFlags[index].store (false, std::memory_order_release);
+                openWindowCount.fetch_sub (1, std::memory_order_acq_rel);
+            };
+        }
+        else if (window->isOpen())
+        {
+            if (window->getProcessor() == processor)
+            {
+                if (auto* component = window->getWindowComponent())
+                    component->toFront (true);
+
+                return { true, {} };
+            }
+
+            // The slot was rebound to a different instance while this window
+            // was still up. Close it before creating the new editor.
+            (void) closeOnMessageThread (slot);
+        }
+
+        juce::String windowError;
+        const juce::String title = slotConfig.pluginName.empty()
+                                       ? juce::String (slotConfig.name)
+                                       : juce::String (slotConfig.pluginName);
+
+        if (! window->open (*instrument, title, nullptr, &windowError))
+        {
+            auto message = windowError.isNotEmpty()
+                               ? windowError.toStdString()
+                               : std::string ("the plugin did not create an editor");
+
+            return { false, label + ": " + message };
+        }
+
+        openFlags[static_cast<std::size_t> (slot)].store (true, std::memory_order_release);
+        openWindowCount.fetch_add (1, std::memory_order_acq_rel);
+
+        return { true, {} };
+    }
+
+    std::pair<bool, std::string> closeOnMessageThread (int slot)
+    {
+        if (slot < 0 || slot >= static_cast<int> (windows.size()))
+            return { false, "patch slot is out of range" };
+
+        auto& window = windows[static_cast<std::size_t> (slot)];
+
+        if (window != nullptr && window->isOpen())
+            window->close(); // onClose clears the flag and drops the count
+
+        return { true, {} };
+    }
+
+    plugins::PluginInstrument* findInstrument (int slot) const
+    {
+        if (slot < 0 || slot >= Session::defaultLogicalSlots)
+            return nullptr;
+
+        const std::lock_guard<std::mutex> lock (instrumentMutex);
+        return instruments[static_cast<std::size_t> (slot)];
+    }
+
+    int findSlotForProcessor (juce::AudioProcessor* processor) const
+    {
+        if (processor == nullptr)
+            return -1;
+
+        for (int slot = 0; slot < static_cast<int> (windows.size()); ++slot)
+            if (windows[static_cast<std::size_t> (slot)] != nullptr
+                && windows[static_cast<std::size_t> (slot)]->isOpen()
+                && windows[static_cast<std::size_t> (slot)]->getProcessor() == processor)
+                return slot;
+
+        return -1;
+    }
+
+    Session& session;
+
+    mutable std::mutex instrumentMutex;
+    std::array<plugins::PluginInstrument*, Session::defaultLogicalSlots> instruments {};
+
+    // Message-thread only.
+    std::array<std::unique_ptr<plugins::PluginWindow>,
+               Session::defaultLogicalSlots> windows {};
+
+    std::array<std::atomic<bool>, Session::defaultLogicalSlots> openFlags {};
+    std::atomic<int> openWindowCount { 0 };
+};
+#else
+/** Headless builds have no window system: report the limitation clearly. */
+struct Session::EditorHost final
+{
+    explicit EditorHost (Session&) {}
+
+    bool open (int slot, std::string& error)
+    {
+        if (slot < 0 || slot >= Session::defaultLogicalSlots)
+        {
+            error = "patch slot is out of range";
+            return false;
+        }
+
+        error = "native plugin editors are not available in this build";
+        return false;
+    }
+
+    bool close (int slot, std::string& error)
+    {
+        if (slot < 0 || slot >= Session::defaultLogicalSlots)
+        {
+            error = "patch slot is out of range";
+            return false;
+        }
+
+        error.clear();
+        return true;
+    }
+
+    bool isOpen (int) const noexcept { return false; }
+    int openCount() const noexcept { return 0; }
+    void registerInstrument (int, plugins::PluginInstrument*) {}
+    void closeBeforeDestroy (AudioEngine::SlotSource&) noexcept {}
+    void closeAll() {}
+};
+#endif
+
+//==============================================================================
 Session::Session()
 {
     config.slots = makeDefaultSet();
+    editorHost = std::make_unique<EditorHost> (*this);
 }
 
 Session::~Session()
 {
     closeDevice();
+
+    // The editors reference processors owned by the warm pool, so close them
+    // before any instance is destroyed and before the pool is torn down.
+    if (editorHost != nullptr)
+        editorHost->closeAll();
+
     shutdownWarmPool();
     switcher.reset();
     engine.reset();
     fxRacks.clear();
     voices.clear();
     pluginFormats.reset();
+    editorHost.reset();
 }
 
 std::vector<SessionSlotConfig> Session::makeDefaultSet (SessionSlotKind defaultKind)
@@ -366,6 +726,11 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     prepared = false;
     transport.reset();
 
+    // Editors reference the old instances; close them before the graph and the
+    // warm pool are dropped.
+    if (editorHost != nullptr)
+        editorHost->closeAll();
+
     // Drop the graph before its proxies: the slots hold non-owning pointers.
     shutdownWarmPool();
     switcher.reset();
@@ -416,7 +781,15 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     switcher = std::make_unique<AudioEngine::SlotSwitcher> (config.fadeMilliseconds);
 
     pluginFormats = std::make_unique<juce::AudioPluginFormatManager>();
+
+   #if IHUB_SESSION_HAS_EDITORS
+    // The GUI build hosts the standard VST3 format, whose instances expose
+    // their native editor. The headless format would return hasEditor() ==
+    // false even for a plugin that has a window.
+    juce::addDefaultFormatsToManager (*pluginFormats);
+   #else
     juce::addHeadlessDefaultFormatsToManager (*pluginFormats);
+   #endif
 
     const int neighbours = juce::jmax (1, config.neighbourCount);
 
@@ -443,6 +816,11 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     });
     warmPool->setDestroyHook ([this] (AudioEngine::SlotSource& instance)
     {
+        // The pool deletes on the message thread, which is also where the
+        // editor lives: close it before the processor is destroyed.
+        if (editorHost != nullptr)
+            editorHost->closeBeforeDestroy (instance);
+
         clearVoice (&instance);
     });
     warmPool->setWarmCallback ([this] (int slot)
@@ -608,6 +986,11 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
                 error = "slot " + slotLabel + ": " + error;
                 return nullptr;
             }
+
+            // The editor host resolves this slot to this instance. An older
+            // instance stays registered until its own destroy hook forgets it.
+            if (editorHost != nullptr)
+                editorHost->registerInstrument (slotIndex, instrument.get());
 
             return instrument;
         }
@@ -990,6 +1373,14 @@ bool Session::setSlotSource (int slot,
                              const SessionSlotConfig& source,
                              std::string& error)
 {
+    // A source swap retires the hosted processor: close its editor first,
+    // while the instance is still alive, instead of waiting for the unload.
+    if (editorHost != nullptr)
+    {
+        std::string closeError;
+        (void) editorHost->close (slot, closeError);
+    }
+
     const std::lock_guard<std::mutex> lock (armMutex);
 
     if (warmPool == nullptr || switcher == nullptr
@@ -1078,6 +1469,57 @@ void Session::setSourceAssignedHook (SourceAssignedHook hook)
 {
     const std::lock_guard<std::mutex> lock (sourceAssignedMutex);
     sourceAssignedHook = std::move (hook);
+}
+
+//==============================================================================
+// Native plugin editor (T129)
+
+bool Session::openEditor (int slot, std::string& error)
+{
+    error.clear();
+
+    if (slot < 0 || slot >= static_cast<int> (config.slots.size()))
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    if (editorHost == nullptr)
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    return editorHost->open (slot, error);
+}
+
+bool Session::closeEditor (int slot, std::string& error)
+{
+    error.clear();
+
+    if (slot < 0 || slot >= static_cast<int> (config.slots.size()))
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    if (editorHost == nullptr)
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    return editorHost->close (slot, error);
+}
+
+bool Session::isEditorOpen (int slot) const noexcept
+{
+    return editorHost != nullptr && editorHost->isOpen (slot);
+}
+
+int Session::getOpenEditorCount() const noexcept
+{
+    return editorHost != nullptr ? editorHost->openCount() : 0;
 }
 
 bool Session::getSlotFxChain (int slot,

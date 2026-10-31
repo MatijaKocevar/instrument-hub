@@ -334,6 +334,9 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
                               chainError={app.fxSlot === instrumentSlot ? app.fxError : null}
                               chainBusy={app.fxBusy}
                               sourceBusy={app.sourceBusy}
+                              editorOpen={instrumentPatch?.editorOpen === true}
+                              editorBusy={app.editorBusy}
+                              editorError={app.editorError}
                               plugins={app.plugins?.plugins ?? null}
                               pluginError={app.pluginError}
                               loading={state === null}
@@ -354,6 +357,8 @@ export default function App ({ initialPath }: AppProps = {}): ReactElement
                               onSourceChange={(slot, source) => {
                                   void store.changeInstrumentSource (slot, source);
                               }}
+                              onOpenEditor={slot => { void store.openInstrumentEditor (slot); }}
+                              onCloseEditor={slot => { void store.closeInstrumentEditor (slot); }}
                               onAddInsert={(slot, insert) => {
                                   void store.addFxInsert (slot, insert);
                               }}

@@ -254,6 +254,20 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         return session.setSlotSource (slot, source, error);
     });
 
+    // POST/DELETE /patches/{slot}/editor -> the patch's native window. The
+    // session resolves the live PluginInstrument, marshals to the message
+    // thread and opens or reuses one window per slot. Nothing here is reached
+    // by selecting or arming a patch.
+    state.setPatchEditorHandlers (
+        [&session] (int slot, std::string& error)
+        {
+            return session.openEditor (slot, error);
+        },
+        [&session] (int slot, std::string& error)
+        {
+            return session.closeEditor (slot, error);
+        });
+
     // GET/POST/PUT/PATCH/DELETE /patches/{slot}/fx -> the live insert rack.
     // The session owns the processors, gates the slot for one block while it
     // rebuilds the chain, and publishes fresh latency into the store.
@@ -414,6 +428,7 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
             session.getSwitcher().getSlotState (slot));
         runtime.warmState = session.getWarmStateName (slot);
         runtime.warm = session.isSlotWarm (slot);
+        runtime.editorOpen = session.isEditorOpen (slot);
         return runtime;
     });
 
