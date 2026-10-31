@@ -844,6 +844,41 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+# --- Launchpad protocol -----------------------------------------------------
+#
+# Hardware-free checks for the Launchpad Mini MK3: the 11..88 grid note map,
+# the documented SysEx frames and the LED Note On encoding. No port is opened.
+
+add_executable(ihub-launchpad-protocol-test
+    controller/LaunchpadProtocolTest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+)
+
+target_compile_features(ihub-launchpad-protocol-test PRIVATE cxx_std_20)
+
+target_include_directories(ihub-launchpad-protocol-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(ihub-launchpad-protocol-test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+set_target_properties(ihub-launchpad-protocol-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-launchpad-protocol
+    COMMAND ihub-launchpad-protocol-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 # --- Launchkey driver against the virtual controller (T042) -----------------
 #
 # This is the T042 acceptance check. ihub-launchkey-sim's port is opened

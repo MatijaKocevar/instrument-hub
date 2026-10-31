@@ -415,3 +415,31 @@ file. If the check fails you are not done.
 - goal: `HANDOVER.md`: what works, what is stubbed, every hardware check remaining, how to build and run on each OS.
 - files: `HANDOVER.md`
 - accept: file exists, lists every open item from `BLOCKERS.md`, and a build command that was actually run.
+
+## T114 · Compose the audio session
+- depends: T021, T032, T090, T091, T092
+- size: L
+- goal: `Main` owns an `AudioEngine` and a `SlotSwitcher`, opens the configured audio device on startup, and loads a default set into the eight slots through the existing instrument/sampler/plugin factories. No graph rewiring at runtime; keep the audio-thread contract. Add a headless `--session-smoke` mode that opens the ALSA loopback, arms a slot, renders audio and reports RMS plus the switching discontinuity.
+- files: `engine/src/Session.{h,cpp}`, `engine/src/Main.cpp`, `tests/audio/SessionSmoke.cpp`
+- accept: `--session-smoke` exits 0, reports a non-zero RMS for the armed slot, and reports no sample discontinuity above -60 dBFS across a slot switch; `ctest` stays green.
+
+## T115 · Wire the API to the session
+- depends: T114, T050, T071
+- size: M
+- goal: `/arm` calls `SlotSwitcher::armSlot`, `/transport` start/stop/position drives the session, `/meters` reads the real engine bus, and `/state` publishes the actual slot states instead of synthetic values.
+- files: `engine/src/api/Server.cpp`, `engine/src/api/Routes.cpp`, `engine/src/Main.cpp`, `tests/api/`
+- accept: in a headless session, `POST /arm` 0 then 1 changes the audible slot, `/meters` reports non-zero for the playing slot, and `ctest` stays green.
+
+## T116 · Launchpad 64-pad mapping and control rows
+- depends: T043, T114
+- size: M
+- goal: Map all 64 grid pads to 8 families × 8 patches from `set.yaml` (this supersedes the 16-pad Launchkey tasks T040–T044; the Launchpad protocol and driver already exist). Use the top row (CC 91..98) for macro/page banks in place of the missing encoders, the right column (CC 89..19) for scenes, and drive LEDs with idle/warming/active/error. Keep the driver free of audio knowledge.
+- files: `engine/src/controller/Mapping.{h,cpp}`, `engine/src/controller/LaunchpadDriver.{h,cpp}`, `shared/set.yaml`, `tests/controller/`
+- accept: unit tests resolve all 64 pads to their bindings; a scripted driver event sequence produces the expected armed slot and LED stream; `ctest` stays green.
+
+## T117 · End-to-end pad-to-audio acceptance
+- depends: T115, T116
+- size: M
+- goal: One headless acceptance test that sends a pad event through the controller mapping into the composed session on the ALSA loopback, verifies the intended slot arms, audio is non-silent, and switching is click-free. Update `HANDOVER.md`, `BLOCKERS.md` and the controller docs to the Launchpad reality.
+- files: `tests/e2e/`, `HANDOVER.md`, `plan/BLOCKERS.md`, `docs/`
+- accept: `ctest -R ihub-e2e` passes and records the rendered RMS and switch measurement; `HANDOVER.md` no longer describes the app as uncomposed.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LaunchkeyProtocol.h"
+#include "PadState.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
@@ -15,24 +16,6 @@
 
 namespace Controller
 {
-
-/**
-    One pad's feedback state.
-
-    The first three values mirror `AudioEngine::SlotSwitcher::State`; `error`
-    is the extra state a controller driver needs when a load or arming request
-    failed. `colourForState()` turns each state into the Launchkey palette
-    colour the driver writes to that pad's LED.
-*/
-enum class PadState : std::uint8_t
-{
-    idle = 0,
-    warming,
-    active,
-    error
-};
-
-const char* toString (PadState state) noexcept;
 
 /** The LED colour used for a pad state.
 

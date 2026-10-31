@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LaunchkeyProtocol.h"
+#include "PadState.h"
 
 #include <array>
 #include <atomic>
@@ -95,14 +95,20 @@ struct SetMapping
     static constexpr int supportedSchemaVersion = 1;
     static constexpr int maximumSlot = 63;
 
+    /** The Launchpad grid. `set.yaml` pads are validated against this. */
+    static constexpr int maximumPads = 64;
+
+    /** Encoder bindings remain a software concept: the Launchpad has none. */
+    static constexpr int maximumEncoders = 8;
+
     int schemaVersion = supportedSchemaVersion;
     std::string name;
 
     std::map<std::string, FamilySpec> families;
     std::map<std::string, MacroSpec> macros;
 
-    std::array<std::optional<PadBinding>, Launchkey::padCount> pads;
-    std::array<std::optional<EncoderBinding>, Launchkey::encoderCount> encoders;
+    std::array<std::optional<PadBinding>, maximumPads> pads;
+    std::array<std::optional<EncoderBinding>, maximumEncoders> encoders;
 
     const PadBinding* padBinding (int pad) const noexcept;
     const EncoderBinding* encoderBinding (int encoder) const noexcept;
