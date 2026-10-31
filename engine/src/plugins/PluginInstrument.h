@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../audio/Instrument.h"
+#include "../instruments/Instrument.h"
 
 #include "../audio/Slot.h"
 
@@ -138,7 +138,7 @@ public:
         the audio thread; DECISIONS says not to query the plugin per block. */
     int latencySamples() const noexcept override;
 
-    Instrument::Kind kind() const noexcept override { return Instrument::Kind::plugin; }
+    Instrument::Kind kind() const noexcept override { return Instrument::Kind::Plugin; }
 
     //==============================================================================
     // MIDI in
