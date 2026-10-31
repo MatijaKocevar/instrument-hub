@@ -449,3 +449,59 @@ add_test(
     COMMAND ihub-fx-chain-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+# --- Gain-ramp switching (T032) ---------------------------------------------
+#
+# Switches between two sine-generating slots and compares the output against a
+# continuous, equal-power reference. The worst deviation must be below
+# -60 dBFS; a hard switch or a broken ramp shows up as a large residual.
+# Also checks the four published states and that process() allocates nothing.
+
+juce_add_console_app(ihub-slot-switcher-test
+    PRODUCT_NAME "ihub-slot-switcher-test"
+)
+
+target_sources(ihub-slot-switcher-test
+    PRIVATE
+        slot_switcher/SlotSwitcherTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+)
+
+target_include_directories(ihub-slot-switcher-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+# The replacement operator new is backed by malloc/free (which is a valid
+# implementation), so GCC's pairing heuristic fires at inlined call sites.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(ihub-slot-switcher-test PRIVATE
+        -Wno-mismatched-new-delete
+    )
+endif()
+
+target_link_libraries(ihub-slot-switcher-test
+    PRIVATE
+        juce::juce_audio_basics
+        juce::juce_audio_processors_headless
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-slot-switcher-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-slot-switcher
+    COMMAND ihub-slot-switcher-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)

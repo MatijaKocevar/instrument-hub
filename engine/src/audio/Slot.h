@@ -138,7 +138,22 @@ public:
     */
     bool process (int numSamples, juce::MidiBuffer& midi) noexcept;
 
-    /** The most recent render, valid only after `process()` returned true. */
+    /** Renders the source and FX chain without this slot's activation fade.
+
+        `SlotSwitcher` owns the crossfade envelope for the slots it arms, so
+        running the slot's own 2-5 ms fade as well would stack two envelopes
+        and break the equal-power law. This path applies the user gain ramp but
+        leaves the slot's `idle`/`fadingIn`/`active`/`fadingOut` state machine
+        and its published state untouched.
+
+        Audio thread, real-time safe. A slot driven by `SlotSwitcher` must not
+        also be driven through `process()`.
+    */
+    bool processUnfaded (int numSamples, juce::MidiBuffer& midi) noexcept;
+
+    /** The most recent render, valid only after `process()` or
+        `processUnfaded()` returned true.
+    */
     const juce::AudioBuffer<float>& getOutputBuffer() const noexcept { return view; }
 
     //==============================================================================
@@ -153,7 +168,8 @@ public:
     int latencySamples() const noexcept;
 
 private:
-    void applyGains (int numSamples) noexcept;
+    bool renderSource (int numSamples, juce::MidiBuffer& midi) noexcept;
+    void applyGains (int numSamples, bool applyFade) noexcept;
 
     const int index;
     const float fadeMilliseconds;
