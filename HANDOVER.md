@@ -32,8 +32,10 @@ physical hardware validation. Section 2 is the blunt list.
 | Controller | Novation Launchpad Mini MK3 (64 pads, no keys, no encoders) |
 | Licence | JUCE AGPLv3 unless a commercial licence is bought (B006) |
 
-Read `plan/DECISIONS.md` before changing architecture, `plan/TESTING.md` for
-the hardware-free recipes, and `plan/BLOCKERS.md` for the live human queue.
+Start with [`docs/architecture.md`](docs/architecture.md) for the module map,
+dependency direction and the four call paths, then read `plan/DECISIONS.md`
+before changing architecture, `plan/TESTING.md` for the hardware-free recipes,
+and `plan/BLOCKERS.md` for the live human queue.
 
 ---
 
@@ -598,7 +600,7 @@ tests/                  58 ctest targets; tests/e2e/ is the pad/click/LED/audio
                         acceptance and tests/ui/ holds the snapshot checks
 scripts/                build.sh, dev.sh, bootstrap.sh
 plan/                   roadmap, decisions, testing, blockers, autopilot
-docs/                   Launchpad reference, new-machine setup
+docs/                   Architecture map, Launchpad reference, new-machine setup
 ```
 
 Start with `plan/AUTOPILOT.md` for the session protocol, then section 2 above
