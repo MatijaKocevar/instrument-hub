@@ -314,9 +314,8 @@
       "status": "done"
     },
     "T137": {
-      "attempts": 3,
-      "note": "crashed: Error: getaddrinfo EAI_AGAIN api.deepseek.com",
-      "status": "blocked"
+      "attempts": 0,
+      "status": "todo"
     },
     "T138": {
       "attempts": 0,

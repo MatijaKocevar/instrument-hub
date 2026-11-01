@@ -391,9 +391,14 @@ int main()
     {
         std::cerr << "plugin-editor-api-test: " << failures
                   << " check(s) failed" << std::endl;
-        return 1;
+        std::cerr.flush();
+        std::_Exit (1);
     }
 
     std::cout << "plugin-editor-api-test: all checks passed" << std::endl;
-    return 0;
+    std::cout.flush();
+
+    // Wine bridge threads and JUCE static teardown can block exit even after
+    // every check passed. Terminate explicitly so ctest gets a clean status.
+    std::_Exit (0);
 }
