@@ -8,19 +8,12 @@ import type {
     ControlPatchStateCapture,
     ControlPlugin,
 } from "../../api/client";
-import { colourForIndex, nextColourIndex } from "../grid";
+import { InstrumentFrame } from "./InstrumentFrame";
+import { Mixer } from "./Mixer";
 import {
     BUILTIN_INSERT_TYPES,
-    FADER_MAX_DB,
-    FADER_MIN_DB,
-    FADER_STEP_DB,
-    clampDb,
-    clampPan,
     effectPlugins,
-    formatDb,
-    formatPan,
     formatStateSize,
-    gainFromDb,
     instrumentPlugins,
     insertLabel,
     insertRequestForBuiltin,
@@ -33,6 +26,7 @@ import {
     wetPercent,
     type BuiltinInsertType,
 } from "./model";
+import { latencyReadout } from "./latencyReadout";
 import "./instrument.css";
 
 export interface InstrumentPageProps
@@ -81,113 +75,6 @@ export interface InstrumentPageProps
     readonly onToggleBypass?: (slot: number, index: number, bypassed: boolean) => void;
     readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
     readonly onRetryChain?: (slot: number) => void;
-}
-
-function latencyReadout (samples: number, milliseconds: number): string
-{
-    return `${Math.max (0, milliseconds).toFixed (2)} ms · ${String (Math.max (0, samples))} smp`;
-}
-
-function MixSection ({ patch, onVolumeChange, onPanChange, onMuteChange, onSoloChange }: {
-    readonly patch: ControlPatch;
-    readonly onVolumeChange?: (slot: number, volumeDb: number) => void;
-    readonly onPanChange?: (slot: number, pan: number) => void;
-    readonly onMuteChange?: (slot: number, muted: boolean) => void;
-    readonly onSoloChange?: (slot: number, solo: boolean) => void;
-}): ReactElement
-{
-    const volumeDb = clampDb (patch.volumeDb);
-    const pan = clampPan (patch.pan);
-
-    return (
-        <section className="instrument__card instrument__mix"
-                 aria-label="Patch mixer"
-                 data-testid="instrument-mix"
-                 data-volume-db={volumeDb.toFixed (2)}
-                 data-gain={gainFromDb (volumeDb).toFixed (6)}
-                 data-pan={pan.toFixed (2)}>
-            <header className="instrument__card-head">
-                <h3 className="instrument__card-title">Level</h3>
-                <span className="instrument__card-hint">Audible on the next block</span>
-            </header>
-
-            <label className="instrument__field" htmlFor="instrument-volume">
-                <span className="instrument__field-label">Volume</span>
-                <input
-                    id="instrument-volume"
-                    className="instrument__fader"
-                    type="range"
-                    min={FADER_MIN_DB}
-                    max={FADER_MAX_DB}
-                    step={FADER_STEP_DB}
-                    value={volumeDb}
-                    data-testid="volume-fader"
-                    data-slot={patch.slot}
-                    data-db={volumeDb.toFixed (2)}
-                    aria-valuetext={formatDb (volumeDb)}
-                    onChange={event => {
-                        onVolumeChange?.(patch.slot, Number (event.currentTarget.value));
-                    }}
-                />
-                <output className="instrument__value" data-testid="volume-value">
-                    {formatDb (volumeDb)}
-                </output>
-            </label>
-
-            <p className="instrument__field-hint" data-testid="volume-gain"
-               data-gain={gainFromDb (volumeDb).toFixed (6)}>
-                effective gain ×{gainFromDb (volumeDb).toFixed (3)}
-            </p>
-
-            <label className="instrument__field" htmlFor="instrument-pan">
-                <span className="instrument__field-label">Balance</span>
-                <input
-                    id="instrument-pan"
-                    className="instrument__fader instrument__fader--pan"
-                    type="range"
-                    min={-1}
-                    max={1}
-                    step={0.01}
-                    value={pan}
-                    data-testid="pan-slider"
-                    data-slot={patch.slot}
-                    data-pan={pan.toFixed (2)}
-                    aria-valuetext={formatPan (pan)}
-                    onChange={event => {
-                        onPanChange?.(patch.slot, Number (event.currentTarget.value));
-                    }}
-                />
-                <output className="instrument__value" data-testid="pan-value">
-                    {formatPan (pan)}
-                </output>
-            </label>
-
-            <div className="instrument__toggles" role="group" aria-label="Mute and solo">
-                <button
-                    className={`instrument__toggle${patch.mute ? " instrument__toggle--on" : ""}`}
-                    type="button"
-                    aria-pressed={patch.mute}
-                    data-testid="mute-button"
-                    data-slot={patch.slot}
-                    data-muted={patch.mute ? "true" : "false"}
-                    onClick={() => { onMuteChange?.(patch.slot, ! patch.mute); }}
-                >
-                    Mute
-                </button>
-                <button
-                    className={`instrument__toggle${patch.solo ? " instrument__toggle--on" : ""}`}
-                    type="button"
-                    aria-pressed={patch.solo}
-                    data-testid="solo-button"
-                    data-slot={patch.slot}
-                    data-solo={patch.solo ? "true" : "false"}
-                    onClick={() => { onSoloChange?.(patch.slot, ! patch.solo); }}
-                >
-                    Solo
-                </button>
-            </div>
-        </section>
-    );
 }
 
 function SourceSection ({ patch, plugins, pluginError, sourceBusy, editorOpen, editorBusy, editorError, captureBusy, capture, captureError, onSourceChange, onOpenEditor, onCloseEditor, onCaptureState }: {
@@ -671,132 +558,56 @@ export function InstrumentPage ({
     onRetryChain,
 }: InstrumentPageProps): ReactElement
 {
-    if (patch === null)
-    {
-        return (
-            <section
-                className="instrument instrument--empty"
-                data-testid="instrument-page"
-                data-slot={-1}
-                data-following={following ? "true" : "false"}
-                aria-busy={loading ? "true" : "false"}
-            >
-                <header className="instrument__head">
-                    <p className="instrument__eyebrow">Instrument</p>
-                    <h2 className="instrument__title" data-testid="instrument-name">
-                        {loading ? "Loading the set…" : "No patch selected"}
-                    </h2>
-                    <p className="instrument__lede">
-                        {loading
-                            ? "Waiting for the engine to report its state."
-                            : "Arm a patch on the Grid page, or press a pad on the Launchpad, to open its instrument."}
-                    </p>
-                </header>
-            </section>
-        );
-    }
-
-    const armed = patch.slot === armedSlot;
-    const colour = colourForIndex (patch.colorIndex);
-
     return (
-        <section
-            className="instrument"
-            data-testid="instrument-page"
-            data-slot={patch.slot}
-            data-armed={armed ? "true" : "false"}
-            data-following={following ? "true" : "false"}
-            data-warm-state={patch.warmState}
-            data-colour-index={patch.colorIndex}
+        <InstrumentFrame
+            patch={patch}
+            armedSlot={armedSlot}
+            following={following}
+            loading={loading}
+            {...(onColourChange !== undefined ? { onColourChange } : {})}
         >
-            <header className="instrument__head">
-                <p className="instrument__eyebrow">
-                    Instrument · {patch.familyName}
-                </p>
-                <h2 className="instrument__title" data-testid="instrument-name">
-                    {patch.name}
-                </h2>
-                <p className="instrument__lede">
-                    {patch.familyName} · slot {String (patch.slot + 1).padStart (2, "0")}
-                    {armed ? " · armed" : " · not armed"}
-                    {following ? " · following the controller" : " · pinned selection"}
-                </p>
+            {patch === null
+                ? null
+                : <>
+                      <div className="instrument__grid">
+                          <Mixer
+                              patch={patch}
+                              {...(onVolumeChange !== undefined ? { onVolumeChange } : {})}
+                              {...(onPanChange !== undefined ? { onPanChange } : {})}
+                              {...(onMuteChange !== undefined ? { onMuteChange } : {})}
+                              {...(onSoloChange !== undefined ? { onSoloChange } : {})}
+                          />
+                          <SourceSection
+                              patch={patch}
+                              plugins={plugins}
+                              pluginError={pluginError}
+                              sourceBusy={sourceBusy}
+                              editorOpen={editorOpen}
+                              editorBusy={editorBusy}
+                              editorError={editorError}
+                              captureBusy={captureBusy}
+                              capture={capture}
+                              captureError={captureError}
+                              {...(onSourceChange !== undefined ? { onSourceChange } : {})}
+                              {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
+                              {...(onCloseEditor !== undefined ? { onCloseEditor } : {})}
+                              {...(onCaptureState !== undefined ? { onCaptureState } : {})}
+                          />
+                      </div>
 
-                <div className="instrument__badges">
-                    <span
-                        className="instrument__badge instrument__badge--warm"
-                        data-testid="instrument-warm-state"
-                        data-warm={patch.warm ? "true" : "false"}
-                        data-warm-state={patch.warmState}
-                    >
-                        {patch.warmState}
-                    </span>
-                    <span
-                        className="instrument__badge instrument__badge--latency"
-                        data-testid="instrument-latency"
-                        data-latency-samples={patch.latencySamples}
-                        data-latency-ms={patch.latencyMs.toFixed (3)}
-                    >
-                        {latencyReadout (patch.latencySamples, patch.latencyMs)}
-                    </span>
-                    <span
-                        className="instrument__badge instrument__badge--colour"
-                        data-testid="instrument-colour"
-                        data-colour-index={patch.colorIndex}
-                        data-colour={colour}
-                        style={{ background: colour }}
-                    >
-                        colour {String (patch.colorIndex + 1)}
-                    </span>
-                    <button
-                        className="instrument__button instrument__button--small"
-                        type="button"
-                        data-testid="instrument-colour-next"
-                        onClick={() => { onColourChange?.(patch.slot, nextColourIndex (patch.colorIndex)); }}
-                    >
-                        Next colour
-                    </button>
-                </div>
-            </header>
-
-            <div className="instrument__grid">
-                <MixSection
-                    patch={patch}
-                    {...(onVolumeChange !== undefined ? { onVolumeChange } : {})}
-                    {...(onPanChange !== undefined ? { onPanChange } : {})}
-                    {...(onMuteChange !== undefined ? { onMuteChange } : {})}
-                    {...(onSoloChange !== undefined ? { onSoloChange } : {})}
-                />
-                <SourceSection
-                    patch={patch}
-                    plugins={plugins}
-                    pluginError={pluginError}
-                    sourceBusy={sourceBusy}
-                    editorOpen={editorOpen}
-                    editorBusy={editorBusy}
-                    editorError={editorError}
-                    captureBusy={captureBusy}
-                    capture={capture}
-                    captureError={captureError}
-                    {...(onSourceChange !== undefined ? { onSourceChange } : {})}
-                    {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
-                    {...(onCloseEditor !== undefined ? { onCloseEditor } : {})}
-                    {...(onCaptureState !== undefined ? { onCaptureState } : {})}
-                />
-            </div>
-
-            <ChainSection
-                patch={patch}
-                chain={chain}
-                chainError={chainError}
-                chainBusy={chainBusy}
-                plugins={plugins}
-                {...(onAddInsert !== undefined ? { onAddInsert } : {})}
-                {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
-                {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
-                {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
-                {...(onRetryChain !== undefined ? { onRetryChain } : {})}
-            />
-        </section>
+                      <ChainSection
+                          patch={patch}
+                          chain={chain}
+                          chainError={chainError}
+                          chainBusy={chainBusy}
+                          plugins={plugins}
+                          {...(onAddInsert !== undefined ? { onAddInsert } : {})}
+                          {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
+                          {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
+                          {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
+                          {...(onRetryChain !== undefined ? { onRetryChain } : {})}
+                      />
+                  </>}
+        </InstrumentFrame>
     );
 }
