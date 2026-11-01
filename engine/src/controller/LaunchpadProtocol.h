@@ -11,8 +11,8 @@
     Hardware-free description of the Novation Launchpad Mini MK3.
 
     Everything here is pure data and pure functions: no MIDI device is opened
-    and nothing is called from the audio thread. The driver, the simulator and
-    the tests share this one description of the protocol.
+    and nothing is called from the audio thread. The driver and the tests share
+    this one description of the protocol.
 
     Sources, and the parts verified against the physical device on 2026-10-31:
 

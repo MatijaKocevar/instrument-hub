@@ -30,26 +30,21 @@ a *lower bound* — real hardware is slower. Record that caveat.
 
 ---
 
-## MIDI: virtual Launchkey
+## MIDI: Launchpad driver seams
 
-ALSA sequencer (`/dev/snd/seq`) is present. The simulator creates a port
-literally named `Launchkey Mini MK3 SIM` so the driver's device matching
-can be tested unmodified.
+The controller target is the Launchpad Mini MK3. Its driver has two
+hardware-free seams that use the same decoder and encoder as the MIDI thread:
 
-Fixture format (JSON):
+- `injectMidiMessage()` feeds a note or CC into `LaunchpadDriver` exactly as
+  the JUCE MIDI callback would. Pads are notes 11..88; a release is Note On
+  velocity 0.
+- `setMessageSink()` captures every LED and SysEx message the driver emits, so
+  the LED stream can be compared byte for byte.
 
-```json
-{ "events": [
-  { "t": 0,    "type": "sysex", "hex": "F0 00 20 29 02 0F 00 ... F7" },
-  { "t": 120,  "type": "noteon", "ch": 1, "note": 36, "vel": 100 },
-  { "t": 360,  "type": "noteoff","ch": 1, "note": 36, "vel": 0 }
-] }
-```
-
-Timestamps are milliseconds from start. The simulator also records every
-message the app emits, so LED output can be compared against a golden file.
-
-Anything the driver says is untested without this is not tested.
+`ihub-launchpad-protocol`, `ihub-launchpad-mapping`, `ihub-launchpad-driver`,
+`ihub-state-broadcast` and `ihub-e2e` use these seams. No ALSA sequencer port
+is opened. If a virtual port is added later it must impersonate the Launchpad
+on the `MI` port, never another controller.
 
 ---
 
@@ -101,7 +96,6 @@ scripts/build.sh                       # configure + build
 ./build/engine/instrument-hub --measure-latency
 ./build/engine/instrument-hub --snapshot out.png
 ./build/engine/instrument-hub --rt-strict
-./build/tests/ihub-selftest --midi-probe
 ctest --test-dir build --output-on-failure
 ```
 

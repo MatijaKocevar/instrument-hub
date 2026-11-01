@@ -2,28 +2,25 @@
 //
 // The whole live-mirror path, without hardware:
 //
-//   ALSA `Launchkey Mini MK3 SIM`
-//     -> LaunchkeyDriver (real device discovery, handshake and pad decode)
+//   LaunchpadDriver (the real note decoder and pad dispatch)
 //     -> Api::StateBroadcast::publishPad()
 //     -> /events WebSocket -> two connected clients
 //
-// Every event is timestamped on the test thread immediately before the
-// simulator writes it, and again when a client receives the frame. The gap is
-// the end-to-end latency the task contract caps at 100 ms.
+// Every event is timestamped on the test thread immediately before the note
+// is injected, and again when a client receives the frame. The gap is the
+// end-to-end latency the task contract caps at 100 ms.
 //
 // The same check is run for the UI path: `POST /arm` (what a grid tap does)
 // must reach both sockets within 100 ms and carry the new armed slot.
 //
-// The MIDI leg uses a real ALSA sequencer port, exactly like the driver
-// integration test. It is therefore Linux-only and registered in CMake
-// alongside the other ALSA tests.
+// The MIDI leg uses the driver's injectMidiMessage() seam, so no ALSA
+// sequencer port is opened and the test exercises the same decoder the MIDI
+// thread uses.
 
 #include "api/Server.h"
 #include "api/StateBroadcast.h"
 
-#include "controller/LaunchkeyDriver.h"
-
-#include "LaunchkeySim.h"
+#include "controller/LaunchpadDriver.h"
 
 #include <httplib.h>
 #include <juce_events/juce_events.h>
@@ -221,8 +218,8 @@ int main()
 
             const auto pads = property (initialDesktop, "pads");
 
-            check (pads.isArray() && pads.getArray()->size() == 16,
-                   "the frame mirrors all 16 pads");
+            check (pads.isArray() && pads.getArray()->size() == 64,
+                   "the frame mirrors all 64 pads");
 
             const auto mirrored = property (initialDesktop, "state");
             check (mirrored.isObject()
@@ -231,16 +228,13 @@ int main()
         }
 
         // ---------------------------------------------------------------------
-        // The real MIDI path: simulator -> driver -> broadcast.
+        // The real MIDI path: Launchpad note -> driver -> broadcast.
         // ---------------------------------------------------------------------
-        LaunchkeySim::Simulator simulator;
-        simulator.open();
-
-        Controller::LaunchkeyDriver driver;
+        Controller::LaunchpadDriver driver;
 
         std::atomic<int> padsSeen { 0 };
 
-        Controller::DriverListeners listeners;
+        Controller::LaunchpadDriver::DriverListeners listeners;
         listeners.padEvent = [&] (int pad, bool pressed)
         {
             broadcast.publishPad (pad, pressed);
@@ -249,38 +243,19 @@ int main()
 
         driver.setListeners (listeners);
 
-        check (Controller::LaunchkeyDriver::findDevice().has_value(),
-               "the simulator is detected as a Launchkey Mini MK3");
-
-        const bool connected = driver.connect();
-
-        check (connected, "the driver connects to the simulator"
-                              + (connected ? std::string()
-                                           : " (" + driver.getLastError().toStdString() + ")"));
-
-        if (! connected)
-        {
-            server.stop();
-            return 1;
-        }
-
-        simulator.drain (300); // let the handshake finish
-
         // ---------------------------------------------------------------------
-        // Hardware pad presses.
+        // Pad presses through the driver decoder.
         // ---------------------------------------------------------------------
         double worstPadLatencyMs = 0.0;
 
         for (int pad = 0; pad < kPadsToTest; ++pad)
         {
-            const int note = 36 + pad; // pad 0 is note 36
+            const int note = Launchpad::padNoteForIndex (pad);
             const int expectedEvents = 2 * pad + 1;
 
-            LaunchkeySim::Fixture press;
-            press.events.push_back ({ 0, "noteon", 1, note, 100, 0, 0, {} });
-
             const auto pressedAt = std::chrono::steady_clock::now();
-            simulator.replay (press);
+            driver.injectMidiMessage (juce::MidiMessage::noteOn (
+                1, note, static_cast<juce::uint8> (100)));
 
             juce::var frame;
 
@@ -329,10 +304,10 @@ int main()
             check (padsSeen.load() >= expectedEvents,
                    "the driver delivered the pad event to the broadcaster");
 
-            // Release, so the mirror tracks both edges.
-            LaunchkeySim::Fixture release;
-            release.events.push_back ({ 0, "noteoff", 1, note, 0, 0, 0, {} });
-            simulator.replay (release);
+            // Release, so the mirror tracks both edges. The Launchpad reports
+            // a release as Note On velocity 0.
+            driver.injectMidiMessage (juce::MidiMessage::noteOn (
+                1, note, static_cast<juce::uint8> (0)));
 
             juce::var released;
             const auto releaseFound = readUntil (desktop.socket, [&] (const juce::var& candidate)
@@ -431,7 +406,6 @@ int main()
         std::cout << "state-broadcast-test: worst latency "
                   << worstPadLatencyMs << " ms" << std::endl;
 
-        driver.disconnect();
         server.stop();
 
         std::cout << (failures == 0 ? "PASS" : "FAIL")

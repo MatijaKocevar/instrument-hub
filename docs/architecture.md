@@ -268,10 +268,6 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   schema and bounds validation of a parsed document into `SetMapping`.
 - [PadState.h](../engine/src/controller/PadState.h) — the shared LED state
   enum.
-- [LaunchkeyProtocol.h](../engine/src/controller/LaunchkeyProtocol.h) /
-  [LaunchkeyDriver.h](../engine/src/controller/LaunchkeyDriver.h) and their
-  `.cpp` files — superseded Launchkey Mini MK3 support, kept only for its
-  historical tests. The app does not start it. See §8.
 
 ### 3.6 `engine/src/diag/`
 
@@ -368,11 +364,9 @@ engine and is currently exercised by tests, not by the app (see §8).
 - [Migrations.h](../engine/src/project/Migrations.h) /
   [Migrations.cpp](../engine/src/project/Migrations.cpp) — schema upgrades
   (1 → 2 and 2 → 3); never rewrites a document in an old format.
-- [PluginStateStore.h](../engine/src/project/PluginStateStore.h) /
-  [PluginStateStore.cpp](../engine/src/project/PluginStateStore.cpp) — resolves
-  stored plugin chunks to descriptions and binds them into engine slots with
-  missing-plugin placeholders. The live app uses `Session`'s per-patch sidecar
-  instead; this class is not wired in.
+
+The live per-patch plugin-state cache is `session/PluginStateStore`, not a
+second binder in this directory.
 
 ### 3.11 `engine/src/sampler/`
 
@@ -482,11 +476,6 @@ These are real today and should not be copied into new code:
   `instruments/Instrument.h`. New code should include the canonical header.
 - `api/MidiBridge.cpp` includes `controller/LaunchpadDriver.h` for the pad
   test. It is a test/inspection seam, not an audio dependency.
-- `Session.cpp` contains a private per-patch sidecar format
-  (`writePluginStateFile`, `readPluginStateFileData`) rather than using
-  `project/PluginStateStore`. They solve different problems (a live patch cache
-  versus a saved set container), but the duplicated file/versioning logic is a
-  candidate for T136/T138.
 
 ---
 
@@ -1030,22 +1019,14 @@ no superseded controller or unused persistence path (§8).
 ## 8. Superseded, unwired and overlapping code
 
 These are real parts of the tree that a new contributor will meet and should
-not mistake for the live path. **T138** is the cleanup task.
+not mistake for the live path. T138 removed the superseded controller layer
+and the unused `.ihub` plugin-state binder; the remaining items are
+capabilities that are tested but not selected by the live factory.
 
-- **Launchkey Mini MK3** (`controller/LaunchkeyProtocol.*`,
-  `controller/LaunchkeyDriver.*`, `docs/launchkey-mini-mk3.md`) — historical
-  support, still compiled for its old tests. The app never starts it. The
-  target surface is the Launchpad; see
-  [docs/launchpad-mini-mk3.md](launchpad-mini-mk3.md).
 - **`plugins/SandboxHost`** — a complete out-of-process `Instrument`, with
   `ihub-sandbox`, a file-mapping protocol and watchdog tests. `Session` always
   constructs `PluginInstrument` today; the sandbox is a tested capability that
   is not selected by the live factory.
-- **`project/PluginStateStore`** — a complete `.ihub`-container plugin binder
-  used by the project tests. The live app does **not** open/save `.ihub` yet
-  and uses `Session`'s per-patch `set.plugin-state/slot-<n>.bin` sidecar
-  instead. T138 says to wire it into the live session or delete it; do not add
-  a third path.
 - **`instruments/PluginFx`** — a hosted-VST3 FX wrapper, but the live `FxRack`
   uses its own `InsertEffect` adapter. `PluginFx` is compiled and available,
   not selected by the app.
