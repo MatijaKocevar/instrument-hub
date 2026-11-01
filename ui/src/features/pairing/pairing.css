@@ -9,7 +9,11 @@
   border: 1px solid var(--pairing-line);
   border-radius: 1.2rem;
   background:
-    radial-gradient(circle at 90% 0%, rgba(110, 231, 200, 0.08), transparent 45%),
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(110, 231, 200, 0.08),
+      transparent 45%
+    ),
     var(--pairing-card);
 }
 
@@ -203,7 +207,6 @@
 .pairing__forget {
   align-self: flex-start;
 }
-
 
 .pairing-gate {
   display: flex;

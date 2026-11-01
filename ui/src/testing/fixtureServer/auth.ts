@@ -3,44 +3,53 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJson } from "./http";
 import type { FixtureContext } from "./types";
 
-function suppliedToken (request: IncomingMessage): string | null
-{
-    const value = request.headers["x-instrument-hub-token"];
+function suppliedToken(request: IncomingMessage): string | null {
+  const value = request.headers["x-instrument-hub-token"];
 
-    return typeof value === "string" ? value : null;
+  return typeof value === "string" ? value : null;
 }
 
-function authorized (context: FixtureContext, request: IncomingMessage): boolean
-{
-    return ! context.pairing.lanEnabled
-        || suppliedToken (request) === context.pairingToken;
+function authorized(
+  context: FixtureContext,
+  request: IncomingMessage,
+): boolean {
+  return (
+    !context.pairing.lanEnabled ||
+    suppliedToken(request) === context.pairingToken
+  );
 }
 
-function isPairingManagement (url: string | undefined): boolean
-{
-    return url === "/pairing"
-        || url === "/pairing/lan"
-        || url === "/pairing/revoke";
+function isPairingManagement(url: string | undefined): boolean {
+  return (
+    url === "/pairing" || url === "/pairing/lan" || url === "/pairing/revoke"
+  );
 }
 
-export function rejectUnauthorized (context: FixtureContext,
-                                    request: IncomingMessage,
-                                    response: ServerResponse): boolean
-{
-    const management = isPairingManagement (request.url);
+export function rejectUnauthorized(
+  context: FixtureContext,
+  request: IncomingMessage,
+  response: ServerResponse,
+): boolean {
+  const management = isPairingManagement(request.url);
 
-    if (context.pairing.lanEnabled && ! management && request.url !== "/pair"
-        && ! authorized (context, request))
-    {
-        sendJson (response, 401, { error: "unauthorized" });
-        return true;
-    }
+  if (
+    context.pairing.lanEnabled &&
+    !management &&
+    request.url !== "/pair" &&
+    !authorized(context, request)
+  ) {
+    sendJson(response, 401, { error: "unauthorized" });
+    return true;
+  }
 
-    if (management && context.pairing.lanEnabled && ! authorized (context, request))
-    {
-        sendJson (response, 401, { error: "unauthorized" });
-        return true;
-    }
+  if (
+    management &&
+    context.pairing.lanEnabled &&
+    !authorized(context, request)
+  ) {
+    sendJson(response, 401, { error: "unauthorized" });
+    return true;
+  }
 
-    return false;
+  return false;
 }

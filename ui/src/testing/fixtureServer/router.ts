@@ -20,35 +20,33 @@ import { handleTransport } from "./routes/transport";
 import type { FixtureContext, FixtureRoute } from "./types";
 
 const routes: readonly FixtureRoute[] = [
-    handlePairing,
-    handleFxChain,
-    handleFxReorder,
-    handleFxInsert,
-    handlePatchEditor,
-    handlePatchCapture,
-    handlePatchSource,
-    handlePlugins,
-    handleMidi,
-    handlePatchUpdate,
-    handleState,
-    handleArm,
-    handleTransport,
-    handleAudio,
-    handleAudioMeasure,
+  handlePairing,
+  handleFxChain,
+  handleFxReorder,
+  handleFxInsert,
+  handlePatchEditor,
+  handlePatchCapture,
+  handlePatchSource,
+  handlePlugins,
+  handleMidi,
+  handlePatchUpdate,
+  handleState,
+  handleArm,
+  handleTransport,
+  handleAudio,
+  handleAudioMeasure,
 ];
 
-export function routeFixtureRequest (context: FixtureContext,
-                                     request: IncomingMessage,
-                                     response: ServerResponse): void
-{
-    if (rejectUnauthorized (context, request, response))
-        return;
+export function routeFixtureRequest(
+  context: FixtureContext,
+  request: IncomingMessage,
+  response: ServerResponse,
+): void {
+  if (rejectUnauthorized(context, request, response)) return;
 
-    for (const route of routes)
-    {
-        if (route (context, request, response))
-            return;
-    }
+  for (const route of routes) {
+    if (route(context, request, response)) return;
+  }
 
-    sendJson (response, 404, { error: "not found" });
+  sendJson(response, 404, { error: "not found" });
 }

@@ -69,6 +69,7 @@ jobs:
         working-directory: ui
         run: |
           pnpm install --frozen-lockfile
+          pnpm run format:check
           pnpm run build
 
       - name: Configure (cmake --preset default)

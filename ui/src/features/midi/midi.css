@@ -6,8 +6,7 @@
   border: 1px solid #2a2d3a;
   border-radius: 18px;
   background:
-    linear-gradient(140deg, rgba(168, 130, 255, 0.09), transparent 45%),
-    #171820;
+    linear-gradient(140deg, rgba(168, 130, 255, 0.09), transparent 45%), #171820;
   color: #eceef4;
 }
 

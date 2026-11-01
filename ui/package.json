@@ -10,6 +10,8 @@
     "generate:api": "openapi-typescript ../shared/api/openapi.yaml -o src/api/schema.d.ts",
     "build": "openapi-typescript ../shared/api/openapi.yaml -o src/api/schema.d.ts && tsc --noEmit && vite build",
     "preview": "vite preview --port 4173 --strictPort",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test:snapshot": "vite build --config vite.snapshot.config.ts --logLevel warn && node dist-test/snapshot.mjs"
   },
@@ -24,6 +26,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "openapi-typescript": "^7.10.1",
+    "prettier": "^3.9.10",
     "typescript": "^5.9.3",
     "vite": "^8.3.5"
   }

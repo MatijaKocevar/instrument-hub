@@ -6,8 +6,7 @@
   border: 1px solid #2a2d3a;
   border-radius: 18px;
   background:
-    linear-gradient(140deg, rgba(110, 231, 200, 0.07), transparent 45%),
-    #171820;
+    linear-gradient(140deg, rgba(110, 231, 200, 0.07), transparent 45%), #171820;
   color: #eceef4;
 }
 
@@ -159,7 +158,10 @@
 
 .audio-settings__readout {
   display: grid;
-  grid-template-columns: minmax(14rem, 1.4fr) minmax(7rem, 0.6fr) minmax(12rem, 1fr);
+  grid-template-columns: minmax(14rem, 1.4fr) minmax(7rem, 0.6fr) minmax(
+      12rem,
+      1fr
+    );
   gap: 1rem;
   align-items: stretch;
 }

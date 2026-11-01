@@ -8,22 +8,21 @@ import { PluginsRoute } from "./PluginsRoute";
 import { SettingsRoute } from "./SettingsRoute";
 import type { ShellData } from "./useShellData";
 
-export function RouteOutlet ({ router, shell }: {
-    readonly router: RouterState;
-    readonly shell: ShellData;
-}): ReactElement
-{
-    if (router.route === "grid")
-        return <GridRoute router={router} shell={shell} />;
+export function RouteOutlet({
+  router,
+  shell,
+}: {
+  readonly router: RouterState;
+  readonly shell: ShellData;
+}): ReactElement {
+  if (router.route === "grid")
+    return <GridRoute router={router} shell={shell} />;
 
-    if (router.route === "instrument")
-        return <InstrumentRoute shell={shell} />;
+  if (router.route === "instrument") return <InstrumentRoute shell={shell} />;
 
-    if (router.route === "plugins")
-        return <PluginsRoute shell={shell} />;
+  if (router.route === "plugins") return <PluginsRoute shell={shell} />;
 
-    if (router.route === "settings")
-        return <SettingsRoute shell={shell} />;
+  if (router.route === "settings") return <SettingsRoute shell={shell} />;
 
-    return <AudioRoute shell={shell} />;
+  return <AudioRoute shell={shell} />;
 }

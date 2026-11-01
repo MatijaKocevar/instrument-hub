@@ -3,48 +3,49 @@ import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 import { withEditorOpen } from "./patchModel";
 
-export class PatchEditorActions
-{
-    constructor (private readonly context: ActionContext) {}
+export class PatchEditorActions {
+  constructor(private readonly context: ActionContext) {}
 
-    openInstrumentEditor = (slot: number): Promise<boolean> =>
-        this.runEditor (slot, slotToOpen => this.context.api.openPatchEditor (slotToOpen));
+  openInstrumentEditor = (slot: number): Promise<boolean> =>
+    this.runEditor(slot, (slotToOpen) =>
+      this.context.api.openPatchEditor(slotToOpen),
+    );
 
-    closeInstrumentEditor = (slot: number): Promise<boolean> =>
-        this.runEditor (slot, slotToClose => this.context.api.closePatchEditor (slotToClose));
+  closeInstrumentEditor = (slot: number): Promise<boolean> =>
+    this.runEditor(slot, (slotToClose) =>
+      this.context.api.closePatchEditor(slotToClose),
+    );
 
-    private async runEditor (slot: number,
-                             request: (slot: number) => Promise<ControlPatchEditor>): Promise<boolean>
-    {
-        this.patch ({ editorBusy: true, editorError: null });
+  private async runEditor(
+    slot: number,
+    request: (slot: number) => Promise<ControlPatchEditor>,
+  ): Promise<boolean> {
+    this.patch({ editorBusy: true, editorError: null });
 
-        try
-        {
-            const result = await request (slot);
-            const current = this.context.getSnapshot ().state;
+    try {
+      const result = await request(slot);
+      const current = this.context.getSnapshot().state;
 
-            this.patch ({
-                phase: "ready",
-                state: current === null ? null : withEditorOpen (current, slot, result.open),
-                editorOpenSlot: result.open ? slot : -1,
-                editorBusy: false,
-                editorError: null,
-                error: null,
-                failedAttempts: 0,
-                updatedAt: this.context.now(),
-            });
+      this.patch({
+        phase: "ready",
+        state:
+          current === null ? null : withEditorOpen(current, slot, result.open),
+        editorOpenSlot: result.open ? slot : -1,
+        editorBusy: false,
+        editorError: null,
+        error: null,
+        failedAttempts: 0,
+        updatedAt: this.context.now(),
+      });
 
-            return true;
-        }
-        catch (error)
-        {
-            this.patch ({ editorBusy: false, editorError: messageOf (error) });
-            return false;
-        }
+      return true;
+    } catch (error) {
+      this.patch({ editorBusy: false, editorError: messageOf(error) });
+      return false;
     }
+  }
 
-    private patch (change: Parameters<ActionContext["patch"]>[0]): void
-    {
-        this.context.patch (change);
-    }
+  private patch(change: Parameters<ActionContext["patch"]>[0]): void {
+    this.context.patch(change);
+  }
 }

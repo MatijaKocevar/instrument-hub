@@ -15,97 +15,91 @@ import "./remote.css";
 
 export type { RemoteConnection } from "./model";
 
-export interface RemoteViewProps
-{
-    readonly model: RemoteModel;
-    readonly connection?: RemoteConnection;
-    readonly loading?: boolean;
-    readonly error?: string | null;
-    readonly link?: RemoteLinkSnapshot | null;
-    readonly contrast?: RemoteContrast;
-    readonly wakeLock?: WakeLockStatus;
-    readonly onToggleContrast?: () => void;
-    readonly onSelect?: (slot: number) => void;
-    readonly onPrevious?: () => void;
-    readonly onNext?: () => void;
-    readonly onTogglePlay?: () => void;
-    readonly onStop?: () => void;
-    readonly onPanic?: () => void;
+export interface RemoteViewProps {
+  readonly model: RemoteModel;
+  readonly connection?: RemoteConnection;
+  readonly loading?: boolean;
+  readonly error?: string | null;
+  readonly link?: RemoteLinkSnapshot | null;
+  readonly contrast?: RemoteContrast;
+  readonly wakeLock?: WakeLockStatus;
+  readonly onToggleContrast?: () => void;
+  readonly onSelect?: (slot: number) => void;
+  readonly onPrevious?: () => void;
+  readonly onNext?: () => void;
+  readonly onTogglePlay?: () => void;
+  readonly onStop?: () => void;
+  readonly onPanic?: () => void;
 }
 
-export function RemoteView ({
-    model,
-    connection = "idle",
-    loading = false,
-    error = null,
-    link = null,
-    contrast = "high",
-    wakeLock = "idle",
-    onToggleContrast,
-    onSelect,
-    onPrevious,
-    onNext,
-    onTogglePlay,
-    onStop,
-    onPanic,
-}: RemoteViewProps): ReactElement
-{
-    const playing = model.transport.playing;
+export function RemoteView({
+  model,
+  connection = "idle",
+  loading = false,
+  error = null,
+  link = null,
+  contrast = "high",
+  wakeLock = "idle",
+  onToggleContrast,
+  onSelect,
+  onPrevious,
+  onNext,
+  onTogglePlay,
+  onStop,
+  onPanic,
+}: RemoteViewProps): ReactElement {
+  const playing = model.transport.playing;
 
-    return (
-        <main
-            className="remote"
-            aria-label="Stage remote"
-            data-testid="remote"
-            data-theme="stage"
-            data-contrast={contrast}
-            data-connection={connection}
-            data-link={linkPhase (link)}
-            data-wake-lock={wakeLock}
-            data-armed-slot={model.armedSlot}
-            data-playing={playing ? "true" : "false"}
-        >
-            <RemoteHeader
-                applicationName={model.applicationName}
-                connection={connection}
-                contrast={contrast}
-                wakeLock={wakeLock}
-                onToggleContrast={onToggleContrast}
-            />
+  return (
+    <main
+      className="remote"
+      aria-label="Stage remote"
+      data-testid="remote"
+      data-theme="stage"
+      data-contrast={contrast}
+      data-connection={connection}
+      data-link={linkPhase(link)}
+      data-wake-lock={wakeLock}
+      data-armed-slot={model.armedSlot}
+      data-playing={playing ? "true" : "false"}
+    >
+      <RemoteHeader
+        applicationName={model.applicationName}
+        connection={connection}
+        contrast={contrast}
+        wakeLock={wakeLock}
+        onToggleContrast={onToggleContrast}
+      />
 
-            <ReconnectBanner connection={connection} link={link} />
+      <ReconnectBanner connection={connection} link={link} />
 
-            {error !== null
-                ? <p className="remote__error" role="alert" data-testid="remote-error">
-                      {error}
-                  </p>
-                : null}
+      {error !== null ? (
+        <p className="remote__error" role="alert" data-testid="remote-error">
+          {error}
+        </p>
+      ) : null}
 
-            <RemoteLayout
-                now={
-                    <NowPlayingCard
-                        model={model}
-                        loading={loading}
-                        onPrevious={onPrevious}
-                        onNext={onNext}
-                    />
-                }
-                setList={
-                    <SetList
-                        model={model}
-                        loading={loading}
-                        onSelect={onSelect}
-                    />
-                }
-                transport={
-                    <RemoteTransport
-                        transport={model.transport}
-                        onTogglePlay={onTogglePlay}
-                        onStop={onStop}
-                    />
-                }
-                panic={<RemotePanic onPanic={onPanic} />}
-            />
-        </main>
-    );
+      <RemoteLayout
+        now={
+          <NowPlayingCard
+            model={model}
+            loading={loading}
+            onPrevious={onPrevious}
+            onNext={onNext}
+          />
+        }
+        setList={
+          <SetList model={model} loading={loading} onSelect={onSelect} />
+        }
+        transport={
+          <RemoteTransport
+            transport={model.transport}
+            onTogglePlay={onTogglePlay}
+            onStop={onStop}
+          />
+        }
+        panic={<RemotePanic onPanic={onPanic} />}
+      />
+    </main>
+  );
 }

@@ -1,117 +1,98 @@
 import type { MeterSocketFactory, MeterSocketLike } from "./meterSocket";
 
-export interface MeterTransportOptions
-{
-    readonly url: string;
-    readonly socketFactory: MeterSocketFactory;
-    readonly reconnectBaseMs: number;
-    readonly reconnectMaxMs: number;
-    readonly onOpen: () => void;
-    readonly onMessage: (data: unknown) => void;
-    readonly onDisconnect: () => void;
+export interface MeterTransportOptions {
+  readonly url: string;
+  readonly socketFactory: MeterSocketFactory;
+  readonly reconnectBaseMs: number;
+  readonly reconnectMaxMs: number;
+  readonly onOpen: () => void;
+  readonly onMessage: (data: unknown) => void;
+  readonly onDisconnect: () => void;
 }
 
-export class MeterTransport
-{
-    private readonly options: MeterTransportOptions;
-    private socket: MeterSocketLike | null = null;
-    private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    private reconnectDelayMs: number;
-    private running = false;
+export class MeterTransport {
+  private readonly options: MeterTransportOptions;
+  private socket: MeterSocketLike | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectDelayMs: number;
+  private running = false;
 
-    constructor (options: MeterTransportOptions)
-    {
-        this.options = options;
-        this.reconnectDelayMs = options.reconnectBaseMs;
+  constructor(options: MeterTransportOptions) {
+    this.options = options;
+    this.reconnectDelayMs = options.reconnectBaseMs;
+  }
+
+  start(): void {
+    if (this.running) return;
+
+    this.running = true;
+    this.connect();
+  }
+
+  stop(): void {
+    this.running = false;
+
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
 
-    start (): void
-    {
-        if (this.running)
-            return;
+    const socket = this.socket;
+    this.socket = null;
+    socket?.close();
+  }
 
-        this.running = true;
-        this.connect ();
+  private connect(): void {
+    if (!this.running || this.options.url.length === 0) return;
+
+    let socket: MeterSocketLike;
+
+    try {
+      socket = this.options.socketFactory(this.options.url);
+    } catch {
+      this.scheduleReconnect();
+      return;
     }
 
-    stop (): void
-    {
-        this.running = false;
+    this.socket = socket;
 
-        if (this.reconnectTimer !== null)
-        {
-            clearTimeout (this.reconnectTimer);
-            this.reconnectTimer = null;
-        }
+    socket.addEventListener("open", () => {
+      if (this.socket !== socket) return;
 
-        const socket = this.socket;
-        this.socket = null;
-        socket?.close ();
-    }
+      this.reconnectDelayMs = this.options.reconnectBaseMs;
+      this.options.onOpen();
+    });
 
-    private connect (): void
-    {
-        if (! this.running || this.options.url.length === 0)
-            return;
+    socket.addEventListener("message", (event) => {
+      if (this.socket !== socket) return;
 
-        let socket: MeterSocketLike;
+      this.options.onMessage(event.data);
+    });
 
-        try
-        {
-            socket = this.options.socketFactory (this.options.url);
-        }
-        catch
-        {
-            this.scheduleReconnect ();
-            return;
-        }
+    const disconnect = (): void => {
+      if (this.socket !== socket) return;
 
-        this.socket = socket;
+      this.socket = null;
+      this.options.onDisconnect();
+      this.scheduleReconnect();
+    };
 
-        socket.addEventListener ("open", () =>
-        {
-            if (this.socket !== socket)
-                return;
+    socket.addEventListener("close", disconnect);
+    socket.addEventListener("error", disconnect);
+  }
 
-            this.reconnectDelayMs = this.options.reconnectBaseMs;
-            this.options.onOpen ();
-        });
+  private scheduleReconnect(): void {
+    if (!this.running || this.reconnectTimer !== null) return;
 
-        socket.addEventListener ("message", event =>
-        {
-            if (this.socket !== socket)
-                return;
+    const delay = this.reconnectDelayMs;
+    this.reconnectDelayMs = Math.min(
+      this.options.reconnectMaxMs,
+      this.reconnectDelayMs * 2,
+    );
 
-            this.options.onMessage (event.data);
-        });
-
-        const disconnect = (): void =>
-        {
-            if (this.socket !== socket)
-                return;
-
-            this.socket = null;
-            this.options.onDisconnect ();
-            this.scheduleReconnect ();
-        };
-
-        socket.addEventListener ("close", disconnect);
-        socket.addEventListener ("error", disconnect);
-    }
-
-    private scheduleReconnect (): void
-    {
-        if (! this.running || this.reconnectTimer !== null)
-            return;
-
-        const delay = this.reconnectDelayMs;
-        this.reconnectDelayMs = Math.min (this.options.reconnectMaxMs,
-                                           this.reconnectDelayMs * 2);
-
-        this.reconnectTimer = setTimeout (() =>
-        {
-            this.reconnectTimer = null;
-            this.connect ();
-        }, delay);
-    }
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
+  }
 }
