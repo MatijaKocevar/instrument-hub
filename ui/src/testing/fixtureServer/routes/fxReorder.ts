@@ -1,5 +1,3 @@
-// Insert-chain reorder endpoint for the fixture server.
-
 import type { ControlFxInsert } from "../../../api/client";
 import { recalculateChain } from "../../fixtures";
 import { readJsonObject, sendJson } from "../http";

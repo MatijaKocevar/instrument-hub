@@ -20,14 +20,6 @@ export interface PairingPanelProps
     onPair?: (code: string) => void;
 }
 
-/**
-    Desktop pairing card.
-
-    LAN mode is off by default: with it off the engine only listens on
-    loopback and needs no token. The header, LAN toggle, this browser's token
-    state and the QR/code sections each own a component; this file lays them
-    out and owns the loading and error states.
-*/
 export function PairingPanel ({
     pairing,
     token,

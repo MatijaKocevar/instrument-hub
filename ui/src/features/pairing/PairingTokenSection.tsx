@@ -11,12 +11,6 @@ interface PairingTokenSectionProps
     readonly onPair?: ((code: string) => void) | undefined;
 }
 
-/**
-    This browser's own pairing state.
-
-    Shows whether a token is stored and, while LAN mode is on with a live code,
-    offers the one-click self-pair action.
-*/
 export function PairingTokenSection ({
     token,
     code,

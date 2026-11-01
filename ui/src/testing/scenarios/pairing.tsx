@@ -1,5 +1,3 @@
-// Pairing: QR encoding, the pairing gate and LAN-mode lifecycle.
-
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { ApiError, createControlApi } from "../../api/client";
@@ -16,15 +14,6 @@ import { PAIRING_ON } from "../fixtures";
 import { check, renderApp } from "../harness";
 import { MemoryStorage } from "../memoryStorage";
 
-/**
-    Reference matrix for
-
-        http://instrument-hub.local:8080/remote?code=987654
-
-    produced with `qrencode -t ASCII -v 4 -l M -m 0 -8` (mask 0, ECC M).
-    Comparing against it proves the encoder's mode/count fields, Reed–Solomon
-    blocks, interleaving, function patterns and format bits are all correct.
-*/
 const QR_GOLDEN = "111111100011100110111111001111111/100000101100110101010111101000001/101110100011000010011000001011101/101110100111010001010001101011101/101110101001100001000101101011101/100000100011010000100111101000001/111111101010101010101010101111111/000000000110010011001111100000000/101010100101111101011100000010010/011001001000001000001000111000001/111001111100110011000010111100111/011111010010100000011110000010001/101001101101100100001110101001010/110101001111110100010110101001001/010110100110001000001000100010011/110101000101101101011111100000010/011110100011010001000100011000000/110101011100011001001000111100011/101101101011100010101010110100101/000101010110110111110101101010010/111101110000101110110110111101001/010111000000010110100010111000011/100110100110110111000100010101111/011101011010100011111100111010001/101110110111001111001101111110001/000000001000101010001110100011001/111111100101101001000101101010101/100000100001110100011110100011010/101110101011101000010110111111000/101110100000000101000110100110101/101110101001101001101000110011101/100000100001000101101101110110010/111111101101011011001111110000011";
 
 export function qrTest (): void
@@ -132,7 +121,6 @@ export async function pairingTest (): Promise<void>
                    && ! /data-testid="settings-revoke-token"[^>]*disabled/.test (after),
                "token revocation is available while LAN mode is on");
 
-        // --- The acceptance flow, through a brand-new client --------------
         const anonymous = createControlApi ({ baseUrl: server.baseUrl });
         let unpairedStatus = 0;
 
@@ -170,7 +158,6 @@ export async function pairingTest (): Promise<void>
 
         check (state.armedSlot === 3, "the token grants GET /state");
 
-        // --- Tablet gate ---------------------------------------------------
         const gate = renderToStaticMarkup (
             <PairingGate pairing={server.pairing} initialCode="246810" onPair={() => {}} />);
 
@@ -181,7 +168,6 @@ export async function pairingTest (): Promise<void>
         check (gate.includes ('data-testid="pairing-submit"'), "the gate has a pair button");
         check (gate.includes ("stays in this browser"), "the gate explains token storage");
 
-        // --- Forget / turn LAN mode off -----------------------------------
         check (await store.forgetPairing (), "forgetting paired tablets succeeds");
         check (store.getSnapshot ().pairing?.pairedClients === 1,
                "forget revokes others and re-pairs this desktop");
@@ -207,7 +193,6 @@ export async function pairingTest (): Promise<void>
     }
 }
 
-/** Full-app snapshot: the settings page pairs desktop and tablets. */
 export function assertSnapshotPairing (settingsHtml: string): void
 {
     check (settingsHtml.includes ('data-testid="settings-page"'), "the /settings route resolves");
@@ -230,7 +215,6 @@ export function assertSnapshotPairing (settingsHtml: string): void
            "the About section shows the engine version");
 }
 
-/** Full-app snapshot: pairing lives on Settings, not on Audio & MIDI. */
 export function assertSnapshotPairingMoved (audioHtml: string): void
 {
     check (! audioHtml.includes ('data-testid="pairing"'),

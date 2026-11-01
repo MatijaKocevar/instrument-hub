@@ -1,8 +1,5 @@
-// Audio-device fixture served by the snapshot fixture server.
-
 import type { ControlAudioState } from "../../api/client";
 
-/** Audio device fixture for the settings panel and its live readout. */
 export const AUDIO: ControlAudioState = {
     open: true,
     deviceType: "ALSA",

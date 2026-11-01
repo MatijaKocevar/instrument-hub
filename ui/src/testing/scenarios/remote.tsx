@@ -1,5 +1,3 @@
-// Remote: stage layout, set-list model, link, wake lock and contrast.
-
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";

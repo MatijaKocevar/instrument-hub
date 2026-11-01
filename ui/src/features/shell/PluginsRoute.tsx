@@ -3,7 +3,6 @@ import type { ReactElement } from "react";
 import { PluginsPage } from "../plugins";
 import type { ShellData } from "./useShellData";
 
-/** Plugins route: inventory, scan state and per-patch usage. */
 export function PluginsRoute ({ shell }: { readonly shell: ShellData }): ReactElement
 {
     const { app, store, pluginAssignments } = shell;

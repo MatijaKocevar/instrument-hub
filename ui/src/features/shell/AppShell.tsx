@@ -18,7 +18,6 @@ export interface AppShellProps
     readonly viewportWidth?: number | undefined;
 }
 
-/** Desktop shell layout: navigation, the current page and the status footer. */
 export function AppShell ({ router, viewportWidth }: AppShellProps): ReactElement
 {
     const shell = useShellData (router);

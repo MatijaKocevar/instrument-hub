@@ -71,7 +71,6 @@ function PortCard ({ kind, port, label, hint }: {
     );
 }
 
-/** Launchpad and Keystation connection cards, with their ALSA port hints. */
 export function MidiPortStatus ({ midi }: { readonly midi: ControlMidiState }): ReactElement
 {
     const launchpad = midiInputForRole (midi.inputs, "launchpad");

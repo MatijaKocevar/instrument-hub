@@ -1,10 +1,3 @@
-/*
-    LAN pairing (desktop card) and the tablet pairing gate.
-
-    The QR keeps a white quiet zone, the code is large enough to read across a
-    desk, and every interactive target clears 44 px.
-*/
-
 .pairing {
   --pairing-line: #303344;
   --pairing-card: #171922;
@@ -211,7 +204,6 @@
   align-self: flex-start;
 }
 
-/* --- Tablet gate --------------------------------------------------------- */
 
 .pairing-gate {
   display: flex;

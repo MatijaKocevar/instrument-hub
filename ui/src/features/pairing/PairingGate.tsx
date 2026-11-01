@@ -9,18 +9,10 @@ export interface PairingGateProps
     pairing: ControlPairingState | null;
     busy?: boolean;
     error?: string | null;
-    /** A code already extracted from the QR link. */
     initialCode?: string | null;
     onPair: (code: string) => void;
 }
 
-/**
-    The tablet side of pairing.
-
-    The QR link carries `?code=`, so the scanned path pairs automatically. When
-    the link is opened without a code (or the code expired) this form is the
-    manual fallback: six digits, no keyboard surprises on a phone.
-*/
 export function PairingGate ({
     pairing,
     busy = false,

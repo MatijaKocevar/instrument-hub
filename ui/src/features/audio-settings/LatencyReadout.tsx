@@ -8,7 +8,6 @@ interface LatencyReadoutProps
     readonly latency: ControlAudioState["latency"];
 }
 
-/** Buffer, device, chain and total latency in one readout. */
 export function LatencyReadout ({ latency }: LatencyReadoutProps): ReactElement
 {
     return (

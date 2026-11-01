@@ -7,7 +7,6 @@ function formatBpm (bpm: number): string
     return `${Number.isInteger (bpm) ? bpm.toFixed (0) : bpm.toFixed (1)} BPM`;
 }
 
-/** Transport state, tempo and position summary. */
 export function TransportPanel ({ transport }: { readonly transport: ControlTransport }): ReactElement
 {
     return (

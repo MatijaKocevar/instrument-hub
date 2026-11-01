@@ -2,18 +2,9 @@ import type { ControlState, ControlTransportPatch } from "../api/client";
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 
-/**
-    Start, stop or reposition the transport, and panic the rig.
-
-    The change is applied optimistically so Play/Pause reacts on the next
-    frame rather than after the HTTP round trip; a rejected request restores
-    the previous transport. Panic composes the injected disarm with a stop.
-*/
 export class TransportActions
 {
-    /** Sequence of transport requests; a stale response must not win. */
     private transportSequence = 0;
-    /** Number of transport requests in flight, used to keep Play/Pause during polls. */
     private transportInFlight = 0;
 
     constructor (private readonly context: ActionContext,
@@ -66,12 +57,6 @@ export class TransportActions
         }
     };
 
-    /**
-        Silence the rig by stopping the transport and disarming every slot.
-
-        Both requests are attempted even if one fails, because a stuck note is
-        worse than a stale status line.
-    */
     panic = async (): Promise<boolean> =>
     {
         const disarmed = await this.disarm (null);
@@ -84,13 +69,6 @@ export class TransportActions
         return disarmed && stopped;
     };
 
-    /**
-        Keep the optimistic transport while a request is in flight.
-
-        A poll can land before the request answers; its snapshot still carries
-        the previous transport. Re-applying the current one keeps Play/Pause
-        from snapping back until the action confirms or rolls back.
-    */
     preservePending = (state: ControlState): ControlState =>
     {
         const current = this.snapshot.state;

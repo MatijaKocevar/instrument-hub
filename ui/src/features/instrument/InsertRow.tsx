@@ -15,7 +15,6 @@ interface InsertRowProps
     readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
 }
 
-/** One insert in the chain: identity, wet/latency readouts and its actions. */
 export function InsertRow ({
     patch,
     insert,

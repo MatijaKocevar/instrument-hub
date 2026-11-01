@@ -1,5 +1,3 @@
-// Audio settings: device, buffer, latency, measurement and xruns.
-
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { createControlApi } from "../../api/client";
@@ -107,7 +105,6 @@ export async function audioSettingsTest (): Promise<void>
     }
 }
 
-/** Full-app snapshot: every audio control is present. */
 export function assertSnapshotAudio (audioHtml: string): void
 {
     check (audioHtml.includes ('data-testid="audio-page"'), "the /audio route resolves to its page");
@@ -131,7 +128,6 @@ export function assertSnapshotAudio (audioHtml: string): void
            "the MIDI panel shows the Keystation status");
 }
 
-/** Full-app snapshot: the panel maps every output channel the engine reports. */
 export function assertSnapshotAudioChannels (audioHtml: string, store: AppStore): void
 {
     check (countOf (audioHtml, 'data-testid="output-channel"')

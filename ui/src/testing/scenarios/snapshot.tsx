@@ -1,9 +1,3 @@
-// Full-app snapshot: one fixture state rendered through every route.
-//
-// The page loads its chain and the plug-in inventory from effects, which do
-// not run under `react-dom/server`; load them here so the artifact shows the
-// same data a browser would. Each area's assertions live in its scenario file.
-
 import { createControlApi } from "../../api/client";
 import { instrumentSlotForRoute } from "../../features/instrument";
 import { AppStore } from "../../state/store";
@@ -26,7 +20,6 @@ import {
     assertSnapshotShell,
 } from "./shell";
 
-/** Snapshot the fixture API, or the live API when `--api=` is supplied. */
 export async function snapshotTest (): Promise<void>
 {
     const externalUrl = process.argv

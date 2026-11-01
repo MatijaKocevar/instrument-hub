@@ -5,11 +5,8 @@ import { formatScanTime, pluginCountLabel } from "./model";
 
 interface PluginsHeaderProps
 {
-    /** Latest `GET /plugins`, or null before the first successful request. */
     readonly inventory: ControlPluginList | null;
-    /** Plug-ins left after the search filter. */
     readonly shown: number;
-    /** Every plug-in the inventory reports. */
     readonly total: number;
 }
 
@@ -27,7 +24,6 @@ function scanStateLabel (inventory: ControlPluginList | null): string
     return `Last scan ${formatScanTime (inventory.lastScanMs)}`;
 }
 
-/** Page title and the count/scan badge above the toolbar. */
 export function PluginsHeader ({ inventory, shown, total }: PluginsHeaderProps): ReactElement
 {
     const scanning = inventory?.scanning === true;

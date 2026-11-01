@@ -1,12 +1,10 @@
 import type { ControlPatch, ControlPatchSourceRequest, ControlPlugin } from "../../api/client";
 
-/** True when the patch's source is a hosted plugin (the editor has a window). */
 export function isPluginSource (patch: ControlPatch | null): boolean
 {
     return patch?.instrument.kind === "plugin";
 }
 
-/** Human label for the declared source kind. */
 export function sourceKindLabel (kind: string): string
 {
     switch (kind)
@@ -20,7 +18,6 @@ export function sourceKindLabel (kind: string): string
     }
 }
 
-/** The source request that assigns an installed plugin to a patch. */
 export function sourceRequestForPlugin (plugin: ControlPlugin): ControlPatchSourceRequest
 {
     return {
@@ -35,7 +32,6 @@ export function sourceRequestForPlugin (plugin: ControlPlugin): ControlPatchSour
     };
 }
 
-/** The source request for the built-in initialisation tone. */
 export function sourceRequestForInitTone (frequency?: number): ControlPatchSourceRequest
 {
     return {
@@ -44,7 +40,6 @@ export function sourceRequestForInitTone (frequency?: number): ControlPatchSourc
     };
 }
 
-/** The source request that leaves a patch unassigned (silent). */
 export function sourceRequestForEmpty (): ControlPatchSourceRequest
 {
     return { kind: "empty" };

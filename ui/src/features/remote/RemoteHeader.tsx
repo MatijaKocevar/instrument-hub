@@ -20,7 +20,6 @@ export interface RemoteHeaderProps
     readonly onToggleContrast: (() => void) | undefined;
 }
 
-/** Stage header: app name, wake-lock badge, contrast toggle and link status. */
 export function RemoteHeader ({
     applicationName,
     connection,

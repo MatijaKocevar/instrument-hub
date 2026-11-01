@@ -1,5 +1,3 @@
-// Instrument-source endpoints for the fixture server.
-
 import type { ControlState } from "../../../api/client";
 import { findPatch } from "../context";
 import { readJsonObject, sendJson } from "../http";

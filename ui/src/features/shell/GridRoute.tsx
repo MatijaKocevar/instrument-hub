@@ -6,7 +6,6 @@ import { SystemPanels } from "./SystemPanels";
 import { armAndOpenInstrument } from "./armAndOpenInstrument";
 import type { ShellData } from "./useShellData";
 
-/** Grid route: engine summaries above the launch surface. */
 export function GridRoute ({ router, shell }: {
     readonly router: RouterState;
     readonly shell: ShellData;

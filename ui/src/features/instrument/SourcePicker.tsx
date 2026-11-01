@@ -17,7 +17,6 @@ interface SourcePickerProps
     readonly onSourceChange?: (slot: number, source: ControlPatchSourceRequest) => void;
 }
 
-/** The collapsible picker that assigns a built-in or installed instrument source. */
 export function SourcePicker ({
     patch,
     plugins,

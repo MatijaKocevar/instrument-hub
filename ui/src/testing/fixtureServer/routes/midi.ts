@@ -1,5 +1,3 @@
-// MIDI input and pad-test endpoints for the fixture server.
-
 import { readJsonObject, sendJson } from "../http";
 import type { FixtureRoute } from "../types";
 

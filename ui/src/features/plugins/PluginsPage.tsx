@@ -7,38 +7,21 @@ import { PluginsHeader } from "./PluginsHeader";
 import { PluginsToolbar } from "./PluginsToolbar";
 import "./plugins.css";
 
-/** How often the page re-reads the inventory while a scan is running. */
 const SCAN_POLL_MS = 400;
 
-/** Give up polling after a minute; the page still offers a manual refresh. */
 const MAX_SCAN_POLLS = 150;
 
 export interface PluginsPageProps
 {
-    /** Latest `GET /plugins`, or null before the first successful request. */
     readonly inventory: ControlPluginList | null;
-    /** Patches that use a plug-in, derived from `/state`. */
     readonly assignments?: readonly PluginAssignment[];
-    /** Message from a failed inventory load or rescan. */
     readonly error?: string | null;
-    /** True while a rescan or inventory request is in flight. */
     readonly busy?: boolean;
-    /** Search prefilled when the page mounts (used by the snapshot test). */
     readonly initialSearch?: string;
-    /** Start a background scan of the VST3 folders. */
     readonly onRescan?: () => void;
-    /** Re-read the inventory, used by Retry and by scan polling. */
     readonly onReload?: () => void;
 }
 
-/**
-    Read-only inventory of installed VST3s.
-
-    The page owns the search and scan polling; the header, toolbar, list and
-    per-plug-in card each live in their own component. Assignment deliberately
-    stays on each patch, so the only assignment-shaped thing here is the
-    "used by" hint read from `/state`.
-*/
 export function PluginsPage ({
     inventory,
     assignments = [],
@@ -57,9 +40,6 @@ export function PluginsPage ({
     const shown = filterPlugins (all, search);
     const total = inventory?.total ?? all.length;
 
-    // The POST that starts a scan answers before the scan finishes, so the page
-    // re-reads the inventory until the engine reports `scanning: false`. This
-    // never runs under `react-dom/server`, where the page is a pure snapshot.
     useEffect (() =>
     {
         if (! scanning || busy || onReload === undefined || scanPolls >= MAX_SCAN_POLLS)

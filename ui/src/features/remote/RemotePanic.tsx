@@ -5,7 +5,6 @@ export interface RemotePanicProps
     readonly onPanic: (() => void) | undefined;
 }
 
-/** The oversized panic target that stops the transport and disarms the set. */
 export function RemotePanic ({ onPanic }: RemotePanicProps): ReactElement
 {
     return (

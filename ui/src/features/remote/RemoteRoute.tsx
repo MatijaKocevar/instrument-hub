@@ -4,13 +4,6 @@ import { useAppState, useAppStore } from "../../state/AppStoreContext";
 import { codeFromSearch, PairingGate } from "../pairing";
 import { RemoteStage } from "./RemoteStage";
 
-/**
-    Store-connected `/remote` route.
-
-    A tablet that has not paired yet sees the pairing gate instead of an empty
-    stage. The QR link carries `?code=...`, which is redeemed automatically.
-    The authorised stage lives in `RemoteStage.tsx`.
-*/
 export function RemoteRoute (): ReactElement
 {
     const app = useAppState ();

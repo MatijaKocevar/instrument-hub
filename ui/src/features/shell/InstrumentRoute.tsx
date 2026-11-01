@@ -6,7 +6,6 @@ import {
 } from "../instrument";
 import type { ShellData } from "./useShellData";
 
-/** Instrument route: the selected patch's sound, mixer and inserts. */
 export function InstrumentRoute ({ shell }: {
     readonly shell: ShellData;
 }): ReactElement

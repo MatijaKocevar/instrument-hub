@@ -24,7 +24,6 @@ export function AppStoreProvider ({ store, children }: AppStoreProviderProps)
     );
 }
 
-/** The store itself, for actions such as a manual retry. */
 export function useAppStore (): AppStore
 {
     const store = useContext (AppStoreContext);
@@ -35,12 +34,6 @@ export function useAppStore (): AppStore
     return store;
 }
 
-/**
-    Subscribe to the store.
-
-    `getSnapshot` doubles as the server snapshot so the same components render
-    under `renderToStaticMarkup` in the headless snapshot test.
-*/
 export function useAppState (): AppSnapshot
 {
     const store = useAppStore();

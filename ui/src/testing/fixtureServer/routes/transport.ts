@@ -1,5 +1,3 @@
-// Transport endpoint for the fixture server.
-
 import type { ControlTransportPatch } from "../../../api/client";
 import { readJsonObject, sendJson } from "../http";
 import type { FixtureRoute } from "../types";

@@ -1,15 +1,3 @@
-// Headless snapshot test for the React UI.
-//
-// Runs the real app under `react-dom/server`: no browser, no Chrome, no
-// WebView. The state is fetched over real HTTP from a fixture server that
-// speaks the control API, then the rendered markup is asserted for the
-// expected widget count and content and written to tests/artifacts.
-//
-// Each area owns its scenarios and assertions under `scenarios/`; this file
-// only runs them in their original order.
-//
-// Run with: pnpm test:snapshot
-
 import { failureCount } from "./harness";
 import { audioSettingsTest } from "./scenarios/audio";
 import {

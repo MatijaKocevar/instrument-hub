@@ -1,8 +1,3 @@
-// Control-state fixture served by the snapshot fixture server.
-//
-// Mirrors a live `GET /state` payload: eight families of eight patches,
-// one plug-in-backed patch and one armed slot.
-
 import type { ControlState } from "../../api/client";
 
 type FixturePatch = ControlState["families"][number]["patches"][number];

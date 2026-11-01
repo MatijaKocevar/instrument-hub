@@ -4,22 +4,17 @@ import type { RequestGuard } from "./client";
 import type { paths } from "./schema";
 import type { ControlMidiPort, ControlMidiState } from "./types";
 
-/** MIDI inputs and the Launchpad pad test. */
 export interface MidiEndpoints
 {
-    /** Read the MIDI inputs, Launchpad/Keystation status and pad-test state. */
     getMidi (options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
 
-    /** Enable or disable one MIDI input, returning the new state. */
     setMidiInput (id: string,
                   enabled: boolean,
                   options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
 
-    /** Light the Launchpad grid for ~900 ms. */
     runMidiPadTest (options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
 }
 
-/** Rejects MIDI payloads the page cannot render. */
 function isMidiState (value: unknown): value is ControlMidiState
 {
     if (value === null || typeof value !== "object")

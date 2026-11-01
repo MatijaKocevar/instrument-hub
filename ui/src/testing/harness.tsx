@@ -1,5 +1,3 @@
-// Shared assertions and render helpers for the headless snapshot scenarios.
-
 import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";

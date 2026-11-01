@@ -21,7 +21,6 @@ export const SETTINGS_ITEM: NavItem = {
     shortLabel: "Settings",
 };
 
-/** Props shared by the wide sidebar and the narrow bottom tabs. */
 export interface ShellNavProps
 {
     readonly route: ShellRoute;

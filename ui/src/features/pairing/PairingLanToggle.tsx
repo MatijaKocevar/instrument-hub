@@ -7,7 +7,6 @@ interface PairingLanToggleProps
     readonly onToggle?: ((enabled: boolean) => void) | undefined;
 }
 
-/** The one action that opens or closes the control API to the LAN. */
 export function PairingLanToggle ({
     lanEnabled,
     disabled,

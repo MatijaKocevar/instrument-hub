@@ -15,7 +15,6 @@ export interface GridTableProps
         ((familyId: string, slots: readonly number[], colorIndex: number) => void) | undefined;
 }
 
-/** The scrollable 8×8 table: column headers, family rows and their cells. */
 export function GridTable ({
     model,
     meters,

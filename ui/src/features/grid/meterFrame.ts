@@ -1,4 +1,3 @@
-/** One slot's level in the latest meter frame. */
 export interface MeterSlotReading
 {
     readonly slot: number;
@@ -7,16 +6,12 @@ export interface MeterSlotReading
     readonly armed: boolean;
 }
 
-/** Immutable meter state, read through `useSyncExternalStore`. */
 export interface MeterSnapshot
 {
-    /** True while the `/meters` socket is open. */
     readonly connected: boolean;
-    /** Monotonic frame number from the server; gaps mean frames were skipped. */
     readonly sequence: number;
     readonly timestampMs: number;
     readonly masterPeak: number;
-    /** Per-slot readings keyed by slot index. */
     readonly slots: Readonly<Record<number, MeterSlotReading>>;
 }
 
@@ -41,13 +36,6 @@ export interface ParsedMeterFrame
     slots: MeterSlotReading[];
 }
 
-/**
-    Validate a `/meters` frame.
-
-    Unknown or malformed frames are ignored: a bad frame must never take the
-    meters — or the grid — down. Frames may arrive as JSON text or already
-    parsed objects.
-*/
 export function parseMeterFrame (value: unknown): ParsedMeterFrame | null
 {
     let candidate = value;

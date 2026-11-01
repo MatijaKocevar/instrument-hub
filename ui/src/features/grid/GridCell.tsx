@@ -11,7 +11,6 @@ export interface GridCellProps
     readonly familyId: string;
     readonly familyName: string;
     readonly column: number;
-    /** Missing when the family has fewer than eight patches. */
     readonly patch: GridPatch | undefined;
     readonly armedSlot: number;
     readonly meters: MeterSnapshot;
@@ -43,7 +42,6 @@ function EmptyGridCell ({
     );
 }
 
-/** One patch cell: arm target, live meter, latency readout and colour swatch. */
 export function GridCell ({
     familyId,
     familyName,

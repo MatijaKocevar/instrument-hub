@@ -1,7 +1,6 @@
 import type { RemoteLinkSnapshot } from "./MeterLink";
 import type { RemoteConnection } from "./model";
 
-/** What the banner should say, if anything. */
 export type RemoteBannerTone = "warning" | "critical";
 
 export interface RemoteBanner
@@ -19,14 +18,6 @@ const NO_BANNER: RemoteBanner = {
     detail: "",
 };
 
-/**
-    Decide whether the stage needs a reconnect banner.
-
-    Two independent links can fail: the HTTP poll behind the set list
-    (`connection`) and the live WebSocket. A dead API is critical because new
-    taps cannot land; a dead socket is a warning because the set list and the
-    optimistic controls still work and the socket retries on its own.
-*/
 export function remoteBanner (connection: RemoteConnection,
                               link: RemoteLinkSnapshot | null): RemoteBanner
 {

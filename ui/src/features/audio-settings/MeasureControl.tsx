@@ -62,7 +62,6 @@ interface MeasureControlProps
     readonly onMeasure?: (() => void) | undefined;
 }
 
-/** The Measure button with its latest result, error or empty state. */
 export function MeasureControl ({
     measurement,
     error,

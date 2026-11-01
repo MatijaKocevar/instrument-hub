@@ -5,7 +5,6 @@ import { EnginePanel } from "./EnginePanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { TransportPanel } from "./TransportPanel";
 
-/** Engine, transport and settings summaries shown above the Grid. */
 export function SystemPanels ({ state }: { readonly state: ControlState }): ReactElement
 {
     return (

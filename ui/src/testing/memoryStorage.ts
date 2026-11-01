@@ -1,6 +1,5 @@
 import type { TokenStorage } from "../features/pairing";
 
-/** In-memory `localStorage` stand-in for the headless scenarios. */
 export class MemoryStorage implements TokenStorage
 {
     private readonly values = new Map<string, string> ();

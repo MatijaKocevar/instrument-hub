@@ -1,17 +1,10 @@
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 
-/**
-    Read the MIDI inputs, toggle one and run the Launchpad pad test.
-
-    Busy/error flags stay on the snapshot so the Audio page can render the
-    request state next to the port list and the pad-test button.
-*/
 export class MidiActions
 {
     constructor (private readonly context: ActionContext) {}
 
-    /** Read the ALSA inputs and controller status behind `GET /midi`. */
     loadMidi = async (): Promise<boolean> =>
     {
         this.patch ({ midiBusy: true, midiError: null });
@@ -30,7 +23,6 @@ export class MidiActions
         }
     };
 
-    /** Open or close one MIDI input. */
     toggleMidiInput = async (id: string, enabled: boolean): Promise<boolean> =>
     {
         this.patch ({ midiBusy: true, midiError: null });
@@ -49,7 +41,6 @@ export class MidiActions
         }
     };
 
-    /** Light the Launchpad grid for the pad-test animation. */
     runPadTest = async (): Promise<boolean> =>
     {
         this.patch ({ padTestBusy: true, padTestError: null });

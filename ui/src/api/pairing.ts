@@ -4,25 +4,19 @@ import type { RequestGuard } from "./client";
 import type { paths } from "./schema";
 import type { ControlPairResponse, ControlPairingState } from "./types";
 
-/** LAN mode, code pairing and token revocation. */
 export interface PairingEndpoints
 {
-    /** Read LAN mode, the live 6-digit code and the QR payload. */
     getPairing (options?: { signal?: AbortSignal }): Promise<ControlPairingState>;
 
-    /** Turn LAN mode on/off (loopback-only management endpoint). */
     setLanMode (enabled: boolean,
                 options?: { signal?: AbortSignal }): Promise<ControlPairingState>;
 
-    /** Exchange a 6-digit code for a token. */
     pair (code: string,
           options?: { signal?: AbortSignal; clientName?: string }): Promise<ControlPairResponse>;
 
-    /** Revoke every issued pairing token. */
     revokePairing (options?: { signal?: AbortSignal }): Promise<ControlPairingState>;
 }
 
-/** Rejects pairing payloads the panel cannot render. */
 function isPairingState (value: unknown): value is ControlPairingState
 {
     if (value === null || typeof value !== "object")

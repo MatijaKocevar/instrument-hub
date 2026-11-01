@@ -5,7 +5,6 @@ interface PairingHeaderProps
     readonly lanEnabled: boolean;
 }
 
-/** Pairing card title, LAN-mode pill and the state-dependent lede. */
 export function PairingHeader ({ lanEnabled }: PairingHeaderProps): ReactElement
 {
     return (

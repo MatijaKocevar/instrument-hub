@@ -1,4 +1,3 @@
-/** Turn the control API origin into the `/meters` WebSocket URL. */
 export function metersUrlFor (baseUrl: string): string
 {
     try

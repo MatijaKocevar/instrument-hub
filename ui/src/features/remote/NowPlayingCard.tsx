@@ -11,7 +11,6 @@ export interface NowPlayingCardProps
     readonly onNext: (() => void) | undefined;
 }
 
-/** The armed patch, its chain latency and the two large patch-step targets. */
 export function NowPlayingCard ({
     model,
     loading,

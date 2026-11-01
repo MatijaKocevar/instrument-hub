@@ -2,17 +2,10 @@ import type { ControlAudioPatch } from "../api/client";
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 
-/**
-    Change the audio device settings and run the latency probe.
-
-    The change response carries the post-change readout, so the panel updates
-    from the same round trip that changed the engine.
-*/
 export class AudioActions
 {
     constructor (private readonly context: ActionContext) {}
 
-    /** Apply a buffer, sample-rate, device or channel-mapping change. */
     updateAudio = async (patch: ControlAudioPatch): Promise<boolean> =>
     {
         this.patch ({ audioBusy: true, audioError: null });
@@ -38,7 +31,6 @@ export class AudioActions
         }
     };
 
-    /** Run the latency probe and show its result next to the readout. */
     measureLatency = async (): Promise<boolean> =>
     {
         this.patch ({ measurementError: null });

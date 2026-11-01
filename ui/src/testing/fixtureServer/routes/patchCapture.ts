@@ -1,5 +1,3 @@
-// Explicit patch-sound capture endpoints for the fixture server.
-
 import { findPatch } from "../context";
 import { sendJson } from "../http";
 import type { FixtureRoute } from "../types";

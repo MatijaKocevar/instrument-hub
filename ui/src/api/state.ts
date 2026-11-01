@@ -12,76 +12,33 @@ import type {
     ControlTransportPatch,
 } from "./types";
 
-/**
-    State, arming, transport and patch editing.
-
-    Every request answers with the state or the changed resource, so the store
-    can reconcile its optimistic update from the same round trip.
-*/
 export interface StateEndpoints
 {
-    /** Read one consistent state snapshot. */
     getState (options?: { signal?: AbortSignal }): Promise<ControlState>;
 
-    /**
-        Arm `slot`, or disarm with `null` / a negative value.
-
-        Resolves with the state after the request, so the caller can reconcile
-        its optimistic highlight with the engine.
-    */
     armSlot (slot: number | null, options?: { signal?: AbortSignal }): Promise<ControlState>;
 
-    /** Start/stop or reposition the transport. */
     controlTransport (patch: ControlTransportPatch,
                       options?: { signal?: AbortSignal }): Promise<ControlTransport>;
 
-    /**
-        Change one patch's mix or colour.
-
-        Resolves with the state after the request so the grid can reconcile its
-        optimistic colour change with the engine.
-    */
     updatePatch (slot: number,
                  patch: ControlPatchUpdate,
                  options?: { signal?: AbortSignal }): Promise<ControlState>;
 
-    /**
-        Change the instrument source behind one patch.
-
-        The engine swaps the slot's source without rewiring the graph and
-        answers with the state after the change, so the page can show the new
-        descriptor from the same round trip.
-    */
     changePatchSource (slot: number,
                        source: ControlPatchSourceRequest,
                        options?: { signal?: AbortSignal }): Promise<ControlState>;
 
-    /**
-        Open (or focus) one patch's native plugin editor.
-
-        The engine opens the window on its message thread and answers with
-        `{ slot, open, reused }`. A generated or sampler source, or a plugin
-        that cannot create an editor, is rejected with a readable error.
-    */
     openPatchEditor (slot: number,
                      options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
 
-    /** Close one patch's native editor. Idempotent. */
     closePatchEditor (slot: number,
                       options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
 
-    /**
-        Save the running plugin's current sound into its patch.
-
-        Resolves with `{ slot, captured, sizeBytes }` after the engine has
-        written the patch's state blob, so the page can confirm the save
-        without switching patches.
-    */
     capturePatchState (slot: number,
                        options?: { signal?: AbortSignal }): Promise<ControlPatchStateCapture>;
 }
 
-/** Rejects payloads the UI cannot render (wrong version, missing arrays). */
 function isControlState (value: unknown): value is ControlState
 {
     if (value === null || typeof value !== "object")
@@ -119,7 +76,6 @@ function isControlState (value: unknown): value is ControlState
         && typeof candidate.transport?.bpm === "number";
 }
 
-/** Rejects transport payloads the remote cannot render. */
 function isTransport (value: unknown): value is ControlTransport
 {
     if (value === null || typeof value !== "object")

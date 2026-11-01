@@ -9,30 +9,16 @@ import "./midi.css";
 
 export interface MidiPanelProps
 {
-    /** Latest `GET /midi`, or null before the first load. */
     readonly midi: ControlMidiState | null;
-    /** Message from a failed MIDI request. */
     readonly error?: string | null;
-    /** True while an input toggle or reload is in flight. */
     readonly busy?: boolean;
-    /** True while the pad test is starting. */
     readonly padTestBusy?: boolean;
-    /** Message from a rejected pad test. */
     readonly padTestError?: string | null;
-    /** Show a skeleton while the first MIDI state arrives. */
     readonly loading?: boolean;
-    /** Called with the new switch state for one input. */
     readonly onToggleInput?: (id: string, enabled: boolean) => void;
-    /** Called by the pad-test button. */
     readonly onPadTest?: () => void;
 }
 
-/**
-    The MIDI side of the Audio page.
-
-    The input list, the two port cards and the pad test each own a component;
-    this file is the layout, the header and the loading state.
-*/
 export function MidiPanel ({
     midi,
     error = null,

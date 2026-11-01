@@ -7,11 +7,9 @@ import { PluginUsedBy } from "./PluginUsedBy";
 interface PluginCardProps
 {
     readonly plugin: ControlPlugin;
-    /** Every plugin-backed patch in the set. */
     readonly assignments: readonly PluginAssignment[];
 }
 
-/** One scanned plug-in: identity, metadata, bundle path and its used-by hint. */
 export function PluginCard ({ plugin, assignments }: PluginCardProps): ReactElement
 {
     const usage = usedByPlugin (assignments, plugin);

@@ -1,5 +1,3 @@
-// Patch mix/colour update endpoints for the fixture server.
-
 import { findPatch } from "../context";
 import { readJsonObject, sendJson } from "../http";
 import type { FixtureRoute } from "../types";

@@ -1,5 +1,3 @@
-// Shell: routes, navigation destinations and the click-to-instrument flow.
-
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -49,14 +47,6 @@ export function routeTest (): void
            "one click arms the patch and routes to its instrument page");
 }
 
-/**
-    The shell's navigation contract.
-
-    `react-dom/server` cannot dispatch a click, so each sidebar destination is
-    rendered at the href it publishes: that is the same state a click produces
-    through the router. The wide snapshot uses the acceptance viewport, the
-    narrow one proves the collapsed navigation.
-*/
 export async function shellTest (): Promise<void>
 {
     const server = await startFixtureServer ();
@@ -223,13 +213,11 @@ export async function clickArmsAndRoutesTest (): Promise<void>
     }
 }
 
-/** Full-app snapshot: the markup is not empty. */
 export function assertSnapshotNonBlank (html: string): void
 {
     check (html.length > 2000, "snapshot is non-blank");
 }
 
-/** Full-app snapshot: the persistent shell around the grid. */
 export function assertSnapshotShell (html: string): void
 {
     check (html.includes ('data-testid="sidebar-session" data-phase="ready"'),
@@ -261,7 +249,6 @@ export function assertSnapshotShell (html: string): void
            "the shell renders one Grid route button");
 }
 
-/** Full-app snapshot: the destination pages highlight their sidebar item. */
 export function assertSnapshotActiveNav (audioHtml: string, settingsHtml: string): void
 {
     check (audioHtml.includes ('data-testid="nav-audio" data-active="true"'),
@@ -270,7 +257,6 @@ export function assertSnapshotActiveNav (audioHtml: string, settingsHtml: string
            "the Settings & Account item is active on /settings");
 }
 
-/** Full-app snapshot: the footer reports the fetched arm state. */
 export function assertSnapshotFooter (html: string, armedSlot: number): void
 {
     check ((armedSlot < 0) === html.includes ("armed none"),

@@ -65,7 +65,6 @@ interface ChannelMapsProps
     readonly onChange?: ((patch: ControlAudioPatch) => void) | undefined;
 }
 
-/** The input and output map fieldsets side by side. */
 export function ChannelMaps ({ inputChannels, outputChannels, onChange }: ChannelMapsProps): ReactElement
 {
     return (

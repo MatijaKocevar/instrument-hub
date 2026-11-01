@@ -4,19 +4,11 @@ import { encodeQr, qrPathData } from "./qr";
 
 export interface QrCodeImageProps
 {
-    /** URL encoded in the symbol. Empty renders a placeholder. */
     value: string;
-    /** Rendered size in CSS pixels. */
     size?: number;
     className?: string;
 }
 
-/**
-    A QR code as an inline SVG.
-
-    Inline SVG means the embedded web view needs no image loading and the
-    headless snapshot test can assert on the matrix instead of pixels.
-*/
 export function QrCodeImage ({ value, size = 220, className }: QrCodeImageProps): ReactElement
 {
     const code = useMemo (() => (value.length > 0 ? encodeQr (value) : null), [value]);

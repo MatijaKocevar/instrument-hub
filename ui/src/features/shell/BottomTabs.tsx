@@ -7,7 +7,6 @@ import {
     type ShellNavProps,
 } from "./navigation";
 
-/** Narrow/tablet navigation: the collapsed form of the sidebar. */
 export function BottomTabs ({ route, navigate }: ShellNavProps): ReactElement
 {
     return (

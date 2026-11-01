@@ -8,7 +8,6 @@ import { PluginsRoute } from "./PluginsRoute";
 import { SettingsRoute } from "./SettingsRoute";
 import type { ShellData } from "./useShellData";
 
-/** Render exactly one page for the router's current shell route. */
 export function RouteOutlet ({ router, shell }: {
     readonly router: RouterState;
     readonly shell: ShellData;

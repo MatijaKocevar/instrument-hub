@@ -1,5 +1,3 @@
-// Authenticate and dispatch one fixture request in the engine's route order.
-
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { rejectUnauthorized } from "./auth";

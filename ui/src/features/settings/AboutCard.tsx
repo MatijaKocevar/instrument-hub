@@ -26,7 +26,6 @@ interface AboutCardProps
     readonly uptimeMs: number | null;
 }
 
-/** What the engine says it is running. */
 export function AboutCard ({
     application,
     schemaVersion,

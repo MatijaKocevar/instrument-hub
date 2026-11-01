@@ -4,17 +4,13 @@ import type { RequestGuard } from "./client";
 import type { paths } from "./schema";
 import type { ControlPluginList } from "./types";
 
-/** Installed VST3 inventory endpoints. */
 export interface PluginEndpoints
 {
-    /** Read the installed VST3 inventory, optionally filtered by `search`. */
     listPlugins (options?: { search?: string; signal?: AbortSignal }): Promise<ControlPluginList>;
 
-    /** Start a background rescan and return the inventory as it was then. */
     rescanPlugins (options?: { signal?: AbortSignal }): Promise<ControlPluginList>;
 }
 
-/** Rejects inventory payloads the plugin browser cannot render. */
 function isPluginList (value: unknown): value is ControlPluginList
 {
     if (value === null || typeof value !== "object")

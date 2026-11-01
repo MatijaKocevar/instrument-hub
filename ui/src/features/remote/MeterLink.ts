@@ -1,22 +1,10 @@
 import { MeterStore } from "../grid";
 
-/**
-    The remote's live-link view.
-
-    `MeterStore` already owns the `/meters` socket and its reconnect loop; this
-    keeps the extra history the stage UI needs: whether the link has ever come
-    up, when it last heard from the engine, and how many times it dropped. That
-    is what turns a bare `connected` flag into a reconnect banner.
-*/
 export interface RemoteLinkSnapshot
 {
-    /** True while the WebSocket is open. */
     readonly connected: boolean;
-    /** True once the socket has opened at least once in this session. */
     readonly everConnected: boolean;
-    /** `Date.now()` of the last open/frame, or null before the first. */
     readonly lastLiveAt: number | null;
-    /** Disconnects since the last successful open. */
     readonly failures: number;
 }
 
@@ -29,7 +17,6 @@ export const INITIAL_LINK: RemoteLinkSnapshot = {
 
 export interface MeterLinkOptions
 {
-    /** Injectable clock, used by deterministic tests. */
     now?: () => number;
 }
 
@@ -41,7 +28,6 @@ function sameLink (a: RemoteLinkSnapshot, b: RemoteLinkSnapshot): boolean
         && a.failures === b.failures;
 }
 
-/** `live` / `lost` / `connecting` / `unknown`, for data attributes. */
 export function linkPhase (link: RemoteLinkSnapshot | null): string
 {
     if (link === null)
@@ -53,14 +39,6 @@ export function linkPhase (link: RemoteLinkSnapshot | null): string
     return link.everConnected ? "lost" : "connecting";
 }
 
-/**
-    Add link history on top of a `MeterStore` without duplicating its socket
-    code. Subscribing before `start()` means the first open is never missed.
-
-    The store's own reconnect policy applies unchanged (250 ms doubling,
-    capped at 2 s for the stage), so a dropped socket is back well inside the
-    remote's 3 s acceptance window.
-*/
 export class MeterLink
 {
     private readonly meters: MeterStore;
@@ -90,7 +68,6 @@ export class MeterLink
         };
     };
 
-    /** Connect (and keep reconnecting) while the stage page is mounted. */
     start (): void
     {
         if (this.unsubscribe !== null)
@@ -101,7 +78,6 @@ export class MeterLink
         this.meters.start ();
     }
 
-    /** Tear the socket down; the link returns to its initial state. */
     stop (): void
     {
         this.unsubscribe?. ();

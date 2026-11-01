@@ -11,7 +11,6 @@ export interface SetListRowProps
     readonly onSelect: ((slot: number) => void) | undefined;
 }
 
-/** One large set-list target: position, name, latency and the armed badge. */
 export function SetListRow ({
     patch,
     index,

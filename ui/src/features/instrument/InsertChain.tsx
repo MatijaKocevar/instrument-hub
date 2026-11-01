@@ -24,7 +24,6 @@ interface InsertChainProps
     readonly onRetryChain?: (slot: number) => void;
 }
 
-/** The insert chain card: latency budget, ordered inserts and the add control. */
 export function InsertChain ({
     patch,
     chain,

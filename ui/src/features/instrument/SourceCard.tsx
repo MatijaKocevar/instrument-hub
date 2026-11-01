@@ -9,10 +9,6 @@ interface SourceCardProps
     readonly children?: ReactNode;
 }
 
-/**
-    The source card's frame: the source identity and the plug-in metadata.
-    The editor, save and picker controls are passed as children.
-*/
 export function SourceCard ({ patch, children }: SourceCardProps): ReactElement
 {
     const instrument = patch.instrument;

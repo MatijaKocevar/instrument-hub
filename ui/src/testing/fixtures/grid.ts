@@ -1,8 +1,5 @@
-// Grid fixtures for the feature-level grid snapshot.
-
 import { createGridModel, type GridFamily, type MeterSnapshot } from "../../features/grid";
 
-/** Eight families for the feature-level grid snapshot. */
 export const GRID_FAMILIES: GridFamily[] = [
     {
         id: "keys",

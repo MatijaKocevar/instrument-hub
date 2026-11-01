@@ -1,14 +1,6 @@
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 
-/**
-    Save the running plugin's sound into its patch.
-
-    This is the explicit counterpart to the automatic capture on switch,
-    editor close and eviction: a tweak can be kept without changing patches.
-    The engine writes the sidecar blob before it answers, so the confirmation
-    already describes persistent state.
-*/
 export class PatchCaptureActions
 {
     constructor (private readonly context: ActionContext) {}

@@ -1,5 +1,3 @@
-// Single-insert endpoints for the fixture server.
-
 import { recalculateChain } from "../../fixtures";
 import { readJsonObject, sendJson } from "../http";
 import type { FixtureRoute } from "../types";

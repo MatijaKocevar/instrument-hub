@@ -19,32 +19,19 @@ import "./instrument.css";
 
 export interface InstrumentPageProps
 {
-    /** The patch to show, or null when nothing is selected. */
     readonly patch: ControlPatch | null;
-    /** Slot the engine currently drives from the controller. */
     readonly armedSlot: number;
-    /** True when the page follows the controller instead of a pinned `?slot=`. */
     readonly following?: boolean;
-    /** Ordered inserts and latency budget, or null while loading. */
     readonly chain?: ControlFxChain | null;
     readonly chainError?: string | null;
-    /** True while an insert request is in flight. */
     readonly chainBusy?: boolean;
-    /** True while a source change is in flight. */
     readonly sourceBusy?: boolean;
-    /** True while the patch's native editor window is open. */
     readonly editorOpen?: boolean;
-    /** True while an editor open/close request is in flight. */
     readonly editorBusy?: boolean;
-    /** Message from the most recent editor failure. */
     readonly editorError?: string | null;
-    /** True while an explicit save of the patch's sound is in flight. */
     readonly captureBusy?: boolean;
-    /** Confirmation of the most recent explicit save for this patch. */
     readonly capture?: ControlPatchStateCapture | null;
-    /** Message from the most recent failed explicit save. */
     readonly captureError?: string | null;
-    /** Installed plugins used by the source and insert pickers. */
     readonly plugins?: readonly ControlPlugin[] | null;
     readonly pluginError?: string | null;
     readonly loading?: boolean;
@@ -65,18 +52,6 @@ export interface InstrumentPageProps
     readonly onRetryChain?: (slot: number) => void;
 }
 
-/**
-    The armed instrument's page.
-
-    It shows the patch's real `/state` data (name, family, colour, warm state,
-    chain latency), the mixer controls that write straight back to the engine,
-    the instrument source with its editor, and the ordered insert chain with
-    add / remove / reorder / bypass.
-
-    The page is a pure function of its props: the store owns the requests and
-    the optimistic state, so the same tree renders under `react-dom/server`
-    for the headless snapshot test.
-*/
 export function InstrumentPage ({
     patch,
     armedSlot,

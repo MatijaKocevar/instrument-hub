@@ -3,25 +3,14 @@ import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 import { withPatchUpdate } from "./patchModel";
 
-/**
-    Edit a patch's mix and colour.
-
-    The change is applied optimistically (so a cell recolours or a fader moves
-    on the next render) and the engine's complete state is adopted when the
-    request answers. A rejection restores the last confirmed state.
-*/
 export class PatchUpdateActions
 {
-    /** Sequence of patch requests; a stale response must not win. */
     private patchSequence = 0;
-    /** Number of patch requests in flight, used to keep the fader during polls. */
     private patchInFlight = 0;
-    /** Latest optimistic patch while a request is in flight. */
     private pendingPatch: { slot: number; patch: ControlPatchUpdate } | null = null;
 
     constructor (private readonly context: ActionContext) {}
 
-    /** Change one patch's mix or colour. */
     updatePatch = async (slot: number, patch: ControlPatchUpdate): Promise<boolean> =>
     {
         const previous = this.snapshot.state;
@@ -69,13 +58,6 @@ export class PatchUpdateActions
         }
     };
 
-    /**
-        Recolour every patch in a family.
-
-        The API stores colour per patch, so the family default is applied as
-        one PATCH per patch. Sequential requests keep the final state
-        deterministic if one is rejected.
-    */
     updateFamilyColour = async (familyId: string, colorIndex: number): Promise<boolean> =>
     {
         const family = this.snapshot.state?.families.find (candidate => candidate.id === familyId);
@@ -92,13 +74,6 @@ export class PatchUpdateActions
         return true;
     };
 
-    /**
-        Keep the optimistic patch while a request is in flight.
-
-        A poll can land before the PATCH answers; its snapshot still carries
-        the previous value. Re-applying the latest optimistic field keeps the
-        UI from snapping back until the action confirms or rolls back.
-    */
     preservePending = (state: ControlState): ControlState =>
     {
         if (this.patchInFlight === 0 || this.pendingPatch === null)

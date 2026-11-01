@@ -8,45 +8,32 @@ import type {
     ControlFxInsertUpdate,
 } from "./types";
 
-/**
-    Per-patch insert chain endpoints.
-
-    Every call answers with the whole chain so the editor can redraw from one
-    authoritative payload, including the latency budget after the change.
-*/
 export interface FxEndpoints
 {
-    /** Read one patch's ordered inserts and latency budget. */
     getFxChain (slot: number, options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
 
-    /** Append an effect (or insert it at `position`). */
     addFxInsert (slot: number,
                  insert: ControlFxInsertRequest,
                  options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
 
-    /** Replace the whole chain atomically. */
     replaceFxChain (slot: number,
                     chain: readonly ControlFxInsertRequest[],
                     options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
 
-    /** Bypass, re-balance, re-parameterise or move one insert. */
     updateFxInsert (slot: number,
                     index: number,
                     update: ControlFxInsertUpdate,
                     options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
 
-    /** Remove one insert. */
     removeFxInsert (slot: number,
                     index: number,
                     options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
 
-    /** Reorder the chain; `order[0]` becomes the first insert. */
     reorderFxChain (slot: number,
                     order: readonly number[],
                     options?: { signal?: AbortSignal }): Promise<ControlFxChain>;
 }
 
-/** Rejects chain payloads the editor cannot render. */
 function isFxChain (value: unknown): value is ControlFxChain
 {
     if (value === null || typeof value !== "object")

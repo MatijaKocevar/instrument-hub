@@ -6,11 +6,9 @@ import { QrCodeImage } from "./QrCodeImage";
 
 interface PairingQrSectionProps
 {
-    /** Live pairing state; the payload and endpoint come from it. */
     readonly pairing: ControlPairingState;
 }
 
-/** The QR a tablet scans and the endpoint it points at. */
 export function PairingQrSection ({ pairing }: PairingQrSectionProps): ReactElement
 {
     return (

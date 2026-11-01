@@ -13,7 +13,6 @@ interface SourceEditorProps
     readonly onCloseEditor?: (slot: number) => void;
 }
 
-/** The source's native-editor controls and their busy/error states. */
 export function SourceEditor ({
     patch,
     editorOpen,

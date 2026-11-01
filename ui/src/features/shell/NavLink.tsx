@@ -7,7 +7,6 @@ import {
 import { RouteIcon } from "./RouteIcon";
 import type { NavItem } from "./navigation";
 
-/** One navigation destination, styled as a sidebar link or a bottom tab. */
 export function NavLink ({ item, route, navigate, compact = false }: {
     readonly item: NavItem;
     readonly route: ShellRoute;

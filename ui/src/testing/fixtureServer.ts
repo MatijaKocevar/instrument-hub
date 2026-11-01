@@ -1,9 +1,3 @@
-// Fixture HTTP server for the headless snapshot harness.
-//
-// Speaks the control API from a mutable fixture, so the harness exercises the
-// same HTTP path the browser uses. The mutable fixture lives in
-// `fixtureServer/context.ts`; each resource family owns one route module.
-
 import { createServer } from "node:http";
 
 import { createFixtureContext } from "./fixtureServer/context";

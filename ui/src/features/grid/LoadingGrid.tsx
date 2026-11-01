@@ -2,7 +2,6 @@ import type { ReactElement } from "react";
 
 import { GRID_COLUMNS, GRID_ROWS } from "./model";
 
-/** The 8×8 skeleton shown while the first state arrives. */
 export function LoadingGrid (): ReactElement
 {
     return (
