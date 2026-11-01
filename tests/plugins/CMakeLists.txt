@@ -419,7 +419,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Discovery.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Pairing.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/PluginBridge.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Routes.cpp"
+            ${IHUB_API_ROUTES_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Server.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginCache.cpp"

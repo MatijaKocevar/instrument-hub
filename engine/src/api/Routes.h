@@ -110,10 +110,11 @@ struct RouteContext
     MidiPadTestHandler midiPadTest;
 };
 
-/** Installs every HTTP route and the WebSocket meter upgrade.
+/** Installs every HTTP route by calling the per-resource route modules.
 
     Authentication and CORS pre-flight are handled by `Server` before routing,
-    so the handlers here only deal with their payloads.
+    so the handlers here only deal with their payloads. The WebSocket meter and
+    state endpoints stay in `Server`.
 */
 void registerRoutes (httplib::Server& server, RouteContext context);
 

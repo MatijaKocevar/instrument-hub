@@ -99,6 +99,17 @@ target_sources(instrument-hub
         src/api/Pairing.cpp
         src/api/PluginBridge.cpp
         src/api/Routes.cpp
+        src/api/routes/AudioRoutes.cpp
+        src/api/routes/FxRoutes.cpp
+        src/api/routes/Json.cpp
+        src/api/routes/MidiRoutes.cpp
+        src/api/routes/PairingRoutes.cpp
+        src/api/routes/PatchRoutes.cpp
+        src/api/routes/PluginRoutes.cpp
+        src/api/routes/RouteHelpers.cpp
+        src/api/routes/Serialization.cpp
+        src/api/routes/StateRoutes.cpp
+        src/api/routes/TransportRoutes.cpp
         src/api/Server.cpp
         src/api/SessionBridge.cpp
         src/api/StateBroadcast.cpp
