@@ -249,9 +249,20 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   I/O, handshake, pad/CC decode, LED writes, `injectMidiMessage()` /
   `setMessageSink()` for hardware-free tests.
 - [Mapping.h](../engine/src/controller/Mapping.h) /
-  [Mapping.cpp](../engine/src/controller/Mapping.cpp) — parses and validates
-  `shared/set.yaml` (families, patches, instruments, macro banks, scenes),
-  resolves a pad to a slot, dispatches listeners, hot-reloads on file change.
+  [Mapping.cpp](../engine/src/controller/Mapping.cpp) — the live mapping
+  facade: resolves a pad to a slot, dispatches listeners, hot-reloads on file
+  change and owns the polling watcher.
+- [MappingModel.h](../engine/src/controller/MappingModel.h) /
+  [MappingModel.cpp](../engine/src/controller/MappingModel.cpp) — the
+  `SetMapping` document model (families, patches, macros, pads, encoders,
+  banks and scenes) and its lookup helpers.
+- [MappingYaml.h](../engine/src/controller/MappingYaml.h) /
+  [MappingYaml.cpp](../engine/src/controller/MappingYaml.cpp) — the small YAML
+  reader and the public `parseSetMappingYaml()` / `loadSetMappingFile()`
+  entry points. [MappingYamlInternal.h](../engine/src/controller/MappingYamlInternal.h)
+  is the parse-tree contract shared with the validator.
+- [MappingValidator.cpp](../engine/src/controller/MappingValidator.cpp) —
+  schema and bounds validation of a parsed document into `SetMapping`.
 - [PadState.h](../engine/src/controller/PadState.h) — the shared LED state
   enum.
 - [LaunchkeyProtocol.h](../engine/src/controller/LaunchkeyProtocol.h) /
@@ -993,7 +1004,6 @@ yet.
 |---|---:|---|---|
 | [Session.cpp](../engine/src/Session.cpp) | 3167 | Composition, arm/cold hand-off, plugin state, editors, FX racks, meters, device, switch measurement, offline render. | **T136:** keep `Session` as a facade. Extract `session/WarmPoolController` (arm, pins, cold hand-off), `session/PatchStateStore` (sidecar, revisions, restore), `session/EditorHost` (native windows), `session/MeterBridge`, `session/TransportController`, `session/FxController`. Target `Session.cpp` < 800. |
 | [api/Routes.cpp](../engine/src/api/Routes.cpp) | 2150 | Every resource and every JSON shape in one registration function. | **T135:** split into `api/routes/{state,patches,fx,audio,midi,plugins,transport,pairing}.cpp`, each registering through one helper. Shared JSON/validation stays in `Routes.h`. Target each route module < 600; no endpoint or status change. |
-| [controller/Mapping.cpp](../engine/src/controller/Mapping.cpp) | 2019 | YAML parsing, validation, the `SetMapping` model, routing, hot reload and file watching. | **T134:** split into a YAML parser, a validator, the `SetMapping` model and a watcher/facade. Move code; do not rewrite logic. Target < 800. |
 | [Main.cpp](../engine/src/Main.cpp) | 2001 | Application shell plus eight one-shot modes plus snapshot capture, LED poll and default-set loading. | **T137:** extract `app/modes/*` (diagnostics, selftest, snapshot, serve, session smoke, scan, RT strict, latency) and `app/AppShell` (window/web view). Leave an entry point and composition. Target `Main.cpp` < 600; identical CLI behaviour and output. |
 | [api/Server.cpp](../engine/src/api/Server.cpp) | 1779 | `StateStore`, the HTTP server, auth, LAN rebind, meter thread and WebSocket loops. | **T135:** split `StateStore` + DTOs into `api/StateStore.{h,cpp}`; leave `Server` with transport/auth/listener/meter/WebSocket. Then move route bodies out. Target `Server.h`/`Server.cpp` each < 700. |
 | [api/Server.h](../engine/src/api/Server.h) | 1037 | All state DTOs, `StateStore` and `Server` in one header. | Same as above: DTOs and `StateStore` move to their own header; `Server.h` keeps the server surface. |
