@@ -7,7 +7,6 @@
 namespace ihub::session
 {
 
-//==============================================================================
 bool WarmPoolController::waitForSlotWarm (int slot, int timeoutMs)
 {
     if (slot < 0 || slot >= getNumVoices())
@@ -73,10 +72,6 @@ bool WarmPoolController::pinPairForMeasurement (int fromSlot,
 
     releaseAllPinsLocked();
 
-    // The measurement needs both endpoints resident at once. Temporary
-    // neighbours would compete for the 1+K budget with the pinned pair, so
-    // shrink the neighbourhood to one (limit 2) for the warm-up and restore it
-    // afterwards.
     warmPool->setNeighbourCount (std::min (1, savedNeighbourCount));
 
     if (! warmSlotBlockingLocked (fromSlot, 5000))
@@ -122,7 +117,6 @@ bool WarmPoolController::pinPairForMeasurement (int fromSlot,
     return true;
 }
 
-//==============================================================================
 bool WarmPoolController::warmSlotBlockingLocked (int slot, int timeoutMs)
 {
     if (warmPool == nullptr)
@@ -134,8 +128,6 @@ bool WarmPoolController::warmSlotBlockingLocked (int slot, int timeoutMs)
     warmPool->setActiveSlot (slot);
     (void) warmPool->preloadAll();
 
-    // A protected neighbour that cannot fit keeps the pool technically busy
-    // (deferred), but the target we were asked for may already be resident.
     (void) waitForWarmIdle (timeoutMs);
 
     if (warmPool->isWarm (slot))
@@ -205,4 +197,4 @@ void WarmPoolController::pumpMessages (int milliseconds)
    #endif
 }
 
-} // namespace ihub::session
+}

@@ -18,10 +18,6 @@
 namespace Api
 {
 
-//==============================================================================
-// Server
-//==============================================================================
-
 struct Server::Impl
 {
     Impl (StateStore& storeToUse, Options optionsToUse)
@@ -39,20 +35,11 @@ struct Server::Impl
             pairing.setLanEnabled (true);
     }
 
-    /** The address the listener should be bound to right now. */
     std::string desiredAddress() const
     {
         return pairing.isLanEnabled() ? "0.0.0.0" : options.address;
     }
 
-    /** Starts advertising the API on the LAN, replacing any old record set.
-
-        Called after a successful bind and only when LAN mode is on. A failure
-        (no multicast route, port 5353 taken by a non-sharing daemon) is logged
-        and never stops the HTTP listener.
-
-        Caller holds `lifecycleMutex`.
-    */
     void startDiscoveryLocked()
     {
         DiscoveryService service;
@@ -68,10 +55,6 @@ struct Server::Impl
                       << ": " << discovery.getLastError() << std::endl;
     }
 
-    /** Creates the HTTP listener on the address LAN mode currently wants.
-
-        Caller holds `lifecycleMutex`.
-    */
     bool bindListenerLocked()
     {
         if (listening.load (std::memory_order_acquire))
@@ -82,9 +65,6 @@ struct Server::Impl
         http->set_pre_routing_handler ([this] (const httplib::Request& request,
                                                httplib::Response& response)
         {
-            // A meter or state WebSocket handler blocks for the life of the
-            // connection, so it must not hold up a LAN rebind. Every other
-            // request is counted until its response has been prepared.
             const bool webSocketUpgrade = request.path == "/meters"
                                           || request.path == "/events";
 
@@ -100,8 +80,6 @@ struct Server::Impl
                 return httplib::Server::HandlerResponse::Handled;
             }
 
-            // Route handlers add the CORS headers through setJson()/setError();
-            // only a pre-flight response needs them before a handler runs.
             if (request.method == "OPTIONS")
             {
                 addCorsHeaders (response);
@@ -181,10 +159,6 @@ struct Server::Impl
         return true;
     }
 
-    /** Stops the listener only; the meter/control threads keep running.
-
-        Caller holds `lifecycleMutex`.
-    */
     void stopListenerLocked()
     {
         discovery.stop();
@@ -207,10 +181,6 @@ struct Server::Impl
         boundPort.store (0, std::memory_order_release);
     }
 
-    /** Rebind after a LAN-mode change.
-
-        Caller holds `lifecycleMutex`.
-    */
     bool rebindLocked()
     {
         stopListenerLocked();
@@ -246,8 +216,6 @@ struct Server::Impl
             std::this_thread::sleep_for (std::chrono::milliseconds (5));
         }
 
-        // The response that triggered the toggle is written after the handler
-        // returns; give the worker a moment to flush it before its server dies.
         std::this_thread::sleep_for (std::chrono::milliseconds (100));
     }
 
@@ -300,7 +268,6 @@ struct Server::Impl
     MidiInputHandler midiEnableInput;
     MidiPadTestHandler midiPadTest;
 
-    // LAN mode / pairing
     PairingManager pairing;
     Discovery discovery;
 
@@ -376,8 +343,6 @@ void Server::stop()
 
     self.controlCv.notify_all();
 
-    // Ends the `/events` loops; each closes its socket within one poll
-    // interval, before the listener is torn down.
     self.broadcast.stop();
 
     if (self.controlThread.joinable())
@@ -389,7 +354,6 @@ void Server::stop()
         self.stopListenerLocked();
     }
 
-    // WebSocket handlers leave their read loop within one short timeout.
     for (int spin = 0; spin < 200
                        && self.webSockets.getActiveConnections() > 0;
          ++spin)
@@ -511,4 +475,4 @@ std::uint64_t Server::getMeterFrameCount() const noexcept
     return impl->webSockets.getMeterFrameCount();
 }
 
-} // namespace Api
+}

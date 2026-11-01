@@ -17,9 +17,8 @@ std::string toStd (const juce::String& value)
 {
     return value.toStdString();
 }
-} // namespace
+}
 
-//==============================================================================
 bool MidiBridge::isPadTestActive() const noexcept
 {
     return padTestActive.load (std::memory_order_acquire);
@@ -79,8 +78,6 @@ void MidiBridge::paintPadTestFrame (int frame)
         const int column = pad % 8;
         const bool armed = column == frame % 8;
 
-        // Every pad shows its palette colour; a bright red column walks
-        // across the 8x8 grid so the test is visible on the hardware.
         driver->setPadLed (pad, Controller::launchpadLedForPatch (column, armed, false, false));
     }
 }
@@ -102,7 +99,6 @@ void MidiBridge::runPadTestAnimation (std::uint64_t generation)
         paintPadTestFrame (frame);
     }
 
-    // Clear the surface, then let the grid repaint itself.
     if (auto* driver = launchpad.load (std::memory_order_acquire);
         driver != nullptr && padTestGeneration.load (std::memory_order_acquire) == generation)
     {
@@ -127,4 +123,4 @@ void MidiBridge::runPadTestAnimation (std::uint64_t generation)
         restore();
 }
 
-} // namespace Api
+}

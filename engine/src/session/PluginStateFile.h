@@ -7,7 +7,6 @@
 namespace ihub::session
 {
 
-/** One `slot-<n>.bin` sidecar: metadata plus the opaque plugin blob. */
 struct PluginStateFileData
 {
     juce::MemoryBlock data;
@@ -31,9 +30,8 @@ bool readPluginStateFileData (const juce::File& file,
                               int expectedSlot,
                               PluginStateFileData& result);
 
-/** True when a stored blob was written for the plugin now assigned to the slot. */
 bool pluginStateMatches (const PluginStateFileData& stored,
                          const juce::String& pluginPath,
                          const juce::String& pluginId);
 
-} // namespace ihub::session
+}

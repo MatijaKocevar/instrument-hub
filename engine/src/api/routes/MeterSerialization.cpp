@@ -35,4 +35,4 @@ juce::var meterFrameToVar (const MeterFrame& frame)
     return root;
 }
 
-} // namespace Api
+}

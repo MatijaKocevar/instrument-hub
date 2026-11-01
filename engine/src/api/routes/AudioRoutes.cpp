@@ -43,11 +43,10 @@ bool readChannelList (const juce::var& value,
     destination = std::move (channels);
     return true;
 }
-} // namespace
+}
 
 void registerAudioRoutes (httplib::Server& server, const RouteContext& context)
 {
-    // --- Audio device settings (T053) --------------------------------------
 
     server.Get ("/audio", [context] (const httplib::Request&, httplib::Response& response)
     {
@@ -201,4 +200,4 @@ void registerAudioRoutes (httplib::Server& server, const RouteContext& context)
     });
 }
 
-} // namespace Api::Routes
+}

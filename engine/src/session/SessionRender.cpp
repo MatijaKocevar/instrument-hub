@@ -7,9 +7,6 @@
 namespace ihub
 {
 
-//==============================================================================
-// Audio thread / offline rendering
-
 bool Session::pushMidi (const juce::MidiMessage& message) noexcept
 {
     return midi.push (message);
@@ -22,9 +19,6 @@ void Session::renderInternal (int numSamples, juce::MidiBuffer& midiBuffer) noex
     if (samples <= 0 || engine == nullptr || switcher == nullptr)
         return;
 
-    // MIDI inputs and the offline test seam feed this one lock-free queue. The
-    // events are placed at the start of the block, which is the smallest
-    // musically meaningful offset a block-based renderer can promise.
     midi.drain (midiBuffer);
 
     auto& bus = engine->getBus();
@@ -36,15 +30,10 @@ void Session::renderInternal (int numSamples, juce::MidiBuffer& midiBuffer) noex
 
     bus.finish (renderBuffer, samples);
 
-    // The transport counts rendered frames, so `/transport.positionSamples`
-    // advances with the same block sizes the graph actually processed.
     transportControl.process (samples);
 
     meters.update (*engine, *switcher, renderBuffer, samples);
 
-    // Publish that a full block has rendered. An API chain edit waits for this
-    // counter to advance after gating the slot, which proves the callback is
-    // past the edit point and the chain vector is safe to rebuild.
     fxChain.noteBlockRendered();
 }
 
@@ -76,7 +65,6 @@ void Session::render (juce::AudioBuffer<float>& output,
             output.clear (channel, samples, numSamples - samples);
 }
 
-//==============================================================================
 void Session::copyToOutput (float* const* outputChannelData,
                             int numOutputChannels,
                             int numSamples) noexcept
@@ -123,7 +111,6 @@ void Session::audioDeviceAboutToStart (juce::AudioIODevice* device)
 
 void Session::audioDeviceStopped()
 {
-    // Keep the buffers and activation requests: the next start fades in again.
 }
 
 void Session::audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
@@ -159,8 +146,6 @@ void Session::audioDeviceIOCallbackWithContext (const float* const* inputChannel
 
     const int samples = juce::jmin (numSamples, maximumBlockSize);
 
-    // A first-class audio-input slot receives the interface block once per
-    // callback, before anything renders.
     for (int slot = 0; slot < engine->getNumSlots(); ++slot)
         engine->getSlot (slot).feedDeviceInput (inputChannelData, numInputChannels);
 
@@ -178,4 +163,4 @@ void Session::audioDeviceIOCallbackWithContext (const float* const* inputChannel
     engine->getTimingMonitor().endCallback (timingToken, samples);
 }
 
-} // namespace ihub
+}

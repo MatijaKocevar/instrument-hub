@@ -283,4 +283,4 @@ bool readArray (const var& parent,
     return destination != nullptr;
 }
 
-} // namespace ihub::project::serializer
+}

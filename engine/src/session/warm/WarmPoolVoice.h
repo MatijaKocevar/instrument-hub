@@ -7,14 +7,6 @@
 namespace ihub::session::detail
 {
 
-/**
-    The permanent source of one fixed engine slot.
-
-    The engine slot never changes its `SlotSource*`, so the graph really is
-    fixed. The actual patch instrument lives in the warm pool and is published
-    here with an atomic pointer store: arming is one pointer hand-over, not a
-    graph edit. While no instance is bound the proxy renders silence.
-*/
 class WarmPoolVoice final : public AudioEngine::SlotSource
 {
 public:
@@ -50,4 +42,4 @@ private:
     std::atomic<bool> bypassesChain { false };
 };
 
-} // namespace ihub::session::detail
+}

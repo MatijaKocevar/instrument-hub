@@ -37,7 +37,7 @@ PluginInventoryState toApiInventory (ihub::plugins::PluginInventorySnapshot snap
 
     return result;
 }
-} // namespace
+}
 
 void attachPluginInventory (Server& server, ihub::plugins::PluginInventory& inventory)
 {
@@ -52,4 +52,4 @@ void attachPluginInventory (Server& server, ihub::plugins::PluginInventory& inve
         });
 }
 
-} // namespace Api
+}

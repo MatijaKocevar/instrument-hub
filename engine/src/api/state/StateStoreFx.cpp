@@ -5,9 +5,6 @@
 namespace Api
 {
 
-//==============================================================================
-// Per-patch insert chain (T121)
-
 void StateStore::setFxHandlers (FxChainProvider provider, FxCommandHandler handler)
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -93,4 +90,4 @@ bool StateStore::applyFxCommand (int slot,
     return applied;
 }
 
-} // namespace Api
+}

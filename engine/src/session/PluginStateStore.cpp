@@ -44,7 +44,7 @@ bool PluginStateStore::loadAll()
         return false;
 
     if (! directory.isDirectory())
-        return true; // nothing captured yet
+        return true;
 
     bool allRead = true;
 
@@ -132,7 +132,6 @@ bool PluginStateStore::capture (int slot, const PluginStateIdentity& identity)
             state.pluginId = identity.pluginId;
             state.pluginName = identity.pluginName;
 
-            // The resident instance now holds this revision.
             state.appliedRevision = state.revision;
         }
     }
@@ -165,8 +164,6 @@ void PluginStateStore::apply (int slot,
         if (state.data.getSize() == 0)
             return;
 
-        // A blob belongs to the plugin it was captured from. Never hand an old
-        // patch's state to a different plug-in assigned to the same slot.
         PluginStateFileData stored;
         stored.pluginPath = state.pluginPath;
         stored.pluginId = state.pluginId;
@@ -177,10 +174,6 @@ void PluginStateStore::apply (int slot,
             return;
         }
 
-        // `appliedRevision` describes the resident instance. A fresh instance
-        // from the warm-pool factory must be restored even when the slot
-        // revision has not moved: after an eviction the old instance is gone,
-        // so its applied marker says nothing about the replacement.
         if (! force && state.appliedRevision == state.revision
             && state.appliedRevision != 0)
             return;
@@ -189,10 +182,6 @@ void PluginStateStore::apply (int slot,
         revision = state.revision;
     }
 
-    // VST3 state restoration takes the message-manager lock on some formats,
-    // so never hold the state mutex across it: the message thread may be
-    // waiting for that same mutex (for example in getInstrument()) and could
-    // not pump the lock the plugin needs.
     const bool accepted = instrument.setStateInformation (data);
 
     if (! accepted)
@@ -205,10 +194,6 @@ void PluginStateStore::apply (int slot,
                                   + "\"");
     }
 
-    // Mark it applied even after a rejection: retrying a blob the plugin
-    // refuses on every warm-up would only delay arming. If a capture changed
-    // the revision while the plugin was restoring, leave the newer blob for
-    // the next arm instead of claiming it was applied.
     const std::lock_guard<std::mutex> lock (mutex);
 
     if (slot >= 0 && slot < static_cast<int> (states.size())
@@ -329,7 +314,7 @@ bool PluginStateStore::write (int slot)
     }
 
     if (currentDirectory == juce::File())
-        return true; // in-memory only
+        return true;
 
     return writePluginStateFile (pluginStateFileFor (currentDirectory, slot),
                                  slot,
@@ -357,4 +342,4 @@ bool PluginStateStore::readFileLocked (int slot, const juce::File& file)
     return true;
 }
 
-} // namespace ihub::session
+}

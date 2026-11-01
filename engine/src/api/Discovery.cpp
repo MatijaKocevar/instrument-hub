@@ -159,7 +159,6 @@ void Discovery::run (int socketFd, DiscoveryService service)
         }
     }
 
-    // Goodbye: TTL 0 asks browsers to drop the instance immediately.
     discovery::sendPacket (socketFd, buildResponse (service, true));
 
     ::close (socketFd);
@@ -168,7 +167,6 @@ void Discovery::run (int socketFd, DiscoveryService service)
 #endif
 }
 
-//==============================================================================
 std::string Discovery::getServiceType()
 {
     return serviceType;
@@ -218,4 +216,4 @@ std::string Discovery::defaultHostLabel()
                           prefix);
 }
 
-} // namespace Api
+}

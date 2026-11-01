@@ -16,19 +16,12 @@ struct AudioChannelState
     bool active = false;
 };
 
-/** One (type, device) pair the engine can open. */
 struct AudioDeviceState
 {
     std::string type;
     std::string name;
 };
 
-/** The latency budget shown in the audio settings panel, in milliseconds.
-
-    `bufferMs` is one device buffer, `deviceMs` is the input + output latency
-    JUCE reports for the open device, `chainMs` is the summed instrument + FX
-    latency of the longest slot chain, and `totalMs` is their sum.
-*/
 struct AudioLatencyState
 {
     double bufferMs = 0.0;
@@ -37,7 +30,6 @@ struct AudioLatencyState
     double totalMs = 0.0;
 };
 
-/** Everything `GET /audio` returns. */
 struct AudioStateSnapshot
 {
     bool open = false;
@@ -59,18 +51,14 @@ struct AudioStateSnapshot
 
     AudioLatencyState latency;
 
-    /** Device driver xruns. */
     std::uint64_t deviceXruns = 0;
-    /** Callback overruns counted by TimingMonitor. */
     std::uint64_t callbackOverruns = 0;
-    /** Total xruns (`deviceXruns + callbackOverruns`). */
     std::uint64_t xruns = 0;
 
     std::uint64_t callbacks = 0;
     double loadPercent = 0.0;
 };
 
-/** A partial audio settings update from `POST /audio`. */
 struct AudioSettingsPatch
 {
     std::optional<std::string> deviceType;
@@ -81,7 +69,6 @@ struct AudioSettingsPatch
     std::optional<std::vector<int>> outputChannels;
 };
 
-/** The result of `POST /audio/measure`. */
 struct AudioMeasurementState
 {
     bool valid = false;
@@ -96,10 +83,8 @@ struct AudioMeasurementState
 
 using AudioStateProvider = std::function<AudioStateSnapshot()>;
 
-/** Applies a settings patch. Returns false with a message on rejection. */
 using AudioApplyHandler = std::function<bool (const AudioSettingsPatch&, std::string&)>;
 
-/** Runs the latency probe. Blocks for up to a few seconds. */
 using AudioMeasureHandler = std::function<AudioMeasurementState()>;
 
-} // namespace Api
+}

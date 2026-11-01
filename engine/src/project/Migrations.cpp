@@ -48,11 +48,6 @@ bool readSchemaVersion (const juce::var& root, int& version, juce::String& error
     return true;
 }
 
-/** 1 -> 2: a set gains free-form notes, and every slot gains a colour.
-
-    Only missing fields are written; a document that already carries one of
-    these (for example a hand-edited fixture) keeps its value.
-*/
 bool migrateV1ToV2 (juce::var& root, juce::String& error)
 {
     auto* set = root.getDynamicObject();
@@ -70,8 +65,6 @@ bool migrateV1ToV2 (juce::var& root, juce::String& error)
 
     if (slots == nullptr || ! slots->isArray())
     {
-        // A v1 document always had a slots array; let the parser report a
-        // malformed document rather than inventing one here.
         return true;
     }
 
@@ -93,12 +86,6 @@ bool migrateV1ToV2 (juce::var& root, juce::String& error)
     return true;
 }
 
-/** 2 -> 3: a patch gains a palette index, a balance and a solo flag.
-
-    Neutral defaults keep an existing mix unchanged: colour 0, centre pan,
-    solo off. Only missing fields are written, so an explicit value from a
-    hand-edited or forward-ported document is preserved.
-*/
 bool migrateV2ToV3 (juce::var& root, juce::String& error)
 {
     auto* set = root.getDynamicObject();
@@ -113,8 +100,6 @@ bool migrateV2ToV3 (juce::var& root, juce::String& error)
 
     if (slots == nullptr || ! slots->isArray())
     {
-        // The parser reports a malformed slots array; there is nothing to
-        // migrate in a document that does not have one.
         return true;
     }
 
@@ -142,7 +127,7 @@ bool migrateV2ToV3 (juce::var& root, juce::String& error)
     return true;
 }
 
-} // namespace
+}
 
 const std::vector<MigrationStep>& migrationSteps()
 {
@@ -187,7 +172,6 @@ int migrationStepCount (int fromVersion, int toVersion) noexcept
         version = step->toVersion;
         ++count;
 
-        // The static chain is short; this only guards against a future cycle.
         if (count > 32)
             return -1;
     }
@@ -246,4 +230,4 @@ bool migrateManifest (juce::var& root, juce::String& error)
     return true;
 }
 
-} // namespace ihub::project
+}

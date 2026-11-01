@@ -17,10 +17,7 @@ float patchGainFromDb (double volumeDb) noexcept
 
     return static_cast<float> (std::pow (10.0, volumeDb / 20.0));
 }
-} // namespace
-
-//==============================================================================
-// Patch mix / colour (T120)
+}
 
 PatchState StateStore::makePatchLocked (int slot) const
 {
@@ -233,4 +230,4 @@ void StateStore::setPatchHandler (PatchHandler handler)
 }
 
 
-} // namespace Api
+}

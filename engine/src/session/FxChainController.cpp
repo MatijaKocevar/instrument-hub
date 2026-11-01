@@ -229,9 +229,6 @@ bool FxChainController::beginEdit (int slot, bool streamActive, std::string& err
     auto& audioSlot = engine->getSlot (slot);
     audioSlot.setFxChainEditing (true);
 
-    // A running device callback gets one block to see the gate, so the chain
-    // vector cannot be read while the rack rebuilds it. Offline sessions have
-    // no concurrent audio path and edit immediately.
     if (streamActive)
     {
         const auto before = renderEpoch.load (std::memory_order_acquire);
@@ -296,4 +293,4 @@ bool FxChainController::makeSnapshot (int slot,
     return true;
 }
 
-} // namespace ihub::session
+}

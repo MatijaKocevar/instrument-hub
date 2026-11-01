@@ -3,10 +3,6 @@
 #include "Session.h"
 #include "plugins/PluginInstrument.h"
 
-// The editor host needs JUCE's GUI modules. Headless offline tools (scanner,
-// session smoke, most API tests) link only `juce_audio_processors_headless`,
-// so the editor path compiles to a stub that reports a clear error instead of
-// dragging a window system into every test binary.
 #if defined (JUCE_MODULE_AVAILABLE_juce_gui_basics) && JUCE_MODULE_AVAILABLE_juce_gui_basics
  #include "plugins/PluginWindow.h"
  #define IHUB_SESSION_HAS_EDITORS 1
@@ -24,16 +20,6 @@ namespace ihub::session
 {
 
 #if IHUB_SESSION_HAS_EDITORS
-/** Message-thread owner of one native editor per logical slot.
-
-    Instances are registered by the warm-pool factory and forgotten by the
-    pool's destroy hook. Destroy is posted to the message thread, so a pointer
-    read here cannot be freed while an editor is being opened.
-
-    The window array is message-thread only. `open`/`close` marshal from HTTP
-    or controller threads with `MessageManager::callSync`; the flags read by
-    `isOpen()` are atomics so the UI can poll them safely.
-*/
 struct EditorHost::Impl final
 {
     Impl (int capacity,
@@ -60,10 +46,6 @@ struct EditorHost::Impl final
             return false;
         }
 
-        // Assigning a plug-in source queues its instance on the warm pool. A
-        // click that arrives before the pool has published the instance waits
-        // here (the HTTP thread) instead of racing the loader. The message
-        // thread keeps running, so plugin creation itself can complete.
         if (! manager->isThisTheMessageThread() && isPluginSlot (slot))
         {
             const double deadline = juce::Time::getMillisecondCounterHiRes() + 20000.0;
@@ -139,7 +121,6 @@ struct EditorHost::Impl final
         instruments[static_cast<std::size_t> (slot)] = instrument;
     }
 
-    /** Pool destroy hook, on the message thread, before the processor dies. */
     void closeBeforeDestroy (AudioEngine::SlotSource& instance) noexcept
     {
         auto* instrument = dynamic_cast<plugins::PluginInstrument*> (&instance);
@@ -161,7 +142,6 @@ struct EditorHost::Impl final
             (void) closeOnMessageThread (slot);
     }
 
-    /** Closes every window. Must run on the message thread when possible. */
     void closeAll()
     {
         auto closeHere = [this]
@@ -196,7 +176,6 @@ struct EditorHost::Impl final
             closeHere();
     }
 
-    /** Closes every editor whose slot is not `keepSlot` (pass -1 for all). */
     void closeEditorsExcept (int keepSlot)
     {
         auto* manager = juce::MessageManager::getInstanceWithoutCreating();
@@ -214,7 +193,7 @@ struct EditorHost::Impl final
                 auto& window = windows[static_cast<std::size_t> (slot)];
 
                 if (window != nullptr && window->isOpen())
-                    window->close(); // onBeforeClose captures, onClose clears flags
+                    window->close();
             }
         };
 
@@ -266,8 +245,6 @@ private:
         {
             window = std::make_unique<plugins::PluginWindow>();
 
-            // Capture the patch state while the editor and processor are still
-            // alive. Closing an editor is a natural save point (T130).
             window->onBeforeClose = [this, slot]
             {
                 if (captureState)
@@ -291,8 +268,6 @@ private:
                 return { true, {} };
             }
 
-            // The slot was rebound to a different instance while this window
-            // was still up. Close it before creating the new editor.
             (void) closeOnMessageThread (slot);
         }
 
@@ -324,7 +299,7 @@ private:
         auto& window = windows[static_cast<std::size_t> (slot)];
 
         if (window != nullptr && window->isOpen())
-            window->close(); // onClose clears the flag and drops the count
+            window->close();
 
         return { true, {} };
     }
@@ -360,14 +335,12 @@ private:
     mutable std::mutex instrumentMutex;
     std::vector<plugins::PluginInstrument*> instruments;
 
-    // Message-thread only.
     std::vector<std::unique_ptr<plugins::PluginWindow>> windows;
 
     std::vector<std::atomic<bool>> openFlags;
     std::atomic<int> openWindowCount { 0 };
 };
 #else
-/** Headless builds have no window system: report the limitation clearly. */
 struct EditorHost::Impl final
 {
     Impl (int capacity,
@@ -466,4 +439,4 @@ void EditorHost::registerInstrument (int slot, plugins::PluginInstrument* instru
     impl->registerInstrument (slot, instrument);
 }
 
-} // namespace ihub::session
+}

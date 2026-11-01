@@ -17,7 +17,7 @@ double toDbfs (double linear) noexcept
 {
     return 20.0 * std::log10 (juce::jmax (linear, silenceFloor));
 }
-} // namespace
+}
 
 SessionSwitchReport Session::measureSwitch (int fromSlot,
                                             int toSlot,
@@ -32,8 +32,6 @@ SessionSwitchReport Session::measureSwitch (int fromSlot,
     if (! prepared || engine == nullptr || switcher == nullptr)
         return report;
 
-    // Re-preparing and re-rendering the graph is only safe with the device
-    // stopped. The method is a message-thread / offline tool.
     if (isDeviceOpen())
         return report;
 
@@ -46,8 +44,6 @@ SessionSwitchReport Session::measureSwitch (int fromSlot,
         return report;
     }
 
-    // This is an offline tool: make both endpoints resident and pinned before
-    // the references and the real render start from the same state.
     if (warmPool.getPool() != nullptr)
     {
         if (! warmPool.pinPairForMeasurement (fromSlot, toSlot, config.neighbourCount))
@@ -64,9 +60,6 @@ SessionSwitchReport Session::measureSwitch (int fromSlot,
     const int switchSamples = switchCount * blockSize;
     const int totalSamples = settleSamples + rmsSamples + switchSamples;
 
-    // The transition the product promises: a 3 ms equal-power crossfade.
-    // The hard-switch control renders with the ramp disabled, so comparing it
-    // with this reference is what makes the detector fire.
     const int referenceFadeSamples = juce::jmax (1,
                                                  juce::roundToInt (0.003 * sampleRate));
 
@@ -94,16 +87,12 @@ SessionSwitchReport Session::measureSwitch (int fromSlot,
         return result;
     };
 
-    // Reference source signals from the same prepared starting state as the
-    // real render. `from` runs for the whole timeline; `to` starts at the
-    // switch, exactly as SlotSwitcher starts it.
     prepare (sampleRate, maximumBlockSize, numChannels);
     auto fromReference = renderIsolatedSlot (fromSlot, totalSamples);
 
     prepare (sampleRate, maximumBlockSize, numChannels);
     auto toReference = renderIsolatedSlot (toSlot, switchSamples);
 
-    // The real session render.
     prepare (sampleRate, maximumBlockSize, numChannels);
     resetGraph();
 
@@ -115,7 +104,6 @@ SessionSwitchReport Session::measureSwitch (int fromSlot,
 
     armSlot (fromSlot);
 
-    // Let the fade-in finish before measuring the armed slot.
     for (int i = 0; i < settleCount; ++i)
         render (block, midiBlock, blockSize);
 
@@ -199,4 +187,4 @@ SessionSwitchReport Session::measureSwitch (int fromSlot,
     return report;
 }
 
-} // namespace ihub
+}

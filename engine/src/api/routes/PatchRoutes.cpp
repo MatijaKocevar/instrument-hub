@@ -129,11 +129,10 @@ bool parsePatchSource (const juce::var& value,
 
     return true;
 }
-} // namespace
+}
 
 void registerPatchRoutes (httplib::Server& server, const RouteContext& context)
 {
-    // --- Patch mix / colour (T120) -----------------------------------------
 
     server.Patch (R"(/patches/(\d+))",
                   [context] (const httplib::Request& request,
@@ -166,8 +165,6 @@ void registerPatchRoutes (httplib::Server& server, const RouteContext& context)
         setJson (response, 200, stateToVar (context.state.snapshot()));
     });
 
-    // --- Instrument source (T124) ------------------------------------------
-
     server.Post (R"(/patches/(\d+)/source)",
                  [context] (const httplib::Request& request,
                             httplib::Response& response)
@@ -197,8 +194,6 @@ void registerPatchRoutes (httplib::Server& server, const RouteContext& context)
             return;
         }
 
-        // A sampler or plug-in source must point at something that exists;
-        // catching this here keeps a typo from silently silencing the slot.
         if ((source.kind == "sampler" || source.kind == "plugin")
             && ! juce::File (juce::String (source.path)).exists())
         {
@@ -218,12 +213,6 @@ void registerPatchRoutes (httplib::Server& server, const RouteContext& context)
         decorate (context, response);
         setJson (response, 200, stateToVar (context.state.snapshot()));
     });
-
-    // --- Native plugin editor (T129) ---------------------------------------
-    //
-    // POST opens (or reuses) the patch's native window and DELETE closes it.
-    // Selecting or arming a patch never opens an editor on its own: only these
-    // explicit requests create one.
 
     const auto respondEditor = [context] (const httplib::Request& request,
                                           httplib::Response& response,
@@ -284,12 +273,6 @@ void registerPatchRoutes (httplib::Server& server, const RouteContext& context)
         respondEditor (request, response, false);
     });
 
-    // --- Explicit patch-state capture (T132) -------------------------------
-    //
-    // POST saves the running plugin's current sound into the patch sidecar
-    // immediately, without switching away. Automatic capture on switch, editor
-    // close and eviction is unchanged.
-
     server.Post (R"(/patches/(\d+)/state/capture)",
                  [context] (const httplib::Request& request,
                             httplib::Response& response)
@@ -325,4 +308,4 @@ void registerPatchRoutes (httplib::Server& server, const RouteContext& context)
     });
 }
 
-} // namespace Api::Routes
+}

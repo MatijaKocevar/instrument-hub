@@ -92,4 +92,4 @@ void decorate (const RouteContext& context, httplib::Response& response)
         context.decorate (response);
 }
 
-} // namespace Api::Routes
+}

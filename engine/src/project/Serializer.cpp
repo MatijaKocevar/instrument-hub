@@ -167,4 +167,4 @@ bool Serializer::load (const juce::File& file, SetFile& destination, juce::Strin
     return true;
 }
 
-} // namespace ihub::project
+}

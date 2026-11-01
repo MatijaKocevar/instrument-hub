@@ -20,9 +20,8 @@ bool isLoopbackAddress (const std::string& address)
         || address == "::ffff:127.0.0.1"
         || address.rfind ("127.", 0) == 0;
 }
-} // namespace
+}
 
-//==============================================================================
 AuthGuard::AuthGuard (PairingManager& pairingToUse, std::string tokenToUse)
     : pairing (pairingToUse),
       token (std::move (tokenToUse))
@@ -43,10 +42,6 @@ bool AuthGuard::hasToken() const
 
 bool AuthGuard::authorized (const httplib::Request& request) const
 {
-    // Exchanging a pairing code is how a client obtains its first token, so it
-    // cannot require one. The management endpoints expose the live code and are
-    // therefore loopback-only, even for an already paired client: a tablet must
-    // not be able to mint more tokens for itself.
     if (request.path == "/pair")
         return true;
 
@@ -82,4 +77,4 @@ bool AuthGuard::authorized (const httplib::Request& request) const
     return lanEnabled && pairing.validateToken (supplied);
 }
 
-} // namespace Api
+}

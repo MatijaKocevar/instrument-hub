@@ -60,4 +60,4 @@ juce::var midiStateToVar (const MidiStateSnapshot& midi)
     return root;
 }
 
-} // namespace Api
+}

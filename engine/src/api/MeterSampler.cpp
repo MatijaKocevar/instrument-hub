@@ -17,9 +17,8 @@ int clampMeterHz (int hz) noexcept
 {
     return juce::jlimit (minimumMeterHz, maximumMeterHz, hz);
 }
-} // namespace
+}
 
-//==============================================================================
 MeterSampler::MeterSampler (StateStore& stateToUse, int meterHzToUse)
     : state (stateToUse),
       meterHz (clampMeterHz (meterHzToUse))
@@ -135,4 +134,4 @@ void MeterSampler::run()
     }
 }
 
-} // namespace Api
+}

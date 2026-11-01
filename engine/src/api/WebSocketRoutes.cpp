@@ -12,7 +12,6 @@
 namespace Api
 {
 
-//==============================================================================
 WebSocketRoutes::WebSocketRoutes (MeterSampler& metersToUse,
                                   StateBroadcast& broadcastToUse,
                                   const AuthGuard& authToUse,
@@ -37,8 +36,6 @@ void WebSocketRoutes::registerRoutes (httplib::Server& server)
 
         activeConnections.fetch_add (1, std::memory_order_acq_rel);
 
-        // Short read timeout: the loop must stay responsive to new meter
-        // frames while still reading so ping/pong and closes are handled.
         websocket.set_read_timeout (0, 10000);
 
         std::uint64_t sentVersion = 0;
@@ -69,7 +66,6 @@ void WebSocketRoutes::registerRoutes (httplib::Server& server)
         activeConnections.fetch_sub (1, std::memory_order_acq_rel);
     });
 
-    // Serves `/events`: the coalesced live state mirror (T103).
     server.WebSocket ("/events", [this] (const httplib::Request& request,
                                           httplib::ws::WebSocket& websocket)
     {
@@ -95,4 +91,4 @@ int WebSocketRoutes::getActiveConnections() const noexcept
     return activeConnections.load (std::memory_order_acquire);
 }
 
-} // namespace Api
+}

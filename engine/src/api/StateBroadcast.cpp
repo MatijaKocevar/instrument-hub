@@ -50,17 +50,13 @@ StateEventKind kindForChange (const char* kind) noexcept
 
     return StateEventKind::slot;
 }
-} // namespace
+}
 
-//==============================================================================
 StateBroadcast::StateBroadcast (StateStore& stateToUse,
                                 StateBroadcastOptions optionsToUse)
     : state (stateToUse),
       options (optionsToUse)
 {
-    // Every mutation the API can make (POST /arm, /settings, /transport and a
-    // pad selection applied by the app) funnels through the store, so this is
-    // the one place that catches both the hardware and the UI path.
     state.setChangeHandler ([this] (const char* kind, int slot)
     {
         publishStateChange (kind, slot);
@@ -91,7 +87,6 @@ bool StateBroadcast::isRunning() const noexcept
     return running.load (std::memory_order_acquire);
 }
 
-//==============================================================================
 void StateBroadcast::publishPad (int pad, bool pressed)
 {
     if (pad < 0 || pad >= StateBroadcastOptions::maxPads)
@@ -170,14 +165,11 @@ std::string StateBroadcast::buildFrameLocked (std::uint64_t sequence,
 
     root->setProperty ("pads", juce::var (padArray));
 
-    // The same document `GET /state` returns, so a client that receives an
-    // event never has to follow it with a poll to learn the new state.
     root->setProperty ("state", stateToVar (state.snapshot()));
 
     return toJson (frame);
 }
 
-//==============================================================================
 void StateBroadcast::handleClient (httplib::ws::WebSocket& websocket)
 {
     clients.fetch_add (1, std::memory_order_acq_rel);
@@ -211,10 +203,6 @@ void StateBroadcast::handleClient (httplib::ws::WebSocket& websocket)
             framesSent.fetch_add (1, std::memory_order_relaxed);
         }
 
-        // Bounded read: on timeout the loop looks for a newer frame. Incoming
-        // client messages are not part of the contract, but reading is how
-        // ping/pong and a normal close are handled. A `Fail` result means the
-        // peer is gone.
         if (websocket.read (incoming) == httplib::ws::ReadResult::Fail)
             break;
     }
@@ -225,7 +213,6 @@ void StateBroadcast::handleClient (httplib::ws::WebSocket& websocket)
     clients.fetch_sub (1, std::memory_order_acq_rel);
 }
 
-//==============================================================================
 PadMirror StateBroadcast::getPad (int pad) const
 {
     if (pad < 0 || pad >= StateBroadcastOptions::maxPads)
@@ -262,4 +249,4 @@ std::string StateBroadcast::getLastFrameJson() const
     return latestFrameJson;
 }
 
-} // namespace Api
+}

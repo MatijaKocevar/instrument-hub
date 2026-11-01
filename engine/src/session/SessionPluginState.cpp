@@ -5,9 +5,6 @@
 namespace ihub
 {
 
-//==============================================================================
-// Per-patch plugin state (T130)
-
 void Session::setPluginStateDirectory (const juce::File& directory)
 {
     pluginState.setDirectory (directory);
@@ -78,4 +75,4 @@ bool Session::pluginIdentityForSlot (int slot,
     return true;
 }
 
-} // namespace ihub
+}

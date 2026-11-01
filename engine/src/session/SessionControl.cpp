@@ -17,8 +17,6 @@ bool Session::setSlotSource (int slot,
         return false;
     }
 
-    // Save the outgoing patch before its instance is retired. This covers the
-    // Instrument page's source picker and any API source change.
     (void) capturePluginState (slot);
 
     const auto& previousSource = config.slots[static_cast<std::size_t> (slot)];
@@ -28,8 +26,6 @@ bool Session::setSlotSource (int slot,
         && previousSource.path == source.path
         && juce::String (previousSource.pluginId) == juce::String (source.pluginId);
 
-    // A source swap retires the hosted processor: close its editor first,
-    // while the instance is still alive, instead of waiting for the unload.
     if (editorHost != nullptr)
     {
         std::string closeError;
@@ -45,8 +41,6 @@ bool Session::setSlotSource (int slot,
     if (! keepsPluginState)
         pluginState.clear (slot);
 
-    // Keep the patch's identity, name, mix and insert chain: only the source
-    // fields are taken from the request.
     auto& current = config.slots[static_cast<std::size_t> (slot)];
     current.kind = source.kind;
     current.path = source.path;
@@ -98,9 +92,6 @@ void Session::setSourceAssignedHook (SourceAssignedHook hook)
     sourceAssignedHook = std::move (hook);
 }
 
-//==============================================================================
-// Native plugin editor (T129)
-
 bool Session::openEditor (int slot, std::string& error)
 {
     error.clear();
@@ -149,9 +140,6 @@ int Session::getOpenEditorCount() const noexcept
     return editorHost != nullptr ? editorHost->openCount() : 0;
 }
 
-//==============================================================================
-// Control (control thread; never the audio thread)
-
 void Session::armSlot (int slot)
 {
     if (switcher == nullptr)
@@ -164,8 +152,6 @@ void Session::armSlot (int slot)
         if (previous >= 0)
             (void) capturePluginState (previous);
 
-        // Nothing is armed any more: no editor should stay bound to the patch
-        // that used to be.
         if (editorHost != nullptr)
             editorHost->closeEditorsExcept (-1);
 
@@ -181,10 +167,6 @@ void Session::armSlot (int slot)
     if (previous >= 0 && previous != slot)
         (void) capturePluginState (previous);
 
-    // Editor follow: only the armed patch may keep a window. The outgoing
-    // editor is closed before the crossfade, so it can never keep showing the
-    // previous patch. The new patch's window is opened explicitly later and
-    // then shows the state restored by the factory/arm path.
     if (editorHost != nullptr)
         editorHost->closeEditorsExcept (slot);
 
@@ -208,4 +190,4 @@ void Session::setSlotGain (int slot, float linearGain) noexcept
         engine->getSlot (slot).setGain (clamped);
 }
 
-} // namespace ihub
+}

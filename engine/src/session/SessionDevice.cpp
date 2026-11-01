@@ -49,4 +49,4 @@ void Session::closeDevice()
     devices.close();
 }
 
-} // namespace ihub
+}

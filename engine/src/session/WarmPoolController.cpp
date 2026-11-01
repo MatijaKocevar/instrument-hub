@@ -87,8 +87,6 @@ void WarmPoolController::configure (SourceFactory factory,
 
     warmPool->setDestroyHook ([this] (AudioEngine::SlotSource& instance)
     {
-        // The session captures plugin state and unregisters the instance
-        // before it dies; then the fixed voice forgets it.
         if (destroyObserver)
             destroyObserver (instance);
 
@@ -150,7 +148,6 @@ void WarmPoolController::shutdown() noexcept
     pinnedPreviousSlot = -1;
 }
 
-//==============================================================================
 int WarmPoolController::getRequestedSlot() const noexcept
 {
     return requestedSlot.load (std::memory_order_relaxed);
@@ -207,4 +204,4 @@ void WarmPoolController::setNeighbourCount (int count)
         warmPool->setNeighbourCount (count);
 }
 
-} // namespace ihub::session
+}

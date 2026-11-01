@@ -3,13 +3,7 @@
 namespace ihub::session
 {
 
-// One `slot-<n>.bin` per patch lives next to `set.yaml`. The file is a small
-// header, a JSON metadata block and the opaque plugin blob, so the plugin
-// chunk itself is never inlined in a JSON document (plan/DECISIONS.md).
-// `replaceWithData()` writes a sibling temporary file and renames it, so an
-// interrupted save cannot truncate a good patch state.
-
-constexpr juce::uint32 pluginStateFileMagic = 0x49485053u; // "IHPS"
+constexpr juce::uint32 pluginStateFileMagic = 0x49485053u;
 constexpr int pluginStateFileVersion = 1;
 constexpr juce::int64 maximumPluginStateFileBytes = 64 * 1024 * 1024;
 constexpr int maximumPluginStateMetadataBytes = 64 * 1024;
@@ -127,9 +121,6 @@ bool readPluginStateFileData (const juce::File& file, int expectedSlot,
     return true;
 }
 
-/** True when a stored blob was written for the plugin now assigned to the
-    slot. An empty metadata field is accepted (older sidecar or a descriptor
-    without a bundle path), but a conflicting value is not. */
 bool pluginStateMatches (const PluginStateFileData& stored,
                          const juce::String& pluginPath,
                          const juce::String& pluginId)
@@ -145,4 +136,4 @@ bool pluginStateMatches (const PluginStateFileData& stored,
     return true;
 }
 
-} // namespace ihub::session
+}

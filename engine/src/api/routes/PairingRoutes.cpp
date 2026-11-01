@@ -5,7 +5,6 @@ namespace Api::Routes
 
 void registerPairingRoutes (httplib::Server& server, const RouteContext& context)
 {
-    // --- LAN pairing (T101) ------------------------------------------------
 
     server.Get ("/pairing", [context] (const httplib::Request&, httplib::Response& response)
     {
@@ -134,4 +133,4 @@ void registerPairingRoutes (httplib::Server& server, const RouteContext& context
     });
 }
 
-} // namespace Api::Routes
+}

@@ -21,4 +21,4 @@ juce::var pairingToVar (const PairingSnapshot& pairing)
     return root;
 }
 
-} // namespace Api
+}

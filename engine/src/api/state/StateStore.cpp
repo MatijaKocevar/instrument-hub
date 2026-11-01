@@ -179,4 +179,4 @@ double StateStore::getUptimeMs() const noexcept
     const auto elapsed = std::chrono::steady_clock::now() - startedAt;
     return std::chrono::duration<double, std::milli> (elapsed).count();
 }
-} // namespace Api
+}

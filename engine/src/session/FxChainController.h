@@ -26,34 +26,20 @@ struct SessionSlotConfig;
 namespace ihub::session
 {
 
-/**
-    Owns the per-patch insert racks and serialises chain edits against the
-    audio callback.
-
-    The engine slot's `FxChain` only holds non-owning processor pointers, so
-    the `FxRack` owns them. Every edit gates the target slot and waits for one
-    rendered block (`noteBlockRendered()` is called at the end of the block),
-    which proves the callback moved past the gate before the chain vector is
-    rebuilt. The audio thread never takes the edit mutex.
-*/
 class FxChainController
 {
 public:
     FxChainController();
     ~FxChainController();
 
-    /** Attaches the fixed engine the racks mirror. */
     void setEngine (AudioEngine::AudioEngine* engineToUse) noexcept;
 
-    /** Stores the format used when a rack is rebuilt. */
     void setFormat (double sampleRate, int maximumBlockSize, int numChannels) noexcept;
 
-    /** Builds every rack from the persisted session configuration. */
     void build (const std::vector<SessionSlotConfig>& slotConfigs,
                 juce::AudioPluginFormatManager& formats,
                 const AudioEngine::FxTransport& transport);
 
-    /** Drops every rack. */
     void reset() noexcept;
 
     bool getSnapshot (int slot,
@@ -97,10 +83,8 @@ public:
                 std::string& error,
                 bool streamActive);
 
-    /** Publishes one transport snapshot to every tempo-synced insert. */
     void updateTransport (const AudioEngine::FxTransport& transport) noexcept;
 
-    /** Audio-thread call at the end of every rendered block. */
     void noteBlockRendered() noexcept
     {
         renderEpoch.fetch_add (1, std::memory_order_release);
@@ -121,9 +105,7 @@ private:
     int maximumBlockSize = 128;
     int numChannels = 2;
 
-    /** Incremented by the audio path after every rendered block. An FX edit
-        waits for it to advance, which proves the callback moved past the gate. */
     std::atomic<std::uint64_t> renderEpoch { 0 };
 };
 
-} // namespace ihub::session
+}

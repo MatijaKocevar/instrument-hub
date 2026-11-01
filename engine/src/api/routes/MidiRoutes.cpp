@@ -5,7 +5,6 @@ namespace Api::Routes
 
 void registerMidiRoutes (httplib::Server& server, const RouteContext& context)
 {
-    // --- MIDI inputs and the pad test (T126) --------------------------------
 
     const auto readMidiState = [context]
     {
@@ -114,4 +113,4 @@ void registerMidiRoutes (httplib::Server& server, const RouteContext& context)
     });
 }
 
-} // namespace Api::Routes
+}

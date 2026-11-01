@@ -49,7 +49,6 @@ bool StateStore::applyPatchSource (int slot,
 
     if (! applySource (slot, source, error))
     {
-        // The live swap refused the request, so the descriptor stays as it was.
         return false;
     }
 
@@ -69,9 +68,6 @@ bool StateStore::applyPatchSource (int slot,
         else if (next.name.empty())
             next.name = slotPatches[static_cast<std::size_t> (slot)];
 
-        // A source switch replaces the descriptor wholesale: a plug-in patch
-        // must not keep the previous kit path, and a tone must not keep a
-        // plug-in identity.
         next.pluginFormat.clear();
         next.pluginId.clear();
         next.pluginName.clear();
@@ -93,7 +89,6 @@ bool StateStore::applyPatchSource (int slot,
         }
 
         slotInstruments[static_cast<std::size_t> (slot)] = next;
-        // The session closes the old editor before the source is retired.
         slotEditorOpen[static_cast<std::size_t> (slot)] = false;
         changed = changeHandler;
     }
@@ -103,9 +98,6 @@ bool StateStore::applyPatchSource (int slot,
 
     return true;
 }
-
-//==============================================================================
-// Native plugin editor (T129)
 
 void StateStore::setPatchEditorHandlers (PatchEditorHandler openEditor,
                                          PatchEditorHandler closeEditor)
@@ -201,9 +193,6 @@ bool StateStore::closePatchEditor (int slot, std::string& error)
     return true;
 }
 
-//==============================================================================
-// Explicit patch-state capture (T132)
-
 void StateStore::setPatchStateCaptureHandler (PatchStateCaptureHandler handler)
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -251,4 +240,4 @@ bool StateStore::capturePatchState (int slot,
     return true;
 }
 
-} // namespace Api
+}

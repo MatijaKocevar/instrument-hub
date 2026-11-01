@@ -218,9 +218,6 @@ bool SetFile::validate (juce::String& error) const
 
         if (slot.instrument.kind == SourceKind::plugin)
         {
-            // A plugin patch with no state is a cold descriptor: it names the
-            // plugin so it can be loaded on demand, but stores no blob. Once
-            // a blob is referenced it must exist exactly once.
             if (slot.hasPluginState())
             {
                 if (! checkStateReference (slot.instrument.pluginState,
@@ -300,4 +297,4 @@ bool SetFile::applyTo (AudioEngine::AudioEngine& engine, juce::String& error) co
     return true;
 }
 
-} // namespace ihub::project
+}

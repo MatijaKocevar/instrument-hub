@@ -22,7 +22,7 @@ juce::var channelArrayToVar (const std::vector<AudioChannelState>& channels)
 
     return juce::var (result);
 }
-} // namespace
+}
 
 juce::var audioStateToVar (const AudioStateSnapshot& audio)
 {
@@ -105,4 +105,4 @@ juce::var audioMeasurementToVar (const AudioMeasurementState& measurement)
     return root;
 }
 
-} // namespace Api
+}
