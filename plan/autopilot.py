@@ -66,6 +66,20 @@ HOLIDAYS: set[str] = set()  # 'YYYY-MM-DD', add Chinese holidays here
 PEAK_MARGIN = timedelta(minutes=20)
 SESSION_TIMEOUT = 3 * 60 * 60  # seconds
 
+# Watchdog budgets, in seconds. The whole suite is ~95 s; 600 s leaves room for
+# a cold Wine warm-up or a slow plugin scan without stalling the run forever.
+TEST_SECONDS = 150
+CTEST_SECONDS = 600
+
+# Tool commands run under the shared opencode server, not under the session
+# process, so they are identified by the marker the server puts in their
+# environment. A command started in the developer's own terminal has no
+# marker; the dev build and its Wine plugin bridge are therefore never
+# candidates, and neither is build-debug.
+SESSION_ENV_MARKER = b"OPENCODE_SESSION_ID="
+TEST_BUILD = (REPO / "build").resolve()
+TEST_BINARY_PREFIXES = ("ihub-", "instrument-hub")
+
 MAX_ATTEMPTS = 3
 # Seconds to wait before attempt 2, 3, 4. A session that dies on a transport
 # error has not judged the task, so retrying it immediately just re-runs the
@@ -104,13 +118,53 @@ def log(msg: str) -> None:
         fh.write(line + "\n")
 
 
-def kill_stuck_tests(test_seconds: int = 150, ctest_seconds: int = 300) -> None:
-    """Kill test binaries that have outlived their budget.
+def _proc_bytes(path: str) -> bytes:
+    try:
+        return Path(path).read_bytes()
+    except OSError:
+        return b""
 
-    The session is told to use scripts/test.sh (120 s per test), but a
-    forgotten flag must not stall the run. Only ihub-* test binaries,
-    vstbridge hosts and ctest are touched; a build or the agent is never
-    killed.
+
+def _proc_path(pid: int, leaf: str) -> Path | None:
+    try:
+        return Path(os.readlink(f"/proc/{pid}/{leaf}"))
+    except OSError:
+        return None
+
+
+def _within(path: Path | None, root: Path) -> bool:
+    return path is not None and (path == root or root in path.parents)
+
+
+def is_test_candidate(pid: int, name: str) -> bool:
+    """True when `pid` is a test run started by an opencode session."""
+    if SESSION_ENV_MARKER not in _proc_bytes(f"/proc/{pid}/environ"):
+        return False
+
+    if name.startswith("ctest"):
+        return _within(_proc_path(pid, "cwd"), REPO)
+
+    if name.startswith(TEST_BINARY_PREFIXES):
+        return _within(_proc_path(pid, "exe"), TEST_BUILD)
+
+    return False
+
+
+def stuck_budget(name: str) -> int | None:
+    if name.startswith("ctest"):
+        return CTEST_SECONDS
+    if name.startswith(TEST_BINARY_PREFIXES):
+        return TEST_SECONDS
+    return None
+
+
+def kill_stuck_tests() -> None:
+    """Kill test processes that have outlived their budget.
+
+    Only test binaries built in `build/` and ctest running inside the repo are
+    candidates, and only when an opencode session started them. The developer's
+    dev build and its Wine plugin bridge keep running: killing the bridge
+    aborts the engine.
     """
     try:
         listing = subprocess.run(
@@ -135,18 +189,17 @@ def kill_stuck_tests(test_seconds: int = 150, ctest_seconds: int = 300) -> None:
         except ValueError:
             continue
 
-        limit = None
-        if name.startswith("ihub-") or name.startswith("vstbridge-host"):
-            limit = test_seconds
-        elif name.startswith("ctest"):
-            limit = ctest_seconds
+        budget = stuck_budget(name)
+        if budget is None or age <= budget:
+            continue
+        if not is_test_candidate(pid, name):
+            continue
 
-        if limit is not None and age > limit:
-            log(f"WATCHDOG killing stuck {name} pid={pid} age={age}s")
-            try:
-                os.kill(pid, signal.SIGKILL)
-            except OSError:
-                pass
+        log(f"WATCHDOG killing stuck {name} pid={pid} age={age}s")
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
 
 
 def watchdog_session(stop: threading.Event) -> None:
