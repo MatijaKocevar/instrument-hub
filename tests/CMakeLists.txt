@@ -1106,6 +1106,12 @@ juce_add_console_app(ihub-switch-continuity-test
 target_sources(ihub-switch-continuity-test
     PRIVATE
         audio/SwitchContinuity.cpp
+        audio/TestSupport.cpp
+        audio/switch_continuity/Cases.cpp
+        audio/switch_continuity/DeltaDetector.cpp
+        audio/switch_continuity/Render.cpp
+        audio/switch_continuity/SineSource.cpp
+        audio/switch_continuity/SpectralDetector.cpp
         ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -1157,6 +1163,11 @@ juce_add_console_app(ihub-session-smoke-test
 target_sources(ihub-session-smoke-test
     PRIVATE
         audio/SessionSmoke.cpp
+        audio/TestSupport.cpp
+        audio/session_smoke/Composition.cpp
+        audio/session_smoke/Fixtures.cpp
+        audio/session_smoke/HardSwitch.cpp
+        audio/session_smoke/Switch.cpp
         ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         ${IHUB_BUS_SOURCES}
@@ -2351,6 +2362,17 @@ juce_add_console_app(ihub-compressor-test
 target_sources(ihub-compressor-test
     PRIVATE
         dsp/CompressorTest.cpp
+        dsp/AllocationCount.cpp
+        dsp/TestSupport.cpp
+        dsp/compressor/Bypass.cpp
+        dsp/compressor/Dynamics.cpp
+        dsp/compressor/Fixtures.cpp
+        dsp/compressor/Latency.cpp
+        dsp/compressor/MakeupGain.cpp
+        dsp/compressor/Realtime.cpp
+        dsp/compressor/State.cpp
+        dsp/compressor/StaticCurve.cpp
+        dsp/compressor/StereoLink.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
 )
 
@@ -2417,6 +2439,17 @@ juce_add_console_app(ihub-delay-test
 target_sources(ihub-delay-test
     PRIVATE
         dsp/DelayTest.cpp
+        dsp/AllocationCount.cpp
+        dsp/TestSupport.cpp
+        dsp/delay/Acceptance.cpp
+        dsp/delay/Bypass.cpp
+        dsp/delay/Feedback.cpp
+        dsp/delay/Fixtures.cpp
+        dsp/delay/FreeTime.cpp
+        dsp/delay/Realtime.cpp
+        dsp/delay/State.cpp
+        dsp/delay/SyncTable.cpp
+        dsp/delay/Transport.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
 )
 
@@ -2470,6 +2503,17 @@ juce_add_console_app(ihub-reverb-test
 target_sources(ihub-reverb-test
     PRIVATE
         dsp/ReverbTest.cpp
+        dsp/AllocationCount.cpp
+        dsp/TestSupport.cpp
+        dsp/reverb/Damping.cpp
+        dsp/reverb/Decay.cpp
+        dsp/reverb/DryPath.cpp
+        dsp/reverb/Fixtures.cpp
+        dsp/reverb/PreDelay.cpp
+        dsp/reverb/Realtime.cpp
+        dsp/reverb/Stability.cpp
+        dsp/reverb/State.cpp
+        dsp/reverb/Width.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
 )
 
@@ -2530,6 +2574,13 @@ juce_add_console_app(ihub-eq-test
 target_sources(ihub-eq-test
     PRIVATE
         dsp/EqTest.cpp
+        dsp/AllocationCount.cpp
+        dsp/TestSupport.cpp
+        dsp/eq/Flat.cpp
+        dsp/eq/Fixtures.cpp
+        dsp/eq/Realtime.cpp
+        dsp/eq/Response.cpp
+        dsp/eq/State.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
 )
 
@@ -2586,6 +2637,18 @@ add_test(
 
 add_executable(ihub-transport-test
     audio/TransportTest.cpp
+    audio/AllocationCount.cpp
+    audio/TestSupport.cpp
+    audio/transport/Acceptance.cpp
+    audio/transport/ExternalSync.cpp
+    audio/transport/Fixtures.cpp
+    audio/transport/Position.cpp
+    audio/transport/Projection.cpp
+    audio/transport/Realtime.cpp
+    audio/transport/Snapshot.cpp
+    audio/transport/StartStop.cpp
+    audio/transport/TapTempo.cpp
+    audio/transport/Tempo.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
@@ -2633,6 +2696,16 @@ add_test(
 
 add_executable(ihub-clock-out-test
     audio/ClockOutTest.cpp
+    audio/AllocationCount.cpp
+    audio/TestSupport.cpp
+    audio/clock_out/Acceptance.cpp
+    audio/clock_out/Fixtures.cpp
+    audio/clock_out/Midi.cpp
+    audio/clock_out/Overflow.cpp
+    audio/clock_out/Realtime.cpp
+    audio/clock_out/Rewind.cpp
+    audio/clock_out/Tempo.cpp
+    audio/clock_out/Transport.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/ClockOut.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
@@ -2680,6 +2753,19 @@ add_test(
 
 add_executable(ihub-clock-in-test
     audio/ClockInTest.cpp
+    audio/AllocationCount.cpp
+    audio/TestSupport.cpp
+    audio/clock_in/Acceptance.cpp
+    audio/clock_in/ClockLoss.cpp
+    audio/clock_in/InternalSync.cpp
+    audio/clock_in/Jitter.cpp
+    audio/clock_in/Midi.cpp
+    audio/clock_in/Queue.cpp
+    audio/clock_in/Realtime.cpp
+    audio/clock_in/Reset.cpp
+    audio/clock_in/TempoChange.cpp
+    audio/clock_in/Tempos.cpp
+    audio/clock_in/Transport.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/ClockIn.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
@@ -2728,6 +2814,16 @@ add_test(
 
 add_executable(ihub-tap-tempo-test
     audio/TapTempoTest.cpp
+    audio/AllocationCount.cpp
+    audio/TestSupport.cpp
+    audio/tap_tempo/Acceptance.cpp
+    audio/tap_tempo/Fixtures.cpp
+    audio/tap_tempo/Median.cpp
+    audio/tap_tempo/Range.cpp
+    audio/tap_tempo/Realtime.cpp
+    audio/tap_tempo/Reset.cpp
+    audio/tap_tempo/SequenceReset.cpp
+    audio/tap_tempo/TransportIntegration.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
