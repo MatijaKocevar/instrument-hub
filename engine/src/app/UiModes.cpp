@@ -122,7 +122,7 @@ void UiModeController::checkUi()
 
     webView.evaluateJavascript (
         "(() => {"
-        "  const el = document.querySelector('[data-testid=\"app-title\"]');"
+        "  const el = document.querySelector('[data-testid=\"sidebar-title\"]');"
         "  return el ? el.textContent.trim() : '';"
         "})()",
         [this] (const juce::WebBrowserComponent::EvaluationResult& result)
@@ -192,8 +192,8 @@ void UiModeController::checkSnapshot()
 
         webView.evaluateJavascript (
             "(() => {"
-            "  const el = document.querySelector('[data-testid=\"app-title\"]');"
-            "  return el ? el.textContent.trim() : '';"
+            "  const el = document.querySelector('[data-testid=\"grid-cell\"]');"
+            "  return el ? 'Instrument grid' : '';"
             "})()",
             [this] (const juce::WebBrowserComponent::EvaluationResult& result)
             {
@@ -212,7 +212,7 @@ void UiModeController::checkSnapshot()
                 if (heading.isNotEmpty())
                     lastHeading = heading;
 
-                if (heading == "Instrument Hub")
+                if (heading == "Instrument grid")
                 {
                     snapshotProbePassed = true;
                     snapshotCaptureAt = juce::Time::getMillisecondCounterHiRes()

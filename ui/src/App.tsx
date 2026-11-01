@@ -269,6 +269,7 @@ function Sidebar ({ route, navigate, phase, lanEnabled, paired, version }: Shell
                 <p
                     className="shell__session"
                     data-testid="sidebar-session"
+                    data-phase={phase}
                     data-lan={lanEnabled ? "true" : "false"}
                     data-paired={paired ? "true" : "false"}
                 >
@@ -498,51 +499,6 @@ function AppShell ({ router, viewportWidth }: AppShellProps): ReactElement
 
             <div className="app-shell__main">
                 <main className="app" data-route={router.route}>
-                    <header className="app__header">
-                        <p className="app__eyebrow">Audio workspace</p>
-                        <h1 className="app__title" data-testid="app-title">
-                            Instrument Hub
-                        </h1>
-                        <p className="app__lede">
-                            One place for your instruments, controller and set.
-                        </p>
-                    </header>
-
-                    <section
-                        className={`app__connection app__connection--${app.phase}`}
-                        aria-label="Control API connection"
-                        data-testid="connection"
-                        data-phase={app.phase}
-                    >
-                        <span className="status-pill" data-testid="connection-status">
-                            {PHASE_LABEL[app.phase]}
-                        </span>
-
-                        <span className="app__connection-detail">
-                            <code>{store.baseUrl}</code>
-                        </span>
-
-                        {app.failedAttempts > 0
-                            ? <span className="app__connection-detail">
-                                  {app.failedAttempts} failed {app.failedAttempts === 1 ? "attempt" : "attempts"}
-                              </span>
-                            : null}
-
-                        {app.error !== null
-                            ? <span className="app__connection-error" data-testid="connection-error">
-                                  {app.error}
-                              </span>
-                            : null}
-
-                        <button
-                            className="app__retry"
-                            type="button"
-                            onClick={() => { void store.refresh (); }}
-                        >
-                            Retry now
-                        </button>
-                    </section>
-
                     {state === null && router.route !== "grid"
                         ? <section
                               className="app__empty"
@@ -674,10 +630,14 @@ function AppShell ({ router, viewportWidth }: AppShellProps): ReactElement
                     </div>
 
                     <footer className="app__footer">
-                        <span className="app__status" data-testid="app-status">
+                        <span
+                            className="app__status"
+                            data-testid="app-status"
+                            data-phase={app.phase}
+                        >
                             {state === null
                                 ? "Waiting for device state"
-                                : `Connected · ${state.slots.length} slots · armed ${armedSlot < 0 ? "none" : armedSlot + 1}`}
+                                : `${PHASE_LABEL[app.phase]} · ${state.slots.length} slots · armed ${armedSlot < 0 ? "none" : armedSlot + 1}`}
                         </span>
                         <span className="app__version">v{version}</span>
                     </footer>

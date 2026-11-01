@@ -52,13 +52,13 @@ reported by the human or reproduced on this machine.
 - fix: pending; candidate is one isolated child process per batch, or manual verification
 
 ### BUG-003 · Global page header and connection bar repeat on every page
-- status: open
+- status: fixed
 - area: ui
 - steps: open any desktop route (`/grid`, `/instrument`, `/plugins`, `/audio`, `/settings`)
 - expected: the page starts with its own content; app identity and connection state live in the sidebar/footer
 - actual: every route prints the "Audio workspace / Instrument Hub / One place…" hero header and a full-width Connected / URL / Retry now bar
-- evidence: screenshot in the bug report; `ui-shell-*` and page artifacts under `tests/artifacts/`
-- fix: pending; the attempted change was reverted so it can be queued as a task
+- evidence: screenshot in the bug report; `ui-shell-*` and page artifacts under `tests/artifacts/`; T140 harness asserts no `app__header` or `connection-status` on all five desktop routes; `ihub-ui-snapshot` captures the populated 1200×800 Grid
+- fix: T140 removes the global hero header and connection bar, keeps the phase in the sidebar and footer, and probes `sidebar-title` / grid cells instead of `app-title`
 
 ### BUG-004 · App does not exit after the window is closed; hangs in shutdown
 - status: open
