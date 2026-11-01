@@ -1,19 +1,3 @@
-# Package Instrument Hub for the three desktop platforms (T112).
-#
-# Linux  -> AppImage  (x86_64)
-# Windows-> MSI       (x64, WiX Toolset 3)
-# macOS  -> DMG       (the architecture of the runner)
-#
-# Everything is UNSIGNED: no code signing identity, no notarisation, no
-# timestamping. The macOS bundle is the raw Mach-O output of CMake, the MSI
-# carries no Authenticode signature and the AppImage is not signed for zsync
-# updates. Signing is a human/licence decision, not part of this job.
-#
-# The jobs mirror .github/workflows/build.yml (same dependencies, same React UI
-# step) and then wrap the Release build. Packages are uploaded as workflow
-# artifacts, never published to a GitHub release, so this workflow needs no
-# write permission.
-
 name: release
 
 on:
@@ -33,9 +17,6 @@ env:
   NODE_VERSION: "20"
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Linux: unsigned AppImage
-  # ---------------------------------------------------------------------------
   linux-appimage:
     name: Linux AppImage (x86_64)
     runs-on: ubuntu-24.04
@@ -43,10 +24,7 @@ jobs:
       run:
         shell: bash
     env:
-      # Build hosts and CI have no FUSE; the AppImage still has to prove it
-      # runs, so every invocation extracts itself into a temporary directory.
       APPIMAGE_EXTRACT_AND_RUN: "1"
-      # appimagetool 1.9.1, pinned by tag; the binary checks itself below.
       APPIMAGETOOL_URL: https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
     steps:
       - name: Checkout (with JUCE submodule)
@@ -64,9 +42,6 @@ jobs:
           cache: pnpm
           cache-dependency-path: ui/pnpm-lock.yaml
 
-      # Packages from third_party/JUCE/docs/Linux Dependencies.md, plus xvfb
-      # (to start the packaged GUI without a desktop) and libfuse2 is
-      # deliberately not needed because of APPIMAGE_EXTRACT_AND_RUN.
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
@@ -97,7 +72,6 @@ jobs:
           else
             version="$(sed -n 's/^project(InstrumentHub VERSION \([^ ]*\).*/\1/p' CMakeLists.txt)"
           fi
-          # Package versions are numeric x.y.z; drop any pre-release suffix.
           version="$(printf '%s' "$version" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
           if [[ -z "$version" ]]; then
             echo "error: could not determine a package version" >&2
@@ -114,25 +88,9 @@ jobs:
       - name: Configure (Release)
         run: cmake --preset release
 
-      # Only the three shipped executables: instrument-hub, the VST3 scanner
-      # and the plugin sandbox. The test targets are not part of a package.
       - name: Build (Release)
         run: cmake --build --preset release --parallel --target instrument-hub ihub-scanner ihub-sandbox
 
-      # --- AppDir ------------------------------------------------------------
-      #
-      # The app and its two helper processes go into usr/bin. The helpers are
-      # resolved next to the main executable (ScannerProcess/SandboxHost), so
-      # they must keep that relationship inside the bundle.
-      #
-      # GTK and WebKitGTK are intentionally NOT bundled. JUCE loads WebKit with
-      # dlopen() and WebKit spawns WebKitWebProcess from hard-coded host paths;
-      # copying those libraries into the AppImage breaks them in surprising
-      # ways and bloats the bundle by hundreds of megabytes. The AppImage
-      # therefore requires webkit2gtk-4.1 from the distribution (any Ubuntu
-      # 24.04+ / Fedora 39+ desktop has it). libstdc++ and libgcc_s are bundled
-      # because they are the two libraries whose versions differ most between
-      # distributions a release might land on.
       - name: Stage AppDir
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -156,11 +114,6 @@ jobs:
 
           cat > "$APPDIR/AppRun" <<'APPRUN'
           #!/bin/sh
-          # Instrument Hub AppImage entry point.
-          #
-          # usr/bin also holds ihub-scanner and ihub-sandbox; both are looked up
-          # next to instrument-hub, so keeping them in the same directory is
-          # what makes plugin scanning and crash isolation work from the bundle.
           set -eu
           HERE="$(dirname "$(readlink -f "$0")")"
           APPDIR="${APPDIR:-$HERE}"
@@ -186,7 +139,6 @@ jobs:
           X-AppImage-Version=$VERSION
           DESKTOP
 
-          # Simple waveform mark: no text, readable at 16 px.
           cat > "$APPDIR/instrument-hub.svg" <<'ICON'
           <?xml version="1.0" encoding="UTF-8"?>
           <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
@@ -230,10 +182,6 @@ jobs:
           chmod 755 "$OUT"
           ls -l "$OUT"
 
-      # Acceptance check for this task: the artifact must actually execute.
-      # --list-devices exercises the engine and both helper lookups are
-      # exercised by the app's normal start-up; --selftest then opens the real
-      # window (WebKit included) under a virtual X server.
       - name: Verify AppImage runs
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -259,9 +207,6 @@ jobs:
           path: dist/*.AppImage
           if-no-files-found: error
 
-  # ---------------------------------------------------------------------------
-  # Windows: unsigned MSI
-  # ---------------------------------------------------------------------------
   windows-msi:
     name: Windows MSI (x64)
     runs-on: windows-latest
@@ -284,8 +229,6 @@ jobs:
           cache: pnpm
           cache-dependency-path: ui/pnpm-lock.yaml
 
-      # Same as build.yml: engine/CMakeLists.txt uses NEEDS_WEBVIEW2 and JUCE's
-      # FindWebView2 only looks in the local NuGet package folder.
       - name: Install WebView2 SDK
         shell: powershell
         run: |
@@ -326,8 +269,6 @@ jobs:
       - name: Build (Release)
         run: cmake --build --preset release --parallel --target instrument-hub ihub-scanner ihub-sandbox
 
-      # WiX 3.14 ships with the GitHub Windows image. candle/light are used
-      # instead of WiX 4 so the build needs no extra dotnet tool install.
       - name: Generate WiX source
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -421,9 +362,6 @@ jobs:
 
           ls -l dist/*.msi
 
-      # A real check rather than "the file exists": an administrative install
-      # unpacks the MSI and proves the cab, the file table and the components
-      # are all well formed.
       - name: Verify MSI
         shell: pwsh
         run: |
@@ -447,9 +385,6 @@ jobs:
           path: dist/*.msi
           if-no-files-found: error
 
-  # ---------------------------------------------------------------------------
-  # macOS: unsigned DMG
-  # ---------------------------------------------------------------------------
   macos-dmg:
     name: macOS DMG
     runs-on: macos-latest
@@ -513,12 +448,9 @@ jobs:
           fi
           echo "app bundle: $app"
 
-          # The VST3 scanner and the plugin sandbox are resolved next to the
-          # main executable, which on macOS is Contents/MacOS.
           install -m755 build-release/engine/ihub-scanner "$app/Contents/MacOS/ihub-scanner"
           install -m755 build-release/engine/ihub-sandbox "$app/Contents/MacOS/ihub-sandbox"
 
-          # No codesign call: the bundle stays unsigned on purpose.
           stage="$RUNNER_TEMP/dmg"
           rm -rf "$stage"
           mkdir -p "$stage"
