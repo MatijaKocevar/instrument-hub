@@ -3,13 +3,6 @@ import { useEffect, useState } from "react";
 import { WakeLockController } from "./WakeLockController";
 import type { WakeLockCapableNavigator, WakeLockStatus } from "./wakeLockTypes";
 
-/**
-    Keep the screen awake for the lifetime of the calling component.
-
-    Returns the current status so the remote can show a truthful "screen on"
-    badge. Effects never run during server rendering, so the snapshot test
-    never asks the host for a lock.
-*/
 export function useWakeLock (navigatorLike?: WakeLockCapableNavigator | null): WakeLockStatus
 {
     const [status, setStatus] = useState<WakeLockStatus> ("idle");

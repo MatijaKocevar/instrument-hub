@@ -1,10 +1,5 @@
-// Pairing fixtures served by the snapshot fixture server.
-
 import type { ControlPairingState } from "../../api/client";
 
-/**
-    Pairing fixture. LAN mode starts off, exactly like a fresh engine.
-*/
 
 export const PAIRING_OFF: ControlPairingState = {
     lanEnabled: false,

@@ -5,17 +5,12 @@ import { canRunPadTest, padTestLabel } from "./model";
 
 interface PadTestPanelProps
 {
-    /** Latest `GET /midi`, used for availability and the result label. */
     readonly midi: ControlMidiState;
-    /** True while the pad test is starting. */
     readonly busy: boolean;
-    /** Message from a rejected pad test. */
     readonly error: string | null;
-    /** Called by the pad-test button. */
     readonly onPadTest?: (() => void) | undefined;
 }
 
-/** The button that lights all 64 pads, its result and its availability hint. */
 export function PadTestPanel ({
     midi,
     busy,

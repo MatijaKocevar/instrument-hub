@@ -13,10 +13,6 @@ interface InstrumentFrameProps
     readonly children?: ReactNode;
 }
 
-/**
-    The instrument page's frame: the page section, its header and the empty
-    state shown before a patch is selected. The cards are passed as children.
-*/
 export function InstrumentFrame ({
     patch,
     armedSlot,

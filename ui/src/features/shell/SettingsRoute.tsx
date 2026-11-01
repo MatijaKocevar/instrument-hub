@@ -3,7 +3,6 @@ import type { ReactElement } from "react";
 import { SettingsPage } from "../settings";
 import type { ShellData } from "./useShellData";
 
-/** Settings route: pairing, LAN mode and engine information. */
 export function SettingsRoute ({ shell }: { readonly shell: ShellData }): ReactElement
 {
     const { app, state, store } = shell;

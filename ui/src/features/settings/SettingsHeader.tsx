@@ -1,6 +1,5 @@
 import type { ReactElement } from "react";
 
-/** Page title and lede that introduce Settings & Account. */
 export function SettingsHeader (): ReactElement
 {
     return (

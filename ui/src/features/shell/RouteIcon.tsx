@@ -2,12 +2,6 @@ import type { ReactElement } from "react";
 
 import type { ShellRoute } from "../../state/router";
 
-/**
-    One icon per workspace route.
-
-    Inline SVG keeps the shell dependency-free and lets the icon inherit the
-    active link colour; the text label is the accessible name.
-*/
 export function RouteIcon ({ route }: { readonly route: ShellRoute }): ReactElement
 {
     switch (route)

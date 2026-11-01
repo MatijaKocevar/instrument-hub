@@ -8,7 +8,6 @@ export interface GridHeaderProps
     readonly meters: MeterSnapshot;
 }
 
-/** Title, hint line and master meter above the grid. */
 export function GridHeader ({ meters }: GridHeaderProps): ReactElement
 {
     return (

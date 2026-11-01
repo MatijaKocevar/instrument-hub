@@ -6,17 +6,12 @@ import { PluginCard } from "./PluginCard";
 
 interface PluginListProps
 {
-    /** True until the first inventory response arrives. */
     readonly loading: boolean;
-    /** Plug-ins left after the search filter. */
     readonly plugins: readonly ControlPlugin[];
-    /** Current query, repeated by the empty state. */
     readonly search: string;
-    /** Every plugin-backed patch in the set. */
     readonly assignments: readonly PluginAssignment[];
 }
 
-/** The inventory list, with its loading and empty states. */
 export function PluginList ({
     loading,
     plugins,

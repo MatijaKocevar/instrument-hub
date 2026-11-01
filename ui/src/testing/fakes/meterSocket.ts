@@ -4,7 +4,6 @@ import type {
     MeterSocketLike,
 } from "../../features/grid";
 
-/** Scriptable WebSocket stand-in used by the meter and remote-link scenarios. */
 export class FakeMeterSocket implements MeterSocketLike
 {
     readonly listeners = new Map<MeterSocketEvent, ((event: MeterSocketEventLike) => void)[]> ();

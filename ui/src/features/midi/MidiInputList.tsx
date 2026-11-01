@@ -5,11 +5,8 @@ import { isLaunchpadDaInput, midiInputState, midiRoleLabel } from "./model";
 
 interface MidiInputListProps
 {
-    /** Every ALSA input the engine reported. */
     readonly inputs: readonly ControlMidiInput[];
-    /** True while an input toggle or reload is in flight. */
     readonly busy: boolean;
-    /** Called with the new switch state for one input. */
     readonly onToggle?: ((id: string, enabled: boolean) => void) | undefined;
 }
 
@@ -87,7 +84,6 @@ function InputRow ({ input, busy, onToggle }: {
     );
 }
 
-/** The ALSA inputs with their enable switches, or the empty-device notice. */
 export function MidiInputList ({ inputs, busy, onToggle }: MidiInputListProps): ReactElement
 {
     if (inputs.length === 0)

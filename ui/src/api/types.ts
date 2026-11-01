@@ -1,16 +1,6 @@
 import type { components } from "./schema";
 
-/**
-    Public names for the generated schema components.
 
-    The aliases come straight from `schema.d.ts` (produced from
-    `shared/api/openapi.yaml`), so a change to the OpenAPI document breaks the
-    build instead of surfacing at runtime. They live in one leaf module so the
-    transport core and every resource module share the same names without
-    importing each other.
-*/
-
-/** The complete control state returned by `GET /state`. */
 export type ControlState = components["schemas"]["State"];
 export type ControlSlot = components["schemas"]["Slot"];
 export type ControlSettings = components["schemas"]["Settings"];

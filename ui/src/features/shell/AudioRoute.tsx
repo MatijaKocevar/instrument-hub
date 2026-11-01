@@ -4,7 +4,6 @@ import { AudioSettingsPanel } from "../audio-settings";
 import { MidiPanel } from "../midi";
 import type { ShellData } from "./useShellData";
 
-/** Audio route: device settings, latency measurement and MIDI inputs. */
 export function AudioRoute ({ shell }: { readonly shell: ShellData }): ReactElement
 {
     const { app, state, store } = shell;

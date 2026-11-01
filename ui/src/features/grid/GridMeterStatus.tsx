@@ -3,7 +3,6 @@ import type { ReactElement } from "react";
 import { meterPercent } from "./format";
 import type { MeterSnapshot } from "./meterFrame";
 
-/** Live/idle label plus the master level bar for the grid header. */
 export function GridMeterStatus ({ meters }: { readonly meters: MeterSnapshot }): ReactElement
 {
     return (

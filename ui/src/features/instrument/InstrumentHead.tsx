@@ -12,7 +12,6 @@ interface InstrumentHeadProps
     readonly onColourChange?: (slot: number, colorIndex: number) => void;
 }
 
-/** Instrument page header: identity, arm state and the live patch badges. */
 export function InstrumentHead ({ patch, armed, following, onColourChange }: InstrumentHeadProps): ReactElement
 {
     const colour = colourForIndex (patch.colorIndex);

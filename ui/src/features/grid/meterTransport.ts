@@ -2,25 +2,15 @@ import type { MeterSocketFactory, MeterSocketLike } from "./meterSocket";
 
 export interface MeterTransportOptions
 {
-    /** Absolute WebSocket URL, usually `ws://127.0.0.1:8080/meters`. */
     readonly url: string;
     readonly socketFactory: MeterSocketFactory;
-    /** First reconnect delay; doubles per failure. */
     readonly reconnectBaseMs: number;
-    /** Upper bound for the reconnect delay. */
     readonly reconnectMaxMs: number;
     readonly onOpen: () => void;
     readonly onMessage: (data: unknown) => void;
     readonly onDisconnect: () => void;
 }
 
-/**
-    Own the `/meters` socket and its reconnect loop.
-
-    The transport knows nothing about meter frames: it opens, forwards raw
-    messages and reconnects with capped exponential backoff. Keeping only the
-    newest frame is the store's job.
-*/
 export class MeterTransport
 {
     private readonly options: MeterTransportOptions;
@@ -35,7 +25,6 @@ export class MeterTransport
         this.reconnectDelayMs = options.reconnectBaseMs;
     }
 
-    /** Connect and keep reconnecting. Safe to call more than once. */
     start (): void
     {
         if (this.running)
@@ -45,7 +34,6 @@ export class MeterTransport
         this.connect ();
     }
 
-    /** Close the socket and cancel a pending reconnect. */
     stop (): void
     {
         this.running = false;

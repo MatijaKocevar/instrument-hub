@@ -5,14 +5,9 @@ import { deviceLabel } from "./model";
 
 interface AudioSettingsHeaderProps
 {
-    /** Latest audio state, or null before the first successful request. */
     readonly audio: ControlAudioState | null;
 }
 
-/**
-    The panel header: the open/closed status once the engine state is known,
-    and a plain Loading status before it arrives.
-*/
 export function AudioSettingsHeader ({ audio }: AudioSettingsHeaderProps): ReactElement
 {
     if (audio === null)

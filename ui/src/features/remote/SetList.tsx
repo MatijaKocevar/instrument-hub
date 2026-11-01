@@ -10,7 +10,6 @@ export interface SetListProps
     readonly onSelect: ((slot: number) => void) | undefined;
 }
 
-/** The scrollable set list with one large target per patch. */
 export function SetList ({ model, loading, onSelect }: SetListProps): ReactElement
 {
     const empty = model.patches.length === 0;

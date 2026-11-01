@@ -9,9 +9,7 @@ import { SettingsHeader } from "./SettingsHeader";
 
 export interface SettingsPageProps
 {
-    /** Latest `GET /pairing`, or null before the first successful request. */
     readonly pairing: ControlPairingState | null;
-    /** Token held by this browser, or null when it has not paired. */
     readonly token: string | null;
     readonly pairingError?: string | null;
     readonly pairingBusy?: boolean;
@@ -25,13 +23,6 @@ export interface SettingsPageProps
     readonly onPair?: (code: string) => void;
 }
 
-/**
-    Settings & Account.
-
-    The pairing card owns LAN mode and the live code; the account card names
-    the browser's own token and exposes the single revoke action; the about
-    card reports what the engine says it is running. This file is the layout.
-*/
 export function SettingsPage ({
     pairing,
     token,

@@ -1,12 +1,5 @@
 import type { ControlPatchUpdate, ControlState } from "../api/client";
 
-/**
-    Return `state` with `slot` armed.
-
-    Used for the optimistic highlight: the grid reads `armedSlot`, so patching
-    this in the same tick as the click makes the highlight move on the next
-    render instead of after the next 2 s poll.
-*/
 export function withArmedSlot (state: ControlState, slot: number): ControlState
 {
     return {
@@ -19,12 +12,6 @@ export function withArmedSlot (state: ControlState, slot: number): ControlState
     };
 }
 
-/**
-    Return `state` with a partial patch update applied to `slot`.
-
-    Used for the same optimistic highlight rule as arming: a colour swatch
-    moves the cell on the next render even if the engine round trip is slow.
-*/
 export function withPatchUpdate (state: ControlState,
                                  slot: number,
                                  patch: ControlPatchUpdate): ControlState
@@ -40,7 +27,6 @@ export function withPatchUpdate (state: ControlState,
     };
 }
 
-/** Return `state` with one patch's `editorOpen` flag updated. */
 export function withEditorOpen (state: ControlState,
                                 slot: number,
                                 open: boolean): ControlState

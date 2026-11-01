@@ -2,14 +2,6 @@ import type { ControlPatchSourceRequest } from "../api/client";
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 
-/**
-    Swap the instrument source behind one patch.
-
-    The engine re-binds the slot to a freshly instantiated source, so the
-    complete state is adopted and the chain is re-read for the new latency
-    budget. The caller supplies the chain reload so this module stays free of
-    FX knowledge.
-*/
 export class PatchSourceActions
 {
     constructor (private readonly context: ActionContext,

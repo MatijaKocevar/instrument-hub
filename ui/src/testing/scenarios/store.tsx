@@ -1,5 +1,3 @@
-// Store: reconnect after HTTP failures and retry backoff.
-
 import {
     createControlApi,
     type ControlAudioMeasurement,

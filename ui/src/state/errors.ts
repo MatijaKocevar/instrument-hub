@@ -1,4 +1,3 @@
-/** Turn an unknown rejection into a message the UI can show. */
 export function messageOf (error: unknown): string
 {
     if (error instanceof Error && error.message.length > 0)

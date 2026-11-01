@@ -1,5 +1,3 @@
-// MIDI: input model, Launchpad/Keystation status and the pad test.
-
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { createControlApi } from "../../api/client";
@@ -115,7 +113,6 @@ export async function midiPageTest (): Promise<void>
         check (/data-testid="pad-test"[^>]*disabled/.test (initial) === false,
                "the pad test is available while the Launchpad is connected");
 
-        // --- Enable a MIDI input -------------------------------------------
         check (await store.toggleMidiInput ("ALSA:5:0", true),
                "enabling the Keystation succeeds");
         check (server.midiRequests.length === 1
@@ -135,7 +132,6 @@ export async function midiPageTest (): Promise<void>
                "the Keystation checkbox is checked");
         check (enabled.includes ("2 enabled"), "the summary follows the second switch");
 
-        // --- Pad test -------------------------------------------------------
         check (await store.runPadTest (), "POST /midi/pad-test starts the grid test");
         check (server.padTestRequests === 1, "the pad test reached the engine");
         check (store.getSnapshot ().midi?.padTest.active === true,
@@ -153,7 +149,6 @@ export async function midiPageTest (): Promise<void>
         check (testing.includes ("64 pads lit"), "the result is readable");
         check (testing.includes ("Lighting…"), "the button shows the test is running");
 
-        // --- Failure surface -------------------------------------------------
         const failing = new AppStore (
             createControlApi ({ baseUrl: "http://127.0.0.1:1" }),
             { pollIntervalMs: 60_000 });
@@ -182,7 +177,6 @@ export async function midiPageTest (): Promise<void>
     }
 }
 
-/** Full-app snapshot: the fixture's ALSA inputs and port status. */
 export function assertSnapshotMidi (audioHtml: string, fromFixture: boolean): void
 {
     if (! fromFixture)

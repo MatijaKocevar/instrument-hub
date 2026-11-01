@@ -1,5 +1,3 @@
-// Insert-chain collection endpoints for the fixture server.
-
 import type { ControlFxInsert } from "../../../api/client";
 import { COMPRESSOR_LATENCY, recalculateChain } from "../../fixtures";
 import { readJsonObject, sendJson } from "../http";

@@ -16,31 +16,16 @@ import "./audio-settings.css";
 
 export interface AudioSettingsPanelProps
 {
-    /** Latest `GET /audio`, or null before the first successful request. */
     readonly audio: ControlAudioState | null;
-    /** Latest latency probe result. */
     readonly measurement?: ControlAudioMeasurement | null;
-    /** Message from a failed `GET/POST /audio`. */
     readonly error?: string | null;
-    /** Message from a failed probe request. */
     readonly measurementError?: string | null;
-    /** True while a settings request is in flight. */
     readonly busy?: boolean;
-    /** Show a skeleton while the first audio state arrives. */
     readonly loading?: boolean;
-    /** Called with a partial patch for every control change. */
     readonly onChange?: (patch: ControlAudioPatch) => void;
-    /** Called by the Measure button. */
     readonly onMeasure?: () => void;
 }
 
-/**
-    The audio device panel.
-
-    Device selection, channel maps, latency, xruns and the loopback
-    measurement each own a component; this file is the layout and the
-    loading state.
-*/
 export function AudioSettingsPanel ({
     audio,
     measurement = null,

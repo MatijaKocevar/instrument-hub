@@ -1,5 +1,3 @@
-// Audio settings and latency-measurement endpoints for the fixture server.
-
 import type { ControlAudioPatch, ControlAudioState } from "../../../api/client";
 import { readJsonObject, sendJson } from "../http";
 import type { FixtureRoute } from "../types";

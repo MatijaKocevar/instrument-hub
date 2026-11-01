@@ -1,8 +1,5 @@
-// MIDI fixture served by the snapshot fixture server.
-
 import type { ControlMidiState } from "../../api/client";
 
-/** MIDI fixture mirroring the ALSA devices on the rig. */
 export const MIDI: ControlMidiState = {
     inputs: [
         {

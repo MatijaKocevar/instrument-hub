@@ -1,4 +1,3 @@
-/** Timing knobs for the poll loop; the store resolves their defaults. */
 export interface PollLoopOptions
 {
     pollIntervalMs: number;
@@ -6,13 +5,6 @@ export interface PollLoopOptions
     retryMaxMs: number;
 }
 
-/**
-    Runs one refresh at a time and schedules the next poll or retry.
-
-    Concurrent `refresh()` callers share the request in flight, so a slow
-    engine cannot stack requests. Failures back off exponentially from
-    `retryBaseMs` up to `retryMaxMs`; a success returns to `pollIntervalMs`.
-*/
 export class PollLoop
 {
     private timer: ReturnType<typeof setTimeout> | null = null;
@@ -23,7 +15,6 @@ export class PollLoop
                  private readonly load: () => Promise<boolean>,
                  private readonly failedAttempts: () => number) {}
 
-    /** Fetch once, sharing the request with any caller already waiting. */
     refresh = (): Promise<boolean> =>
     {
         if (this.inFlight !== null)
@@ -37,7 +28,6 @@ export class PollLoop
         return this.inFlight;
     };
 
-    /** Begin polling. Safe to call more than once. */
     start (): void
     {
         if (this.running)
@@ -47,7 +37,6 @@ export class PollLoop
         this.schedule (0);
     }
 
-    /** Stop polling and drop any pending timer. */
     stop (): void
     {
         this.running = false;
@@ -59,7 +48,6 @@ export class PollLoop
         }
     }
 
-    /** Delay before the next attempt after `failedAttempts` consecutive misses. */
     retryDelayMs (): number
     {
         const exponent = Math.max (0, this.failedAttempts() - 1);

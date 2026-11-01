@@ -1,5 +1,3 @@
-// Shared types for the fixture HTTP server.
-
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type {
@@ -40,13 +38,10 @@ export interface FixtureServer
 
 export interface FixtureOptions
 {
-    /** Make the first N `GET /state` requests fail with HTTP 503. */
     failFirst?: number;
-    /** Delay the `POST /arm` response so the optimistic highlight is observable. */
     armDelayMs?: number;
 }
 
-/** Mutable fixture behind one running server instance. */
 export interface FixtureContext
 {
     readonly failFirst: number;
@@ -82,6 +77,5 @@ export interface FixtureContext
     chainFor (slot: number): ControlFxChain;
 }
 
-/** One resource family's request handler; true when it wrote the response. */
 export type FixtureRoute =
     (context: FixtureContext, request: IncomingMessage, response: ServerResponse) => boolean;

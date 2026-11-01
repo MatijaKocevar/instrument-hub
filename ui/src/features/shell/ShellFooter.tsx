@@ -3,7 +3,6 @@ import type { ReactElement } from "react";
 import type { ShellData } from "./useShellData";
 import { PHASE_LABEL } from "./phaseLabel";
 
-/** Footer line with the live connection phase and armed-slot summary. */
 export function ShellFooter ({ shell }: { readonly shell: ShellData }): ReactElement
 {
     const { app, state, armedSlot, version } = shell;

@@ -30,7 +30,6 @@ function slotLabel (state: ControlState): string
         : `${(state.armedSlot + 1).toString().padStart (2, "0")} · ${slot.name}`;
 }
 
-/** Engine application and armed-slot summary. */
 export function EnginePanel ({ state }: { readonly state: ControlState }): ReactElement
 {
     return (

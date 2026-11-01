@@ -5,17 +5,6 @@ import type {
     WakeLockStatus,
 } from "./wakeLockTypes";
 
-/**
-    Keep the tablet screen awake while the stage remote is open.
-
-    The Screen Wake Lock API is not available everywhere (older Android
-    WebViews, non-secure origins) and the browser drops the lock whenever the
-    page is hidden. This controller therefore treats the lock as best-effort:
-    unsupported or rejected requests are reported, never thrown, and the lock
-    is re-requested every time the page becomes visible again.
-
-    It never touches the audio thread; it is pure browser policy.
-*/
 export class WakeLockController
 {
     private readonly navigator: WakeLockCapableNavigator | null;
@@ -37,7 +26,6 @@ export class WakeLockController
         return this.statusValue;
     }
 
-    /** Ask for the lock; a second call while active is a no-op. */
     start (): Promise<WakeLockStatus>
     {
         this.started = true;
@@ -45,12 +33,6 @@ export class WakeLockController
         return this.acquire ();
     }
 
-    /**
-        Ask the browser for a screen lock.
-
-        Resolves with the resulting status instead of rejecting: a stage UI
-        must not break because a privacy setting said no.
-    */
     acquire (): Promise<WakeLockStatus>
     {
         if (! this.started)
@@ -107,7 +89,6 @@ export class WakeLockController
         return this.requesting;
     }
 
-    /** Drop the lock; used when the route unmounts. */
     async release (): Promise<void>
     {
         this.started = false;
@@ -124,17 +105,10 @@ export class WakeLockController
             }
             catch
             {
-                // The browser may have released it already.
             }
         }
     }
 
-    /**
-        React to `visibilitychange`.
-
-        Hidden pages lose the lock automatically, so the controller forgets the
-        old sentinel; returning to the page re-requests a fresh one.
-    */
     visibilityChanged (visible = true): Promise<WakeLockStatus>
     {
         if (! this.started)

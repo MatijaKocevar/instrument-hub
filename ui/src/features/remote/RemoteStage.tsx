@@ -19,13 +19,6 @@ function contrastStorage (): ContrastStorage | null
     return typeof localStorage === "undefined" ? null : localStorage;
 }
 
-/**
-    The authorised stage.
-
-    Kept separate from the gate so the live socket and the wake lock only run
-    once a token exists; an unpaired tablet must not open a socket it will be
-    rejected from every 250 ms.
-*/
 export function RemoteStage (): ReactElement
 {
     const app = useAppState ();
@@ -39,8 +32,6 @@ export function RemoteStage (): ReactElement
     const [contrast, setContrast] = useState<RemoteContrast> (
         () => loadRemoteContrast (contrastStorage ()));
 
-    // A tablet that was asleep should not wait for the next poll, and the
-    // browser needs a fresh wake-lock request when it becomes visible again.
     useEffect (() =>
     {
         const onVisibilityChange = (): void =>

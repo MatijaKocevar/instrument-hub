@@ -7,7 +7,6 @@ interface XrunCounterProps
     readonly callbackOverruns: number;
 }
 
-/** The total xrun count with its device and callback breakdown. */
 export function XrunCounter ({ xruns, deviceXruns, callbackOverruns }: XrunCounterProps): ReactElement
 {
     return (

@@ -1,5 +1,3 @@
-// Token auth for the fixture server, mirroring the engine's pairing rules.
-
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { sendJson } from "./http";
@@ -25,7 +23,6 @@ function isPairingManagement (url: string | undefined): boolean
         || url === "/pairing/revoke";
 }
 
-/** Write a 401 when the request may not reach its route. */
 export function rejectUnauthorized (context: FixtureContext,
                                     request: IncomingMessage,
                                     response: ServerResponse): boolean

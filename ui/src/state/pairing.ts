@@ -8,28 +8,17 @@ import {
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 
-/** Store services pairing needs beyond the shared action context. */
 export interface PairingServices
 {
-    /** Token persistence; null when this environment has no localStorage. */
     readonly storage: TokenStorage | null;
-    /** Re-read the engine state after pairing changes the token. */
     readonly refresh: () => Promise<boolean>;
 }
 
-/**
-    Manage LAN mode, the pairing code and this browser's token.
-
-    Enabling LAN mode makes token auth mandatory. The desktop stays usable by
-    pairing itself with the freshly issued code, so the user sees the QR and
-    the live engine state at the same time.
-*/
 export class PairingActions
 {
     constructor (private readonly context: ActionContext,
                  private readonly services: PairingServices) {}
 
-    /** Turn LAN mode on/off. */
     toggleLan = async (enabled: boolean): Promise<boolean> =>
     {
         this.patch ({ pairingBusy: true, pairingError: null });
@@ -45,9 +34,6 @@ export class PairingActions
             }
             else if (this.context.api.token === null && isPairingCode (pairing.code))
             {
-                // The listener rebinds to all interfaces right after the
-                // toggle response. POST /pair may briefly see 503 or a closed
-                // socket, so retry before giving up on the desktop's own token.
                 for (let attempt = 0; attempt < 8 && this.context.api.token === null; attempt += 1)
                 {
                     try
@@ -61,7 +47,6 @@ export class PairingActions
                         }
                         catch
                         {
-                            // The next poll picks the rotated code up.
                         }
 
                         autoPairError = null;
@@ -106,12 +91,6 @@ export class PairingActions
         }
     };
 
-    /**
-        Exchange a six-digit code for a token and keep it in this browser.
-
-        Used by the tablet gate and by the manual fallback when the QR link is
-        opened without a code.
-    */
     pair = async (code: string): Promise<boolean> =>
     {
         this.patch ({ pairingBusy: true, pairingError: null });
@@ -129,7 +108,6 @@ export class PairingActions
             }
             catch
             {
-                // The desktop-only endpoint is not readable from a tablet.
             }
 
             this.patch ({
@@ -150,10 +128,6 @@ export class PairingActions
         }
     };
 
-    /**
-        Revoke every issued token, then restore this browser's own access so
-        the desktop does not lock itself out of the engine it just secured.
-    */
     forgetPairing = async (): Promise<boolean> =>
     {
         this.patch ({ pairingBusy: true, pairingError: null });

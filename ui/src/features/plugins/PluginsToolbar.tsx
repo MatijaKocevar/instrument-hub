@@ -2,21 +2,14 @@ import type { ReactElement } from "react";
 
 interface PluginsToolbarProps
 {
-    /** Current search text. */
     readonly search: string;
-    /** True while a rescan or inventory request is in flight. */
     readonly busy: boolean;
-    /** True while the engine reports a running scan. */
     readonly scanning: boolean;
-    /** Called with the new text as the user types. */
     readonly onSearch: (value: string) => void;
-    /** Reset the search to an empty string. */
     readonly onClear: () => void;
-    /** Start a scan; absent when the page has no rescan action. */
     readonly onRescan?: (() => void) | undefined;
 }
 
-/** Search field, clear action and rescan button above the inventory. */
 export function PluginsToolbar ({
     search,
     busy,

@@ -3,22 +3,13 @@ import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 import { withEditorOpen } from "./patchModel";
 
-/**
-    Open and close one patch's native plugin editor.
-
-    Only these explicit actions create a window; selecting or arming a patch
-    never does. The engine answers with `{ slot, open, reused }`, and the
-    page's patch is updated in place so the button flips immediately.
-*/
 export class PatchEditorActions
 {
     constructor (private readonly context: ActionContext) {}
 
-    /** Open (or focus) the patch's native plugin editor. */
     openInstrumentEditor = (slot: number): Promise<boolean> =>
         this.runEditor (slot, slotToOpen => this.context.api.openPatchEditor (slotToOpen));
 
-    /** Close the patch's native editor. Idempotent. */
     closeInstrumentEditor = (slot: number): Promise<boolean> =>
         this.runEditor (slot, slotToClose => this.context.api.closePatchEditor (slotToClose));
 

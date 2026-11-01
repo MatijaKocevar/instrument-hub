@@ -1,5 +1,3 @@
-// Pairing, LAN mode and token endpoints for the fixture server.
-
 import { readJsonObject, sendJson } from "../http";
 import { PAIRING_OFF, PAIRING_ON } from "../../fixtures";
 import type { FixtureRoute } from "../types";

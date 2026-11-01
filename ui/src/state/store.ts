@@ -33,21 +33,6 @@ import { TransportActions } from "./transport";
 export type { AppStoreOptions } from "./options";
 export type { AppSnapshot, ConnectionPhase } from "./snapshot";
 
-/**
-    Holds the control state and keeps it fresh.
-
-    A single polling loop serialises requests: `refresh()` de-duplicates while a
-    request is in flight, so a slow engine can never stack requests. Failures
-    back off exponentially (250 ms doubling to 5 s) and the last good state
-    stays visible, which keeps the UI usable across an engine restart.
-
-    Domain actions live in their own modules, one per API area: patches and FX
-    in `patch*.ts` and `fx.ts`, inventory in `plugins.ts`, inputs in `midi.ts`,
-    settings in `audio.ts`, transport in `transport.ts` and pairing in
-    `pairing.ts`. This class keeps lifecycle and the public façade.
-
-    Nothing here touches the audio thread — this is pure UI state.
-*/
 export class AppStore
 {
     private readonly api: ControlApi;
@@ -103,13 +88,11 @@ export class AppStore
 
     getSnapshot = (): AppSnapshot => this.core.getSnapshot ();
 
-    /** Origin of the control server, shown in the connection strip. */
     get baseUrl (): string
     {
         return this.api.baseUrl;
     }
 
-    /** Token this browser sends, or null when unpaired. */
     get token (): string | null
     {
         return this.api.token;
@@ -117,34 +100,23 @@ export class AppStore
 
     subscribe = (listener: () => void): (() => void) => this.core.subscribe (listener);
 
-    /**
-        Fetch the state once.
-
-        Resolves `true` on success and `false` on failure; concurrent callers
-        share one request.
-    */
     refresh = (): Promise<boolean> => this.polling.refresh ();
 
-    /** Begin polling. Safe to call more than once. */
     start (): void
     {
         this.polling.start ();
     }
 
-    /** Stop polling and drop any pending timer. */
     stop (): void
     {
         this.polling.stop ();
     }
 
-    /** Delay before the next attempt after `failedAttempts` consecutive misses. */
     retryDelayMs (): number
     {
         return this.polling.retryDelayMs ();
     }
 
-    //==========================================================================
-    // Patches (grid arming, mix, colour, source, editor, capture)
 
     armSlot = (slot: number | null): Promise<boolean> => this.patchArm.armSlot (slot);
 
@@ -167,8 +139,6 @@ export class AppStore
     savePatchSound = (slot: number): Promise<boolean> =>
         this.patchCapture.savePatchSound (slot);
 
-    //==========================================================================
-    // Per-patch insert chain (T121)
 
     loadFxChain = (slot: number, options: { force?: boolean } = {}): Promise<boolean> =>
         this.fx.loadFxChain (slot, options);
@@ -191,15 +161,11 @@ export class AppStore
                       inserts: readonly ControlFxInsertRequest[]): Promise<boolean> =>
         this.fx.replaceFxChain (slot, inserts);
 
-    //==========================================================================
-    // Plug-in inventory (T122)
 
     loadPlugins = (search?: string): Promise<boolean> => this.plugins.loadPlugins (search);
 
     rescanPlugins = (): Promise<boolean> => this.plugins.rescanPlugins ();
 
-    //==========================================================================
-    // MIDI inputs and the pad test (T126)
 
     loadMidi = (): Promise<boolean> => this.midi.loadMidi ();
 
@@ -208,24 +174,18 @@ export class AppStore
 
     runPadTest = (): Promise<boolean> => this.midi.runPadTest ();
 
-    //==========================================================================
-    // Transport
 
     updateTransport = (patch: ControlTransportPatch): Promise<boolean> =>
         this.transport.updateTransport (patch);
 
     panic = (): Promise<boolean> => this.transport.panic ();
 
-    //==========================================================================
-    // Audio settings (T124)
 
     updateAudio = (patch: ControlAudioPatch): Promise<boolean> =>
         this.audio.updateAudio (patch);
 
     measureLatency = (): Promise<boolean> => this.audio.measureLatency ();
 
-    //==========================================================================
-    // LAN pairing (T101)
 
     toggleLan = (enabled: boolean): Promise<boolean> => this.pairing.toggleLan (enabled);
 
@@ -244,14 +204,6 @@ export class AppStore
         });
     }
 
-    /**
-        Keep optimistic changes made by requests that are still in flight.
-
-        A poll can land before an arm, transport or patch request answers; its
-        snapshot still describes the previous value. Re-applying the confirmed
-        snapshot's optimistic field keeps the UI from snapping back until the
-        action itself confirms or rolls back.
-    */
     private withPendingState (state: ControlState): ControlState
     {
         let merged = this.patchArm.preservePending (state);

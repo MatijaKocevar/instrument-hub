@@ -1,11 +1,3 @@
-// Minimal QR Code encoder used by the pairing panel.
-//
-// Scope is deliberately narrow: byte mode, version 4 (33×33), error-correction
-// level M (so the code still scans with a smudge on a tablet camera). A pairing
-// payload is always well below version 4's 62-byte capacity. The eight masks
-// are scored with the standard penalty rules; any mask produces a valid symbol,
-// so a future table change cannot make the code unscannable.
-
 const VERSION = 4;
 const SIZE = 17 + 4 * VERSION;
 const ECC_CODEWORDS = 18;
@@ -19,17 +11,14 @@ export interface QrCode
     version: number;
     size: number;
     mask: number;
-    /** Row-major, `true` means a dark module. */
     modules: boolean[][];
 }
 
 export interface QrOptions
 {
-    /** Force a mask 0–7 (used by the snapshot test's golden check). */
     mask?: number;
 }
 
-// --- GF(256) arithmetic ----------------------------------------------------
 
 const GF_EXP = new Uint8Array (512);
 const GF_LOG = new Uint8Array (256);
@@ -98,7 +87,6 @@ function reedSolomonRemainder (data: readonly number[], degree: number): number[
     return result;
 }
 
-// --- Bit stream and interleaving -------------------------------------------
 
 function encodeDataCodewords (bytes: readonly number[]): number[]
 {
@@ -110,8 +98,8 @@ function encodeDataCodewords (bytes: readonly number[]): number[]
             bits.push ((value >>> index) & 1);
     };
 
-    push (0b0100, 4);                 // byte mode
-    push (bytes.length, 8);           // 8-bit count for versions 1–9
+    push (0b0100, 4);
+    push (bytes.length, 8);
 
     for (const byte of bytes)
         push (byte, 8);
@@ -169,7 +157,6 @@ function interleave (data: readonly number[]): number[]
     return result;
 }
 
-// --- Matrix construction ---------------------------------------------------
 
 function maskBit (mask: number, x: number, y: number): boolean
 {
@@ -207,7 +194,6 @@ function buildMatrix (text: string, mask: number): boolean[][]
         isFunction[y]![x] = true;
     };
 
-    // Finder patterns plus their light separators.
     for (const [centreX, centreY] of [[3, 3], [SIZE - 4, 3], [3, SIZE - 4]] as Array<[number, number]>)
     {
         for (let offsetY = -4; offsetY <= 4; offsetY += 1)
@@ -221,21 +207,18 @@ function buildMatrix (text: string, mask: number): boolean[][]
         }
     }
 
-    // Timing patterns.
     for (let index = 8; index < SIZE - 8; index += 1)
     {
         setFunction (6, index, index % 2 === 0);
         setFunction (index, 6, index % 2 === 0);
     }
 
-    // Version 4 has a single alignment pattern at (26, 26).
     for (let offsetY = -2; offsetY <= 2; offsetY += 1)
         for (let offsetX = -2; offsetX <= 2; offsetX += 1)
             setFunction (26 + offsetX, 26 + offsetY,
                          Math.max (Math.abs (offsetX), Math.abs (offsetY)) !== 1);
 
-    // Format information (ECC level M = 0b00, chosen mask).
-    const formatData = mask; // (0b00 << 3) | mask
+    const formatData = mask;
     let remainder = formatData;
 
     for (let index = 0; index < 10; index += 1)
@@ -260,10 +243,8 @@ function buildMatrix (text: string, mask: number): boolean[][]
     for (let index = 8; index < 15; index += 1)
         setFunction (8, SIZE - 15 + index, formatBit (index));
 
-    setFunction (8, SIZE - 8, true); // the mandatory dark module
+    setFunction (8, SIZE - 8, true);
 
-    // Data placement: two-column zigzag from the bottom right, skipping the
-    // vertical timing column.
     const dataBits: number[] = [];
 
     for (const codeword of codewords)
@@ -306,7 +287,6 @@ function penalty (modules: readonly boolean[][]): number
 {
     let score = 0;
 
-    // Rule 1: runs of five or more identical modules.
     for (let y = 0; y < SIZE; y += 1)
     {
         let run = 1;
@@ -353,7 +333,6 @@ function penalty (modules: readonly boolean[][]): number
             score += 3 + (run - 5);
     }
 
-    // Rule 2: 2×2 blocks of one colour.
     for (let y = 0; y < SIZE - 1; y += 1)
     {
         for (let x = 0; x < SIZE - 1; x += 1)
@@ -369,7 +348,6 @@ function penalty (modules: readonly boolean[][]): number
         }
     }
 
-    // Rule 3: finder-like 1:1:3:1:1 patterns with four light modules on a side.
     const forward = [true, false, true, true, true, false, true, false, false, false, false];
     const backward = [false, false, false, false, true, false, true, true, true, false, true];
 
@@ -390,7 +368,6 @@ function penalty (modules: readonly boolean[][]): number
                 score += 40;
     }
 
-    // Rule 4: deviation from a 50% dark ratio.
     let dark = 0;
 
     for (const row of modules)
@@ -404,7 +381,6 @@ function penalty (modules: readonly boolean[][]): number
     return score;
 }
 
-/** Encode `text` as a version-4, ECC-M QR symbol. */
 export function encodeQr (text: string, options: QrOptions = {}): QrCode
 {
     if (text.length === 0)
@@ -436,12 +412,6 @@ export function encodeQr (text: string, options: QrOptions = {}): QrCode
     };
 }
 
-/**
-    SVG path data for the dark modules.
-
-    A single path with 1×1 squares keeps the markup small enough for the
-    headless snapshot test while staying crisp at any size.
-*/
 export function qrPathData (code: QrCode): string
 {
     const parts: string[] = [];

@@ -12,27 +12,12 @@ import {
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 
-/**
-    Load and edit one patch's insert chain.
-
-    Busy/error flags live on the snapshot so the Instrument page can render the
-    request state, and bypass/remove/move update the visible chain before the
-    engine answers. A rejection restores the last confirmed chain.
-*/
 export class FxActions
 {
-    /** Sequence of insert-chain requests; a stale response must not win. */
     private fxSequence = 0;
 
     constructor (private readonly context: ActionContext) {}
 
-    /**
-        Load one patch's insert chain.
-
-        The page calls this when its slot changes. A chain already loaded for
-        the same slot is reused unless `force` is set, so re-rendering the page
-        never spams the engine.
-    */
     loadFxChain = async (slot: number, options: { force?: boolean } = {}): Promise<boolean> =>
     {
         if (! Number.isInteger (slot) || slot < 0)
@@ -57,11 +42,9 @@ export class FxActions
         }
     };
 
-    /** Append an insert (built-in or VST3) to the patch's chain. */
     addFxInsert = async (slot: number, insert: ControlFxInsertRequest): Promise<boolean> =>
         this.runFx (slot, () => this.context.api.addFxInsert (slot, insert), null);
 
-    /** Bypass, re-balance or re-parameterise one insert. */
     updateFxInsert = async (slot: number,
                             index: number,
                             update: ControlFxInsertUpdate): Promise<boolean> =>
@@ -72,14 +55,12 @@ export class FxActions
                 ? null
                 : this.optimisticChain (slot, chain => chainWithBypass (chain, index, update.bypassed === true)));
 
-    /** Remove one insert, dropping it from the page on the next render. */
     removeFxInsert = async (slot: number, index: number): Promise<boolean> =>
         this.runFx (
             slot,
             () => this.context.api.removeFxInsert (slot, index),
             this.optimisticChain (slot, chain => chainWithoutInsert (chain, index)));
 
-    /** Move one insert `from` -> `to`; the engine answers with the new order. */
     moveFxInsert = async (slot: number, from: number, to: number): Promise<boolean> =>
     {
         const chain = this.snapshot.fxSlot === slot ? this.snapshot.fxChain : null;
@@ -95,7 +76,6 @@ export class FxActions
             chainWithMove (chain, from, to));
     };
 
-    /** Replace the chain with a played sequence, used by reload and tests. */
     replaceFxChain = async (slot: number,
                             inserts: readonly ControlFxInsertRequest[]): Promise<boolean> =>
         this.runFx (slot, () => this.context.api.replaceFxChain (slot, inserts), null);

@@ -23,7 +23,6 @@ interface DeviceControlsProps
     readonly onChange?: ((patch: ControlAudioPatch) => void) | undefined;
 }
 
-/** Device type, device, sample rate and buffer-size selectors. */
 export function DeviceControls ({ audio, busy, onChange }: DeviceControlsProps): ReactElement
 {
     const devicesOfType = audio.devices.filter (device => device.type === audio.deviceType);

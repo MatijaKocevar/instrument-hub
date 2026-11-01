@@ -1,5 +1,3 @@
-// Mutable state behind one fixture server instance.
-
 import type { ControlAudioState, ControlFxChain, ControlMidiState, ControlState } from "../../api/client";
 import {
     AUDIO,
@@ -92,7 +90,6 @@ export function createFixtureContext (options: FixtureOptions = {}): FixtureCont
     };
 }
 
-/** Find one patch by its engine slot. */
 export function findPatch (context: FixtureContext,
                             slot: number): ControlState["families"][number]["patches"][number] | null
 {

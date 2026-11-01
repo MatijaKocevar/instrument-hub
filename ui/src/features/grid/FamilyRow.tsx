@@ -22,7 +22,6 @@ function familySlots (family: GridFamily): number[]
 export interface FamilyRowProps
 {
     readonly family: GridFamily;
-    /** Zero-based row index, shown in the corner label. */
     readonly row: number;
     readonly armedSlot: number;
     readonly meters: MeterSnapshot;
@@ -32,7 +31,6 @@ export interface FamilyRowProps
         ((familyId: string, slots: readonly number[], colorIndex: number) => void) | undefined;
 }
 
-/** One family row: its name swatch, patch count and eight patch cells. */
 export function FamilyRow ({
     family,
     row,

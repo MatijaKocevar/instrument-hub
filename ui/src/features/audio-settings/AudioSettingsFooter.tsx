@@ -8,7 +8,6 @@ interface AudioSettingsFooterProps
     readonly audio: ControlAudioState;
 }
 
-/** Live format summary and callback count, or the prompt to pick a device. */
 export function AudioSettingsFooter ({ audio }: AudioSettingsFooterProps): ReactElement
 {
     return (

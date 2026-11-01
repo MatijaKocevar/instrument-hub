@@ -18,7 +18,6 @@ interface InsertAddProps
     readonly onAddInsert?: (slot: number, insert: ControlFxInsertRequest) => void;
 }
 
-/** The chain's add control: built-in insert types and installed effects. */
 export function InsertAdd ({ patch, plugins, chainBusy, onAddInsert }: InsertAddProps): ReactElement
 {
     const [selection, setSelection] = useState<string> (`builtin:${BUILTIN_INSERT_TYPES[0]}`);

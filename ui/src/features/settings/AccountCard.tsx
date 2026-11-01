@@ -11,26 +11,14 @@ const PHASE_LABEL: Record<ConnectionPhase, string> = {
 
 interface AccountCardProps
 {
-    /** Latest connection phase for the control API. */
     readonly connection: ConnectionPhase;
-    /** Base URL this browser talks to. */
     readonly baseUrl: string;
-    /** Token held by this browser, or null when it has not paired. */
     readonly token: string | null;
-    /** Tablets the engine currently trusts. */
     readonly pairedClients: number;
-    /** True when revocation is allowed right now. */
     readonly canRevoke: boolean;
     readonly onForget?: (() => void) | undefined;
 }
 
-/**
-    This browser's identity.
-
-    There is deliberately no login system: the only identity here is the
-    pairing token this browser already holds, and revoking is the single
-    action.
-*/
 export function AccountCard ({
     connection,
     baseUrl,

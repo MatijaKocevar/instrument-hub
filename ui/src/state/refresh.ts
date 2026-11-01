@@ -2,23 +2,15 @@ import { ApiError, type ControlApi, type ControlState } from "../api/client";
 import { messageOf } from "./errors";
 import type { AppSnapshot } from "./snapshot";
 
-/** Everything one refresh needs from the store that owns the snapshot. */
 export interface RefreshDeps
 {
     readonly api: ControlApi;
     readonly now: () => number;
     readonly getSnapshot: () => AppSnapshot;
     readonly patch: (change: Partial<AppSnapshot>) => void;
-    /** Re-apply optimistic values for requests that have not answered yet. */
     readonly preservePending: (state: ControlState) => ControlState;
 }
 
-/**
-    Fetch state, audio, pairing and MIDI together and apply them as one patch.
-
-    A failed state request marks the store offline while keeping the last good
-    snapshot; audio and MIDI failures still surface through their own fields.
-*/
 export async function refreshSnapshot (deps: RefreshDeps): Promise<boolean>
 {
     if (deps.getSnapshot ().state === null)

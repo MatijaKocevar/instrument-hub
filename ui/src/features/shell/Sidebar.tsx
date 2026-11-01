@@ -8,13 +8,6 @@ import {
     type ShellNavProps,
 } from "./navigation";
 
-/**
-    Persistent desktop sidebar.
-
-    Workspace destinations sit at the top; Settings & Account and the live
-    connection state form the bottom group. Content pages never repeat these
-    route links.
-*/
 export function Sidebar ({ route, navigate, phase, lanEnabled, paired, version }: ShellNavProps): ReactElement
 {
     return (

@@ -1,5 +1,3 @@
-// Plug-ins: inventory search, assignments, used-by hints and rescan.
-
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { createControlApi, type ControlPluginList } from "../../api/client";
@@ -128,7 +126,6 @@ export async function pluginsPageTest (): Promise<void>
         check (initial.includes ("This page only reads the scan"),
                "the page says assignment belongs to the patch");
 
-        // --- Search ---------------------------------------------------------
         const assignments = pluginAssignmentsFromState (store.getSnapshot ().state);
         const filtered = renderToStaticMarkup (
             <PluginsPage
@@ -159,7 +156,6 @@ export async function pluginsPageTest (): Promise<void>
         check (noMatch.includes ("No plug-ins match"), "the empty state repeats the query");
         check (countOf (noMatch, 'data-testid="plugin-row"') === 0, "an unmatched search lists no rows");
 
-        // --- Used-by follows the patch assignment ---------------------------
         check (await store.changeInstrumentSource (3, sourceRequestForPlugin (PLUGIN_FIXTURE.plugins[0]!)),
                "assigning TestPlugin to a patch succeeds");
 
@@ -172,7 +168,6 @@ export async function pluginsPageTest (): Promise<void>
         check (assigned.includes ('data-patch="Drawbar Organ"'),
                "the used-by hint follows the newly assigned patch");
 
-        // --- Rescan ---------------------------------------------------------
         check (await store.rescanPlugins (), "POST /plugins/rescan starts a scan");
         check (server.pluginRequests.includes ("rescan"), "the rescan reached the engine");
         check (store.getSnapshot ().plugins?.scanning === true,
@@ -202,7 +197,6 @@ export async function pluginsPageTest (): Promise<void>
         check (rescanned.includes ("4 plug-ins"), "the count grows with the rescan");
         check (rescanned.includes ('data-scanning="false"'), "the page leaves its scanning state");
 
-        // --- Failure surface -------------------------------------------------
         const failing = new AppStore (
             createControlApi ({ baseUrl: "http://127.0.0.1:1" }),
             { pollIntervalMs: 60_000 });
@@ -224,7 +218,6 @@ export async function pluginsPageTest (): Promise<void>
     }
 }
 
-/** Full-app snapshot: the plug-in inventory page. */
 export function assertSnapshotPlugins (pluginsHtml: string, inventory: ControlPluginList | null): void
 {
     check (pluginsHtml.includes ('data-testid="plugins-page"'), "the /plugins route resolves");
@@ -240,7 +233,6 @@ export function assertSnapshotPlugins (pluginsHtml: string, inventory: ControlPl
            "the plugins page exposes no assignment control");
 }
 
-/** Full-app snapshot: the fixture's scanned plug-ins and their assignments. */
 export function assertSnapshotPluginsFixture (pluginsHtml: string): void
 {
     check (pluginsHtml.includes ('data-testid="plugin-name">TestPlugin<'),

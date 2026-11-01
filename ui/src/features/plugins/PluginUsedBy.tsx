@@ -4,7 +4,6 @@ import type { PluginAssignment } from "./model";
 
 interface PluginUsedByProps
 {
-    /** Patches that use the plug-in, already filtered to this plug-in. */
     readonly usage: readonly PluginAssignment[];
 }
 
@@ -13,7 +12,6 @@ function padSlot (slot: number): string
     return String (slot + 1).padStart (2, "0");
 }
 
-/** The "Used by" hint for one plug-in, or the unused notice. */
 export function PluginUsedBy ({ usage }: PluginUsedByProps): ReactElement
 {
     if (usage.length === 0)

@@ -1,5 +1,3 @@
-// HTTP plumbing shared by the fixture server and its route modules.
-
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 
@@ -29,7 +27,6 @@ export function sendJson (response: ServerResponse, status: number, payload: unk
     response.end (JSON.stringify (payload));
 }
 
-/** Read a JSON object; malformed or non-object bodies become `{}`. */
 export function readJsonObject (request: IncomingMessage,
                                 response: ServerResponse,
                                 done: (parsed: Record<string, unknown>) => void): void

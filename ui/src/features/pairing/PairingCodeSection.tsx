@@ -5,14 +5,11 @@ import { formatCodeLifetime, spacedPairingCode } from "./model";
 
 interface PairingCodeSectionProps
 {
-    /** Live pairing state; the code, lifetime and client count come from it. */
     readonly pairing: ControlPairingState;
-    /** True when revocation is allowed right now. */
     readonly canForget: boolean;
     readonly onForget?: (() => void) | undefined;
 }
 
-/** The live six-digit code, its lifetime and the forget action. */
 export function PairingCodeSection ({
     pairing,
     canForget,

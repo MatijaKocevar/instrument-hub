@@ -16,10 +16,6 @@ import {
     type RouterState,
 } from "../../state/router";
 
-/**
-    Subscribe to the store, derive the current page model and load the data
-    each route needs on arrival.
-*/
 export function useShellData (router: RouterState)
 {
     const app = useAppState ();
@@ -36,9 +32,6 @@ export function useShellData (router: RouterState)
         state?.families.flatMap (family => family.patches) ?? [],
         instrumentSlot);
 
-    // The insert chain belongs to the Instrument page, and the inventory feeds
-    // both pages. Fetch each on arrival; the store de-duplicates the chain per
-    // slot and keeps a successful inventory until a rescan replaces it.
     useEffect (() =>
     {
         if (router.route !== "instrument" && router.route !== "plugins")
@@ -51,8 +44,6 @@ export function useShellData (router: RouterState)
             void store.loadPlugins ();
     }, [router.route, instrumentSlot, store, app.plugins, app.pluginBusy]);
 
-    // The audio page also shows the MIDI inputs. The normal poll carries them,
-    // but a direct route render (and the snapshot test) may arrive first.
     useEffect (() =>
     {
         if (router.route !== "audio" || app.midi !== null || app.midiBusy)

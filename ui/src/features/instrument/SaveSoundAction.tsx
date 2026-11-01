@@ -7,16 +7,12 @@ import { isPluginSource } from "./source";
 interface SaveSoundActionProps
 {
     readonly patch: ControlPatch;
-    /** True while an explicit save of the patch's sound is in flight. */
     readonly captureBusy?: boolean;
-    /** Confirmation of the most recent explicit save for this patch. */
     readonly capture?: ControlPatchStateCapture | null;
-    /** Message from the most recent failed explicit save. */
     readonly captureError?: string | null;
     readonly onCaptureState?: (slot: number) => void;
 }
 
-/** The explicit save-sound action with its confirmation, busy and error states. */
 export function SaveSoundAction ({
     patch,
     captureBusy,

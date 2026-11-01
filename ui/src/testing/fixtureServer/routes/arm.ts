@@ -1,5 +1,3 @@
-// Arming endpoint for the fixture server.
-
 import { readJsonObject, sendJson } from "../http";
 import type { FixtureRoute } from "../types";
 

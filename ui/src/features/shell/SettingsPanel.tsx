@@ -7,7 +7,6 @@ function formatGain (gain: number): string
     return `${Math.round (gain * 100)}%`;
 }
 
-/** Master/input gain, MIDI channel and metronome summary. */
 export function SettingsPanel ({ settings }: { readonly settings: ControlSettings }): ReactElement
 {
     return (

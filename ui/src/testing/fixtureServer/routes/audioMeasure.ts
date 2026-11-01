@@ -1,5 +1,3 @@
-// Latency-measurement endpoint for the fixture server.
-
 import { sendJson } from "../http";
 import type { FixtureRoute } from "../types";
 

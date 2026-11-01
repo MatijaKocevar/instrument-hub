@@ -9,7 +9,6 @@ export interface RemoteTransportProps
     readonly onStop: (() => void) | undefined;
 }
 
-/** Tempo, musical position and the large Play/Pause and Stop targets. */
 export function RemoteTransport ({
     transport,
     onTogglePlay,

@@ -21,7 +21,6 @@ interface MixerProps
     readonly onSoloChange?: (slot: number, solo: boolean) => void;
 }
 
-/** The patch mixer card: level, balance, mute and solo. */
 export function Mixer ({ patch, onVolumeChange, onPanChange, onMuteChange, onSoloChange }: MixerProps): ReactElement
 {
     const volumeDb = clampDb (patch.volumeDb);

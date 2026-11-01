@@ -1,8 +1,5 @@
-// Installed-plug-in inventory fixture served by the snapshot fixture server.
-
 import type { ControlPluginList } from "../../api/client";
 
-/** The installed-plug-in inventory fixture for `GET /plugins`. */
 export const PLUGIN_FIXTURE: ControlPluginList = {
     plugins: [
         {

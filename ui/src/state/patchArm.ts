@@ -3,28 +3,13 @@ import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 import { withArmedSlot } from "./patchModel";
 
-/**
-    Arm and disarm the patch that plays.
-
-    The highlight moves synchronously before the request leaves, so the grid
-    reacts in the same tick as the click. A stale response never wins and a
-    rejection restores the confirmed highlight.
-*/
 export class PatchArmActions
 {
-    /** Sequence of arm requests; a stale response must not win. */
     private armSequence = 0;
-    /** Number of arm requests in flight, used to keep the highlight during polls. */
     private armInFlight = 0;
 
     constructor (private readonly context: ActionContext) {}
 
-    /**
-        Arm `slot` (or disarm with `null`).
-
-        Returns `false` without a request when the slot is outside the engine's
-        slot list.
-    */
     armSlot = async (slot: number | null): Promise<boolean> =>
     {
         const target = slot === null ? -1 : slot;
@@ -75,13 +60,6 @@ export class PatchArmActions
         }
     };
 
-    /**
-        Keep the optimistic highlight while an arm request is in flight.
-
-        A poll can land before the request answers; its snapshot still names
-        the previous slot. Re-applying the confirmed snapshot's `armedSlot`
-        keeps the UI from snapping back until the action confirms or rolls back.
-    */
     preservePending = (state: ControlState): ControlState =>
     {
         const current = this.snapshot.state;

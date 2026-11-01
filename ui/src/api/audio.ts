@@ -8,26 +8,16 @@ import type {
     ControlAudioState,
 } from "./types";
 
-/** Audio device settings and the loopback latency probe. */
 export interface AudioEndpoints
 {
-    /** Read the audio device settings and live latency readout. */
     getAudio (options?: { signal?: AbortSignal }): Promise<ControlAudioState>;
 
-    /**
-        Change one or more audio settings.
-
-        Resolves with the state after the change, including the new buffer /
-        device latency readout.
-    */
     updateAudio (patch: ControlAudioPatch,
                  options?: { signal?: AbortSignal }): Promise<ControlAudioState>;
 
-    /** Run the loopback latency probe (blocks for a few hundred ms). */
     measureLatency (options?: { signal?: AbortSignal }): Promise<ControlAudioMeasurement>;
 }
 
-/** Rejects audio payloads the panel cannot render. */
 function isAudioState (value: unknown): value is ControlAudioState
 {
     if (value === null || typeof value !== "object")

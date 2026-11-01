@@ -1,5 +1,3 @@
-// Instrument: mixer, FX chain, source/editor and the plug-in patch page.
-
 import { renderToStaticMarkup } from "react-dom/server";
 
 import {
@@ -198,7 +196,6 @@ export async function instrumentPageTest (): Promise<void>
         check (initial.includes ('value="builtin:eq"') && initial.includes ('value="plugin:com.instrumenthub.TestReverb"'),
                "the add control offers built-ins and installed effects");
 
-        // --- The fader writes the real level to the engine -------------------
         check (await store.updatePatch (3, { volumeDb: -18 }), "moving the fader succeeds");
         check (server.patchRequests.length === 1
                    && server.patchRequests[0]?.slot === 3
@@ -230,7 +227,6 @@ export async function instrumentPageTest (): Promise<void>
                    'data-testid="instrument-colour" data-colour-index="7"'),
                "the colour swatch follows the patch");
 
-        // --- The chain editor -----------------------------------------------
         check (await store.addFxInsert (3, insertRequestForBuiltin ("compressor")),
                "adding a compressor succeeds");
         check (server.chain.inserts.length === 3 && server.chain.latencySamples === 396,
@@ -278,7 +274,6 @@ export async function instrumentPageTest (): Promise<void>
         check (removed.includes ('data-count="2"'), "the page renders the shortened chain");
         check (! removed.includes ('data-type="eq"'), "the removed insert is gone from the page");
 
-        // --- The instrument source ------------------------------------------
         const plugin = PLUGIN_FIXTURE.plugins[0]!;
 
         check (await store.changeInstrumentSource (3, sourceRequestForPlugin (plugin)),
@@ -353,7 +348,6 @@ export async function instrumentPageTest (): Promise<void>
         check (tonePage.includes ("there are no plug-in parameters to edit"),
                "a generated source explains that it has no editor parameters");
 
-        // --- Following the controller ---------------------------------------
         const following = renderApp (store, "/instrument");
 
         check (following.includes ('data-testid="instrument-page" data-slot="3" data-armed="true" data-following="true"'),
@@ -375,7 +369,6 @@ export async function instrumentPageTest (): Promise<void>
         check (! renderApp (store, "/plugins").includes ('data-testid="instrument-page"'),
                "arming never navigates the plugins page to the instrument page");
 
-        // --- Failure surfaces ------------------------------------------------
         const failing = new AppStore (
             createControlApi ({ baseUrl: "http://127.0.0.1:1" }),
             { pollIntervalMs: 60_000 });
@@ -456,7 +449,6 @@ export function instrumentPluginEditorTest (): void
            "the empty state explains that the set is loading");
 }
 
-/** Full-app snapshot: the instrument route resolves the armed patch. */
 export function assertSnapshotInstrument (instrumentHtml: string): void
 {
     check (instrumentHtml.includes ('data-testid="instrument-page" data-slot="3"'),

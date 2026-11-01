@@ -1,5 +1,3 @@
-// Grid: cell rendering, arm/colour edits, meters and the loading state.
-
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -242,7 +240,6 @@ export function loadingTest (): void
     check (html.includes ('aria-busy="true"'), "loading grid is marked busy");
 }
 
-/** Full-app snapshot: the grid the fixture state renders. */
 export function assertSnapshotGrid (html: string): void
 {
     check (countOf (html, 'data-testid="family"') === 8, "snapshot shows 8 families");
@@ -259,14 +256,12 @@ export function assertSnapshotGrid (html: string): void
     check (countOf (html, 'data-fill="#ff1f2f"') === 1, "the armed cell is painted bright red");
 }
 
-/** Full-app snapshot: the armed highlight agrees with the fetched state. */
 export function assertSnapshotArmed (html: string, armedSlot: number): void
 {
     check (countOf (html, 'data-armed="true"') === (armedSlot >= 0 ? 1 : 0),
            `armed-slot highlight matches the fetched state (armedSlot ${String (armedSlot)})`);
 }
 
-/** Full-app snapshot: fixture patch names, tempo and transport. */
 export function assertSnapshotGridFixture (html: string): void
 {
     check (html.includes ("Drawbar Organ"), "snapshot shows the armed patch name");

@@ -1,5 +1,3 @@
-// Public fixture surface for the snapshot harness and fixture server.
-
 export { AUDIO } from "./audio";
 export { CHAIN_INSTRUMENT_LATENCY, COMPRESSOR_LATENCY, fixtureInsert, recalculateChain } from "./chain";
 export { FIXTURE } from "./controlState";

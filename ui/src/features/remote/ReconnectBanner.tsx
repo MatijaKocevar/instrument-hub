@@ -10,7 +10,6 @@ export interface ReconnectBannerProps
     readonly link: RemoteLinkSnapshot | null;
 }
 
-/** Banner shown when the control API or the live meter socket drops. */
 export function ReconnectBanner ({
     connection,
     link,

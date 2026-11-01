@@ -1,5 +1,3 @@
-// Plug-in inventory endpoints for the fixture server.
-
 import { PLUGIN_FIXTURE } from "../../fixtures";
 import { sendJson } from "../http";
 import type { FixtureRoute } from "../types";
@@ -12,8 +10,6 @@ export const handlePlugins: FixtureRoute = (context, request, response) =>
     {
         context.pluginRequests.push (url);
 
-        // A scan started by POST /plugins/rescan finishes before the next
-        // read, exactly like a fast scan on the real inventory.
         if (context.pluginPendingScan)
         {
             context.pluginPendingScan = false;
