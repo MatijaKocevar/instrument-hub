@@ -94,6 +94,10 @@ private:
     juce::String firstOutputDeviceOfType (const juce::String& type) const;
     juce::String firstDeviceType() const;
 
+    /** Opens `device` at 48 kHz / 128 frames. The caller holds `mutex`. */
+    bool openCachedDevice (const CachedDevice& device,
+                           juce::String* errorMessage);
+
     mutable std::mutex mutex;
 
     DeviceManager manager;

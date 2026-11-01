@@ -493,7 +493,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/TimingMonitor.cpp"
     )

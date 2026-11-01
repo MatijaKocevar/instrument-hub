@@ -125,7 +125,8 @@ is followed by the types worth knowing.
   `--measure-latency`, `--scan-plugins`, `--ui-check`), default-set/source
   loading, API and controller composition, the 100 ms LED mirror, and the
   native window. If a subsystem is created, it is created here. There is no
-  other composition root in the app.
+  other composition root in the app. The one-shot diagnostic modes are one file
+  each in [app/diagnostics/](../engine/src/app/diagnostics/).
 - [Session.h](../engine/src/Session.h) / [Session.cpp](../engine/src/Session.cpp)
   — the composed audio session: owns the fixed `AudioEngine`, the
   `SlotSwitcher`, the `WarmPool`, the per-slot `FxRack`s, the `DeviceManager`,
@@ -226,10 +227,16 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   keeps lifecycle, configuration and inspection.
 - [DeviceManager.h](../engine/src/audio/DeviceManager.h) /
   [DeviceManager.cpp](../engine/src/audio/DeviceManager.cpp) — JUCE device
-  enumeration, setup and open/close.
+  wrapper. Lookup, enumeration, description, open/hot swap, the open device's
+  state, channel maps and latency readouts live in
+  [audio/device/](../engine/src/audio/device/), so the file keeps lifetime and
+  callback plumbing.
 - [AudioSettings.h](../engine/src/audio/AudioSettings.h) /
   [AudioSettings.cpp](../engine/src/audio/AudioSettings.cpp) — the Audio page's
-  device and latency bridge. See the layering note in §4.3.
+  device and latency bridge. Device selection, the `/audio` snapshot, patch
+  application, channel maps, the latency budget and the probe live in
+  [audio/settings/](../engine/src/audio/settings/). See the layering note in
+  §4.3.
 - [Transport.h](../engine/src/audio/Transport.h) /
   [Transport.cpp](../engine/src/audio/Transport.cpp) — BPM, playing state,
   PPQ and sample position; `process()` advances it.
@@ -244,7 +251,9 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   deadline, overrun count and rolling maximum; audio-thread cheap.
 - [LatencyProbe.h](../engine/src/audio/LatencyProbe.h) /
   [LatencyProbe.cpp](../engine/src/audio/LatencyProbe.cpp) — ALSA Loopback
-  impulse/cross-correlation round-trip measurement.
+  impulse/cross-correlation round-trip measurement. The raw ALSA PCM plumbing,
+  impulse capture and the pure correlation live in
+  [audio/latency/](../engine/src/audio/latency/).
 - [RtGuard.h](../engine/src/audio/RtGuard.h) / [RtGuard.cpp](../engine/src/audio/RtGuard.cpp)
   — allocation/lock/log detector and `operator new` interposition for
   `--rt-strict`.
