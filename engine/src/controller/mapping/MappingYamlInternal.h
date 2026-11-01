@@ -1,8 +1,7 @@
 #pragma once
 
-#include "MappingYaml.h"
+#include "controller/MappingYaml.h"
 
-#include <cstdint>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -12,8 +11,8 @@ namespace Controller::MappingDetail
 {
 
 // The YAML reader, the document validator and the facade share this small
-// in-memory tree. It is an implementation detail: only the Mapping translation
-// units include this header.
+// in-memory tree. It is an implementation detail: only the mapping TUs include
+// this header.
 
 enum class YamlKind
 {
@@ -47,14 +46,5 @@ struct SourceLine
     std::string text;
     int number = 0;
 };
-
-/** Validates the parsed tree and fills a `SetMapping`. */
-bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error);
-
-/** Reads a whole file; on failure `errorText` describes why. */
-bool readFileContents (const std::filesystem::path& file, std::string& out, std::string& errorText);
-
-/** Hash used to detect an unchanged file between polls. */
-std::uint64_t hashContents (const std::string& contents);
 
 } // namespace Controller::MappingDetail

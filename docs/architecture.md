@@ -263,28 +263,35 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
 
 - [LaunchpadProtocol.h](../engine/src/controller/LaunchpadProtocol.h) /
   [LaunchpadProtocol.cpp](../engine/src/controller/LaunchpadProtocol.cpp) —
-  pure data and pure functions: SysEx header/handshake, programmer mode, grid
-  notes 11..88, top-row CCs 91..98, right-column CCs 89..19, palette and LED
-  modes. No MIDI device, no allocation.
-- [LaunchpadDriver.h](../engine/src/controller/LaunchpadDriver.h) /
-  [LaunchpadDriver.cpp](../engine/src/controller/LaunchpadDriver.cpp) — MIDI
-  I/O, handshake, pad/CC decode, LED writes, `injectMidiMessage()` /
-  `setMessageSink()` for hardware-free tests.
+  SysEx header/handshake encoding, palette and LED messages. No MIDI device,
+  no allocation.
+- [LaunchpadGrid.h](../engine/src/controller/LaunchpadGrid.h) — grid notes
+  11..88, top-row CCs 91..98 and right-column CCs 89..19.
+- [LaunchpadLed.h](../engine/src/controller/LaunchpadLed.h) /
+  [LaunchpadLed.cpp](../engine/src/controller/LaunchpadLed.cpp) — the grid's
+  LED colour policy.
+- [LaunchpadDriver.h](../engine/src/controller/LaunchpadDriver.h) and
+  [launchpad/](../engine/src/controller/launchpad/) — MIDI I/O facade split
+  into device detection, connection/handshake, LED state, MIDI decoding and
+  low-level output. `injectMidiMessage()` / `setMessageSink()` stay on the
+  facade for hardware-free tests.
 - [Mapping.h](../engine/src/controller/Mapping.h) /
-  [Mapping.cpp](../engine/src/controller/Mapping.cpp) — the live mapping
-  facade: resolves a pad to a slot, dispatches listeners, hot-reloads on file
-  change and owns the polling watcher.
+  [Mapping.cpp](../engine/src/controller/Mapping.cpp) and
+  [mapping/](../engine/src/controller/mapping/) — the live mapping facade:
+  inspection, default-set discovery, pad/encoder routing, bank/scene
+  selection, reload/publish, the polling watcher and its LED-facing events.
 - [MappingModel.h](../engine/src/controller/MappingModel.h) /
   [MappingModel.cpp](../engine/src/controller/MappingModel.cpp) — the
   `SetMapping` document model (families, patches, macros, pads, encoders,
   banks and scenes) and its lookup helpers.
 - [MappingYaml.h](../engine/src/controller/MappingYaml.h) /
-  [MappingYaml.cpp](../engine/src/controller/MappingYaml.cpp) — the small YAML
-  reader and the public `parseSetMappingYaml()` / `loadSetMappingFile()`
-  entry points. [MappingYamlInternal.h](../engine/src/controller/MappingYamlInternal.h)
-  is the parse-tree contract shared with the validator.
-- [MappingValidator.cpp](../engine/src/controller/MappingValidator.cpp) —
-  schema and bounds validation of a parsed document into `SetMapping`.
+  [MappingYaml.cpp](../engine/src/controller/MappingYaml.cpp) — the public
+  `parseSetMappingYaml()` / `loadSetMappingFile()` entry points. The scanner,
+  scalar decoder and tree parser live beside it in
+  [mapping/](../engine/src/controller/mapping/).
+- [mapping/](../engine/src/controller/mapping/) — the YAML parse tree, file
+  reading/hashing, diagnostics and document decoding split by schema section
+  (families, FX, macros, pads/encoders, banks, scenes).
 - [PadState.h](../engine/src/controller/PadState.h) — the shared LED state
   enum.
 
@@ -540,9 +547,9 @@ and connected its listeners.
 **Step 1 — MIDI decode (controller MIDI thread).**
 
 `LaunchpadDriver::handleIncomingMidiMessage()`
-([LaunchpadDriver.cpp](../engine/src/controller/LaunchpadDriver.cpp)) receives a
-note on/off from the `Launchpad Mini MK3 MI` port. It calls
-`Launchpad::padIndexForNote()` ([LaunchpadProtocol.h](../engine/src/controller/LaunchpadProtocol.h)),
+([LaunchpadDriverMidi.cpp](../engine/src/controller/launchpad/LaunchpadDriverMidi.cpp))
+receives a note on/off from the `Launchpad Mini MK3 MI` port. It calls
+`Launchpad::padIndexForNote()` ([LaunchpadGrid.h](../engine/src/controller/LaunchpadGrid.h)),
 which maps notes 11..88 to pads 0..63, then `LaunchpadDriver::dispatchPad()`
 copies the listener list and invokes `DriverListeners::padEvent(pad, pressed)`.
 A release is dispatched with `pressed == false`; only a press arms.
@@ -554,7 +561,8 @@ tests.
 
 The driver's `padEvent` listener installed in `Main::startController()` calls
 `Mapping::handlePad(pad, pressed)`
-([Mapping.cpp](../engine/src/controller/Mapping.cpp)). `handlePad`:
+([MappingPadEvents.cpp](../engine/src/controller/mapping/MappingPadEvents.cpp)).
+`handlePad`:
 
 1. copies the current `PadBinding` for the pad from the live `SetMapping`;
 2. on press, stores `activePad` and resolves `binding->slot`;
@@ -1048,10 +1056,9 @@ engine splits T162–T168).
 | [Session.h](../engine/src/Session.h) | 776 | Public surface for all of the above. | Follows `Session.cpp`: the facade header keeps build/device/render/arm/inspection; collaborators get their own headers in `session/`. |
 
 Two smaller files are worth watching but are **not** on the split list yet:
-`sampler/KitLoader.cpp` (734), `api/Discovery.cpp` (725),
-`controller/LaunchpadDriver.cpp` (617) and `sampler/SamplerInstrument.cpp`
-(610). They are cohesive; splitting them now would add files without reducing
-coupling.
+`sampler/KitLoader.cpp` (734), `api/Discovery.cpp` (725) and
+`sampler/SamplerInstrument.cpp` (610). They are cohesive; splitting them now
+would add files without reducing coupling.
 
 The intended end state after T134–T138 is: no translation unit above ~800
 lines, one route module per resource, `Session` a facade, `Main` a shell, and

@@ -48,13 +48,47 @@ set(IHUB_PROJECT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/SetPatch.cpp"
 )
 
-# The mapping layer is split into model, YAML reader/validator and the
-# watcher/facade. Tests that exercise any part compile the whole set.
+# The mapping layer is split into model, facade, reload/watch, events, YAML
+# parsing and document decoding. Tests that exercise any part compile the
+# whole set.
 set(IHUB_MAPPING_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingApply.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingButtonEvents.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingDecoder.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingDefaults.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingDiagnostics.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingFamilies.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingFile.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingFx.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingMacros.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingPadBindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingPadEvents.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingReload.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingScenes.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingWatcher.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/YamlParser.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/YamlScalar.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/YamlScanner.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingModel.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingValidator.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingYaml.cpp"
+)
+
+set(IHUB_LAUNCHPAD_PROTOCOL_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+)
+
+# The driver is a facade over device detection, connection/handshake, LED
+# state, MIDI decoding and low-level output. Tests that use any part compile
+# the whole set.
+set(IHUB_LAUNCHPAD_DRIVER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadLed.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverConnection.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverDevice.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverLeds.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverMidi.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverOutput.cpp"
+    ${IHUB_LAUNCHPAD_PROTOCOL_SOURCES}
 )
 
 # The FX rack is a facade over insert editing, the insert factory, parameter
@@ -1786,8 +1820,7 @@ juce_add_console_app(ihub-launchpad-driver-test
 target_sources(ihub-launchpad-driver-test
     PRIVATE
         controller/LaunchpadDriverTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+        ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
         ${IHUB_MAPPING_SOURCES}
 )
 
@@ -2003,8 +2036,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_API_ROUTES_SOURCES}
             ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+            ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
     )
 
     target_include_directories(ihub-state-broadcast-test
@@ -2122,8 +2154,7 @@ target_sources(ihub-midi-api-test
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+        ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
 )
 
 target_include_directories(ihub-midi-api-test
@@ -3151,8 +3182,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
             ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+            ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
@@ -3418,8 +3448,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
             ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
+            ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
             ${IHUB_MAPPING_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
