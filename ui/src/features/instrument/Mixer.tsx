@@ -10,7 +10,7 @@ import {
     formatDb,
     formatPan,
     gainFromDb,
-} from "./model";
+} from "./format";
 
 interface MixerProps
 {

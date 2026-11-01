@@ -3,12 +3,12 @@ import { useState, type ReactElement } from "react";
 import type { ControlFxInsertRequest, ControlPatch, ControlPlugin } from "../../api/client";
 import {
     BUILTIN_INSERT_TYPES,
-    effectPlugins,
     insertLabel,
     insertRequestForBuiltin,
     insertRequestForPlugin,
     type BuiltinInsertType,
-} from "./model";
+} from "./inserts";
+import { effectPlugins } from "./selection";
 
 interface InsertAddProps
 {

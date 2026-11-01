@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 
 import type { ControlPatch } from "../../api/client";
-import { sourceKindLabel } from "./model";
+import { sourceKindLabel } from "./source";
 
 interface SourceCardProps
 {

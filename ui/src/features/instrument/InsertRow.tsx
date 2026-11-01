@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
 
 import type { ControlFxInsert, ControlPatch } from "../../api/client";
-import { insertLabel, wetPercent } from "./model";
+import { wetPercent } from "./format";
+import { insertLabel } from "./inserts";
 
 interface InsertRowProps
 {

@@ -1,33 +1,41 @@
 export { InstrumentPage, type InstrumentPageProps } from "./InstrumentPage";
 export {
-    BUILTIN_INSERT_TYPES,
-    FADER_MAX_DB,
-    FADER_MIN_DB,
-    FADER_STEP_DB,
     chainWithBypass,
     chainWithMove,
     chainWithoutInsert,
+    moveOrder,
+    withChainLatency,
+} from "./chain";
+export {
+    FADER_MAX_DB,
+    FADER_MIN_DB,
+    FADER_STEP_DB,
     clampDb,
     clampPan,
-    effectPlugins,
-    followsArmedSlot,
     formatDb,
     formatPan,
     formatStateSize,
     gainFromDb,
-    instrumentPlugins,
-    instrumentSlotForRoute,
+    wetPercent,
+} from "./format";
+export {
+    BUILTIN_INSERT_TYPES,
     insertLabel,
     insertRequestForBuiltin,
     insertRequestForPlugin,
-    isPluginSource,
-    moveOrder,
+    type BuiltinInsertType,
+} from "./inserts";
+export {
+    effectPlugins,
+    followsArmedSlot,
+    instrumentPlugins,
+    instrumentSlotForRoute,
     patchForInstrumentSlot,
+} from "./selection";
+export {
+    isPluginSource,
     sourceKindLabel,
     sourceRequestForEmpty,
     sourceRequestForInitTone,
     sourceRequestForPlugin,
-    wetPercent,
-    withChainLatency,
-    type BuiltinInsertType,
-} from "./model";
+} from "./source";
