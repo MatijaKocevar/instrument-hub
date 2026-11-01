@@ -10,7 +10,6 @@ namespace Controller::MappingDetail
 
 bool decodeScenes (const YamlValue& root, SetMapping& out, MappingError& error)
 {
-    // --- scenes (right column) --------------------------------------------
     if (const auto* scenes = root.find ("scenes"))
     {
         if (scenes->kind != YamlKind::sequence)
@@ -60,4 +59,4 @@ bool decodeScenes (const YamlValue& root, SetMapping& out, MappingError& error)
     return true;
 }
 
-} // namespace Controller::MappingDetail
+}

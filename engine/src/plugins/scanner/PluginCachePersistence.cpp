@@ -11,7 +11,7 @@ juce::String makeFingerprintAttribute (juce::int64 value)
 {
     return juce::String (value);
 }
-} // namespace
+}
 
 juce::String PluginCache::outcomeToString (Outcome outcome)
 {
@@ -84,8 +84,6 @@ bool PluginCache::load()
                 entry.plugins.push_back (std::move (description));
         }
 
-        // A success without any description is not a useful cache hit; treat
-        // it as a failure entry so the next scan retries it.
         if (entry.outcome == Outcome::success && entry.plugins.empty())
             entry.outcome = Outcome::failed;
 
@@ -126,4 +124,4 @@ bool PluginCache::save() const
     return xml.writeTo (cacheFile);
 }
 
-} // namespace ihub::plugins
+}

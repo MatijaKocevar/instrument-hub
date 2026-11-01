@@ -30,8 +30,6 @@ volatile sig_atomic_t dumpInProgress = 0;
 volatile sig_atomic_t dumpReRaise = 1;
 LogRing* dumpRing = nullptr;
 
-// Pre-allocated: the crash handler must not touch the stack beyond a few
-// hundred bytes, and must never allocate.
 LogRecord dumpRecords[maxDumpRecords];
 
 #if ! defined(_WIN32)
@@ -134,7 +132,6 @@ std::int64_t realtimeMilliseconds() noexcept
 
 void crashSignalHandler (int signalNumber)
 {
-    // A fault inside the handler must not recurse forever.
     if (dumpInProgress != 0)
         _exit (128 + signalNumber);
 
@@ -154,9 +151,6 @@ void crashSignalHandler (int signalNumber)
 
     if (dumpReRaise != 0)
     {
-        // Restore the default action and unblock the signal before raising it,
-        // so the process really dies from the original signal instead of
-        // merely exiting with 128 + N.
         struct sigaction defaultAction {};
         defaultAction.sa_handler = SIG_DFL;
         sigemptyset (&defaultAction.sa_mask);
@@ -173,9 +167,8 @@ void crashSignalHandler (int signalNumber)
     _exit (128 + signalNumber);
 }
 #endif
-} // namespace
+}
 
-//==============================================================================
 bool writeCrashDump (int fd, const LogRing& ring, int signalNumber) noexcept
 {
 #if defined(_WIN32)
@@ -232,7 +225,6 @@ bool writeCrashDump (int fd, const LogRing& ring, int signalNumber) noexcept
         out = appendSigned (out, lineEnd, record.code);
         out = appendText (out, lineEnd, " ");
 
-        // The ring guarantees a terminator inside the array.
         for (std::size_t c = 0; c < logMessageCapacity && record.message[c] != '\0'; ++c)
         {
             if (out >= lineEnd)
@@ -255,7 +247,6 @@ bool writeCrashDump (int fd, const LogRing& ring, int signalNumber) noexcept
 #endif
 }
 
-//==============================================================================
 bool installCrashDump (const CrashDumpOptions& options)
 {
 #if defined(_WIN32)
@@ -364,4 +355,4 @@ std::string getCrashDumpPath()
     return defaultCrashDumpPath();
 }
 
-} // namespace ihub::diag
+}

@@ -6,7 +6,6 @@ namespace ihub::plugins
 {
 namespace
 {
-/** Removes the per-scan scratch directory however we leave scanFile(). */
 struct ScopedTempDirectory
 {
     explicit ScopedTempDirectory (const juce::File& directoryToOwn)
@@ -34,7 +33,7 @@ juce::String abbreviate (const juce::String& text, int maxCharacters)
     return trimmed.substring (0, maxCharacters) + "...";
 }
 
-} // namespace
+}
 
 ScannerProcess::ScannerProcess (ScannerProcessOptions optionsToUse)
     : options (std::move (optionsToUse))
@@ -80,9 +79,6 @@ ScanResult ScannerProcess::scanFile (const juce::File& pluginBundle)
         return result;
     }
 
-    // The helper writes its result here and nowhere else. If it dies before
-    // finishing, the file is simply absent, which is how a crash is detected
-    // (a signal-terminated child reports exit code 0 through JUCE).
     ScopedTempDirectory scratch (juce::File::getSpecialLocation (juce::File::tempDirectory)
                                      .getChildFile ("ihub-scanner-"
                                                     + juce::Uuid().toString()));
@@ -137,9 +133,6 @@ ScanResult ScannerProcess::scanFile (const juce::File& pluginBundle)
 
     if (xml != nullptr)
     {
-        // Parse the same document shape KnownPluginList::createXml() emits.
-        // Doing it through PluginDescription::loadFromXml (headless) keeps the
-        // helper and this wrapper independent of the GUI host module.
         if (xml->hasTagName ("KNOWNPLUGINS"))
         {
             for (auto* childElement : xml->getChildIterator())
@@ -161,9 +154,6 @@ ScanResult ScannerProcess::scanFile (const juce::File& pluginBundle)
     }
     else if (xml == nullptr)
     {
-        // Covers both "helper crashed" (signal, no file) and "helper wrote
-        // garbage". Either way no usable scan result exists. JUCE reports a
-        // signal-terminated child as exit code 0, hence the explicit wording.
         result.crashed = true;
 
         if (result.exitCode != 0)
@@ -191,4 +181,4 @@ ScanResult ScannerProcess::scanFile (const juce::File& pluginBundle)
 
     return result;
 }
-} // namespace ihub::plugins
+}

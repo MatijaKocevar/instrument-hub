@@ -66,4 +66,4 @@ bool readFx (const YamlValue& value, PatchFxSpec& fx, MappingError& error)
     return true;
 }
 
-} // namespace Controller::MappingDetail
+}

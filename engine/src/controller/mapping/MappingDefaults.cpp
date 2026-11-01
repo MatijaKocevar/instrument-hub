@@ -34,4 +34,4 @@ std::filesystem::path Mapping::findDefaultSetFile()
     return {};
 }
 
-} // namespace Controller
+}

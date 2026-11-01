@@ -17,8 +17,6 @@ bool PluginInventory::requestRescan()
         if (scanning)
             return false;
 
-        // The previous future is finished (otherwise `scanning` would be set)
-        // but may still need reaping before a new thread replaces it.
         if (scanFuture.valid())
             previous = std::move (scanFuture);
 
@@ -82,9 +80,6 @@ void PluginInventory::performScan()
 
         std::vector<juce::PluginDescription> descriptions;
 
-        // The cache is the authoritative "currently installed" set: it drops
-        // entries for missing bundles and only holds fresh fingerprints. The
-        // scan report is the fallback if the cache could not be reread.
         if (cache.load())
             descriptions = cache.getCachedPlugins();
 
@@ -117,4 +112,4 @@ void PluginInventory::performScan()
     scanFinished.notify_all();
 }
 
-} // namespace ihub::plugins
+}

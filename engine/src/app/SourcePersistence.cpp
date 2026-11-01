@@ -43,9 +43,6 @@ void applySourceKind (const juce::String& kind, ihub::SessionSlotConfig& slot)
     }
     else if (kind == "plugin")
     {
-        // The set descriptor may carry the bundle path in `path`; older
-        // descriptors used `pluginId`, which is only usable when it is a real
-        // file path.
         if (slot.path.isEmpty() && juce::File (juce::String (slot.pluginId)).exists())
             slot.path = juce::String (slot.pluginId);
 
@@ -176,4 +173,4 @@ void persistSourceAssignment (const std::filesystem::path& setFile,
     file.replaceWithText (juce::JSON::toString (root, false));
 }
 
-} // namespace ihub::app
+}

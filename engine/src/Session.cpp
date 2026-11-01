@@ -9,15 +9,10 @@ namespace ihub
 
 namespace
 {
-/** Pitch per default slot. Deliberately low: the discontinuity detector's
-    continuous-signal baseline is the tone's own curvature, and 110-220 Hz
-    leaves more than 10 dB of margin under the -60 dBFS acceptance limit.
-*/
 constexpr double defaultFrequencies[] = {
     110.0, 123.47, 138.59, 146.83, 164.81, 185.0, 207.65, 220.0
 };
 
-/** The eight families of the Launchpad grid, eight patches each. */
 constexpr const char* familyIds[] = {
     "keys", "drums", "bass", "pads", "lead", "fx", "perc", "vox"
 };
@@ -27,9 +22,8 @@ constexpr const char* familyNames[] = {
 };
 
 constexpr int patchesPerFamily = 8;
-} // namespace
+}
 
-//==============================================================================
 const char* toString (SessionSlotKind kind) noexcept
 {
     switch (kind)
@@ -58,7 +52,6 @@ const char* toString (SessionWarmState state) noexcept
     return "cold";
 }
 
-//==============================================================================
 Session::Session()
 {
     config.slots = makeDefaultSet();
@@ -89,8 +82,6 @@ Session::~Session()
 {
     closeDevice();
 
-    // The editors reference processors owned by the warm pool, so close them
-    // before any instance is destroyed and before the pool is torn down.
     if (editorHost != nullptr)
         editorHost->closeAll();
 
@@ -132,7 +123,6 @@ std::vector<SessionSlotConfig> Session::makeDefaultSet (SessionSlotKind defaultK
     return slots;
 }
 
-//==============================================================================
 int Session::getNumSlots() const noexcept
 {
     return engine != nullptr ? engine->getNumSlots() : 0;
@@ -170,7 +160,6 @@ int Session::getSlotLatencySamples (int slot) const noexcept
     return engine->getSlot (slot).latencySamples();
 }
 
-//==============================================================================
 float Session::getSlotMeterPeak (int slot) const noexcept
 {
     return meters.getSlotPeak (slot);
@@ -186,4 +175,4 @@ int Session::getNeighbourCount() const noexcept
     return config.neighbourCount;
 }
 
-} // namespace ihub
+}

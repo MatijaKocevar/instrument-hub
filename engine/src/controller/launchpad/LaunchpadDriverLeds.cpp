@@ -17,11 +17,7 @@ constexpr PatchLed unpackLed (std::uint16_t packed) noexcept
     return { static_cast<std::uint8_t> (packed & 0xFFu),
              static_cast<Launchpad::LedMode> ((packed >> 8) & 0xFFu) };
 }
-} // namespace
-
-//==============================================================================
-// LEDs
-//==============================================================================
+}
 
 void LaunchpadDriver::setPadState (int padIndex, PadState state)
 {
@@ -217,4 +213,4 @@ bool LaunchpadDriver::sendSysEx (const Launchpad::SysExFrame& frame)
     return sendBytes (frame.bytes.data(), static_cast<int> (frame.bytes.size()));
 }
 
-} // namespace Controller
+}

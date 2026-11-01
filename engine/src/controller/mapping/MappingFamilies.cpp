@@ -10,7 +10,6 @@ namespace Controller::MappingDetail
 
 bool decodeFamilies (const YamlValue& root, SetMapping& out, MappingError& error)
 {
-    // --- families --------------------------------------------------------
     const auto* families = root.find ("families");
 
     if (families == nullptr)
@@ -94,7 +93,6 @@ bool decodeFamilies (const YamlValue& root, SetMapping& out, MappingError& error
                              "duplicate instrument id '" + instrument.id
                                  + "' in family '" + familyId + "'");
 
-            // --- Patch persistence (T119) --------------------------------
             if (const auto* colour = instrumentValue.find ("colorIndex"))
                 if (! readInt (*colour, instrument.colorIndex, error, "patch colorIndex"))
                     return false;
@@ -195,4 +193,4 @@ bool decodeFamilies (const YamlValue& root, SetMapping& out, MappingError& error
     return true;
 }
 
-} // namespace Controller::MappingDetail
+}

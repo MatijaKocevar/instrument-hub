@@ -5,10 +5,6 @@
 namespace Controller
 {
 
-//==============================================================================
-// Lifecycle
-//==============================================================================
-
 LaunchpadDriver::LaunchpadDriver()
 {
     for (auto& state : padStates)
@@ -97,8 +93,6 @@ void LaunchpadDriver::disconnect()
 {
     const bool wasConnected = connected.exchange (false);
 
-    // Leave programmer mode before closing, so the surface returns to Live
-    // mode instead of staying unlit with the setup menu disabled.
     if (wasConnected)
         sendSysEx (Launchpad::programmerModeFrame (false));
 
@@ -141,10 +135,6 @@ juce::String LaunchpadDriver::getLastError() const
     return lastError;
 }
 
-//==============================================================================
-// Handshake
-//==============================================================================
-
 bool LaunchpadDriver::sendHandshake()
 {
     const bool modeOk = sendSysEx (Launchpad::programmerModeFrame (true));
@@ -159,4 +149,4 @@ bool LaunchpadDriver::hasReceivedHandshakeEcho() const noexcept
     return handshakeEcho.load();
 }
 
-} // namespace Controller
+}

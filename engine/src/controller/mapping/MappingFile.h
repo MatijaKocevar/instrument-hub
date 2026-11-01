@@ -11,4 +11,4 @@ bool readFileContents (const std::filesystem::path& file, std::string& out, std:
 
 std::uint64_t hashContents (const std::string& contents);
 
-} // namespace Controller::MappingDetail
+}

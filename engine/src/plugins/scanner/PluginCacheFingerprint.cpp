@@ -43,4 +43,4 @@ PluginCache::Fingerprint PluginCache::fingerprint (const juce::File& bundle)
     return result;
 }
 
-} // namespace ihub::plugins
+}

@@ -48,4 +48,4 @@ bool PluginInfo::matches (const juce::String& query) const
            || matchesText (id);
 }
 
-} // namespace ihub::plugins
+}

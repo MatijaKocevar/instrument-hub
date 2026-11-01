@@ -10,7 +10,6 @@ namespace Controller::MappingDetail
 
 bool decodePads (const YamlValue& root, SetMapping& out, MappingError& error)
 {
-    // --- pads ------------------------------------------------------------
     const auto* pads = root.find ("pads");
 
     if (pads == nullptr)
@@ -73,7 +72,6 @@ bool decodePads (const YamlValue& root, SetMapping& out, MappingError& error)
 
 bool decodeEncoders (const YamlValue& root, SetMapping& out, MappingError& error)
 {
-    // --- encoders --------------------------------------------------------
     const auto* encoders = root.find ("encoders");
 
     if (encoders == nullptr)
@@ -123,4 +121,4 @@ bool decodeEncoders (const YamlValue& root, SetMapping& out, MappingError& error
     return true;
 }
 
-} // namespace Controller::MappingDetail
+}

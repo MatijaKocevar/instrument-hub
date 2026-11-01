@@ -20,14 +20,6 @@ ControllerSurface::~ControllerSurface()
     shutdown();
 }
 
-/**
-    Starts the Launchpad and the set.yaml mapping.
-
-    Pads arm the slot their binding names, the API state mirrors that selection
-    for the UI, and the LED of the selected pad turns green while every other
-    pad goes dark. Diagnostic and snapshot modes never call this, so a test run
-    never switches a connected controller out of Live mode.
-*/
 void ControllerSurface::start (Api::StateStore* state, Api::MidiBridge* bridge)
 {
     apiState = state;
@@ -54,15 +46,9 @@ void ControllerSurface::start (Api::StateStore* state, Api::MidiBridge* bridge)
                                             const Controller::PadBinding*,
                                             bool)
         {
-            // The armSlot listener above already refreshed the surface.
-            // A release re-paints from the same state so a dropped press
-            // cannot leave a stale LED.
             refreshLeds();
         };
 
-        // The top row selects a macro page, the right column a scene. With
-        // no encoders these LEDs are the only feedback the surface gives
-        // for those selections.
         mappingListeners.bankEvent = [this] (int bank,
                                              const Controller::MacroBankSpec*)
         {
@@ -126,21 +112,11 @@ void ControllerSurface::start (Api::StateStore* state, Api::MidiBridge* bridge)
         refreshLeds();
 }
 
-/**
-    Mirrors the `/state` grid onto the Launchpad LEDs.
-
-    Unarmed patches show their palette colour, the armed patch is bright
-    red, a warming patch is yellow and a load error flashes red. Called
-    after every controller/API change and by the 100 ms poll, so an HTTP
-    colour edit reaches the hardware without a reconnect.
-*/
 void ControllerSurface::refreshLeds()
 {
     if (launchpad == nullptr || ! launchpad->isConnected() || apiState == nullptr)
         return;
 
-    // The pad test owns the surface until it clears it; repainting the
-    // grid here would overwrite the animation within 100 ms.
     if (midiBridge != nullptr && midiBridge->isPadTestActive())
         return;
 
@@ -190,4 +166,4 @@ void ControllerSurface::shutdown()
     }
 }
 
-} // namespace ihub::app
+}

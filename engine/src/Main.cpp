@@ -33,7 +33,6 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        // Shown for the moment before the web view paints its first frame.
         g.fillAll (juce::Colour (0xff101014));
     }
 
@@ -62,8 +61,6 @@ public:
         setResizable (true, false);
         setResizeLimits (480, 320, 8192, 8192);
 
-        // The snapshot contract is a 1200x800 image. Sizing the *content* (not
-        // the decorated window) means the web view really is that size.
         setContentComponentSize (ihub::app::kWindowWidth, ihub::app::kWindowHeight);
         centreWithSize (getWidth(), getHeight());
         setVisible (true);
@@ -82,7 +79,7 @@ public:
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
 };
-} // namespace
+}
 
 class InstrumentHubApplication final : public juce::JUCEApplication,
                                        private juce::Timer
@@ -96,9 +93,6 @@ public:
     {
         ihub::plugins::capFileDescriptorLimit();
 
-        // Structured logging and the crash dump are active for every mode.
-        // The handler writes the last records with async-signal-safe calls and
-        // re-raises, so the process still dies with its original status.
         ihub::diag::installJuceLoggerSink();
 
         ihub::diag::CrashDumpOptions crashOptions;
@@ -106,8 +100,6 @@ public:
                                 .toStdString();
         ihub::diag::installCrashDump (crashOptions);
 
-        // A missing --snapshot path has always failed before any other mode is
-        // considered, even when another mode flag is present.
         juce::File snapshotFile;
 
         if (commandLine.contains ("--snapshot"))
@@ -170,13 +162,9 @@ public:
                 break;
         }
 
-        // Compose the audio session for the normal application and for
-        // --serve. Diagnostic and UI-only modes quit above or own no audio.
         if (mode == ihub::app::AppMode::gui || mode == ihub::app::AppMode::serve)
             session = ihub::app::startSession (commandLine);
 
-        // The control API is part of the normal application, but not of the
-        // single-purpose diagnostic modes above (they quit immediately).
         const bool apiRequired = mode == ihub::app::AppMode::serve;
 
         if (! controlApi.start (commandLine,
@@ -198,9 +186,6 @@ public:
             return;
         }
 
-        // Only the normal GUI starts the controller; `serve` returned above
-        // and the UI-only modes must never switch a connected controller out
-        // of Live mode.
         if (mode == ihub::app::AppMode::gui)
             controller.start (controlApi.getState(), controlApi.getMidiBridge());
 
@@ -235,8 +220,6 @@ public:
         }
         else
         {
-            // Normal window: keep the Launchpad LEDs in sync with the grid,
-            // including colour edits that arrive only through the HTTP API.
             ledPollMode = true;
             startTimer (100);
         }
@@ -249,14 +232,11 @@ public:
 
         controller.resetMapping();
 
-        // No handler may observe the driver after this point, so stop the
-        // listener before tearing the pad-test thread and the driver down.
         controlApi.stopServer();
         controlApi.detachMidi();
         controller.shutdown();
         controlApi.resetServer();
 
-        // Stop the device before destroying the graph it renders.
         if (session != nullptr)
         {
             session->closeDevice();

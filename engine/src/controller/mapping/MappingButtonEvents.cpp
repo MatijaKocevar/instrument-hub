@@ -86,4 +86,4 @@ bool Mapping::handleRightColumn (int index, bool pressed)
     return true;
 }
 
-} // namespace Controller
+}

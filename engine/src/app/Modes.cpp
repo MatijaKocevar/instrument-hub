@@ -5,8 +5,6 @@ namespace ihub::app
 
 AppMode selectMode (const juce::String& commandLine) noexcept
 {
-    // Headless diagnostics run before any UI: each one prints a report and
-    // quits, so they keep priority over the window modes.
     if (commandLine.contains ("--scan-plugins"))
         return AppMode::pluginScan;
 
@@ -25,8 +23,6 @@ AppMode selectMode (const juce::String& commandLine) noexcept
     if (commandLine.contains ("--session-smoke"))
         return AppMode::sessionSmoke;
 
-    // UI modes. `serve` starts the API and returns without a window, so it is
-    // checked before the modes that create one.
     if (commandLine.contains ("--serve"))
         return AppMode::serve;
 
@@ -62,4 +58,4 @@ const char* toString (AppMode mode) noexcept
     return "unknown";
 }
 
-} // namespace ihub::app
+}

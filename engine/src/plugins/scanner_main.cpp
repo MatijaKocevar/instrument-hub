@@ -1,17 +1,3 @@
-// ihub-scanner: out-of-process VST3 scan helper (T021).
-//
-// This binary loads exactly one plugin bundle, turns the result into a
-// KnownPluginList XML document and exits. It deliberately does no other work,
-// so a plugin that crashes during load can only end this process. The parent
-// (plugins::ScannerProcess) treats a missing result file as a crash and keeps
-// the rest of the scan running.
-//
-// Usage:
-//   ihub-scanner --scan <bundle.vst3> --out <result.xml> [--format VST3]
-//
-// Exit codes: 0 scanned, 2 bad arguments, 3 format unavailable or result not
-// written. A plugin crash therefore shows up as a signal, not an exit code.
-
 #include "ScannerProcess.h"
 #include "ProcessLimits.h"
 
@@ -93,8 +79,6 @@ Arguments parseArguments (const juce::StringArray& arguments)
 void disableCoreDumps()
 {
    #if defined(RLIMIT_CORE)
-    // A crashing plugin is expected traffic here; do not litter the working
-    // directory with multi-gigabyte cores.
     struct rlimit limit
     {
         0, 0
@@ -109,7 +93,7 @@ void printUsage()
     std::cerr << "usage: ihub-scanner --scan <bundle.vst3> --out <result.xml>"
                  " [--format VST3]" << std::endl;
 }
-} // namespace
+}
 
 int main (int argc, char** argv)
 {
@@ -149,14 +133,9 @@ int main (int argc, char** argv)
         return 3;
     }
 
-    // The only place a plugin binary is ever loaded. If it takes the process
-    // down, the parent notices the missing result file.
     juce::OwnedArray<juce::PluginDescription> found;
     format->findAllTypesForFile (found, arguments.scanFile.getFullPathName());
 
-    // Same document shape as KnownPluginList::createXml(): a KNOWNPLUGINS
-    // element with one child per PluginDescription. Building it by hand keeps
-    // this helper on the headless JUCE module (no GUI/host classes needed).
     juce::XmlElement list ("KNOWNPLUGINS");
 
     for (auto* description : found)

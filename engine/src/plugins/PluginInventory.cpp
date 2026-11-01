@@ -22,7 +22,7 @@ Scanner::Options makeScannerOptions (const PluginInventory::Options& options)
     result.logSink = options.logSink;
     return result;
 }
-} // namespace
+}
 
 PluginInventory::PluginInventory()
     : PluginInventory (Options {})
@@ -103,4 +103,4 @@ PluginInventorySnapshot PluginInventory::snapshot (const juce::String& search) c
     return result;
 }
 
-} // namespace ihub::plugins
+}

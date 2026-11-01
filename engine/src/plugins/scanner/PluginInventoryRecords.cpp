@@ -13,7 +13,7 @@ std::string keyFor (const PluginInfo& info)
 {
     return info.path + "|" + info.id;
 }
-} // namespace
+}
 
 std::vector<PluginInfo> toPluginInfos (const std::vector<juce::PluginDescription>& descriptions)
 {
@@ -60,4 +60,4 @@ std::vector<PluginInfo> pluginsFromReport (const juce::File& dataDirectory)
     return toPluginInfos (existing);
 }
 
-} // namespace ihub::plugins::inventory_detail
+}

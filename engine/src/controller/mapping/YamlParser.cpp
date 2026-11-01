@@ -159,10 +159,6 @@ private:
             }
             else if (splitKeyValue (rest, key, value))
             {
-                // `- key: value` starts a mapping. The key's real column is
-                // where the text after the dash begins, so further keys of the
-                // same item line up there and a nested value of the first key
-                // stays deeper.
                 int keyOffset = 1;
 
                 while (keyOffset < static_cast<int> (line.text.size())
@@ -198,7 +194,7 @@ private:
     std::size_t position = 0;
 };
 
-} // namespace
+}
 
 bool parseYaml (const std::string& yaml, YamlValue& out, MappingError& error)
 {
@@ -211,4 +207,4 @@ bool parseYaml (const std::string& yaml, YamlValue& out, MappingError& error)
     return parser.parse (out);
 }
 
-} // namespace Controller::MappingDetail
+}

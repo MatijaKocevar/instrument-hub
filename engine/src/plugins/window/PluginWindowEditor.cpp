@@ -7,22 +7,18 @@
 
 namespace ihub::plugins
 {
-//==============================================================================
 bool PluginWindow::showEditor (juce::AudioProcessor& processorToShow,
                                const juce::String& title,
                                juce::Component* owner)
 {
     lastError.clear();
 
-    // Reusing the window keeps a repeat click from flickering the editor.
     if (window != nullptr && processor == &processorToShow)
     {
         window->toFront (true);
         return true;
     }
 
-    // Replacing the editor must not invoke onClose(): the caller may be inside
-    // a member function of this object.
     destroyWindow();
 
     const auto pluginName = processorToShow.getName();
@@ -35,8 +31,6 @@ bool PluginWindow::showEditor (juce::AudioProcessor& processorToShow,
         return false;
     }
 
-    // Registers the editor as the processor's active editor and asserts if one
-    // is already open. showEditor() closed ours; a leak here is the caller's.
     auto* editor = processorToShow.createEditorAndMakeActive();
 
     if (editor == nullptr)
@@ -63,7 +57,6 @@ bool PluginWindow::showEditor (juce::AudioProcessor& processorToShow,
     const int editorWidth = juce::jmax (1, editor->getWidth());
     const int editorHeight = juce::jmax (1, editor->getHeight());
 
-    // The window owns the editor from this point on.
     newWindow->setContentOwned (editor, false);
     newWindow->setResizable (editor->isResizable(), false);
 
@@ -102,4 +95,4 @@ void PluginWindow::destroyWindow()
     processor = nullptr;
 }
 
-} // namespace ihub::plugins
+}

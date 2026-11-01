@@ -71,7 +71,6 @@ bool looksRendered (const juce::Image& image)
 #if JUCE_LINUX
 namespace
 {
-/** Expands a TrueColor pixel component to 8 bits. */
 juce::uint8 maskToByte (unsigned long pixel, unsigned long mask)
 {
     if (mask == 0)
@@ -88,13 +87,6 @@ juce::uint8 maskToByte (unsigned long pixel, unsigned long mask)
     return static_cast<juce::uint8> ((value * 255 + max / 2) / max);
 }
 
-/** Captures the native window backing a JUCE component.
-
-    On Linux the web view is a separate GTK/WebKit process embedded through
-    XEmbed, so `createComponentSnapshot()` only sees the JUCE fallback fill.
-    Reading the peer window straight from the X server captures the real,
-    already-rendered UI without shelling out to an external screenshot tool.
-*/
 juce::Image captureNativeWindow (juce::Component& component)
 {
     auto* peer = component.getPeer();
@@ -117,8 +109,6 @@ juce::Image captureNativeWindow (juce::Component& component)
         return {};
     }
 
-    // The web view paints underneath the window manager, but a raise and a
-    // sync before reading makes the result deterministic on a shared desktop.
     XRaiseWindow (display, window);
     XSync (display, False);
 
@@ -131,9 +121,6 @@ juce::Image captureNativeWindow (juce::Component& component)
     const auto width = static_cast<unsigned int> (attributes.width);
     const auto height = static_cast<unsigned int> (attributes.height);
 
-    // Reading the window itself includes the XEmbedded WebKit child window and
-    // is what desktop grabbers see. The root fallback covers window managers
-    // that draw the client into an off-screen frame.
     XImage* source = XGetImage (display, window, 0, 0, width, height,
                                 AllPlanes, ZPixmap);
 
@@ -167,7 +154,7 @@ juce::Image captureNativeWindow (juce::Component& component)
 
     return image;
 }
-} // namespace
+}
 #else
 namespace
 {
@@ -175,7 +162,7 @@ juce::Image captureNativeWindow (juce::Component&)
 {
     return {};
 }
-} // namespace
+}
 #endif
 
 juce::Image captureSnapshot (juce::Component& component)
@@ -206,4 +193,4 @@ bool writeSnapshot (const juce::Image& image, const juce::File& file)
     return png.writeImageToStream (image, *stream);
 }
 
-} // namespace ihub::app
+}

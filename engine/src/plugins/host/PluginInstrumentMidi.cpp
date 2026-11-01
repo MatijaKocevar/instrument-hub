@@ -16,9 +16,8 @@ juce::uint8 channelStatus (juce::uint8 baseStatus, int channel) noexcept
     const auto clamped = juce::jlimit (minimumMidiChannel, maximumMidiChannel, channel);
     return static_cast<juce::uint8> (baseStatus | (clamped - 1));
 }
-} // namespace
+}
 
-//==============================================================================
 void PluginInstrument::noteOn (int ch, int note, float vel)
 {
     if (vel <= 0.0f)
@@ -85,7 +84,6 @@ bool PluginInstrument::pushEvent (const juce::uint8* bytes, int numBytes) noexce
 
     event.numBytes = static_cast<juce::uint8> (numBytes);
 
-    // Publishing the write index is what makes the event visible to process().
     pendingWriteIndex.store (next, std::memory_order_release);
 
     return true;
@@ -102,8 +100,6 @@ void PluginInstrument::drainPendingMidi (juce::MidiBuffer& destination) noexcept
 
         if (event.numBytes > 0)
         {
-            // Notes from the control thread always belong at the start of the
-            // next block; there is no per-event timestamp to preserve.
             destination.addEvent (event.bytes, event.numBytes, 0);
             deliveredMidiEvents.fetch_add (1, std::memory_order_relaxed);
         }
@@ -134,10 +130,8 @@ int PluginInstrument::getDroppedMidiEventCount() const noexcept
 
 void PluginInstrument::clearPendingMidi() noexcept
 {
-    // Only valid with the stream stopped (see the header); that is what makes
-    // a plain store enough.
     pendingReadIndex.store (pendingWriteIndex.load (std::memory_order_acquire),
                             std::memory_order_release);
 }
 
-} // namespace ihub::plugins
+}

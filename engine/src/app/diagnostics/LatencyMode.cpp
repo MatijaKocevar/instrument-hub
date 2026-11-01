@@ -10,8 +10,6 @@
 namespace ihub::app
 {
 
-// --measure-latency: measures the loopback round trip five times and reports
-// the median, spread and whether it matches the 2 x buffer expectation.
 int runLatencyMeasurement()
 {
     constexpr int runs = 5;
@@ -71,4 +69,4 @@ int runLatencyMeasurement()
     return withinTolerance && consistent ? 0 : 1;
 }
 
-} // namespace ihub::app
+}

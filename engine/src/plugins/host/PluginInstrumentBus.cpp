@@ -2,7 +2,6 @@
 
 namespace ihub::plugins
 {
-//==============================================================================
 bool PluginInstrument::configureBuses (int channels)
 {
     if (plugin == nullptr)
@@ -20,8 +19,6 @@ bool PluginInstrument::configureBuses (int channels)
 
     layout.outputBuses.getReference (0) = target;
 
-    // An effect's main input follows the engine's channel count; a disabled
-    // input bus stays disabled, so generators keep working.
     if (! layout.inputBuses.isEmpty())
     {
         auto& mainInput = layout.inputBuses.getReference (0);
@@ -33,8 +30,6 @@ bool PluginInstrument::configureBuses (int channels)
     if (plugin->setBusesLayout (layout))
         return true;
 
-    // Some effects only accept the output layout together with their own
-    // default input layout. Retry without touching the inputs.
     auto fallback = plugin->getBusesLayout();
 
     if (fallback.outputBuses.isEmpty())
@@ -53,8 +48,6 @@ void PluginInstrument::prepare (double newSampleRate, int newMaximumBlockSize)
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 48000.0;
     maximumBlockSize = juce::jmax (1, newMaximumBlockSize);
 
-    // Pre-allocate the merge buffer once. Normal blocks then add events
-    // without touching the heap.
     midiScratch.ensureSize (midiScratchBytes);
 
     if (plugin == nullptr)
@@ -80,4 +73,4 @@ int PluginInstrument::latencySamples() const noexcept
     return cachedLatency.load (std::memory_order_relaxed);
 }
 
-} // namespace ihub::plugins
+}

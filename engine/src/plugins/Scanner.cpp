@@ -47,8 +47,6 @@ void Scanner::log (const juce::String& message)
     }
     else
     {
-        // Default JUCE logger: stderr for console builds, a FileLogger when the
-        // application installed one.
         juce::Logger::writeToLog (message);
     }
 }
@@ -71,4 +69,4 @@ bool Scanner::loadPersistedTypes()
     return knownPlugins.getNumTypes() > 0;
 }
 
-} // namespace ihub::plugins
+}

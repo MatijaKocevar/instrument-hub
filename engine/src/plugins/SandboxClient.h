@@ -9,59 +9,21 @@
 
 namespace ihub::plugins
 {
-/**
-    Wire protocol shared by `SandboxHost` (the process hosting the engine) and
-    `SandboxClient` (the `ihub-sandbox` helper that owns the plugin).
 
-    ## Why a file mapping and not a socket
-
-    Audio must not cross a socket: a block is 128..2048 frames and the host
-    callback can never wait for a packet. The host therefore maps one file
-    (created in the system temp directory, deleted when the host stops) into
-    both processes and exchanges fixed-size blocks through two lock-free SPSC
-    rings:
-
-        host audio thread  --request ring-->  sandbox thread (renders plugin)
-        host audio thread  <--reply ring----  sandbox thread (audio frames)
-
-    The host never blocks: when a reply is not ready the callback leaves the
-    block silent and increments an underrun counter. When the sandbox dies the
-    mapping stays valid, so the host keeps rendering silence for that slot and
-    the rest of the graph is unaffected.
-
-    ## Memory ordering
-
-    Counters are plain integers updated through `std::atomic_ref`. Publishing a
-    block stores a release view of the counter after the block has been filled;
-    the reader loads it with acquire before touching the payload. Everything is
-    lock-free on 64-bit targets (`static_assert`ed below), which is what makes
-    the host's audio-thread access legal.
-
-    The layout is versioned and deliberately uses only fixed-width integers and
-    floats, so both processes agree byte for byte. `SharedMemory` is never
-    constructed in place: hosts `memset` it and children attach to the bytes.
-*/
 namespace sandbox
 {
 
-inline constexpr std::uint32_t sharedMemoryMagic = 0x49485553u; // 'IHUS'
+inline constexpr std::uint32_t sharedMemoryMagic = 0x49485553u;
 inline constexpr std::uint32_t sharedMemoryVersion = 1;
 
-/** Blocks in each direction. Eight blocks of slack hide scheduling jitter;
-    the host stops writing (and underruns) when the sandbox falls further
-    behind than this. */
 inline constexpr int requestRingSize = 8;
 inline constexpr int replyRingSize = 8;
 
-/** Capacities fixed at compile time so both processes have identical types.
-    `SandboxHost` rejects a larger engine block size rather than truncating it.
-*/
 inline constexpr int maximumBlockSize = 4096;
 inline constexpr int maximumChannels = 2;
 inline constexpr int maximumMidiEvents = 256;
 inline constexpr int errorTextSize = 256;
 
-/** Lifecycle the sandbox publishes in the shared header. */
 enum class ProcessState : std::int32_t
 {
     empty = 0,
@@ -109,22 +71,16 @@ struct SharedMemory
     std::int32_t latencySamples;
     std::uint32_t heartbeat;
 
-    /** Requests written by the host and consumed by the sandbox. */
     std::uint64_t requestPublished;
     std::uint64_t requestConsumed;
 
-    /** Replies written by the sandbox and played by the host. */
     std::uint64_t replyPublished;
 
-    /** NUL-terminated failure text, written before `state` becomes failed. */
     char error[errorTextSize];
 
     SharedRequest requests[requestRingSize];
     SharedReply replies[replyRingSize];
 };
-
-//==============================================================================
-// Atomic accessors for the shared payload. Overloads keep call sites readable.
 
 inline std::uint64_t loadAcquire (const std::uint64_t& value) noexcept
 {
@@ -179,8 +135,6 @@ static_assert (std::is_standard_layout_v<SharedMemory>,
 static_assert (offsetof (SharedMemory, requestPublished) % alignof (std::uint64_t) == 0);
 static_assert (offsetof (SharedMemory, replies) % alignof (std::uint32_t) == 0);
 
-//==============================================================================
-/** Command-line contract between SandboxHost and the ihub-sandbox helper. */
 namespace cli
 {
 inline constexpr const char* helperName = "ihub-sandbox";
@@ -189,29 +143,17 @@ inline constexpr const char* pluginFlag = "--plugin";
 inline constexpr const char* fakeToneFlag = "--fake-tone";
 inline constexpr const char* abortAfterFlag = "--abort-after";
 inline constexpr const char* paramFlag = "--param";
-} // namespace cli
+}
 
-} // namespace sandbox
+}
 
-//==============================================================================
-/**
-    Child side of the sandbox: attaches to the shared mapping, loads exactly one
-    plugin (or the built-in fake tone generator used by the tests), renders
-    requested blocks until the host asks it to stop, then exits.
-
-    Run only from the `ihub-sandbox` executable. The helper is intentionally
-    dumb and single-purpose, exactly like `ihub-scanner`: a plugin that calls
-    `abort()`, segfaults or hangs can only end this process. The host notices
-    through its watchdog and marks the slot failed.
-*/
 class SandboxClient final
 {
 public:
-    /** Entry point for `ihub-sandbox`; returns the process exit code. */
     static int run (const juce::StringArray& commandLine);
 
 private:
     SandboxClient() = delete;
 };
 
-} // namespace ihub::plugins
+}

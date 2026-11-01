@@ -26,4 +26,4 @@ struct ChildArguments
 
 ChildArguments parseArguments (const juce::StringArray& commandLine);
 
-} // namespace ihub::plugins::sandbox_client
+}

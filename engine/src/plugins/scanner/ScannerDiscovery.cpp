@@ -15,7 +15,7 @@ bool comparePaths (const juce::File& a, const juce::File& b)
 {
     return a.getFullPathName() < b.getFullPathName();
 }
-} // namespace
+}
 
 juce::StringArray Scanner::discoverFiles (const juce::StringArray& directories)
 {
@@ -95,4 +95,4 @@ ScanReport Scanner::scan (const juce::FileSearchPath& directories)
     return scan (paths);
 }
 
-} // namespace ihub::plugins
+}

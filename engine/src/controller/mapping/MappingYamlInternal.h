@@ -10,10 +10,6 @@
 namespace Controller::MappingDetail
 {
 
-// The YAML reader, the document validator and the facade share this small
-// in-memory tree. It is an implementation detail: only the mapping TUs include
-// this header.
-
 enum class YamlKind
 {
     nullValue,
@@ -47,4 +43,4 @@ struct SourceLine
     int number = 0;
 };
 
-} // namespace Controller::MappingDetail
+}

@@ -10,41 +10,32 @@ namespace Api
 class MidiBridge;
 class Server;
 class StateStore;
-} // namespace Api
+}
 
 namespace AudioEngine
 {
 class AudioSettingsBridge;
-} // namespace AudioEngine
+}
 
 namespace ihub
 {
 class Session;
-} // namespace ihub
+}
 
 namespace ihub::plugins
 {
 class PluginInventory;
-} // namespace ihub::plugins
+}
 
 namespace ihub::app
 {
 
-/** Owns the HTTP + WebSocket control server and everything it publishes.
-
-    The server is part of the normal application and of `--serve`, and is also
-    started for the UI-only modes so a snapshot/ui-check run sees the same
-    state a user would. It is stopped in a fixed order: the mapping first, the
-    server, the MIDI bridge, the driver, then the session.
-*/
 class ControlApi
 {
 public:
     ControlApi();
     ~ControlApi();
 
-    /** Starts the control API. `required` is true for `--serve`, where a bind
-        failure must fail the process. */
     bool start (const juce::String& commandLine,
                 ihub::Session* session,
                 bool required,
@@ -66,4 +57,4 @@ private:
     std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
 };
 
-} // namespace ihub::app
+}

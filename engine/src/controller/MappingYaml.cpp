@@ -45,4 +45,4 @@ bool loadSetMappingFile (const std::filesystem::path& file,
     return parseSetMappingYaml (contents, result, error);
 }
 
-} // namespace Controller
+}

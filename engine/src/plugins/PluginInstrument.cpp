@@ -2,7 +2,6 @@
 
 namespace ihub::plugins
 {
-//==============================================================================
 PluginInstrument::PluginInstrument() = default;
 
 PluginInstrument::~PluginInstrument()
@@ -10,7 +9,6 @@ PluginInstrument::~PluginInstrument()
     unload();
 }
 
-//==============================================================================
 bool PluginInstrument::load (juce::AudioPluginFormatManager& formatManager,
                              const juce::PluginDescription& newDescription,
                              double initialSampleRate,
@@ -19,7 +17,6 @@ bool PluginInstrument::load (juce::AudioPluginFormatManager& formatManager,
 {
     error.clear();
 
-    // Replacing a running instance is not allowed; the stream must be stopped.
     unload();
 
     sampleRate = initialSampleRate > 0.0 ? initialSampleRate : 48000.0;
@@ -40,8 +37,6 @@ bool PluginInstrument::load (juce::AudioPluginFormatManager& formatManager,
 
     plugin->setRateAndBufferSizeDetails (sampleRate, maximumBlockSize);
 
-    // Best effort: if the plugin cannot provide the requested layout, keep it
-    // loaded and let process() adapt to whatever channel count it does have.
     configureBuses (numChannels);
 
     if (plugin->getTotalNumOutputChannels() <= 0)
@@ -103,10 +98,6 @@ std::unique_ptr<PluginInstrument> PluginInstrument::create (juce::AudioPluginFor
 
 void PluginInstrument::unload()
 {
-    // An AudioProcessor must not be destroyed while it still has an active
-    // editor (JUCE asserts on it). Move the hook out first so a callback that
-    // clears itself through close() cannot destroy the function it is running
-    // in.
     if (beforeUnloadCallback != nullptr)
     {
         auto callback = std::move (beforeUnloadCallback);
@@ -134,4 +125,4 @@ juce::String PluginInstrument::getName() const
     return description.name;
 }
 
-} // namespace ihub::plugins
+}

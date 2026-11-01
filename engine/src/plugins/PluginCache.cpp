@@ -201,4 +201,4 @@ void PluginCache::clear()
     entries.clear();
 }
 
-} // namespace ihub::plugins
+}

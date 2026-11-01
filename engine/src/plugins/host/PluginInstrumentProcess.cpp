@@ -2,7 +2,6 @@
 
 namespace ihub::plugins
 {
-//==============================================================================
 void PluginInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     if (plugin == nullptr)
@@ -23,8 +22,6 @@ void PluginInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuff
 
     if (pluginChannels <= 0 || pluginChannels > bufferChannels)
     {
-        // A layout the engine cannot feed. Stay silent instead of letting the
-        // plugin read or write past the engine's buffer.
         buffer.clear();
         clearPendingMidi();
         return;
@@ -49,9 +46,6 @@ void PluginInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuff
     }
     else
     {
-        // Fewer plugin channels than engine channels: hand the plugin a view.
-        // The slot cleared the whole buffer first, so the remaining channels
-        // stay silent.
         juce::AudioBuffer<float> view (buffer.getArrayOfWritePointers(),
                                        pluginChannels,
                                        numSamples);
@@ -59,4 +53,4 @@ void PluginInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuff
     }
 }
 
-} // namespace ihub::plugins
+}

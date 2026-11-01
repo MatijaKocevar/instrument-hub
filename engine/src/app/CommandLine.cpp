@@ -22,4 +22,4 @@ juce::String getCommandLineValue (const juce::String& commandLine,
     return {};
 }
 
-} // namespace ihub::app
+}

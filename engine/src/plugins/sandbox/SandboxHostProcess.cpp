@@ -21,8 +21,6 @@ std::int32_t currentProcessId() noexcept
    #endif
 }
 
-/** Creates a zero-length-backed file of exactly `size` bytes before mapping it.
-    MemoryMappedFile requires the file to already exist at its final size. */
 bool createSizedFile (const juce::File& file, juce::int64 size)
 {
     file.deleteFile();
@@ -41,9 +39,8 @@ bool createSizedFile (const juce::File& file, juce::int64 size)
     stream.flush();
     return true;
 }
-} // namespace
+}
 
-//==============================================================================
 void SandboxHost::resetTransportState() noexcept
 {
     repliesPlayed = 0;
@@ -267,4 +264,4 @@ bool SandboxHost::start (juce::String& error)
     return true;
 }
 
-} // namespace ihub::plugins
+}

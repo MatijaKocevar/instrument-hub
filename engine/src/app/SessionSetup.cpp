@@ -13,15 +13,6 @@
 namespace ihub::app
 {
 
-/**
-    Builds and opens the composed audio session.
-
-    The graph is created once: an AudioEngine with eight fixed slots, a
-    SlotSwitcher over them, and the default set created through the existing
-    instrument factories. The configured device is then opened and the session
-    becomes its callback. Nothing is rewired at runtime; arming a slot only
-    publishes a lock-free crossfade request.
-*/
 std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine)
 {
     if (commandLine.contains ("--no-audio"))
@@ -33,10 +24,6 @@ std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine)
     ihub::SessionConfig config;
     config.slots = ihub::Session::makeDefaultSet();
 
-    // Give every pad its real family/patch identity from the shipped set
-    // file. The audio sources stay initialisation tones until a set with
-    // sample kits or plugin bundles is loaded, but `/state` already mirrors
-    // the 8 x 8 tree the Launchpad lights up.
     const auto setFile = Controller::Mapping::findDefaultSetFile();
 
     if (! setFile.empty())
@@ -69,9 +56,6 @@ std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine)
                 slotConfig.family = binding->family;
                 slotConfig.familyName = binding->family;
 
-                // Persisted mix/colour/descriptor (T119). The audio source
-                // stays an init tone until a real kit or plugin is loaded,
-                // but the API publishes the set's full patch tree.
                 slotConfig.gain = instrument->volumeDb <= -60.0f
                                       ? 0.0f
                                       : std::pow (10.0f, instrument->volumeDb / 20.0f);
@@ -87,14 +71,8 @@ std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine)
                 slotConfig.pluginVersion = instrument->pluginVersion;
                 slotConfig.samplePath = instrument->samplePath;
 
-                // A patch with no assigned source is silent. Only a
-                // descriptor that names a usable source becomes audible;
-                // a missing kit or bundle falls back to `empty` rather
-                // than a placeholder tone.
                 applySourceKind (juce::String (instrument->kind), slotConfig);
 
-                // Persisted insert chain (T119/T121). A built-in's id is
-                // its type; a plugin entry carries the bundle path in id.
                 for (const auto& fxSpec : instrument->fxChain)
                 {
                     AudioEngine::FxInsertConfig fx;
@@ -157,9 +135,6 @@ std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine)
 
     auto session = std::make_unique<ihub::Session>();
 
-    // Load every patch's own plugin state before `build()` starts warming
-    // the initial slot, so the first resident instance is already restored
-    // (T130).
     if (! setFile.empty())
         session->setPluginStateDirectory (pluginStateDirectoryFor (setFile));
 
@@ -171,8 +146,6 @@ std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine)
         return {};
     }
 
-    // The Instrument page's source picker persists its assignment in a
-    // sidecar next to set.yaml; a restart re-applies it before audio starts.
     if (! setFile.empty())
     {
         session->setSourceAssignedHook ([setFile] (int slot,
@@ -195,12 +168,9 @@ std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine)
                   << " slots, default set loaded" << std::endl;
     }
 
-    // The default set is playable immediately. The control API mirrors it
-    // and routes arm requests into the switcher once the state store is
-    // created below.
     session->armSlot (0);
 
     return session;
 }
 
-} // namespace ihub::app
+}

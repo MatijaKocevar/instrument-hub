@@ -7,8 +7,6 @@
 
 namespace ihub::plugins
 {
-/** The actual desktop window. It owns the editor as its content component, so
-    both are destroyed by one `delete` from `PluginWindow::close()`. */
 class PluginEditorWindow final : public juce::DocumentWindow
 {
 public:
@@ -29,4 +27,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginEditorWindow)
 };
 
-} // namespace ihub::plugins
+}

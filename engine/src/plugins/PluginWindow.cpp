@@ -11,9 +11,8 @@ namespace ihub::plugins
 namespace
 {
 std::atomic<int> livePluginWindows { 0 };
-} // namespace
+}
 
-//==============================================================================
 PluginWindow::PluginWindow()
     : lifetime (std::make_shared<WindowCallbackToken>())
 {
@@ -25,8 +24,6 @@ PluginWindow::PluginWindow()
 
 PluginWindow::~PluginWindow()
 {
-    // From here on, callbacks still held by the instrument or the message
-    // queue must not reach this object.
     lifetime->alive = false;
 
     close();
@@ -34,13 +31,11 @@ PluginWindow::~PluginWindow()
     livePluginWindows.fetch_sub (1, std::memory_order_relaxed);
 }
 
-//==============================================================================
 bool PluginWindow::open (juce::AudioProcessor& processorToShow,
                          const juce::String& title,
                          juce::Component* owner,
                          juce::String* error)
 {
-    // Showing a processor directly cannot rely on an instrument's unload hook.
     if (instrument != nullptr)
         clearInstrumentCallback();
 
@@ -68,13 +63,9 @@ bool PluginWindow::open (PluginInstrument& instrumentToShow,
         return false;
     }
 
-    // A different instance is being shown: drop the old unload hook first, so
-    // the retired instrument cannot close the new window later.
     if (instrument != nullptr && instrument != &instrumentToShow)
         clearInstrumentCallback();
 
-    // Close the editor while the processor is still alive. unload() moves the
-    // callback out before invoking it, so clearing it from close() is safe.
     std::weak_ptr<WindowCallbackToken> weakLifetime = lifetime;
 
     instrumentToShow.setBeforeUnloadCallback ([weakLifetime]
@@ -110,8 +101,6 @@ void PluginWindow::clearInstrumentCallback() noexcept
     auto* previous = instrument;
     instrument = nullptr;
 
-    // A destroyed wrapper is not reachable here: this is the before-unload
-    // path, and the instrument owned by the session outlives the window.
     previous->setBeforeUnloadCallback (nullptr);
 }
 
@@ -119,9 +108,6 @@ void PluginWindow::close()
 {
     const bool wasOpen = window != nullptr;
 
-    // Catch a final edit while the processor is still alive and the editor
-    // still exists. The callback must not destroy this object (the session
-    // only captures a state blob), but keep the same guarded copy as onClose.
     if (wasOpen && onBeforeClose && lifetime != nullptr && lifetime->alive)
     {
         auto callback = onBeforeClose;
@@ -130,12 +116,8 @@ void PluginWindow::close()
 
     destroyWindow();
 
-    // Detach from the instrument on every close. Re-opening installs a fresh
-    // hook; leaving a stale one would let an old unload close a new window.
     clearInstrumentCallback();
 
-    // The callback may destroy this object. Nothing is touched afterwards, and
-    // it is deliberately not called from the destructor (`alive` is cleared).
     if (wasOpen && onClose && lifetime != nullptr && lifetime->alive)
     {
         auto callback = onClose;
@@ -143,7 +125,6 @@ void PluginWindow::close()
     }
 }
 
-//==============================================================================
 juce::AudioProcessorEditor* PluginWindow::getEditor() const noexcept
 {
     if (window == nullptr)
@@ -167,4 +148,4 @@ int PluginWindow::getLiveInstanceCount() noexcept
     return livePluginWindows.load (std::memory_order_relaxed);
 }
 
-} // namespace ihub::plugins
+}

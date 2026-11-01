@@ -27,4 +27,4 @@ bool readBool (const YamlValue& value, bool& out, MappingError& error, const std
 bool readColourIndex (const YamlValue& value, int& out, MappingError& error,
                       const std::string& what);
 
-} // namespace Controller::MappingDetail
+}

@@ -35,7 +35,6 @@ SandboxHost::~SandboxHost()
     stop();
 }
 
-//==============================================================================
 juce::File SandboxHost::findHelperExecutable()
 {
     if (auto* overridden = std::getenv ("IHUB_SANDBOX"))
@@ -54,7 +53,6 @@ juce::File SandboxHost::findHelperExecutable()
     return appDirectory.getChildFile (juce::String (sandbox::cli::helperName) + suffix);
 }
 
-//==============================================================================
 const char* toString (SandboxHost::Status status) noexcept
 {
     switch (status)
@@ -68,4 +66,4 @@ const char* toString (SandboxHost::Status status) noexcept
     return "failed";
 }
 
-} // namespace ihub::plugins
+}
