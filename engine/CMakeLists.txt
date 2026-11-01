@@ -139,6 +139,14 @@ target_sources(instrument-hub
         src/audio/DeviceManager.cpp
         src/audio/FxChain.cpp
         src/audio/FxRack.cpp
+        src/audio/fx/FxInsertFactory.cpp
+        src/audio/fx/FxInsertParameters.cpp
+        src/audio/fx/FxInsertType.cpp
+        src/audio/fx/FxRackEditing.cpp
+        src/audio/fx/FxRackLatency.cpp
+        src/audio/fx/FxRackOrder.cpp
+        src/audio/fx/FxRackSnapshot.cpp
+        src/audio/fx/InsertEffect.cpp
         src/audio/LatencyProbe.cpp
         src/audio/RtGuard.cpp
         src/audio/Slot.cpp

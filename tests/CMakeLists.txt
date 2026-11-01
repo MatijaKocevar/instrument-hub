@@ -43,6 +43,21 @@ set(IHUB_MAPPING_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingYaml.cpp"
 )
 
+# The FX rack is a facade over insert editing, the insert factory, parameter
+# mapping, ordering, latency and snapshots. Tests that touch a rack compile
+# the whole set.
+set(IHUB_FX_RACK_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertFactory.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertParameters.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertType.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxRackEditing.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxRackLatency.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxRackOrder.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxRackSnapshot.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/InsertEffect.cpp"
+)
+
 # The composed session is a façade over the warm pool, plugin state, editor
 # host, meter bridge, transport, FX chain, device and MIDI collaborators.
 # Tests that build a Session compile the whole set.
@@ -927,7 +942,7 @@ target_sources(ihub-session-smoke-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -1055,7 +1070,7 @@ target_sources(ihub-session-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -1145,7 +1160,7 @@ target_sources(ihub-patch-fx-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -1237,7 +1252,7 @@ target_sources(ihub-instrument-page-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -1327,7 +1342,7 @@ target_sources(ihub-patch-state-capture-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -1419,7 +1434,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -1521,7 +1536,7 @@ target_sources(ihub-session-warm-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -3041,7 +3056,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -3131,7 +3146,7 @@ target_sources(ihub-session-plugin-state-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+        ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -3213,7 +3228,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -3318,7 +3333,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -3410,7 +3425,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -3498,7 +3513,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
+            ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
