@@ -3498,6 +3498,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-e2e-test
         PRIVATE
             e2e/PadToAudio.cpp
+            e2e/Check.cpp
+            e2e/pad_audio/AlsaPcm.cpp
+            e2e/pad_audio/GridLeds.cpp
+            e2e/pad_audio/Loopback.cpp
+            e2e/pad_audio/LoopbackScenario.cpp
+            e2e/pad_audio/MappingScenario.cpp
+            e2e/pad_audio/Metrics.cpp
+            e2e/pad_audio/PadScenario.cpp
+            e2e/pad_audio/PagesScenario.cpp
+            e2e/pad_audio/Records.cpp
+            e2e/pad_audio/Render.cpp
+            e2e/pad_audio/Rig.cpp
             ${IHUB_SESSION_SOURCES}
             ${IHUB_DISCOVERY_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -3532,6 +3544,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_include_directories(ihub-e2e-test
         PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+            "${CMAKE_CURRENT_SOURCE_DIR}/e2e"
     )
 
     target_compile_definitions(ihub-e2e-test
@@ -3677,6 +3690,16 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-analog-lab-state-test
         PRIVATE
             e2e/AnalogLabStateTest.cpp
+            e2e/Check.cpp
+            e2e/analog_lab/AudioProbe.cpp
+            e2e/analog_lab/Bundle.cpp
+            e2e/analog_lab/ChildProcess.cpp
+            e2e/analog_lab/FirstPhase.cpp
+            e2e/analog_lab/Measurement.cpp
+            e2e/analog_lab/Parent.cpp
+            e2e/analog_lab/RestartPhase.cpp
+            e2e/analog_lab/SessionRig.cpp
+            e2e/analog_lab/StateFile.cpp
             ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             ${IHUB_BUS_SOURCES}
@@ -3704,6 +3727,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_include_directories(ihub-analog-lab-state-test
         PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+            "${CMAKE_CURRENT_SOURCE_DIR}/e2e"
     )
 
     target_compile_definitions(ihub-analog-lab-state-test
