@@ -1804,6 +1804,12 @@ add_test(
 
 add_executable(ihub-launchpad-protocol-test
     controller/LaunchpadProtocolTest.cpp
+    controller/TestSupport.cpp
+    controller/protocol/Buttons.cpp
+    controller/protocol/Frames.cpp
+    controller/protocol/Grid.cpp
+    controller/protocol/Hex.cpp
+    controller/protocol/Leds.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
 )
 
@@ -1842,6 +1848,11 @@ find_package(Threads REQUIRED)
 
 add_executable(ihub-launchpad-mapping-test
     controller/LaunchpadMappingTest.cpp
+    controller/TestSupport.cpp
+    controller/launchpad_mapping/Document.cpp
+    controller/launchpad_mapping/Fixtures.cpp
+    controller/launchpad_mapping/Mapping.cpp
+    controller/launchpad_mapping/Validation.cpp
     ${IHUB_MAPPING_SOURCES}
 )
 
@@ -1893,6 +1904,12 @@ juce_add_console_app(ihub-launchpad-driver-test
 target_sources(ihub-launchpad-driver-test
     PRIVATE
         controller/LaunchpadDriverTest.cpp
+        controller/TestSupport.cpp
+        controller/driver/Grid.cpp
+        controller/driver/Handshake.cpp
+        controller/driver/LedStream.cpp
+        controller/driver/PatchLeds.cpp
+        controller/driver/Rig.cpp
         ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
         ${IHUB_MAPPING_SOURCES}
 )
@@ -1949,6 +1966,15 @@ juce_add_console_app(ihub-mapping-test
 target_sources(ihub-mapping-test
     PRIVATE
         controller/MappingTest.cpp
+        controller/TestSupport.cpp
+        controller/mapping/Document.cpp
+        controller/mapping/Fixtures.cpp
+        controller/mapping/HotReload.cpp
+        controller/mapping/Render.cpp
+        controller/mapping/Validation.cpp
+        controller/mapping/ValidationStructure.cpp
+        controller/mapping/ValidationSupport.cpp
+        controller/mapping/ValidationValues.cpp
         ${IHUB_MAPPING_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -2932,6 +2958,15 @@ juce_add_console_app(ihub-sample-loader-test
 target_sources(ihub-sample-loader-test
     PRIVATE
         sampler/SampleLoaderTest.cpp
+        sampler/Fixtures.cpp
+        sampler/Measurements.cpp
+        sampler/TestSupport.cpp
+        sampler/sample/Assertions.cpp
+        sampler/sample/Decode.cpp
+        sampler/sample/Failure.cpp
+        sampler/sample/Handoff.cpp
+        sampler/sample/Resample.cpp
+        sampler/sample/Stress.cpp
         ${IHUB_SAMPLE_SOURCES}
 )
 
@@ -2993,6 +3028,17 @@ juce_add_console_app(ihub-kit-loader-test
 target_sources(ihub-kit-loader-test
     PRIVATE
         sampler/KitLoaderTest.cpp
+        sampler/Fixtures.cpp
+        sampler/Measurements.cpp
+        sampler/TestSupport.cpp
+        sampler/kit/AudioFixtures.cpp
+        sampler/kit/Fixtures.cpp
+        sampler/kit/Layers.cpp
+        sampler/kit/Load.cpp
+        sampler/kit/Parse.cpp
+        sampler/kit/RenderHit.cpp
+        sampler/kit/Resolve.cpp
+        sampler/kit/Validation.cpp
         ${IHUB_SAMPLER_KIT_SOURCES}
         ${IHUB_SAMPLE_SOURCES}
 )
@@ -3059,6 +3105,15 @@ juce_add_console_app(ihub-sampler-instrument-test
 target_sources(ihub-sampler-instrument-test
     PRIVATE
         sampler/SamplerInstrumentTest.cpp
+        sampler/Fixtures.cpp
+        sampler/TestSupport.cpp
+        sampler/voices/Choke.cpp
+        sampler/voices/Fixtures.cpp
+        sampler/voices/Gate.cpp
+        sampler/voices/Pool.cpp
+        sampler/voices/Realtime.cpp
+        sampler/voices/Setup.cpp
+        sampler/voices/Stealing.cpp
         ${IHUB_SAMPLER_SOURCES}
 )
 
