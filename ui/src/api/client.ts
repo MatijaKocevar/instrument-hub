@@ -1,36 +1,51 @@
 import createClient from "openapi-fetch";
 
-import type { components, paths } from "./schema";
+import type { paths } from "./schema";
+import { createStateEndpoints, type StateEndpoints } from "./state";
+import type {
+    ControlAudioMeasurement,
+    ControlAudioPatch,
+    ControlAudioState,
+    ControlFxChain,
+    ControlFxInsertRequest,
+    ControlFxInsertUpdate,
+    ControlMidiPort,
+    ControlMidiState,
+    ControlPairingState,
+    ControlPairResponse,
+    ControlPluginList,
+} from "./types";
 
-/** The complete control state returned by `GET /state`. */
-export type ControlState = components["schemas"]["State"];
-export type ControlSlot = components["schemas"]["Slot"];
-export type ControlSettings = components["schemas"]["Settings"];
-export type ControlTransport = components["schemas"]["Transport"];
-export type ControlTransportPatch = components["schemas"]["TransportPatch"];
-export type ControlAudioState = components["schemas"]["AudioState"];
-export type ControlAudioMeasurement = components["schemas"]["AudioMeasurement"];
-export type ControlAudioPatch = components["schemas"]["AudioPatch"];
-export type ControlAudioChannel = components["schemas"]["AudioChannel"];
-export type ControlPairingState = components["schemas"]["PairingState"];
-export type ControlPairResponse = components["schemas"]["PairResponse"];
-export type ControlPatch = components["schemas"]["Patch"];
-export type ControlPatchUpdate = components["schemas"]["PatchUpdate"];
-export type ControlPatchEditor = components["schemas"]["PatchEditor"];
-export type ControlPatchStateCapture = components["schemas"]["PatchStateCapture"];
-export type ControlPatchSourceRequest = components["schemas"]["PatchSourceRequest"];
-export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
-export type ControlFxChain = components["schemas"]["FxChain"];
-export type ControlFxInsert = components["schemas"]["FxInsert"];
-export type ControlFxInsertRequest = components["schemas"]["FxInsertRequest"];
-export type ControlFxInsertUpdate = components["schemas"]["FxInsertUpdate"];
-export type ControlPlugin = components["schemas"]["Plugin"];
-export type ControlPluginList = components["schemas"]["PluginList"];
-export type ControlMidiState = components["schemas"]["MidiState"];
-export type ControlMidiInput = components["schemas"]["MidiInput"];
-export type ControlMidiPort = components["schemas"]["MidiPort"];
-export type ControlMidiPadTest = components["schemas"]["MidiPadTest"];
-export type ControlMidiInputUpdate = components["schemas"]["MidiInputUpdate"];
+export type {
+    ControlAudioChannel,
+    ControlAudioMeasurement,
+    ControlAudioPatch,
+    ControlAudioState,
+    ControlFxChain,
+    ControlFxInsert,
+    ControlFxInsertRequest,
+    ControlFxInsertUpdate,
+    ControlMidiInput,
+    ControlMidiInputUpdate,
+    ControlMidiPadTest,
+    ControlMidiPort,
+    ControlMidiState,
+    ControlPairResponse,
+    ControlPairingState,
+    ControlPatch,
+    ControlPatchEditor,
+    ControlPatchInstrument,
+    ControlPatchSourceRequest,
+    ControlPatchStateCapture,
+    ControlPatchUpdate,
+    ControlPlugin,
+    ControlPluginList,
+    ControlSettings,
+    ControlSlot,
+    ControlState,
+    ControlTransport,
+    ControlTransportPatch,
+} from "./types";
 
 /** Raised for any non-2xx response or an unusable payload. */
 export class ApiError extends Error
@@ -56,13 +71,29 @@ export interface ControlApiOptions
 }
 
 /**
+    The error core a resource module needs.
+
+    The client owns the transport and `ApiError`; the resource owns the payload
+    checks and hands failures back through this guard. Keeping the dependency
+    this way means the transport core can compose the resource without the two
+    modules importing each other at runtime.
+*/
+export interface RequestGuard
+{
+    /** Throw the core's error for a failed request. */
+    fail (error: unknown, status: number, what: string): never;
+    /** Throw the core's error for a payload the UI cannot render. */
+    reject (message: string, status: number): never;
+}
+
+/**
     Typed façade over the control API.
 
     The request and response types come straight from the generated
     `schema.d.ts` (produced from `shared/api/openapi.yaml`), so a change to the
     OpenAPI document breaks the build instead of surfacing at runtime.
 */
-export interface ControlApi
+export interface ControlApi extends StateEndpoints
 {
     readonly baseUrl: string;
 
@@ -71,66 +102,6 @@ export interface ControlApi
 
     /** Replace the pairing token; subsequent requests use the new value. */
     setToken (token: string | null): void;
-
-    /** Read one consistent state snapshot. */
-    getState (options?: { signal?: AbortSignal }): Promise<ControlState>;
-
-    /**
-        Arm `slot`, or disarm with `null` / a negative value.
-
-        Resolves with the state after the request, so the caller can reconcile
-        its optimistic highlight with the engine.
-    */
-    armSlot (slot: number | null, options?: { signal?: AbortSignal }): Promise<ControlState>;
-
-    /** Start/stop or reposition the transport. */
-    controlTransport (patch: ControlTransportPatch,
-                      options?: { signal?: AbortSignal }): Promise<ControlTransport>;
-
-    /**
-        Change one patch's mix or colour.
-
-        Resolves with the state after the request so the grid can reconcile its
-        optimistic colour change with the engine.
-    */
-    updatePatch (slot: number,
-                 patch: ControlPatchUpdate,
-                 options?: { signal?: AbortSignal }): Promise<ControlState>;
-
-    /**
-        Change the instrument source behind one patch.
-
-        The engine swaps the slot's source without rewiring the graph and
-        answers with the state after the change, so the page can show the new
-        descriptor from the same round trip.
-    */
-    changePatchSource (slot: number,
-                       source: ControlPatchSourceRequest,
-                       options?: { signal?: AbortSignal }): Promise<ControlState>;
-
-    /**
-        Open (or focus) one patch's native plugin editor.
-
-        The engine opens the window on its message thread and answers with
-        `{ slot, open, reused }`. A generated or sampler source, or a plugin
-        that cannot create an editor, is rejected with a readable error.
-    */
-    openPatchEditor (slot: number,
-                     options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
-
-    /** Close one patch's native editor. Idempotent. */
-    closePatchEditor (slot: number,
-                      options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
-
-    /**
-        Save the running plugin's current sound into its patch.
-
-        Resolves with `{ slot, captured, sizeBytes }` after the engine has
-        written the patch's state blob, so the page can confirm the save
-        without switching patches.
-    */
-    capturePatchState (slot: number,
-                       options?: { signal?: AbortSignal }): Promise<ControlPatchStateCapture>;
 
     //==========================================================================
     // Per-patch insert chain (T121)
@@ -233,56 +204,20 @@ function describeError (value: unknown): string
     return "";
 }
 
-/** Rejects payloads the UI cannot render (wrong version, missing arrays). */
-function isControlState (value: unknown): value is ControlState
+/** Throw the core error for a failed request. */
+function fail (error: unknown, status: number, what: string): never
 {
-    if (value === null || typeof value !== "object")
-        return false;
+    const message = describeError (error);
 
-    const candidate = value as Partial<ControlState>;
-
-    return candidate.schemaVersion === 1
-        && typeof candidate.application?.name === "string"
-        && typeof candidate.application?.version === "string"
-        && typeof candidate.armedSlot === "number"
-        && Array.isArray (candidate.slots)
-        && candidate.slots.every (slot =>
-               slot !== null
-               && typeof slot === "object"
-               && typeof slot.index === "number"
-               && typeof slot.name === "string"
-               && typeof slot.armed === "boolean"
-               && typeof slot.latencySamples === "number"
-               && typeof slot.latencyMs === "number")
-        && Array.isArray (candidate.families)
-        && candidate.families.every (family =>
-               family !== null
-               && typeof family === "object"
-               && typeof family.id === "string"
-               && typeof family.name === "string"
-               && Array.isArray (family.patches)
-               && family.patches.every (patch =>
-                      patch !== null
-                      && typeof patch === "object"
-                      && typeof patch.slot === "number"
-                      && typeof patch.name === "string"
-                      && typeof patch.colorIndex === "number"))
-        && typeof candidate.settings?.masterGain === "number"
-        && typeof candidate.transport?.bpm === "number";
+    throw new ApiError (
+        message.length > 0 ? message : `${what} failed with HTTP ${status}`,
+        status);
 }
 
-/** Rejects transport payloads the remote cannot render. */
-function isTransport (value: unknown): value is ControlTransport
+/** Throw the core error for a payload the UI cannot render. */
+function reject (message: string, status: number): never
 {
-    if (value === null || typeof value !== "object")
-        return false;
-
-    const candidate = value as Partial<ControlTransport>;
-
-    return typeof candidate.playing === "boolean"
-        && typeof candidate.bpm === "number"
-        && typeof candidate.ppq === "number"
-        && typeof candidate.positionSamples === "number";
+    throw new ApiError (message, status);
 }
 
 /** Rejects chain payloads the editor cannot render. */
@@ -480,25 +415,8 @@ export function createControlApi (options: ControlApiOptions): ControlApi
         },
     });
 
-    function requireState (data: ControlState | undefined,
-                           error: unknown,
-                           status: number,
-                           what: string): ControlState
-    {
-        if (data !== undefined)
-        {
-            if (! isControlState (data))
-                throw new ApiError (`${what} returned an unsupported payload`, status);
-
-            return data;
-        }
-
-        const message = describeError (error);
-
-        throw new ApiError (
-            message.length > 0 ? message : `${what} failed with HTTP ${status}`,
-            status);
-    }
+    const guard: RequestGuard = { fail, reject };
+    const state = createStateEndpoints (client, guard);
 
     function requireChain (data: ControlFxChain | undefined,
                            error: unknown,
@@ -512,41 +430,6 @@ export function createControlApi (options: ControlApiOptions): ControlApi
 
             return data;
         }
-
-        const message = describeError (error);
-
-        throw new ApiError (
-            message.length > 0 ? message : `${what} failed with HTTP ${status}`,
-            status);
-    }
-
-    function requireEditor (data: ControlPatchEditor | undefined,
-                            error: unknown,
-                            status: number,
-                            what: string): ControlPatchEditor
-    {
-        if (data !== undefined
-            && typeof data.slot === "number"
-            && typeof data.open === "boolean")
-            return data;
-
-        const message = describeError (error);
-
-        throw new ApiError (
-            message.length > 0 ? message : `${what} failed with HTTP ${status}`,
-            status);
-    }
-
-    function requireStateCapture (data: ControlPatchStateCapture | undefined,
-                                  error: unknown,
-                                  status: number,
-                                  what: string): ControlPatchStateCapture
-    {
-        if (data !== undefined
-            && typeof data.slot === "number"
-            && typeof data.captured === "boolean"
-            && typeof data.sizeBytes === "number")
-            return data;
 
         const message = describeError (error);
 
@@ -588,97 +471,7 @@ export function createControlApi (options: ControlApiOptions): ControlApi
             tokenValue = token !== null && token.length > 0 ? token : null;
         },
 
-        async getState (requestOptions)
-        {
-            const { data, error, response } = await client.GET ("/state", {
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireState (data, error, response.status, "GET /state");
-        },
-
-        async armSlot (slot, requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/arm", {
-                body: { slot },
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireState (data, error, response.status, "POST /arm");
-        },
-
-        async controlTransport (patch, requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/transport", {
-                body: patch,
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            if (data !== undefined && isTransport (data))
-                return data;
-
-            const message = describeError (error);
-
-            throw new ApiError (
-                message.length > 0 ? message : `POST /transport failed with HTTP ${response.status}`,
-                response.status);
-        },
-
-        async updatePatch (slot, patch, requestOptions)
-        {
-            const { data, error, response } = await client.PATCH ("/patches/{slot}", {
-                params: { path: { slot } },
-                body: patch,
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireState (data, error, response.status, `PATCH /patches/${String (slot)}`);
-        },
-
-        async changePatchSource (slot, source, requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/patches/{slot}/source", {
-                params: { path: { slot } },
-                body: source,
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireState (data, error, response.status,
-                                 `POST /patches/${String (slot)}/source`);
-        },
-
-        async openPatchEditor (slot, requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/patches/{slot}/editor", {
-                params: { path: { slot } },
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireEditor (data, error, response.status,
-                                  `POST /patches/${String (slot)}/editor`);
-        },
-
-        async closePatchEditor (slot, requestOptions)
-        {
-            const { data, error, response } = await client.DELETE ("/patches/{slot}/editor", {
-                params: { path: { slot } },
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireEditor (data, error, response.status,
-                                  `DELETE /patches/${String (slot)}/editor`);
-        },
-
-        async capturePatchState (slot, requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/patches/{slot}/state/capture", {
-                params: { path: { slot } },
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireStateCapture (data, error, response.status,
-                                        `POST /patches/${String (slot)}/state/capture`);
-        },
+        ...state,
 
         async getFxChain (slot, requestOptions)
         {
