@@ -13,6 +13,7 @@
 
 namespace ihub::plugins
 {
+class SandboxWatchdog;
 
 /**
     Optional out-of-process hosting for one plugin instrument.
@@ -165,8 +166,7 @@ public:
     static juce::File findHelperExecutable();
 
 private:
-    class Watchdog;
-    friend class Watchdog;
+    friend class SandboxWatchdog;
 
     struct PendingMidiEvent
     {
@@ -192,7 +192,7 @@ private:
     sandbox::SharedMemory* shared = nullptr;
 
     std::unique_ptr<juce::ChildProcess> childProcess;
-    std::unique_ptr<Watchdog> watchdog;
+    std::unique_ptr<SandboxWatchdog> watchdog;
 
     std::atomic<Status> status { Status::stopped };
     std::atomic<bool> failed { false };
