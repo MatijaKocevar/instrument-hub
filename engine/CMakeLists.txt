@@ -111,6 +111,7 @@ target_sources(instrument-hub
         src/api/routes/StateRoutes.cpp
         src/api/routes/TransportRoutes.cpp
         src/api/Server.cpp
+        src/api/StateStore.cpp
         src/api/SessionBridge.cpp
         src/api/StateBroadcast.cpp
         src/app/CommandLine.cpp
