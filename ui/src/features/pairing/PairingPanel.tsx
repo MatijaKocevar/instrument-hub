@@ -1,13 +1,11 @@
 import type { ReactElement } from "react";
 
 import type { ControlPairingState } from "../../api/client";
-import {
-    formatCodeLifetime,
-    isPairingCode,
-    pairingPayload,
-    spacedPairingCode,
-} from "./model";
-import { QrCodeImage } from "./QrCodeImage";
+import { PairingCodeSection } from "./PairingCodeSection";
+import { PairingHeader } from "./PairingHeader";
+import { PairingLanToggle } from "./PairingLanToggle";
+import { PairingQrSection } from "./PairingQrSection";
+import { PairingTokenSection } from "./PairingTokenSection";
 import "./pairing.css";
 
 export interface PairingPanelProps
@@ -26,8 +24,9 @@ export interface PairingPanelProps
     Desktop pairing card.
 
     LAN mode is off by default: with it off the engine only listens on
-    loopback and needs no token. Turning it on makes the control API require a
-    token, shows the live six-digit code and renders the QR a tablet scans.
+    loopback and needs no token. The header, LAN toggle, this browser's token
+    state and the QR/code sections each own a component; this file lays them
+    out and owns the loading and error states.
 */
 export function PairingPanel ({
     pairing,
@@ -45,8 +44,6 @@ export function PairingPanel ({
     const pairedClients = pairing?.pairedClients ?? 0;
     const canForget = lanEnabled && pairedClients > 0 && !busy;
     const canToggle = !busy && !loading && onToggleLan !== undefined;
-    const canPairSelf = lanEnabled && isPairingCode (code) && token === null
-                        && !busy && onPair !== undefined;
 
     return (
         <section
@@ -56,55 +53,22 @@ export function PairingPanel ({
             data-lan={lanEnabled ? "true" : "false"}
             data-paired-clients={pairedClients}
         >
-            <header className="pairing__header">
-                <div>
-                    <p className="pairing__eyebrow">Remote</p>
-                    <h2 className="pairing__title">Tablet pairing</h2>
-                </div>
-                <span
-                    className={`status-pill pairing__status${lanEnabled ? " pairing__status--on" : ""}`}
-                    data-testid="pairing-lan-status"
-                >
-                    {lanEnabled ? "LAN mode on" : "LAN mode off"}
-                </span>
-            </header>
-
-            <p className="pairing__lede">
-                {lanEnabled
-                    ? "Scan this code with the tablet camera. The code is single-use and expires; a fresh one appears here automatically."
-                    : "LAN mode is off, so only this computer can reach the engine. Turn it on to pair a tablet on the same network."}
-            </p>
+            <PairingHeader lanEnabled={lanEnabled} />
 
             <div className="pairing__actions">
-                <button
-                    className={`pairing__toggle${lanEnabled ? " pairing__toggle--on" : ""}`}
-                    type="button"
-                    data-testid="lan-toggle"
-                    aria-pressed={lanEnabled}
+                <PairingLanToggle
+                    lanEnabled={lanEnabled}
                     disabled={!canToggle}
-                    onClick={() => { onToggleLan?. (! lanEnabled); }}
-                >
-                    {lanEnabled ? "Turn off LAN mode" : "Turn on LAN mode"}
-                </button>
+                    onToggle={onToggleLan}
+                />
 
-                <span
-                    className="pairing__token-state"
-                    data-testid="pairing-token-state"
-                    data-paired={token === null ? "false" : "true"}
-                >
-                    {token === null ? "This browser is not paired" : "This browser is paired"}
-                </span>
-
-                {canPairSelf
-                    ? <button
-                          className="pairing__pair-self"
-                          type="button"
-                          data-testid="pairing-pair-self"
-                          onClick={() => { onPair?.(code); }}
-                      >
-                          Pair this browser
-                      </button>
-                    : null}
+                <PairingTokenSection
+                    token={token}
+                    code={code}
+                    lanEnabled={lanEnabled}
+                    busy={busy}
+                    onPair={onPair}
+                />
             </div>
 
             {error !== null
@@ -121,52 +85,12 @@ export function PairingPanel ({
 
             {lanEnabled && pairing !== null
                 ? <div className="pairing__body">
-                      <div className="pairing__qr-column">
-                          <QrCodeImage value={pairingPayload (pairing)} size={228} />
-                          <p className="pairing__endpoint" data-testid="pairing-endpoint">
-                              {pairing.address}:{pairing.port}
-                          </p>
-                      </div>
-
-                      <div className="pairing__details">
-                          <p className="pairing__label">Pairing code</p>
-                          <p
-                              className="pairing__code"
-                              data-testid="pairing-code"
-                              data-code={code}
-                          >
-                              {spacedPairingCode (code)}
-                          </p>
-
-                          <dl className="pairing__meta">
-                              <div>
-                                  <dt>Expires in</dt>
-                                  <dd data-testid="pairing-expiry">
-                                      {formatCodeLifetime (pairing.codeExpiresInMs)}
-                                  </dd>
-                              </div>
-                              <div>
-                                  <dt>Paired tablets</dt>
-                                  <dd data-testid="pairing-clients">{pairedClients}</dd>
-                              </div>
-                              <div>
-                                  <dt>Remote URL</dt>
-                                  <dd>
-                                      <code data-testid="pairing-payload">{pairing.payload}</code>
-                                  </dd>
-                              </div>
-                          </dl>
-
-                          <button
-                              className="pairing__forget"
-                              type="button"
-                              data-testid="pairing-forget"
-                              disabled={!canForget}
-                              onClick={() => { onForget?. (); }}
-                          >
-                              Forget paired tablets
-                          </button>
-                      </div>
+                      <PairingQrSection pairing={pairing} />
+                      <PairingCodeSection
+                          pairing={pairing}
+                          canForget={canForget}
+                          onForget={onForget}
+                      />
                   </div>
                 : null}
         </section>
