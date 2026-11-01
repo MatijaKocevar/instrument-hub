@@ -100,3 +100,12 @@ Status legend: `open` · `resolved`
 - human must: open `./build/engine/instrument-hub`, visit `/grid`, `/instrument`, `/plugins` and `/audio` in the embedded view, confirm layout, scrolling and 44 px touch targets, and capture a native frame per page if a pixel record is needed.
 - workaround: `ihub-ui-pages` validates the page markup and writes the four snapshots; `ihub-ui-snapshot` validates the native 1200x800 Grid frame.
 - note: B009's "eight slots" note is stale after T118. The composed session now owns all 64 slots and every pad arms audible audio, as `ihub-e2e` proves with the click/pad/LED/audio record.
+
+## B011 · Autopilot blocked on T137
+- task: T137
+- severity: hard
+- status: open
+- what: crashed: Error: getaddrinfo EAI_AGAIN api.deepseek.com
+- why: see the session log in `.autopilot/T137.log`
+- human must: read the log for T137
+- workaround: none recorded
