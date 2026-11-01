@@ -166,3 +166,7 @@ refactor tasks, and do not start a run "to make progress".
 New work is added to `ROADMAP.md` one bug at a time from `plan/BUGS.md`,
 after the bug has been reproduced. Each fix needs a regression test where
 practical and must leave `scripts/test.sh` green. Keep one bug per commit.
+
+The human-requested single-responsibility refactors **T140–T174** are also
+queued in `ROADMAP.md`. They are pure moves: no behaviour, API or JSON
+changes. `plan/REFACTOR.md` holds the rationale and target structure.

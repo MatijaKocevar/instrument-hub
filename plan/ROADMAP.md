@@ -10,6 +10,10 @@ file. If the check fails you are not done.
 > playable on this machine. New work is **bug fixes only**, queued from
 > `plan/BUGS.md` after reproduction. Do not add speculative features or
 > refactors to this file without an explicit human request.
+>
+> The single-responsibility refactor queue **T140–T174** was added by an
+> explicit human request; see `plan/REFACTOR.md` for the rationale and
+> target structure.
 
 ---
 
@@ -602,3 +606,256 @@ file. If the check fails you are not done.
 - goal: Replace the in-page route buttons with a persistent left sidebar in the desktop shell. Workspace items: Grid, Instrument, Plugins, Audio & MIDI. A bottom group holds Settings & Account: the existing pairing code, LAN mode enable/disable, token revoke, and an About/version section (no login system is invented). Active route is highlighted; `/remote` keeps its own full-screen layout without a sidebar. On narrow/tablet widths collapse to an icon rail or bottom tabs. Page-specific actions stay in the page; route navigation moves out of page bodies. Add the `/settings` route to the router and move the pairing panel there.
 - files: `ui/src/App.tsx`, `ui/src/state/router.ts`, `ui/src/features/pairing/`, `ui/src/styles.css`, `ui/src/testing/snapshot.tsx`
 - accept: a 1200x800 snapshot shows the sidebar with the four workspace items and a Settings & Account group, with the active route highlighted; clicking each renders the page; `/settings` exposes pairing/LAN/account/about; no duplicate route buttons remain in page headers; a narrow snapshot shows the collapsed rail/bottom tabs; snapshot and typecheck stay green.
+
+---
+
+## Refactor phase (human-requested, 2026-11-01)
+
+These tasks apply the single-responsibility rule in `AGENTS.md` to the
+existing code. Every task is a pure move: no behaviour, API, JSON or test-id
+changes. See `plan/REFACTOR.md` for the rationale and target structure.
+
+## T140 · Remove the global header and connection bar
+- depends: T139
+- size: S
+- goal: Fix `plan/BUGS.md` BUG-003. Delete the repeated "Audio workspace / Instrument Hub / One place…" hero header and the Connected / URL / Retry now bar from the desktop shell. Keep connection state in the sidebar and footer. Update the native `--snapshot` / `--ui-check` probe so it no longer waits for the removed `app-title` marker.
+- files: `ui/src/App.tsx`, `ui/src/styles.css`, `ui/src/testing/snapshot.tsx`, `engine/src/app/UiModes.{h,cpp}`
+- accept: no desktop route renders `app__header` or `data-testid="connection-status"`; the page harness asserts their absence; `pnpm typecheck` and `pnpm test:snapshot` pass; `ihub-ui-snapshot` still captures the Grid.
+
+## T141 · Split the desktop shell
+- depends: T140
+- size: M
+- goal: Reduce `ui/src/App.tsx` to a thin router entry point. Move navigation, shell layout, shell state/effects, route selection and the Grid summary panels into `ui/src/features/shell/`, one responsibility per file.
+- files: `ui/src/App.tsx`, new `ui/src/features/shell/`
+- accept: `App.tsx` only chooses between `/remote` and the desktop shell; every shell file passes the one-sentence test; no behaviour or test-id changes; `pnpm typecheck` and `pnpm test:snapshot` pass.
+
+## T142 · Split the snapshot harness: fixtures and server
+- depends: T140
+- size: L
+- goal: Move the fixture data and the fixture HTTP server out of `ui/src/testing/snapshot.tsx` into focused modules under `ui/src/testing/`. The harness should import them; no scenario assertions move in this task.
+- files: `ui/src/testing/snapshot.tsx`, new `ui/src/testing/fixtures/`, new `ui/src/testing/fixtureServer.ts`
+- accept: the fixture server behaves exactly as before; `pnpm typecheck` and `pnpm test:snapshot` pass with the same checks.
+
+## T143 · Split the snapshot harness: scenarios
+- depends: T142
+- size: L
+- goal: Move each area's scenarios and assertions out of `snapshot.tsx` into per-feature scenario modules (shell, grid, instrument, plugins, audio, MIDI, pairing, remote, store). Keep one small runner that calls them in the existing order.
+- files: `ui/src/testing/`
+- accept: the harness prints the same PASS lines; no fixture or assertion lives in another area's file; `pnpm test:snapshot` passes.
+
+## T144 · Split the UI store: lifecycle and polling
+- depends: T141
+- size: M
+- goal: Separate store subscription, snapshot patching, refresh/poll scheduling and retry/backoff from the domain actions in `ui/src/state/store.ts`.
+- files: `ui/src/state/store.ts`, new `ui/src/state/`
+- accept: the public store API is unchanged; `pnpm typecheck` and `pnpm test:snapshot` pass.
+
+## T145 · Split the UI store: patches and FX
+- depends: T144
+- size: L
+- goal: Move patch arm/update/colour/source/editor/capture actions and the FX-chain actions into their own domain modules with the same optimistic-update behaviour.
+- files: `ui/src/state/`
+- accept: optimistic arm, patch and FX behaviour is unchanged; the store tests and snapshots pass.
+
+## T146 · Split the UI store: audio, MIDI, plugins, pairing, transport
+- depends: T145
+- size: M
+- goal: Move the remaining domain actions out of the core store so each file owns one API area.
+- files: `ui/src/state/`
+- accept: the public store API is unchanged; `pnpm test:snapshot` passes.
+
+## T147 · Split the UI API client: transport and state
+- depends: T146
+- size: M
+- goal: Keep one transport/error core in `ui/src/api/client.ts` and move the state, arm, transport and patch endpoints into a domain module with the same exported types.
+- files: `ui/src/api/client.ts`, new `ui/src/api/`
+- accept: all existing named exports still resolve from `ui/src/api/client`; `pnpm typecheck` and `pnpm test:snapshot` pass.
+
+## T148 · Split the UI API client: FX, plugins, MIDI, audio, pairing
+- depends: T147
+- size: M
+- goal: Move the remaining endpoint groups out of the client core, one file per resource.
+- files: `ui/src/api/`
+- accept: the public client surface is unchanged; `pnpm typecheck` and `pnpm test:snapshot` pass.
+
+## T149 · Split the Instrument page: frame and mixer
+- depends: T141
+- size: M
+- goal: Move the page frame and the level/pan/mute/solo mixer out of `ui/src/features/instrument/InstrumentPage.tsx`.
+- files: `ui/src/features/instrument/`
+- accept: the instrument snapshot checks and test ids are unchanged; `pnpm test:snapshot` passes.
+
+## T150 · Split the Instrument page: source and inserts
+- depends: T149
+- size: L
+- goal: Move the source card, source picker, editor controls and insert chain out of `InstrumentPage.tsx` into focused components.
+- files: `ui/src/features/instrument/`
+- accept: source/insert behaviour and latency readouts are unchanged; the instrument snapshot checks pass.
+
+## T151 · Split the Instrument page: save and capture
+- depends: T150
+- size: M
+- goal: Move the explicit save-sound action and its confirmation/error states out of the page, leaving the page as a composition of cards.
+- files: `ui/src/features/instrument/`
+- accept: the save-sound snapshot checks pass; `pnpm test:snapshot` is green.
+
+## T152 · Split the grid view and meters
+- depends: T141
+- size: M
+- goal: Separate grid layout, cell rendering, colour swatch handling, meter transport and pure model logic where they are entangled in `features/grid/`.
+- files: `ui/src/features/grid/`
+- accept: the grid, meter and loading snapshot checks pass unchanged.
+
+## T153 · Split the remote page: layout and set list
+- depends: T141
+- size: M
+- goal: Move the stage layout, set list, now-playing card and patch stepping out of `ui/src/features/remote/RemoteView.tsx`.
+- files: `ui/src/features/remote/`
+- accept: the remote snapshot checks and test ids are unchanged.
+
+## T154 · Split the remote page: controls and link
+- depends: T153
+- size: M
+- goal: Move transport/panic controls, the reconnect banner, wake-lock handling and the live meter link into focused modules.
+- files: `ui/src/features/remote/`
+- accept: the remote transport, banner and wake-lock checks pass unchanged.
+
+## T155 · Split the audio settings panel
+- depends: T141
+- size: M
+- goal: Separate device selection, channel maps, latency readout, xruns and measurement from `ui/src/features/audio-settings/AudioSettingsPanel.tsx`.
+- files: `ui/src/features/audio-settings/`
+- accept: the audio settings snapshot checks are unchanged.
+
+## T156 · Split the MIDI panel
+- depends: T141
+- size: M
+- goal: Separate the input list, port status, and pad test from `ui/src/features/midi/MidiPanel.tsx`.
+- files: `ui/src/features/midi/`
+- accept: the MIDI snapshot checks are unchanged.
+
+## T157 · Split the plugins page
+- depends: T141
+- size: M
+- goal: Separate the toolbar/search, inventory list, plug-in row/card and used-by hints from `ui/src/features/plugins/PluginsPage.tsx`.
+- files: `ui/src/features/plugins/`
+- accept: the plugins snapshot checks are unchanged.
+
+## T158 · Split the settings and pairing panels
+- depends: T141
+- size: M
+- goal: Separate the account card, about card and the pairing panel's QR/code/token sections into focused components.
+- files: `ui/src/features/settings/`, `ui/src/features/pairing/`
+- accept: the settings and pairing snapshot checks are unchanged.
+
+## T159 · Remaining UI module sweep
+- depends: T151, T152, T154, T155, T156, T157, T158
+- size: M
+- goal: Apply the one-sentence test to the remaining UI modules and split any file that still mixes responsibilities. Do not rewrite working code for style alone.
+- files: `ui/src/`
+- accept: every touched file has one reason to change; `pnpm typecheck` and `pnpm test:snapshot` pass.
+
+## T160 · Split the API server: route families
+- depends: T139
+- size: L
+- goal: Separate the REST route families from `engine/src/api/Server.cpp` into focused route modules, keeping `Server` as transport/auth/facade.
+- files: `engine/src/api/`
+- accept: `shared/api/openapi.yaml` is unchanged; the API tests pass unchanged.
+
+## T161 · Split the API server: auth, state, meters and WebSocket
+- depends: T160
+- size: L
+- goal: Separate pairing/auth checks, state serialization, meter sampling and WebSocket broadcast from the server core.
+- files: `engine/src/api/`
+- accept: the pairing, state-broadcast, meter and session API tests pass unchanged.
+
+## T162 · Split the FX rack
+- depends: T139
+- size: M
+- goal: Separate insert lifecycle, parameter reads, latency budgeting and reordering in `engine/src/audio/FxRack.cpp`.
+- files: `engine/src/audio/FxRack.{h,cpp}`
+- accept: `ihub-fx-chain` and `ihub-plugin-fx` pass unchanged.
+
+## T163 · Split the warm pool and controller
+- depends: T139
+- size: M
+- goal: Separate slot reservation, warm-up state, eviction and session orchestration in `audio/WarmPool.cpp` and `session/WarmPoolController.cpp`.
+- files: `engine/src/audio/WarmPool.{h,cpp}`, `engine/src/session/WarmPoolController.{h,cpp}`
+- accept: the warm-pool, session-warm and switch-continuity tests pass unchanged.
+
+## T164 · Split project serialization
+- depends: T139
+- size: M
+- goal: Separate set metadata, slot/patch data, plugin-state blobs and version migration in `engine/src/project/Serializer.cpp`.
+- files: `engine/src/project/Serializer.{h,cpp}`
+- accept: the set-file, migrations and patch-persistence tests pass unchanged.
+
+## T165 · Split the plugin host and sandbox
+- depends: T139
+- size: L
+- goal: Separate scanning/hosting, sandbox process transport, parameter bridging and editor-window lifetime across `engine/src/plugins/`.
+- files: `engine/src/plugins/`
+- accept: the plugin instance, window, scanner, cache and TestPlugin scan tests pass unchanged.
+
+## T166 · Split the sampler
+- depends: T139
+- size: M
+- goal: Separate kit parsing, sample loading/decoding and voice rendering across `engine/src/sampler/`.
+- files: `engine/src/sampler/`
+- accept: the kit-loader, sample-loader and sampler-instrument tests pass unchanged.
+
+## T167 · Split the controller and mapping code
+- depends: T139
+- size: L
+- goal: Separate protocol encoding, pad mapping, validator diagnostics and YAML parsing in `engine/src/controller/`.
+- files: `engine/src/controller/`
+- accept: the Launchpad and mapping tests pass unchanged.
+
+## T168 · Split diagnostics, audio settings and device management
+- depends: T139
+- size: M
+- goal: Separate each diagnostic mode and split device enumeration, channel maps and latency calculation in `engine/src/app/` and `engine/src/audio/`.
+- files: `engine/src/app/`, `engine/src/audio/`
+- accept: the app-mode, diagnostics, audio-settings and device-manager tests pass unchanged.
+
+## T169 · Remaining engine module sweep
+- depends: T161, T162, T163, T164, T165, T166, T167, T168
+- size: M
+- goal: Apply the one-sentence test to the remaining engine files and split any that still mix responsibilities. Do not rewrite working code for style alone.
+- files: `engine/src/`
+- accept: every touched file has one reason to change; `scripts/test.sh` is green.
+
+## T170 · Split the end-to-end tests
+- depends: T139
+- size: M
+- goal: Separate the click/pad/LED/audio scenarios and shared rig setup from `tests/e2e/PadToAudio.cpp` and `tests/e2e/AnalogLabStateTest.cpp`.
+- files: `tests/e2e/`
+- accept: the same scenarios run and pass.
+
+## T171 · Split the controller and sampler tests
+- depends: T139
+- size: M
+- goal: Group cases by contract (protocol, mapping, validation, kit, sample, voices) instead of one large test file per area.
+- files: `tests/controller/`, `tests/sampler/`
+- accept: the same checks run and pass.
+
+## T172 · Split the DSP and audio tests
+- depends: T139
+- size: M
+- goal: One test file per effect or behaviour concern across `tests/dsp/` and `tests/audio/`.
+- files: `tests/dsp/`, `tests/audio/`
+- accept: the same checks run and pass.
+
+## T173 · Split the API and session tests
+- depends: T139
+- size: M
+- goal: Separate route-group cases and shared session fixtures from `tests/api/`.
+- files: `tests/api/`
+- accept: the same checks run and pass.
+
+## T174 · Remaining test sweep
+- depends: T170, T171, T172, T173
+- size: M
+- goal: Apply the one-sentence test to the remaining test files, splitting by scenario and moving fixtures into their own files.
+- files: `tests/`
+- accept: every touched file has one reason to change; `scripts/test.sh` is green.

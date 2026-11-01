@@ -28,12 +28,47 @@ autopilot. They start and stop the app and the dev server themselves
 
 ---
 
+## Code organisation
+
+Small files win. A file you can open and understand without scrolling is
+easier to review, easier to debug, and easier for an agent to modify
+safely. Big files hide coupling: you scroll for ten minutes, then change
+the wrong thing. Optimise for comprehension, not for fewer files.
+
+- One file, one responsibility. On opening it, you should be able to say
+  in one sentence what it does: one component, one hook, one model, one
+  C++ class implementation, or one test scenario.
+- Aim for one screen, roughly 80–120 lines. This is a target, not a gate:
+  155 lines with one clear responsibility is fine; 150 lines doing three
+  unrelated things is not.
+- Prefer more, smaller files over fewer, larger ones. Split by reason to
+  change: a route, a panel, a hook, pure model logic, fixtures,
+  assertions.
+- Keep genuinely related code together. Do not split a component from its
+  private helpers, or a class from its invariants — single responsibility
+  is not "the smallest possible file".
+- Never grow a file past a screen by appending a new section. When a new
+  responsibility appears, give it a file and a name.
+- Feature code lives in `ui/src/features/<feature>/`; shell-only UI in
+  `ui/src/features/shell/`; public surfaces through `index.ts`.
+  C++ uses one class per header, with implementation split across `.cpp`
+  files by concern. Tests keep fixtures, harness, assertions and
+  scenarios in separate files.
+- Generated code (`ui/src/api/schema.d.ts`), `third_party/` and build
+  dirs are exempt.
+- Existing oversized files are tracked in `plan/REFACTOR.md`; do not make
+  them worse while fixing bugs, and split them when you touch them.
+
+---
+
 ## Current phase: bug fixing
 
 The feature roadmap is complete (`T000–T139`) and the app is playable: the
 Launchpad selects patches, the Keystation plays the armed patch, and
 per-patch Analog Lab state persists across switches and restarts. From now
-on the work is **bug fixing**, not feature work or refactoring.
+on the work is **bug fixing plus the explicitly requested refactors queued
+in `plan/ROADMAP.md` (T140–T174); `plan/REFACTOR.md` holds the rationale
+and target structure**.
 
 - Fix reported bugs. Do not start new features, refactors or cleanup
   tasks unless the human explicitly asks.

@@ -51,6 +51,15 @@ reported by the human or reproduced on this machine.
 - evidence: `ihub-analog-lab-state-test` (2 patches) passes; `ihub-per-patch-state-test` (8 patches) passes
 - fix: pending; candidate is one isolated child process per batch, or manual verification
 
+### BUG-003 · Global page header and connection bar repeat on every page
+- status: open
+- area: ui
+- steps: open any desktop route (`/grid`, `/instrument`, `/plugins`, `/audio`, `/settings`)
+- expected: the page starts with its own content; app identity and connection state live in the sidebar/footer
+- actual: every route prints the "Audio workspace / Instrument Hub / One place…" hero header and a full-width Connected / URL / Retry now bar
+- evidence: screenshot in the bug report; `ui-shell-*` and page artifacts under `tests/artifacts/`
+- fix: pending; the attempted change was reverted so it can be queued as a task
+
 ### BUG-004 · App does not exit after the window is closed; hangs in shutdown
 - status: open
 - area: engine
