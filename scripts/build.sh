@@ -63,6 +63,15 @@ esac
 BUILD_PRESET="${BUILD_PRESET:-$PRESET}"
 
 cmake --preset "$BUILD_PRESET"
-cmake --build --preset "$BUILD_PRESET" --parallel
+
+if [[ "$BUILD_PRESET" == "debug" ]]; then
+    # Dev build: the GUI app only. Building every test target recompiles each
+    # JUCE module ~58 times and peaks around 13 GB, which a dev loop never
+    # needs. Build tests separately when you actually run them.
+    JOBS="${IH_BUILD_JOBS:-$(( $(nproc) / 2 ))}"
+    cmake --build --preset "$BUILD_PRESET" --parallel "$JOBS" --target instrument-hub
+else
+    cmake --build --preset "$BUILD_PRESET" --parallel
+fi
 
 echo "built: $BUILD_DIR/engine/instrument-hub"

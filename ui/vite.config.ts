@@ -23,6 +23,11 @@ export default defineConfig({
       // `/state`; proxying the path would shadow the page on a dev reload.
       "/transport": "http://127.0.0.1:8080",
       "/audio": "http://127.0.0.1:8080",
+      "/patches": "http://127.0.0.1:8080",
+      "/plugins": "http://127.0.0.1:8080",
+      "/midi": "http://127.0.0.1:8080",
+      "/pairing": "http://127.0.0.1:8080",
+      "/pair": "http://127.0.0.1:8080",
       "/meters": { target: "ws://127.0.0.1:8080", ws: true },
     },
   },
