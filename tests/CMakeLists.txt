@@ -82,6 +82,40 @@ set(IHUB_WARM_POOL_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolWorker.cpp"
 )
 
+# The sampler is split into its three responsibilities: kit parsing and
+# loading, sample decode/hand-off and the voice renderer. Tests compile only
+# the groups they touch.
+set(IHUB_SAMPLER_KIT_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/LoadedKit.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/PanGains.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/kit/KitBuilder.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/kit/KitJson.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/kit/KitParser.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/kit/KitValidation.cpp"
+)
+
+set(IHUB_SAMPLE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleHandoff.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/sample/SampleDecoder.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/sample/SampleResampler.cpp"
+)
+
+set(IHUB_SAMPLER_INSTRUMENT_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/instrument/SamplerInstrumentEvents.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/instrument/SamplerInstrumentRender.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/instrument/SamplerInstrumentVoices.cpp"
+)
+
+set(IHUB_SAMPLER_SOURCES
+    ${IHUB_SAMPLER_KIT_SOURCES}
+    ${IHUB_SAMPLE_SOURCES}
+    ${IHUB_SAMPLER_INSTRUMENT_SOURCES}
+)
+
 # The hosted plugin wrapper is a facade over loading, bus preparation, process,
 # MIDI queuing, state and the parameter bridge. Tests that host a plugin
 # compile the whole set.
@@ -1037,10 +1071,7 @@ target_sources(ihub-session-smoke-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-session-smoke-test
@@ -1165,10 +1196,7 @@ target_sources(ihub-session-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-session-api-test
@@ -1255,10 +1283,7 @@ target_sources(ihub-patch-fx-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-patch-fx-api-test
@@ -1347,10 +1372,7 @@ target_sources(ihub-instrument-page-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-instrument-page-api-test
@@ -1437,10 +1459,7 @@ target_sources(ihub-patch-state-capture-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-patch-state-capture-api-test
@@ -1530,10 +1549,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
             ${IHUB_PLUGIN_WINDOW_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-plugin-editor-api-test
@@ -1631,10 +1647,7 @@ target_sources(ihub-session-warm-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-session-warm-test
@@ -2815,7 +2828,7 @@ juce_add_console_app(ihub-sample-loader-test
 target_sources(ihub-sample-loader-test
     PRIVATE
         sampler/SampleLoaderTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+        ${IHUB_SAMPLE_SOURCES}
 )
 
 target_include_directories(ihub-sample-loader-test
@@ -2876,9 +2889,8 @@ juce_add_console_app(ihub-kit-loader-test
 target_sources(ihub-kit-loader-test
     PRIVATE
         sampler/KitLoaderTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+        ${IHUB_SAMPLER_KIT_SOURCES}
+        ${IHUB_SAMPLE_SOURCES}
 )
 
 target_include_directories(ihub-kit-loader-test
@@ -2943,10 +2955,7 @@ juce_add_console_app(ihub-sampler-instrument-test
 target_sources(ihub-sampler-instrument-test
     PRIVATE
         sampler/SamplerInstrumentTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
+        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-sampler-instrument-test
@@ -3147,10 +3156,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-session-midi-test
@@ -3235,10 +3241,7 @@ target_sources(ihub-session-plugin-state-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-session-plugin-state-test
@@ -3318,10 +3321,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
             ${IHUB_PLUGIN_WINDOW_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-session-editor-follow-test
@@ -3424,10 +3424,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-e2e-test
@@ -3514,10 +3511,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-per-patch-state-test
@@ -3602,10 +3596,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
+            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-analog-lab-state-test

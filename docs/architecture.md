@@ -403,16 +403,32 @@ second binder in this directory.
 
 - [Kit.h](../engine/src/sampler/Kit.h) / [Kit.cpp](../engine/src/sampler/Kit.cpp)
   — the JSON kit model: velocity layers, round-robin, one-shot/gate, choke
-  groups, MIDI note range.
+  groups, MIDI note range. The validation rules live in
+  `kit/KitValidation.cpp`.
+- [LoadedKit.h](../engine/src/sampler/LoadedKit.h) /
+  [LoadedKit.cpp](../engine/src/sampler/LoadedKit.cpp) — the resolved playback
+  tables: flattened pads/layers, unique decoded samples and the RT-safe
+  round-robin resolution behind `ResolvedHit`.
 - [KitLoader.h](../engine/src/sampler/KitLoader.h) /
-  [KitLoader.cpp](../engine/src/sampler/KitLoader.cpp) — parses and validates a
-  kit document.
+  [KitLoader.cpp](../engine/src/sampler/KitLoader.cpp) — parses, validates and
+  decodes a kit document. The schema walkers are in `kit/KitParser.cpp` and
+  `kit/KitJson.cpp`; sample binding and the size limits are in
+  `kit/KitBuilder.cpp`.
+- [SampleData.h](../engine/src/sampler/SampleData.h),
+  [SampleHandoff.h](../engine/src/sampler/SampleHandoff.h) /
+  [SampleHandoff.cpp](../engine/src/sampler/SampleHandoff.cpp) — the decoded
+  sample value type and the lock-free audio-thread hand-off.
 - [SampleLoader.h](../engine/src/sampler/SampleLoader.h) /
-  [SampleLoader.cpp](../engine/src/sampler/SampleLoader.cpp) — WAV/AIFF/FLAC
-  decode, resample to the engine rate, RT-safe hand-off.
+  [SampleLoader.cpp](../engine/src/sampler/SampleLoader.cpp) — the background
+  request queue and loader thread; file decoding lives in
+  `sample/SampleDecoder.cpp` and the polyphase resampler in
+  `sample/SampleResampler.cpp`.
 - [SamplerInstrument.h](../engine/src/sampler/SamplerInstrument.h) /
   [SamplerInstrument.cpp](../engine/src/sampler/SamplerInstrument.cpp) — fixed
-  64-voice polyphonic sampler over a loaded kit.
+  64-voice polyphonic sampler over a loaded kit. MIDI queuing/consumption is in
+  `instrument/SamplerInstrumentEvents.cpp`, the voice pool and envelopes in
+  `instrument/SamplerInstrumentVoices.cpp`, and block rendering in
+  `instrument/SamplerInstrumentRender.cpp`.
 
 ### 3.12 Outside the engine
 

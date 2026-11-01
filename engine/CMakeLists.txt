@@ -233,8 +233,20 @@ target_sources(instrument-hub
         src/session/warm/WarmPoolVoice.cpp
         src/sampler/Kit.cpp
         src/sampler/KitLoader.cpp
+        src/sampler/LoadedKit.cpp
+        src/sampler/PanGains.cpp
+        src/sampler/SampleHandoff.cpp
         src/sampler/SampleLoader.cpp
         src/sampler/SamplerInstrument.cpp
+        src/sampler/instrument/SamplerInstrumentEvents.cpp
+        src/sampler/instrument/SamplerInstrumentRender.cpp
+        src/sampler/instrument/SamplerInstrumentVoices.cpp
+        src/sampler/kit/KitBuilder.cpp
+        src/sampler/kit/KitJson.cpp
+        src/sampler/kit/KitParser.cpp
+        src/sampler/kit/KitValidation.cpp
+        src/sampler/sample/SampleDecoder.cpp
+        src/sampler/sample/SampleResampler.cpp
 )
 
 target_include_directories(instrument-hub
