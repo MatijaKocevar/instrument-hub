@@ -11,6 +11,27 @@ toolchain, opencode auth, `IH_REPO`, how to stop a run cleanly).
 
 ---
 
+## Current phase: bug fixing
+
+The feature roadmap is complete (`T000–T139`) and the app is playable: the
+Launchpad selects patches, the Keystation plays the armed patch, and
+per-patch Analog Lab state persists across switches and restarts. From now
+on the work is **bug fixing**, not feature work or refactoring.
+
+- Fix reported bugs. Do not start new features, refactors or cleanup
+  tasks unless the human explicitly asks.
+- Reproduce first: exact steps, expected vs actual, and the log or
+  screenshot. Record it in `plan/BUGS.md`.
+- Add a regression test where practical. A fix is not done until
+  `scripts/test.sh` passes.
+- One bug per commit; update the entry's status and evidence.
+- Keep the audio-thread contract and the Launchpad/Linux assumptions.
+- Launch the app detached (desktop entry, `setsid`, or a long-lived
+  terminal). Starting it with `&` from a short-lived shell is not an app
+  crash: it dies on `SIGHUP` when that shell exits.
+
+---
+
 ## Guardrails (non-negotiable)
 
 Copied from `plan/AUTOPILOT.md` §5. These override convenience, deadlines,
