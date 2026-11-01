@@ -21,6 +21,26 @@ LEDs, non-silent audio and the page snapshots headlessly.
 The remaining gaps are `.ihub` open/save, kit/plugin assignment actions, and
 physical hardware validation. Section 2 is the blunt list.
 
+## Current phase: bug fixing
+
+The feature roadmap is complete (`T000–T139`) and the app is playable on this
+machine: the Launchpad selects patches, the Keystation plays the armed patch,
+and per-patch Analog Lab state survives switching and restarts.
+
+**The next phase is bug fixing.** `plan/BUGS.md` is the queue; each entry
+carries reproduction steps, expected vs actual and evidence. No new feature or
+refactor work starts unless the human asks for it explicitly.
+
+Known current defects:
+
+- `BUG-001`: `GET /audio` reports `open=false` while the session is streaming.
+- `BUG-002`: full 64-patch Analog Lab coverage is partly automated (8
+  `TestPlugin` patches + 2 real Analog Lab patches; the rest is the manual
+  checklist in `docs/manual-analog-lab-64.md`).
+
+Also: launch the app detached. A background `&` from a short-lived shell dies
+with `SIGHUP` when the shell exits; that is not an app crash.
+
 | | |
 |---|---|
 | Repository | `/home/mkocevar/Projects/instrument-hub` |

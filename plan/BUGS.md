@@ -1,0 +1,52 @@
+# Bugs — current phase
+
+The feature roadmap (`T000–T139`) is complete and the app is playable:
+the Launchpad selects patches, the Keystation plays the armed patch, and
+per-patch Analog Lab state survives switching and restarts.
+
+**This file is now the work queue.** The next phase is bug fixing, not new
+features and not refactoring. A bug only enters this file when it is
+reported by the human or reproduced on this machine.
+
+## Rules
+
+- One bug per entry, one fix per commit.
+- Reproduce first: exact steps, expected, actual, and the log/screenshot.
+- Add a regression test where practical; the fix is not done until
+  `scripts/test.sh` passes.
+- Keep the audio-thread contract and the Launchpad/Linux assumptions.
+- Do not start speculative refactors or features while fixing bugs.
+
+## Template
+
+```
+## BUG-000 · short title
+- status: open | reproduced | fixed | verified
+- area: grid | instrument | plugins | audio | launchpad | midi | engine | ui
+- steps:
+  1. ...
+- expected:
+- actual:
+- evidence: log line, screenshot, test name
+- fix: commit and what changed
+```
+
+## Open
+
+### BUG-001 · `/audio` reports `open=false` while the session is streaming sound
+- status: reproduced
+- area: audio
+- steps: launch the app, read `GET /audio`
+- expected: `open: true` for the device the session opened
+- actual: `open: false`, `deviceName: PulseAudio Sound Server`; the session log says the device opened at 48 kHz/128
+- evidence: `session: opened PulseAudio Sound Server...` in the launch log, `/audio` returns `open=false`
+- fix: pending
+
+### BUG-002 · Full 64-patch Analog Lab workflow is only partly automated
+- status: open
+- area: instrument
+- steps: repeat the manual checklist `docs/manual-analog-lab-64.md`
+- expected: all 64 Analog Lab patches restore their own preset across a full pad sweep
+- actual: automated coverage is 8 TestPlugin patches plus 2 real Analog Lab patches; loading 64 Analog Lab instances in one process stack-overflows the Wine bridge
+- evidence: `ihub-analog-lab-state-test` (2 patches) passes; `ihub-per-patch-state-test` (8 patches) passes
+- fix: pending; candidate is one isolated child process per batch, or manual verification

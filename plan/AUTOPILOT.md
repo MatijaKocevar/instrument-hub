@@ -155,3 +155,14 @@ A successful end state:
 - `HANDOVER.md` lists the hardware checks a human still has to do
 
 The run does **not** end at a milestone boundary. It ends at `BLOCKERS.md`.
+
+---
+
+## 7. Bug-fix phase
+
+The feature roadmap is complete (`T000–T139`). Do not invent feature or
+refactor tasks, and do not start a run "to make progress".
+
+New work is added to `ROADMAP.md` one bug at a time from `plan/BUGS.md`,
+after the bug has been reproduced. Each fix needs a regression test where
+practical and must leave `scripts/test.sh` green. Keep one bug per commit.
