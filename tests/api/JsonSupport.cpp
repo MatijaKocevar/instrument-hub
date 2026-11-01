@@ -70,4 +70,4 @@ juce::var patchForSlot (const juce::var& state, int slot)
     return {};
 }
 
-} // namespace ApiTest
+}

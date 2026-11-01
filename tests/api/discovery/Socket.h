@@ -15,4 +15,4 @@ void closeQuerySocket (int fd);
 
 #endif
 
-} // namespace ApiTest::Discovery
+}

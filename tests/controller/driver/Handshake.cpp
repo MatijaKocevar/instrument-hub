@@ -21,4 +21,4 @@ void runHandshakeChecks (Rig& rig)
     rig.sent.clear();
 }
 
-} // namespace DriverTest
+}

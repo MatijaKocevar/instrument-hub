@@ -41,4 +41,4 @@ void runPoolChecks (Rig& rig)
     check (peakLevel (afterNoteOff) > 0.1f, "the one-shot voices keep sounding");
 }
 
-} // namespace VoiceTest
+}

@@ -71,4 +71,4 @@ void runStressChecks()
     check (handoff.getNumRetired() == 0, "stress: everything reclaimed");
 }
 
-} // namespace SampleTest
+}

@@ -32,4 +32,4 @@ juce::File findAnalogLabBundle()
     return {};
 }
 
-} // namespace AnalogLab
+}

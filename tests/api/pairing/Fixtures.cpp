@@ -61,4 +61,4 @@ bool Fixture::start()
     return true;
 }
 
-} // namespace ApiTest::Pairing
+}

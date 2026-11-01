@@ -7,4 +7,4 @@ namespace AudioTest::SwitchContinuity
 
 void runCase (const std::string& label, float fadeMilliseconds, bool expectDetections);
 
-} // namespace AudioTest::SwitchContinuity
+}

@@ -23,4 +23,4 @@ juce::AudioBuffer<float> render (ihub::sampler::SamplerInstrument& instrument,
 float peakLevel (const juce::AudioBuffer<float>& buffer);
 float peakLevel (const juce::AudioBuffer<float>& buffer, int start, int count);
 
-} // namespace VoiceTest
+}

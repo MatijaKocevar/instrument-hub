@@ -5,4 +5,4 @@ namespace DiagTest
 
 void runLevelAndSourceNames();
 
-} // namespace DiagTest
+}

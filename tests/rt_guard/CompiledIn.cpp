@@ -18,4 +18,4 @@ void runGuardIsCompiledIn()
     check (! AudioEngine::RtGuard::isStrict(), "guard is not strict by default");
 }
 
-} // namespace RtGuardTest
+}

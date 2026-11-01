@@ -8,4 +8,4 @@ namespace PluginFxTest
 void runStateRoundTrip (juce::AudioPluginFormatManager& manager,
                         const juce::PluginDescription& description);
 
-} // namespace PluginFxTest
+}

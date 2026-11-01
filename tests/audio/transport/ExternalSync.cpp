@@ -37,7 +37,7 @@ void runExternalSync()
     check (transport.isExternalClockLocked(),
            "a locked update reports the clock as locked");
 
-    advance (transport, 24000, 128);     // 0.5 s at 90 BPM -> 0.75 quarter notes
+    advance (transport, 24000, 128);
     check (nearlyEqual (transport.getPpq(), 4.75, 1.0e-12),
            "the transport advances at the external tempo between updates");
 
@@ -61,4 +61,4 @@ void runExternalSync()
            "switching back to internal clears the external lock");
 }
 
-} // namespace AudioTest::Transport
+}

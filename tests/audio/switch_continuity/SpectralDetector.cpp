@@ -71,7 +71,7 @@ void fftInPlace (std::vector<double>& re, std::vector<double>& im)
     }
 }
 
-} // namespace
+}
 
 SpectralReport analyseSpectrum (const std::vector<float>& signal)
 {
@@ -112,7 +112,6 @@ SpectralReport analyseSpectrum (const std::vector<float>& signal)
         double totalEnergy = 0.0;
         double highEnergy = 0.0;
 
-        // Skip DC (bin 0): the Hann window's mean is not splatter.
         for (int bin = 1; bin < frameSize / 2; ++bin)
         {
             const double magnitudeSquared = re[static_cast<size_t> (bin)] * re[static_cast<size_t> (bin)]
@@ -146,4 +145,4 @@ SpectralReport analyseSpectrum (const std::vector<float>& signal)
     return report;
 }
 
-} // namespace AudioTest::SwitchContinuity
+}

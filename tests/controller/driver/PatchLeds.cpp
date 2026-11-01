@@ -65,4 +65,4 @@ void runPatchLedChecks (Rig& rig)
     check (hex (rig.sent.back()) == "91 0B 05", "the error pad LED flashes red");
 }
 
-} // namespace DriverTest
+}

@@ -44,4 +44,4 @@ bool parseOptions (int argc, char** argv, Options& options)
     return true;
 }
 
-} // namespace SelfTest
+}

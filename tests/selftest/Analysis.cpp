@@ -68,4 +68,4 @@ Report analyse (const std::vector<std::int16_t>& source,
     return report;
 }
 
-} // namespace SelfTest
+}

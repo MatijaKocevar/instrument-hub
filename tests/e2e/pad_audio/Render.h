@@ -24,10 +24,8 @@ struct PadRender
     int switchSample = 0;
 };
 
-/** Runs the offline pad sequence and returns the rendered master bus. */
 PadRender runPadRender (float fadeMilliseconds);
 
-/** Renders the armed slot and returns the RMS of the settled window. */
 double renderRms (ihub::Session& session, int settleBlocks, int rmsBlocks);
 
-} // namespace PadAudio
+}

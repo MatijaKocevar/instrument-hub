@@ -46,4 +46,4 @@ void runMappingScenario()
     }
 }
 
-} // namespace PadAudio
+}

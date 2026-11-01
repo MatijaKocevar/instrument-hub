@@ -35,7 +35,6 @@ TargetBiquad designTarget (ihub::dsp::EqBandType type,
     }
     else
     {
-        // Q form of the shelf slope: beta == 2 * sqrt(A) * alpha.
         const auto beta = sinw0 * std::sqrt (A) / q;
         const auto aPlus1 = A + 1.0;
         const auto aMinus1 = A - 1.0;
@@ -51,7 +50,7 @@ TargetBiquad designTarget (ihub::dsp::EqBandType type,
             d1 = -2.0 * (aMinus1 + aPlus1 * cosw0);
             d2 = aPlus1 + aMinus1Cos - beta;
         }
-        else // highShelf
+        else
         {
             n0 = A * (aPlus1 + aMinus1Cos + beta);
             n1 = -2.0 * A * (aMinus1 + aPlus1 * cosw0);
@@ -111,7 +110,6 @@ double measureMagnitudeDb (ihub::dsp::Eq& eq, double sampleRate, double frequenc
     std::complex<double> sum (0.0, 0.0);
     const auto step = -juce::MathConstants<double>::twoPi * frequency / sampleRate;
 
-    // Recurrence keeps the phase coherent without 32768 trig calls.
     const auto rotation = std::polar (1.0, step);
     std::complex<double> phase (1.0, 0.0);
 
@@ -134,4 +132,4 @@ std::array<ihub::dsp::EqBandSettings, ihub::dsp::Eq::numBands> makeTestBands()
              EqBandSettings { EqBandType::highShelf, 8000.0f, 3.0f, 0.7071068f, true } };
 }
 
-} // namespace DspTest::Eq
+}

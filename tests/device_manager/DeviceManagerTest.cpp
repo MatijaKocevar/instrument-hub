@@ -1,10 +1,3 @@
-// ihub-device-manager-test: exercises AudioEngine::DeviceManager against the
-// ALSA Loopback card documented in plan/TESTING.md.
-//
-// It opens the Loopback output, switches buffer size 128 -> 256 -> 128 while
-// audio is streaming, and hot-swaps to a second Loopback subdevice and back,
-// asserting that the audio callback keeps running and nothing crashes.
-
 #include "audio/DeviceManager.h"
 
 #include <juce_events/juce_events.h>
@@ -121,7 +114,7 @@ void printDevices (const std::vector<AudioEngine::DeviceInfo>& devices)
                   << std::endl;
     }
 }
-} // namespace
+}
 
 int main()
 {
@@ -203,7 +196,6 @@ int main()
 
     check (callback.lastBlockSize.load() > 0, "audio callback received samples");
 
-    // --- 128 -> 256 -------------------------------------------------------
     const auto startsBefore256 = callback.starts.load();
     const auto blocksBefore256 = callback.blocks.load();
 
@@ -221,7 +213,6 @@ int main()
                "audio kept streaming after switching to 256 samples");
     }
 
-    // --- 256 -> 128 -------------------------------------------------------
     const auto startsBefore128 = callback.starts.load();
     const auto blocksBefore128 = callback.blocks.load();
 
@@ -239,7 +230,6 @@ int main()
                "audio kept streaming after switching back to 128 samples");
     }
 
-    // --- hot swap ---------------------------------------------------------
     if (second != nullptr)
     {
         auto swapped = setup;

@@ -1,18 +1,3 @@
-// ihub-session-midi-test: the T128 live-MIDI acceptance.
-//
-// Proves the shipped path without hardware:
-//
-//   1. An unassigned (`empty`) patch renders silence.
-//   2. A note pushed through Session::pushMidi() on the armed plugin patch
-//      produces non-silent audio, and the matching note-off silences it.
-//   3. The queue is drained by the audio render (nothing is replayed twice)
-//      and the whole path allocates nothing on the audio thread.
-//   4. MidiBridge forwards generic/Keystation input but never Launchpad MI/DA
-//      notes: pads are controller events, not instrument notes.
-//
-// The test plugin is the in-repo NoteTonePlugin, whose sine is gated by a held
-// note, so "silent" and "sounding" are unambiguous.
-
 #include "Session.h"
 #include "api/MidiBridge.h"
 
@@ -76,7 +61,7 @@ bool waitForArmed (ihub::Session& session, int slot)
     return session.waitForSlotActive (slot, 5000);
 }
 
-} // namespace
+}
 
 int main()
 {
@@ -113,7 +98,6 @@ int main()
 
     juce::AudioBuffer<float> buffer (kChannels, kBlockSize);
 
-    // --- 1. An unassigned patch is silent, even with a note queued ----------
     check (waitForArmed (session, 0), "the empty patch arms");
 
     const auto emptyPeak = renderBlocksPeak (session, buffer, 8);
@@ -130,7 +114,6 @@ int main()
     check (session.getQueuedMidiCount() == 0,
            "the audio render drained the queue exactly once");
 
-    // --- 2. The armed plugin patch sounds only while a note is held ---------
     check (waitForArmed (session, 1), "the plugin patch warms and arms");
 
     const auto idlePeak = renderBlocksPeak (session, buffer, 8);
@@ -153,7 +136,6 @@ int main()
            "the note-off stops the patch (peak "
                + std::to_string (noteOffPeak) + ")");
 
-    // --- 3. MidiBridge routes inputs but never Launchpad pad notes ----------
     Api::MidiBridge bridge;
     bridge.setMidiSink ([&session] (const juce::MidiMessage& message)
     {
@@ -194,7 +176,6 @@ int main()
 
     bridge.setMidiSink (nullptr);
 
-    // --- 4. The source picker's assignment is published for persistence ----
     bool assignmentObserved = false;
     std::string assignedKind;
 

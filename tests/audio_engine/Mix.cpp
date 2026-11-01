@@ -98,4 +98,4 @@ void runMixAgainstReference()
            "all three slots were processed");
 }
 
-} // namespace AudioEngineTest
+}

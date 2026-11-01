@@ -8,7 +8,7 @@ namespace allocCount
 {
 std::atomic<bool> enabled { false };
 std::atomic<long> total { 0 };
-} // namespace allocCount
+}
 
 void* operator new (std::size_t size)
 {

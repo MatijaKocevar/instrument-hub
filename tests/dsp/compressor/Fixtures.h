@@ -42,4 +42,4 @@ double measureSteadyGainDb (ihub::dsp::Compressor& compressor,
                             double sampleRate = kSampleRate,
                             double seconds = 1.5);
 
-} // namespace DspTest::Compressor
+}

@@ -9,11 +9,8 @@
 namespace AnalogLab
 {
 
-/** Stable identity hash for an opaque plugin blob (FNV-1a 64). */
 std::string hashOf (const juce::MemoryBlock& data);
 
-/** Waits until two consecutive reads agree after reloading the candidate into
-    the live instance. Only one Analog Lab instance is alive at this point. */
 bool stabiliseState (ihub::plugins::PluginInstrument& instrument,
                      juce::MemoryBlock& result);
 
@@ -28,4 +25,4 @@ bool writeHashes (const juce::File& file,
 
 bool readHashes (const juce::File& file, std::string& hashA, std::string& hashB);
 
-} // namespace AnalogLab
+}

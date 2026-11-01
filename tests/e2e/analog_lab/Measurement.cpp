@@ -35,7 +35,6 @@ bool measurePass (ihub::Session& session,
 
     measurement.audioB = renderNote (session, 1);
 
-    // The explicit return leg: A -> B -> A.
     if (! armAndWait (session, 0))
         return false;
 
@@ -79,4 +78,4 @@ bool measurePass (ihub::Session& session,
     return ok;
 }
 
-} // namespace AnalogLab
+}

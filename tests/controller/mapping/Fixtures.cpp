@@ -82,4 +82,4 @@ encoders:
     macro: )" + encoderMacro + "\n";
 }
 
-} // namespace MappingTest
+}

@@ -81,4 +81,4 @@ void runSource (SessionRig& rig)
     check (response && response->status == 404, "an unknown slot is rejected");
 }
 
-} // namespace ApiTest::InstrumentPageApi
+}

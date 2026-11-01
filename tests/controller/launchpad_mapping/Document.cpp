@@ -112,4 +112,4 @@ bool runDocumentChecks()
     return true;
 }
 
-} // namespace LaunchpadMappingTest
+}

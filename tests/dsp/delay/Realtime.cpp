@@ -24,8 +24,6 @@ void runRealtime()
         delay.processBlock (buffer, midi);
     };
 
-    // Warm up outside the counter (JUCE can lazily set up denormal state on
-    // the first call).
     for (int i = 0; i < 4; ++i)
         processOneBlock();
 
@@ -37,8 +35,6 @@ void runRealtime()
 
     const auto steadyAllocations = allocCount::total.load (std::memory_order_relaxed);
 
-    // A message-thread update, including a tempo change, must reach the next
-    // block without allocating on the audio thread.
     ihub::dsp::DelayTransport transport;
     transport.playing = true;
     transport.bpm = 96.0;
@@ -61,4 +57,4 @@ void runRealtime()
            "the update was applied (1/8 at 96 BPM is 7500 samples)");
 }
 
-} // namespace DspTest::Delay
+}

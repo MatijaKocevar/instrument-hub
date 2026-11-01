@@ -35,4 +35,4 @@ void runSettings (Rig& rig)
     check (response && response->status == 400, "POST /settings rejects an unknown field");
 }
 
-} // namespace ApiTest::CoreApi
+}

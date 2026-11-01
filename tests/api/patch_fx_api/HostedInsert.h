@@ -7,4 +7,4 @@ namespace ApiTest::PatchFxApi
 
 void runHostedInsert (SessionRig& rig);
 
-} // namespace ApiTest::PatchFxApi
+}

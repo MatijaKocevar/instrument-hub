@@ -1,13 +1,3 @@
-# TestPlugin: the in-repo VST3 used by every plugin test.
-#
-# No third-party plug-in binaries are required: CI builds this bundle and the
-# scan test proves that juce::AudioPluginFormatManager can find and instantiate
-# it. The bundle lands in
-#
-#     build/tests/plugins/TestPlugin_artefacts/<config>/TestPlugin.vst3
-#
-# (JUCE's normal artefact layout).
-
 find_package(Threads REQUIRED)
 
 juce_add_plugin(TestPlugin
@@ -51,10 +41,6 @@ target_link_libraries(TestPlugin
         juce::juce_recommended_warning_flags
 )
 
-# NoteTonePlugin: a note-gated sine instrument for the live-MIDI acceptance.
-# It renders only while a note is held, so T128 can prove that an injected
-# note reaches the armed plugin and that a note-off silences it.
-
 juce_add_plugin(NoteTonePlugin
     PRODUCT_NAME "NoteTonePlugin"
     COMPANY_NAME "Instrument Hub"
@@ -96,12 +82,6 @@ target_link_libraries(NoteTonePlugin
         juce::juce_recommended_warning_flags
 )
 
-# --- Acceptance check -------------------------------------------------------
-#
-# A headless host executable: it loads the VST3 bundle through the format
-# manager, checks that a directory scan finds it, then instantiates it and
-# verifies the reported latency and sine output.
-
 juce_add_console_app(ihub-testplugin-scan-test
     PRODUCT_NAME "ihub-testplugin-scan-test"
 )
@@ -126,7 +106,6 @@ target_link_libraries(ihub-testplugin-scan-test
         juce::juce_recommended_warning_flags
 )
 
-# The scan test must never run before the bundle it inspects has been built.
 add_dependencies(ihub-testplugin-scan-test TestPlugin_VST3)
 
 set_target_properties(ihub-testplugin-scan-test PROPERTIES
@@ -142,12 +121,6 @@ add_test(
     COMMAND ihub-testplugin-scan-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Plugin instance wrapper (T022) -----------------------------------------
-#
-# Hosts TestPlugin through PluginInstrument: sets the DSP-irrelevant State
-# Marker, saves the state blob, restores it into a second instance and checks
-# the parameter, then exercises prepare/latency/process/MIDI/unload.
 
 juce_add_console_app(ihub-plugin-instance-test
     PRODUCT_NAME "ihub-plugin-instance-test"
@@ -194,14 +167,6 @@ add_test(
     COMMAND ihub-plugin-instance-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Plugin editor window (T023) --------------------------------------------
-#
-# Loads TestPlugin, opens its native editor in an app-owned PluginWindow, keeps
-# it on screen for two seconds under DISPLAY=:0, then closes it explicitly and
-# again through PluginInstrument::unload(). The editor is snapshotted from
-# inside JUCE to prove it rendered. A Debug build enables JUCE's leak detector,
-# so a clean exit is the leak check.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-plugin-window-test
@@ -259,13 +224,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-plugin-window-test: Linux-only; skipping")
 endif()
-
-# --- Plugin scanner acceptance (T021) ---------------------------------------
-#
-# The scanner must survive a plugin that crashes while being loaded. The fake
-# bundle below is a shared library whose ELF constructor raises SIGSEGV inside
-# dlopen(); JUCE's VST3 fast path is disabled by simply not writing a
-# moduleinfo.json, so the helper really loads it.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     execute_process(
@@ -340,12 +298,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
-    # --- Plugin cache acceptance (T024) ------------------------------------
-    #
-    # Scans the same directory twice: the second scan must be served from
-    # PluginCache.xml in under 100 ms. It also proves the dead-man's-pedal list
-    # stops a crashing bundle from being retried without an explicit override.
-
     juce_add_console_app(ihub-plugin-cache-test
         PRODUCT_NAME "ihub-plugin-cache-test"
     )
@@ -397,13 +349,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         COMMAND ihub-plugin-cache-test
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
-
-    # --- Plugin inventory API acceptance (T122) -----------------------------
-    #
-    # Copies TestPlugin into an isolated VST3 directory, attaches a real
-    # PluginInventory to the HTTP server and drives GET /plugins,
-    # POST /plugins/rescan and the search filter. It also removes and restores
-    # the bundle to prove a rescan picks up changes.
 
     juce_add_console_app(ihub-plugin-inventory-api-test
         PRODUCT_NAME "ihub-plugin-inventory-api-test"
@@ -468,20 +413,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-plugin-scanner-test: Linux-only; skipping")
 endif()
-
-# --- Sandbox acceptance (T110) ----------------------------------------------
-#
-# Starts the ihub-sandbox helper for real:
-#
-#   1. a fake tone plugin renders through the shared request/reply rings,
-#   2. a fake plugin that calls abort() kills only the helper, SandboxHost
-#      reports the slot failed and the AudioEngine keeps rendering another
-#      slot,
-#   3. TestPlugin is loaded and rendered inside the sandbox, proving the
-#      helper hosts a genuine VST3 and not just the fake.
-#
-# Linux-only because it relies on POSIX signals (abort) and the helper's
-# parent-death detection.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-sandbox-test

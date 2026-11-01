@@ -13,4 +13,4 @@ std::string insertType (const juce::var& chain, int index);
 
 int chainLatency (const juce::var& chain);
 
-} // namespace ApiTest
+}

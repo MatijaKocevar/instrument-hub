@@ -22,4 +22,4 @@ constexpr double acceptanceTolerancePpq =
 
 void advance (AudioEngine::Transport& transport, std::int64_t frames, int blockSize);
 
-} // namespace AudioTest::Transport
+}

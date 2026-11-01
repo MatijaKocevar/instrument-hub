@@ -64,4 +64,4 @@ void pumpMessages (int milliseconds)
         messageManager->runDispatchLoopUntil (10);
 }
 
-} // namespace PluginFxTest
+}

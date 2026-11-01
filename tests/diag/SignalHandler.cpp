@@ -72,4 +72,4 @@ void runSignalHandler()
 #endif
 }
 
-} // namespace DiagTest
+}

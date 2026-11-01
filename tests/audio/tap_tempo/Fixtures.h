@@ -18,4 +18,4 @@ using AudioTest::nearlyEqual;
 
 double fourTaps (const double* seconds);
 
-} // namespace AudioTest::TapTempo
+}

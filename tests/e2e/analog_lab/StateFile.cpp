@@ -109,4 +109,4 @@ bool readHashes (const juce::File& file, std::string& hashA, std::string& hashB)
     return hashA.size() == 16 && hashB.size() == 16;
 }
 
-} // namespace AnalogLab
+}

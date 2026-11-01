@@ -7,4 +7,4 @@ namespace ApiTest::InstrumentPageApi
 
 void runSource (SessionRig& rig);
 
-} // namespace ApiTest::InstrumentPageApi
+}

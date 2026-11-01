@@ -7,4 +7,4 @@ namespace ApiTest::StateBroadcast
 
 void runPadPath (Rig& rig);
 
-} // namespace ApiTest::StateBroadcast
+}

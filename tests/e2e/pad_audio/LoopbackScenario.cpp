@@ -85,14 +85,10 @@ LoopbackScenarioResult runLoopbackScenario()
     check (session.getMasterMeterPeak() > 0.0f,
            "the session master meter reports the rendered bus");
 
-    // The captured delta is recorded, not asserted: this loop feeds a
-    // real-time PCM ring from an offline render, so a host scheduling hiccup
-    // can splice one block boundary. Click-free switching is asserted by the
-    // deterministic render and its equal-power residual above.
     std::cout << "  loopback switch delta (informational): "
               << capturedDelta << std::endl;
 
     return result;
 }
 
-} // namespace PadAudio
+}

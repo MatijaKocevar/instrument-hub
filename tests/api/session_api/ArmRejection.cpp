@@ -11,4 +11,4 @@ void runArmRejection (SessionRig& rig)
     check (response && response->status == 400, "POST /arm rejects an out-of-range slot");
 }
 
-} // namespace ApiTest::SessionApi
+}

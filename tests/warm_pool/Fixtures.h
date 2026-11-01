@@ -27,11 +27,6 @@ constexpr int kBlockSize = 128;
 
 void check (bool condition, const std::string& what);
 
-//==============================================================================
-// Live-instance accounting. The counter is updated by the wrapper's constructor
-// and destructor, so `peak` is the true maximum number of plugin instances that
-// coexisted, not a snapshot taken at a convenient moment.
-
 struct InstanceCounter
 {
     std::atomic<int> live { 0 };
@@ -74,4 +69,4 @@ bool pumpUntil (const std::function<bool()>& predicate, int timeoutMs = 30000);
 
 std::string join (const std::vector<int>& values);
 
-} // namespace WarmPoolTest
+}

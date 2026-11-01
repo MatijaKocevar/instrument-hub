@@ -61,4 +61,4 @@ bool runSetupChecks (Rig& rig)
     return rig.kit.isValid();
 }
 
-} // namespace VoiceTest
+}

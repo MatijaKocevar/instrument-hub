@@ -1,10 +1,3 @@
-# Headless verification tools.
-#
-# ihub-selftest is plain ALSA; the device manager test links JUCE so it can
-# exercise the same AudioDeviceManager wrapper the application uses.
-
-# The HTTP routes are split into one module per resource behind
-# `registerRoutes()`. Tests that exercise the API compile the whole set.
 set(IHUB_API_ROUTES_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioRoutes.cpp"
@@ -24,38 +17,28 @@ set(IHUB_API_ROUTES_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/TransportRoutes.cpp"
 )
 
-# mDNS discovery is the responder lifecycle over the DNS packet codec and the
-# multicast socket plumbing.
 set(IHUB_DISCOVERY_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/discovery/DnsPacket.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/discovery/MdnsSocket.cpp"
 )
 
-# The MIDI bridge owns input enumeration and monitoring; the pad test
-# animation is a separate feature over the same Launchpad driver.
 set(IHUB_MIDI_BRIDGE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiPadTest.cpp"
 )
 
-# The master bus owns the summing buffer; the peak limiter is a separate
-# realtime-safe component.
 set(IHUB_BUS_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/MasterLimiter.cpp"
 )
 
-# The RT guard API and counters are separate from the allocator and lock
-# interposition it enables at link time.
 set(IHUB_RT_GUARD_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/rtguard/AllocatorInterposition.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/rtguard/LockInterposition.cpp"
 )
 
-# The API server is transport/auth plus the state store it projects. Tests
-# that exercise the HTTP or WebSocket surface compile the whole set.
 set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/AuthGuard.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MeterSampler.cpp"
@@ -70,9 +53,6 @@ set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
 )
 
-# The project serializer is a facade over the ZIP container, the set.json
-# manifest, slot/patch documents, plugin-state blobs and schema migrations.
-# Tests that load or save a set compile the whole set.
 set(IHUB_PROJECT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
@@ -84,9 +64,6 @@ set(IHUB_PROJECT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/SetPatch.cpp"
 )
 
-# The mapping layer is split into model, facade, reload/watch, events, YAML
-# parsing and document decoding. Tests that exercise any part compile the
-# whole set.
 set(IHUB_MAPPING_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingApply.cpp"
@@ -114,9 +91,6 @@ set(IHUB_LAUNCHPAD_PROTOCOL_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
 )
 
-# The driver is a facade over device detection, connection/handshake, LED
-# state, MIDI decoding and low-level output. Tests that use any part compile
-# the whole set.
 set(IHUB_LAUNCHPAD_DRIVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadLed.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverConnection.cpp"
@@ -127,9 +101,6 @@ set(IHUB_LAUNCHPAD_DRIVER_SOURCES
     ${IHUB_LAUNCHPAD_PROTOCOL_SOURCES}
 )
 
-# The FX rack is a facade over insert editing, the insert factory, parameter
-# mapping, ordering, latency and snapshots. Tests that touch a rack compile
-# the whole set.
 set(IHUB_FX_RACK_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertFactory.cpp"
@@ -142,8 +113,6 @@ set(IHUB_FX_RACK_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/InsertEffect.cpp"
 )
 
-# The warm pool is a facade over slot reservation, warm-up state, eviction and
-# the worker thread. Tests that touch the pool compile the whole set.
 set(IHUB_WARM_POOL_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolEviction.cpp"
@@ -152,9 +121,6 @@ set(IHUB_WARM_POOL_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolWorker.cpp"
 )
 
-# The device manager is a facade over lookup, enumeration, description,
-# opening/hot swapping, the open device's state, channel maps and latency
-# readouts. Tests that touch a device compile the whole set.
 set(IHUB_DEVICE_MANAGER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceChannels.cpp"
@@ -166,8 +132,6 @@ set(IHUB_DEVICE_MANAGER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceState.cpp"
 )
 
-# The latency probe is the measurement loop over the ALSA plumbing, the
-# impulse capture and the pure correlation.
 set(IHUB_LATENCY_PROBE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/latency/AlsaLoopback.cpp"
@@ -175,8 +139,6 @@ set(IHUB_LATENCY_PROBE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/latency/LatencyCorrelation.cpp"
 )
 
-# The settings bridge is a facade over device selection, the `/audio`
-# snapshot, patch application, channel maps, the latency budget and the probe.
 set(IHUB_AUDIO_SETTINGS_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsApply.cpp"
@@ -187,9 +149,6 @@ set(IHUB_AUDIO_SETTINGS_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/LatencyBudget.cpp"
 )
 
-# The sampler is split into its three responsibilities: kit parsing and
-# loading, sample decode/hand-off and the voice renderer. Tests compile only
-# the groups they touch.
 set(IHUB_SAMPLER_KIT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
@@ -221,9 +180,6 @@ set(IHUB_SAMPLER_SOURCES
     ${IHUB_SAMPLER_INSTRUMENT_SOURCES}
 )
 
-# The hosted plugin wrapper is a facade over loading, bus preparation, process,
-# MIDI queuing, state and the parameter bridge. Tests that host a plugin
-# compile the whole set.
 set(IHUB_PLUGIN_INSTRUMENT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentBus.cpp"
@@ -233,15 +189,12 @@ set(IHUB_PLUGIN_INSTRUMENT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentState.cpp"
 )
 
-# The editor window is a controller plus the document window and its lifetime
-# token. Tests that open a native plugin editor compile the whole set.
 set(IHUB_PLUGIN_WINDOW_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginWindow.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/window/PluginEditorWindow.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/window/PluginWindowEditor.cpp"
 )
 
-# Scanner, cache and their out-of-process helper client.
 set(IHUB_PLUGIN_SCAN_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginCache.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/PluginCacheFingerprint.cpp"
@@ -252,7 +205,6 @@ set(IHUB_PLUGIN_SCAN_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/ScannerProcess.cpp"
 )
 
-# The read-only inventory projects the scanner's cache into API records.
 set(IHUB_PLUGIN_INVENTORY_SOURCES
     ${IHUB_PLUGIN_SCAN_SOURCES}
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInventory.cpp"
@@ -261,8 +213,6 @@ set(IHUB_PLUGIN_INVENTORY_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/PluginInventoryScan.cpp"
 )
 
-# The sandbox host is a facade over child-process lifecycle, shared-memory
-# setup, the watchdog and the audio/MIDI transport.
 set(IHUB_SANDBOX_HOST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/SandboxHost.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostMidi.cpp"
@@ -273,9 +223,6 @@ set(IHUB_SANDBOX_HOST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxWatchdog.cpp"
 )
 
-# The composed session is a façade over the warm pool, plugin state, editor
-# host, meter bridge, transport, FX chain, device and MIDI collaborators.
-# Tests that build a Session compile the whole set.
 set(IHUB_SESSION_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/DeviceController.cpp"
@@ -300,12 +247,6 @@ set(IHUB_SESSION_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolMeasurement.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolVoice.cpp"
 )
-
-# --- Application modes and command line (T137) ------------------------------
-#
-# The application is a thin entry point plus `engine/src/app/*`. This target
-# pins command-line parsing and mode precedence, so the split cannot quietly
-# change which mode a flag selects.
 
 juce_add_console_app(ihub-app-modes-test
     PRODUCT_NAME "ihub-app-modes-test"
@@ -347,12 +288,6 @@ add_test(
     COMMAND ihub-app-modes-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Application modes on the real binary (T137) ---------------------------
-#
-# The split must not change what a mode prints or which exit code it reports.
-# `--snapshot` and `--session-smoke` already have their own end-to-end tests;
-# these cover the remaining short-lived modes.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(
@@ -418,7 +353,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         target_compile_options(ihub-selftest PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 
-    # Keep the documented path: build/tests/ihub-selftest.
     set_target_properties(ihub-selftest PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
         RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
@@ -437,18 +371,7 @@ else()
     message(STATUS "ihub-selftest: ALSA smoke test is Linux-only; skipping")
 endif()
 
-# --- Test plugins -----------------------------------------------------------
-#
-# TestPlugin.vst3 is built from source so plugin tests (scanner, hosting,
-# state, editor) never depend on a third-party binary being installed.
-
 add_subdirectory(plugins)
-
-# --- Audio device manager ---------------------------------------------------
-#
-# Opens the ALSA Loopback device through AudioEngine::DeviceManager, then
-# switches buffer size 128 -> 256 -> 128 and hot-swaps between two Loopback
-# subdevices while the stream runs.
 
 juce_add_console_app(ihub-device-manager-test
     PRODUCT_NAME "ihub-device-manager-test"
@@ -488,16 +411,9 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# The test is bound to the ALSA Loopback card, so only register it on Linux.
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-device-manager PROPERTIES DISABLED TRUE)
 endif()
-
-# --- Fixed slot graph -------------------------------------------------------
-# Renders 2 s through AudioEngine with three slots and compares the bus output
-# against a manually mixed reference within -90 dBFS. It also counts heap
-# allocations across processBlock() by replacing the global operator new and
-# (on Linux) wrapping malloc/calloc/realloc.
 
 juce_add_console_app(ihub-audio-engine-test
     PRODUCT_NAME "ihub-audio-engine-test"
@@ -535,16 +451,12 @@ target_link_libraries(ihub-audio-engine-test
         juce::juce_recommended_warning_flags
 )
 
-# The replacement operator new below is backed by malloc/free (which is a valid
-# implementation), so GCC's pairing heuristic fires at inlined call sites.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-audio-engine-test PRIVATE
         -Wno-mismatched-new-delete
     )
 endif()
 
-# The counting allocator's __wrap_* hooks are GNU-ld specific. On other
-# platforms the test still runs and counts operator new.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_link_options(ihub-audio-engine-test PRIVATE
         "-Wl,--wrap=malloc"
@@ -566,17 +478,6 @@ add_test(
     COMMAND ihub-audio-engine-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Instrument interface and audio input (T030, T070) ----------------------
-#
-# Checks the AudioInputInstrument in isolation (unity/gain/channel selection/
-# latency), the audio-input slot path through an FX chain, direct monitoring
-# (the chain must not run and its latency must drop out), the input's own
-# latency budget, and AudioEngine feeding device input to the slot. Then it
-# plays a sine into the ALSA Loopback, captures it, and feeds every block
-# through the instrument -> slot -> master bus path. The bus output must
-# reproduce the captured input at bit-exact unity gain; a second loopback pass
-# runs half the capture through a gain effect and half in direct-monitor mode.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-instrument-test
@@ -640,11 +541,6 @@ else()
     message(STATUS "ihub-instrument-test: ALSA loopback test is Linux-only; skipping")
 endif()
 
-# --- Xrun and timing monitor ------------------------------------------------
-# Injects exact callback durations (including a 2x-deadline stall) through the
-# deterministic recording seam and checks the overrun, dropped-block and rolling
-# maximum accounting.
-
 juce_add_console_app(ihub-timing-monitor-test
     PRODUCT_NAME "ihub-timing-monitor-test"
 )
@@ -689,12 +585,6 @@ add_test(
     COMMAND ihub-timing-monitor-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Diagnostics (T111) -----------------------------------------------------
-#
-# Structured log ring under four concurrent producers, crash-safe dump format,
-# a forked child that really dies by SIGABRT with the handler installed, and
-# the formatted report (device, buffer, latency, xruns, plugins, log).
 
 juce_add_console_app(ihub-diagnostics-test
     PRODUCT_NAME "ihub-diagnostics-test"
@@ -751,12 +641,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Round-trip latency -----------------------------------------------------
-#
-# Opens the ALSA Loopback full-duplex, fires an impulse, records the capture,
-# and cross-correlates it. Includes a pure synthetic correlation test and five
-# real measurements at 128 frames.
-
 juce_add_console_app(ihub-latency-probe-test
     PRODUCT_NAME "ihub-latency-probe-test"
 )
@@ -801,12 +685,6 @@ add_test(
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-latency-probe PROPERTIES DISABLED TRUE)
 endif()
-
-# --- Realtime safety harness (T014) -----------------------------------------
-#
-# Renders the fixed graph under RtGuard, requires zero violations on the normal
-# path, and forks a child per injected allocation/lock/log to prove that strict
-# mode aborts with SIGABRT and names the violation.
 
 if(IHUB_ENABLE_RT_GUARD)
     juce_add_console_app(ihub-rt-guard-test
@@ -894,14 +772,6 @@ else()
     message(STATUS "ihub-rt-guard-test: disabled (IHUB_ENABLE_RT_GUARD=OFF)")
 endif()
 
-# --- Slot FX chain (T031) ---------------------------------------------------
-#
-# 1. An empty chain is a bit-exact passthrough, both directly through FxChain
-#    and through the full Slot path (instrument -> chain -> output).
-# 2. Two TestPlugin instances loaded as effects apply in list order:
-#    gain-then-sine produces a different result from sine-then-gain.
-# 3. Slot::latencySamples() sums the source latency and the chain latency.
-
 juce_add_console_app(ihub-fx-chain-test
     PRODUCT_NAME "ihub-fx-chain-test"
 )
@@ -953,13 +823,6 @@ add_test(
     COMMAND ihub-fx-chain-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Hosted VST3 FX slot (T063) ---------------------------------------------
-#
-# Loads TestPlugin through PluginFx in FX mode (input + output bus), inserts
-# it into an FxChain, proves its gain is applied, checks that its 5 ms latency
-# is included in the chain total, round-trips its state into a second
-# instance, and opens/closes its native editor in an app-owned window.
 
 juce_add_console_app(ihub-plugin-fx-test
     PRODUCT_NAME "ihub-plugin-fx-test"
@@ -1021,13 +884,6 @@ set_tests_properties(ihub-plugin-fx PROPERTIES
     ENVIRONMENT "DISPLAY=:0"
 )
 
-# --- Gain-ramp switching (T032) ---------------------------------------------
-#
-# Switches between two sine-generating slots and compares the output against a
-# continuous, equal-power reference. The worst deviation must be below
-# -60 dBFS; a hard switch or a broken ramp shows up as a large residual.
-# Also checks the four published states and that process() allocates nothing.
-
 juce_add_console_app(ihub-slot-switcher-test
     PRODUCT_NAME "ihub-slot-switcher-test"
 )
@@ -1050,8 +906,6 @@ target_include_directories(ihub-slot-switcher-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# The replacement operator new is backed by malloc/free (which is a valid
-# implementation), so GCC's pairing heuristic fires at inlined call sites.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-slot-switcher-test PRIVATE
         -Wno-mismatched-new-delete
@@ -1082,22 +936,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Warm pool and preload (T033) -------------------------------------------
-#
-# Eight slots, K = 2, real TestPlugin instances created on the pool's
-# background thread by a counting wrapper:
-#
-# 1. The live-instance counter (updated in the wrapper's constructor and
-#    destructor) peaks at 3 and never reports a violation, including across a
-#    sweep of the active slot over all eight slots and a preload of the set.
-# 2. Arming a warm slot — acquire + Slot::setSource + SlotSwitcher::armSlot —
-#    completes in under 5 ms. A cold PluginInstrument load is printed for
-#    comparison.
-# 3. A pinned instance survives its slot leaving the neighbourhood; the
-#    neighbour that could not fit is warmed after the pin is released.
-# 4. Changing a request id retires and re-warms; a failing factory is reported
-#    without spinning the background thread.
-
 juce_add_console_app(ihub-warm-pool-test
     PRODUCT_NAME "ihub-warm-pool-test"
 )
@@ -1121,9 +959,6 @@ target_include_directories(ihub-warm-pool-test
 target_compile_definitions(ihub-warm-pool-test
     PRIVATE
         JUCE_PLUGINHOST_VST3=1
-        # A console host has no running dispatch loop: the test pumps it while
-        # the pool's background thread waits for JUCE to instantiate a plugin
-        # on the message thread.
         JUCE_MODAL_LOOPS_PERMITTED=1
         "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
 )
@@ -1152,14 +987,6 @@ add_test(
     COMMAND ihub-warm-pool-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Click/discontinuity test (T034) ----------------------------------------
-#
-# Renders the master bus while 50 seeded, randomly timed switches move the
-# armed slot across four sine sources. The output is checked for
-# sample-to-sample steps above the maximum continuous slew and for spectral
-# splatter above 1 kHz. The same schedule then runs with the ramp disabled and
-# must be caught, proving the detectors can fail.
 
 juce_add_console_app(ihub-switch-continuity-test
     PRODUCT_NAME "ihub-switch-continuity-test"
@@ -1208,15 +1035,6 @@ add_test(
     COMMAND ihub-switch-continuity-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Composed audio session (T114) ------------------------------------------
-#
-# Builds the default session (AudioEngine + SlotSwitcher + eight instrument
-# slots) offline, checks that the armed slot has a non-zero RMS, switches slots
-# and requires no discontinuity above -60 dBFS. A second pass with the ramp
-# disabled proves the detector can fail. The application's --session-smoke mode
-# runs the same measurement and then streams the graph through the ALSA
-# Loopback, so the callback path is covered too.
 
 juce_add_console_app(ihub-session-smoke-test
     PRODUCT_NAME "ihub-session-smoke-test"
@@ -1320,8 +1138,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# The real acceptance command: the app composes the session, measures it and
-# streams the same graph through the ALSA Loopback.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(
         NAME ihub-session-smoke-app
@@ -1333,14 +1149,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ENVIRONMENT "DISPLAY=:0"
     )
 endif()
-
-# --- Session behind the control API (T115) ---------------------------------
-#
-# Builds the headless default session, attaches the HTTP + WebSocket server
-# through Api::attachSession() and proves the API drives the real graph:
-# POST /arm switches the audible slot (the rendered tone moves from 110 Hz to
-# 123.47 Hz), /meters reports the playing slot's real peak, GET /state reports
-# the live slot states, and POST /transport starts/stops the session transport.
 
 juce_add_console_app(ihub-session-api-test
     PRODUCT_NAME "ihub-session-api-test"
@@ -1429,15 +1237,6 @@ add_test(
     COMMAND ihub-session-api-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Per-patch FX chain API (T121) ------------------------------------------
-#
-# Builds a small headless session and edits patch 0's insert chain only through
-# the HTTP API: add a look-ahead compressor and an EQ, reorder them and prove
-# the rendered audio changes, bypass and wet/dry change both the audio and the
-# reported latency, a hosted TestPlugin VST3 joins the chain, PUT replaces the
-# whole chain and DELETE removes inserts. The render is driven by the test, so
-# nothing depends on a sound card.
 
 juce_add_console_app(ihub-patch-fx-api-test
     PRODUCT_NAME "ihub-patch-fx-api-test"
@@ -1530,15 +1329,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Instrument page controls (T124) ----------------------------------------
-#
-# Drives the same requests the instrument page sends and measures the engine:
-# the volume fader changes the rendered level (PATCH volumeDb), mute silences
-# the slot, the insert chain can be added/bypassed/reordered/replaced/removed,
-# and the instrument source can be swapped (a tone frequency is measured by
-# zero crossings, a hosted TestPlugin loads and renders). The render is driven
-# by the test, so nothing depends on a sound card or wall-clock timing.
-
 juce_add_console_app(ihub-instrument-page-api-test
     PRODUCT_NAME "ihub-instrument-page-api-test"
 )
@@ -1629,13 +1419,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Explicit save-sound control (T132) -------------------------------------
-#
-# A plugin patch is given a preset and saved through
-# POST /patches/{slot}/state/capture while it is still armed. The sidecar must
-# change immediately, survive a switch-away/switch-back and a fresh session
-# built from the same directory.
-
 juce_add_console_app(ihub-patch-state-capture-api-test
     PRODUCT_NAME "ihub-patch-state-capture-api-test"
 )
@@ -1722,14 +1505,6 @@ add_test(
     COMMAND ihub-patch-state-capture-api-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Native plugin editor windows (T129) ------------------------------------
-#
-# Drives POST/DELETE /patches/{slot}/editor against the composed session:
-# TestPlugin's native window opens, is reused by a second POST, closes and
-# reopens idempotently, and the editor is closed before a source swap retires
-# the processor. When an Analog Lab V bundle (native or yabridge) is installed
-# the same path exercises it. Runs under DISPLAY=:0 like the T023 check.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-plugin-editor-api-test
@@ -1829,16 +1604,6 @@ else()
     message(STATUS "ihub-plugin-editor-api-test: Linux-only; skipping")
 endif()
 
-# --- 64 logical slots and the warm pool (T118) ------------------------------
-#
-# Configures all 64 Launchpad patches, proves that only the armed slot, its K
-# neighbours and the previous patch are instantiated (peak <= K+1), arms a cold
-# patch and observes warming -> active with non-silent audio, returns to the
-# previous patch instantly, sweeps every pad while the bound holds, and checks
-# that GET /state carries the 8 x 8 family/patch tree and per-slot warm state.
-# A 40 ms artificial load delay makes the warming state observable; it is zero
-# in production.
-
 juce_add_console_app(ihub-session-warm-test
     PRODUCT_NAME "ihub-session-warm-test"
 )
@@ -1916,11 +1681,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Launchpad protocol -----------------------------------------------------
-#
-# Hardware-free checks for the Launchpad Mini MK3: the 11..88 grid note map,
-# the documented SysEx frames and the LED Note On encoding. No port is opened.
-
 add_executable(ihub-launchpad-protocol-test
     controller/LaunchpadProtocolTest.cpp
     controller/TestSupport.cpp
@@ -1956,12 +1716,6 @@ add_test(
     COMMAND ihub-launchpad-protocol-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Launchpad 64-pad mapping (T116) ----------------------------------------
-#
-# Pure C++: loads the shipped shared/set.yaml and resolves all 64 grid pads to
-# eight families of eight patches, then exercises the top-row macro pages and
-# right-column scenes. No MIDI port and no audio device.
 
 find_package(Threads REQUIRED)
 
@@ -2009,12 +1763,6 @@ add_test(
     COMMAND ihub-launchpad-mapping-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Scripted Launchpad driver (T116) ---------------------------------------
-#
-# Injects note/CC events straight into LaunchpadDriver and captures every LED
-# message with a sink, so the armed slot and the idle/warming/active/error
-# stream are checked without a MIDI port or hardware.
 
 juce_add_console_app(ihub-launchpad-driver-test
     PRODUCT_NAME "ihub-launchpad-driver-test"
@@ -2066,15 +1814,6 @@ add_test(
     COMMAND ihub-launchpad-driver-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- set.yaml mapping and hot reload (T043) ---------------------------------
-#
-# Loads the shipped shared/set.yaml against its schema, rejects malformed
-# documents, then edits a per-test set.yaml while a SlotSwitcher renders:
-#
-#   pad 0 -> slot 0, edit instrument -> slot 1, watcher publishes the new
-#   document and arms slot 1 within 500 ms, every block keeps audio flowing and
-#   no sample-to-sample step appears. A malformed edit keeps the old routing.
 
 find_package(Threads REQUIRED)
 
@@ -2136,11 +1875,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Control API (T050) -----------------------------------------------------
-#
-# Starts the HTTP + WebSocket server on an ephemeral port, exercises every
-# route (including token auth) and measures the `/meters` frame rate.
-
 juce_add_console_app(ihub-api-test
     PRODUCT_NAME "ihub-api-test"
 )
@@ -2194,12 +1928,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- QR pairing (T101) ------------------------------------------------------
-#
-# Acceptance: unpaired request -> 401, POST /pair with the 6-digit code -> a
-# token, token -> GET /state 200. Also checks the runtime LAN rebind, single-use
-# codes, revocation, loopback-only management endpoints and --lan startup.
-
 juce_add_console_app(ihub-pairing-test
     PRODUCT_NAME "ihub-pairing-test"
 )
@@ -2248,14 +1976,6 @@ add_test(
     COMMAND ihub-pairing-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Live state mirror (T103) -----------------------------------------------
-#
-# Acceptance: a pad event injected through the real Launchpad driver decoder
-# appears in a WS client's state within 100 ms. Two /events clients are
-# connected; a pad press goes LaunchpadDriver -> StateBroadcast -> both
-# sockets, and a POST /arm (the UI tap path) must reach both sockets too.
-# Every measured latency is compared against the 100 ms budget.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-state-broadcast-test
@@ -2315,13 +2035,6 @@ else()
     message(STATUS "ihub-state-broadcast-test: the live server test is Linux-only; skipping")
 endif()
 
-# --- Audio settings panel backend (T053) ------------------------------------
-#
-# Part 1 starts the control server against an in-memory audio backend and
-# exercises GET/POST /audio plus POST /audio/measure. Part 2 drives the real
-# AudioSettingsBridge on the ALSA Loopback: buffer 128 -> 256 -> 128, channel
-# remapping, and a round-trip measurement.
-
 juce_add_console_app(ihub-audio-settings-test
     PRODUCT_NAME "ihub-audio-settings-test"
 )
@@ -2380,14 +2093,6 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-audio-settings PROPERTIES DISABLED TRUE)
 endif()
 
-# --- MIDI inputs and the pad test (T126) ------------------------------------
-#
-# Part 1 starts the control server against an in-memory MIDI backend and
-# exercises GET /midi, POST /midi/inputs and POST /midi/pad-test. Part 2
-# enumerates the real ALSA inputs through JUCE, then drives the pad test
-# through a scripted LaunchpadDriver message sink and verifies the 64-pad LED
-# stream, its clear and the grid restore. No controller or sound card needed.
-
 juce_add_console_app(ihub-midi-api-test
     PRODUCT_NAME "ihub-midi-api-test"
 )
@@ -2445,13 +2150,6 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-midi-api PROPERTIES DISABLED TRUE)
 endif()
 
-# --- mDNS discovery (T102) --------------------------------------------------
-#
-# Acceptance: `avahi-browse -t _instrumenthub._tcp` lists the service. The test
-# performs the same multicast round trip directly: it starts Discovery, sends a
-# PTR query and checks the PTR/SRV/TXT records and the advertised port. Port
-# 5353 is shared with avahi-daemon through SO_REUSEPORT.
-
 juce_add_console_app(ihub-discovery-test
     PRODUCT_NAME "ihub-discovery-test"
 )
@@ -2496,14 +2194,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Built-in compressor (T061) ---------------------------------------------
-#
-# Steady tones 3/6/12 dB over threshold at ratios 2:1, 4:1 and 8:1 must settle
-# to the textbook static curve within 1 dB (the acceptance check), and an
-# impulse must arrive exactly at the reported lookahead latency. Also checks
-# makeup gain, bit-exact bypass with unchanged latency, stereo linking,
-# attack/release direction, allocation-free processing, and state round-trip.
-
 juce_add_console_app(ihub-compressor-test
     PRODUCT_NAME "ihub-compressor-test"
 )
@@ -2530,7 +2220,6 @@ target_include_directories(ihub-compressor-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# Same non-counting pairing note as the other allocation-counting tests.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-compressor-test PRIVATE
         -Wno-mismatched-new-delete
@@ -2568,19 +2257,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Built-in delay and reverb (T062) ---------------------------------------
-#
-# ihub-delay-test is the acceptance check: a 1/4-note delay at 120 BPM must
-# place an impulse echo at exactly 12000 samples at 48 kHz. It also checks the
-# whole sync table at three sample rates, free (ms) time, feedback repeats, a
-# live BPM change, the reported PPQ repeat position, bit-exact bypass and dry
-# mix, allocation-free processing and state round-trip.
-#
-# ihub-reverb-test checks the Freeverb-style network: bit-exact dry path,
-# monotonic tail decay, room size -> tail length, damping -> darker tail,
-# pre-delay silence, stereo width, stability at maximum room size, allocation
-# freedom and state round-trip.
-
 juce_add_console_app(ihub-delay-test
     PRODUCT_NAME "ihub-delay-test"
 )
@@ -2607,7 +2283,6 @@ target_include_directories(ihub-delay-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# Same non-counting pairing note as the other allocation-counting tests.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-delay-test PRIVATE
         -Wno-mismatched-new-delete
@@ -2708,14 +2383,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Built-in 3-band EQ (T060) ----------------------------------------------
-#
-# An impulse is pushed through the juce::dsp::IIR cascade and its DFT is
-# compared with an independent RBJ-cookbook target at 50 Hz, 1 kHz and 10 kHz.
-# The tolerance is 0.5 dB. Also checks the flat/bypassed path is bit-exact, that
-# a message-thread coefficient update is applied on the next block without
-# allocating on the audio thread, and that state round-trips.
-
 juce_add_console_app(ihub-eq-test
     PRODUCT_NAME "ihub-eq-test"
 )
@@ -2738,7 +2405,6 @@ target_include_directories(ihub-eq-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# Same non-counting pairing note as the other allocation-counting tests.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-eq-test PRIVATE
         -Wno-mismatched-new-delete
@@ -2777,13 +2443,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Transport core (T071) --------------------------------------------------
-#
-# Acceptance: feeding the exact frames of a 10 s render at 48 kHz and 120 BPM
-# must leave PPQ at 20.0 +/- one internal tick. Also covers start/stop/continue,
-# rewind and reposition, tempo changes, other sample rates, the tap-tempo
-# median, the external-sync hook, and allocation-free processing.
-
 add_executable(ihub-transport-test
     audio/TransportTest.cpp
     audio/AllocationCount.cpp
@@ -2809,8 +2468,6 @@ target_include_directories(ihub-transport-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# The replacement operator new is backed by malloc/free (which is a valid
-# implementation), so GCC's pairing heuristic fires at inlined call sites.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-transport-test PRIVATE
         -Wno-mismatched-new-delete
@@ -2834,14 +2491,6 @@ add_test(
     COMMAND ihub-transport-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- MIDI clock out (T072) --------------------------------------------------
-#
-# Acceptance: ten simulated seconds at 48 kHz and 120 BPM must emit exactly
-# 480 clock messages, each within 1 ms (48 samples) of the ideal 1000-frame
-# grid. Also covers start/stop/continue, rewind/reposition, tempo and format
-# changes, the lock-free audio -> message queue, the MIDI bytes, and
-# allocation-free processing.
 
 add_executable(ihub-clock-out-test
     audio/ClockOutTest.cpp
@@ -2867,8 +2516,6 @@ target_include_directories(ihub-clock-out-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# The replacement operator new is backed by malloc/free (which is a valid
-# implementation), so GCC's pairing heuristic fires at inlined call sites.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-clock-out-test PRIVATE
         -Wno-mismatched-new-delete
@@ -2892,13 +2539,6 @@ add_test(
     COMMAND ihub-clock-out-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- MIDI clock in (T073) ---------------------------------------------------
-#
-# Acceptance: a frame-timed 120 BPM clock master locks the transport within 2 s.
-# Also covers other tempos, timestamp jitter, start/stop/continue, position hold
-# while stopped, clock loss and relock, non-real-time bytes, queue overflow,
-# MIDI byte values, and allocation-free processing.
 
 add_executable(ihub-clock-in-test
     audio/ClockInTest.cpp
@@ -2927,8 +2567,6 @@ target_include_directories(ihub-clock-in-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# The replacement operator new is backed by malloc/free (which is a valid
-# implementation), so GCC's pairing heuristic fires at inlined call sites.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-clock-in-test PRIVATE
         -Wno-mismatched-new-delete
@@ -2953,14 +2591,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Tap tempo (T074) -------------------------------------------------------
-#
-# Acceptance: taps spaced 500 ms +/- 20 ms converge to 120 +/- 1 BPM after four
-# taps. The taps are exact timestamps (no wall clock), with several jitter
-# patterns. Also covers the median window, sequence resets, the 20/300 BPM
-# range boundaries, non-finite input, allocation-free tapping, and the
-# Transport integration used by the controller button and the control API.
-
 add_executable(ihub-tap-tempo-test
     audio/TapTempoTest.cpp
     audio/AllocationCount.cpp
@@ -2984,8 +2614,6 @@ target_include_directories(ihub-tap-tempo-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# The replacement operator new is backed by malloc/free (which is a valid
-# implementation), so GCC's pairing heuristic fires at inlined call sites.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-tap-tempo-test PRIVATE
         -Wno-mismatched-new-delete
@@ -3009,15 +2637,6 @@ add_test(
     COMMAND ihub-tap-tempo-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Set file container (T080) ----------------------------------------------
-#
-# Builds a four-slot set with two plugin state chunks, writes a real `.ihub`
-# ZIP (set.json + mapping.yaml + plugin-state/<uuid>.bin), inspects the
-# container, reloads it into a fresh model and a fresh AudioEngine, and asserts
-# deep equality of every field including the opaque blobs and mapping bytes.
-# Also rejects unsafe ids, duplicate ids, dangling references, out-of-range
-# values, corrupt archives and unsupported schema versions.
 
 juce_add_console_app(ihub-set-file-test
     PRODUCT_NAME "ihub-set-file-test"
@@ -3069,15 +2688,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Set migrations (T082) --------------------------------------------------
-#
-# Loads the committed v1 fixture (fixtures/set-v1.ihub) through
-# Serializer::load() and asserts it arrives as a complete v2 document: every v1
-# value preserved, `notes` and every slot `colour` filled in with their
-# defaults, and the migrated result writable and reloadable as v2. Also checks
-# the chain directly (step count, idempotence, explicit values preserved) and
-# that a newer schema version is rejected rather than guessed at.
-
 juce_add_console_app(ihub-migrations-test
     PRODUCT_NAME "ihub-migrations-test"
 )
@@ -3127,14 +2737,6 @@ add_test(
     COMMAND ihub-migrations-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Per-patch persistence (T119) -------------------------------------------
-#
-# Parses the shipped 64-patch set.yaml for instrument descriptors, mixer state,
-# family/override colour and FX chains, then builds a 64-slot `.ihub` set with
-# exactly one loaded patch. The container round-trip must preserve every patch,
-# store only the loaded patch's plugin state, and keep the other 63 as
-# descriptors.
 
 juce_add_console_app(ihub-patch-persistence-test
     PRODUCT_NAME "ihub-patch-persistence-test"
@@ -3188,14 +2790,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Sample loader (T090) ---------------------------------------------------
-#
-# Acceptance: a 48 kHz file loads unchanged, and a 44.1 kHz file becomes the
-# right number of frames at 48 kHz with the same pitch. Fixtures are generated
-# as float WAV, AIFF and FLAC inside the test, so there are no committed
-# binaries. Also checks the background request path and that the audio-thread
-# hand-off allocates nothing.
-
 juce_add_console_app(ihub-sample-loader-test
     PRODUCT_NAME "ihub-sample-loader-test"
 )
@@ -3220,7 +2814,6 @@ target_include_directories(ihub-sample-loader-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-# Same non-counting pairing note as the other allocation-counting tests.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-sample-loader-test PRIVATE
         -Wno-mismatched-new-delete
@@ -3257,14 +2850,6 @@ add_test(
     COMMAND ihub-sample-loader-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# --- Kit format (T091) ------------------------------------------------------
-#
-# Acceptance: a 2-layer kit plays layer 1 below the split velocity and layer 2
-# above it. The test generates two soft variants and one hard sample, loads a
-# JSON kit, resolves at several velocities, renders the chosen one-shots and
-# measures their pitch. It also checks round-robin, gain/pan/tune composition,
-# path resolution, validation errors and that resolve() allocates nothing.
 
 juce_add_console_app(ihub-kit-loader-test
     PRODUCT_NAME "ihub-kit-loader-test"
@@ -3335,14 +2920,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- Sampler instrument (T092) ----------------------------------------------
-#
-# Acceptance: 16 simultaneous hits do not clip the 64-voice pool, and a closed
-# hat chokes the open hat within 5 ms. The test generates a kit whose closed
-# hat is digital silence, so the choke measurement is unambiguous. It also
-# checks one-shot/gate behaviour, sample-accurate MIDI, voice stealing and that
-# process() allocates nothing.
-
 juce_add_console_app(ihub-sampler-instrument-test
     PRODUCT_NAME "ihub-sampler-instrument-test"
 )
@@ -3404,14 +2981,6 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# --- UI snapshot (T054) -----------------------------------------------------
-#
-# Launches the real application with `--snapshot <path>` and validates the
-# produced PNG: 1200x800, decodable and non-blank. In non-Debug builds it also
-# checks that the web view served the embedded assets instead of the Vite dev
-# server. Debug builds need `pnpm dev` running, so their ctest entry is
-# disabled; snapshot acceptance is a Release check.
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-ui-snapshot-test
         PRODUCT_NAME "ihub-ui-snapshot-test"
@@ -3455,14 +3024,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-ui-snapshot-test: X11/WebKit snapshot is Linux-only; skipping")
 endif()
-
-# --- Page snapshots (T127) ---------------------------------------------------
-#
-# Runs the server-rendered UI harness (`ui/src/testing/snapshot.tsx`) through
-# pnpm, then validates the Grid, Instrument, Plugins and Audio snapshots it
-# writes to `tests/artifacts/`. No browser or display is needed; the harness
-# renders the real React tree against a fixture control API and asserts the
-# page content, the 64 coloured cells and the red armed cell.
 
 find_program(IHUB_UI_PAGES_PNPM NAMES pnpm DOC "pnpm used by the page snapshot test")
 
@@ -3519,14 +3080,6 @@ if(IHUB_UI_PAGES_PNPM)
 else()
     message(STATUS "ihub-ui-pages-test: pnpm/corepack is not installed; skipping the page snapshots")
 endif()
-
-# --- Live MIDI into the session (T128) --------------------------------------
-#
-# Injects notes through Session::pushMidi() and proves the armed plugin patch
-# sounds while a note is held and stops on note-off, that an unassigned patch
-# stays silent, and that MidiBridge forwards generic inputs but never the
-# Launchpad MI/DA pad notes. The in-repo NoteTonePlugin gates a sine on held
-# notes, so silence is unambiguous. Linux-only because MidiBridge links ALSA.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-session-midi-test
@@ -3608,14 +3161,6 @@ else()
     message(STATUS "ihub-session-midi-test: ALSA MIDI forwarding is Linux-only; skipping")
 endif()
 
-# --- Per-patch plugin state and editor follow (T130) ------------------------
-#
-# Two TestPlugin patches get different presets, are switched back and forth so
-# the session captures each patch on the way out, then a fresh session built
-# from the same sidecar directory must restore each patch's parameters and
-# rendered pitch. The editor-follow checks need a display and live in
-# ihub-plugin-editor-api-test.
-
 juce_add_console_app(ihub-session-plugin-state-test
     PRODUCT_NAME "ihub-session-plugin-state-test"
 )
@@ -3688,11 +3233,6 @@ add_test(
     COMMAND ihub-session-plugin-state-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
-
-# The editor-half of T130 needs real native windows, so it links the GUI
-# modules and runs under DISPLAY=:0. Two TestPlugin patches prove that arming a
-# patch closes the non-armed editors and that closing an editor captures the
-# patch state.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-session-editor-follow-test
@@ -3776,19 +3316,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-session-editor-follow-test: Linux-only; skipping")
 endif()
-
-# --- End-to-end pad-to-audio (T117) -----------------------------------------
-#
-# One headless acceptance test for the whole shipped path:
-#
-#   LaunchpadDriver pad event -> Mapping (shared/set.yaml) -> Session::armSlot
-#     -> SlotSwitcher 3 ms crossfade -> AudioEngine -> ALSA Loopback
-#
-# It checks the intended slot arms, that the armed slot renders non-silent
-# audio, that the switch is click-free (residual against the ideal equal-power
-# crossfade, plus a delta detector with a hard-switch negative control), and
-# that the same pad events produce non-silent audio captured from the Loopback.
-# Linux-only because it opens the ALSA Loopback card.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-e2e-test
@@ -3887,16 +3414,6 @@ else()
     message(STATUS "ihub-e2e-test: the ALSA Loopback acceptance is Linux-only; skipping")
 endif()
 
-# --- Per-patch state acceptance (T131) --------------------------------------
-#
-# Automated half of T131. Eight patches, one per Launchpad family, host the
-# in-repo TestPlugin. The test uses the normal asynchronous warm pool: every
-# arm calls armSlot() and then pumps the JUCE message loop until the slot is
-# active or a 5 s deadline expires. Two captured states are loaded into the
-# eight patches, the sweep makes the pool evict and reload the early slots, and
-# a fresh session verifies all eight state hashes after the restart. No editor
-# is created and no synchronous loading mode exists.
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-per-patch-state-test
         PRODUCT_NAME "ihub-per-patch-state-test"
@@ -3973,14 +3490,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-per-patch-state-test: Linux VST3 hosting; skipping")
 endif()
-
-# --- Two-patch Analog Lab V state pass (T131) -------------------------------
-#
-# Real-plugin half of T131. Two patches host Analog Lab V through the normal
-# asynchronous warm pool, two captured states are checked across A -> B -> A
-# and a restart, and both patches must render non-silent, different audio.
-# The test is headless, never opens an editor and never holds more than two
-# Analog Lab instances. It skips (exit 77) only when no bundle is installed.
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-analog-lab-state-test
@@ -4070,13 +3579,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else()
     message(STATUS "ihub-analog-lab-state-test: Linux VST3 bridge; skipping")
 endif()
-
-# --- Hang guard -------------------------------------------------------------
-#
-# Every test gets a hard 120 s timeout. A deadlocked test fails the suite
-# instead of leaving the autopilot waiting on a command that never returns.
-# scripts/test.sh passes the same timeout; this property also protects plain
-# `ctest` invocations.
 
 get_property(IHUB_ALL_TESTS DIRECTORY PROPERTY TESTS)
 if(IHUB_ALL_TESTS)

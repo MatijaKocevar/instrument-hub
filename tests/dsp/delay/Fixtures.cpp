@@ -101,4 +101,4 @@ int measureEcho (ihub::dsp::Delay& delay, int impulseIndex, int numSamples)
     return peak - impulseIndex;
 }
 
-} // namespace DspTest::Delay
+}

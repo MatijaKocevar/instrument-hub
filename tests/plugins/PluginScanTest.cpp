@@ -1,17 +1,3 @@
-// ihub-testplugin-scan-test: acceptance check for T020.
-//
-// Proves that the TestPlugin.vst3 bundle built from tests/plugins/TestPlugin
-// is discoverable by juce::AudioPluginFormatManager:
-//
-//   1. a VST3 format can identify the bundle with fileMightContainThisPluginType
-//      and enumerate it with findAllTypesForFile
-//   2. a directory scan over the build artefacts finds the same bundle
-//   3. the plugin can be instantiated, reports its artificial latency through
-//      AudioProcessor::getLatencySamples() and renders the sine generator
-//
-// The bundle path is injected by CMake (IHUB_TESTPLUGIN_VST3); an explicit
-// path may also be passed as the first command-line argument.
-
 #include <juce_audio_processors_headless/juce_audio_processors_headless.h>
 
 #include <cmath>
@@ -61,8 +47,6 @@ juce::AudioProcessorParameter* findParameter (juce::AudioProcessor& processor,
         if (parameter->getName (64) == parameterName)
             return parameter;
 
-        // VST3 exposes numeric parameter IDs rather than the APVTS string IDs,
-        // so the ID is only an extra match when the format preserves it.
         if (auto* hosted = dynamic_cast<juce::HostedAudioProcessorParameter*> (parameter))
             if (hosted->getParameterID() == parameterID)
                 return parameter;
@@ -71,7 +55,6 @@ juce::AudioProcessorParameter* findParameter (juce::AudioProcessor& processor,
     return nullptr;
 }
 
-// Values are normalised (0..1), which is what a hosted VST3 parameter expects.
 void setNormalisedParameter (juce::AudioProcessor& processor,
                              const juce::String& parameterID,
                              const juce::String& parameterName,
@@ -82,7 +65,7 @@ void setNormalisedParameter (juce::AudioProcessor& processor,
     else
         check (false, "parameter '" + parameterName.toStdString() + "' exists");
 }
-} // namespace
+}
 
 int main (int argc, char** argv)
 {
@@ -109,7 +92,6 @@ int main (int argc, char** argv)
 
     std::cout << std::endl;
 
-    // --- 1. Direct enumeration of the bundle --------------------------------
     juce::OwnedArray<juce::PluginDescription> types;
     juce::AudioPluginFormat* vst3 = nullptr;
 
@@ -139,7 +121,6 @@ int main (int argc, char** argv)
     std::cout << "found: " << testPlugin->name << " (" << testPlugin->pluginFormatName
               << ", " << testPlugin->manufacturerName << ")" << std::endl;
 
-    // --- 2. Directory scan, the path the out-of-process scanner will use ----
     if (vst3 != nullptr)
     {
         const juce::FileSearchPath searchPath (bundle.getParentDirectory().getFullPathName());
@@ -152,7 +133,6 @@ int main (int argc, char** argv)
             std::cout << "scan: " << path << std::endl;
     }
 
-    // --- 3. Instantiate and exercise the DSP --------------------------------
     juce::String error;
     auto instance = manager.createPluginInstance (*testPlugin, 48000.0, 512, error);
 
@@ -178,9 +158,6 @@ int main (int argc, char** argv)
                   << "'" << std::endl;
     }
 
-    // Non-default values so the render cannot accidentally pass on defaults.
-    // Normalised: gain 0 %, frequency 1 kHz in 20 Hz..20 kHz, latency 10/20 ms,
-    // sine level 100 %, state marker 0.875.
     setNormalisedParameter (*instance, "gain", "Gain", 0.0f);
     setNormalisedParameter (*instance, "frequency", "Frequency", (1000.0f - 20.0f) / (20000.0f - 20.0f));
     setNormalisedParameter (*instance, "latencyMs", "Latency", 0.5f);

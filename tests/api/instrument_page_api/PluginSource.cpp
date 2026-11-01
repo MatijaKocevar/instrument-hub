@@ -70,4 +70,4 @@ void runPluginSource (SessionRig& rig)
            "the graph renders again after a plug-in source was hosted");
 }
 
-} // namespace ApiTest::InstrumentPageApi
+}

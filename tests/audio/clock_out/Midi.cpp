@@ -22,7 +22,6 @@ void runMidi()
     transport.setBpm (120.0);
     transport.start();
 
-    // 1 s playing, then stop; drain everything through a sink.
     for (int block = 0; block < 375; ++block)
     {
         clock.process (transport, 128);
@@ -47,4 +46,4 @@ void runMidi()
     check (clock.drainTo (sink) == 0, "a second drain sends nothing");
 }
 
-} // namespace AudioTest::ClockOut
+}

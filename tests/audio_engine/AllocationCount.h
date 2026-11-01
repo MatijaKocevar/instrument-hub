@@ -14,4 +14,4 @@ inline void note() noexcept
         total.fetch_add (1, std::memory_order_relaxed);
 }
 
-} // namespace allocCount
+}

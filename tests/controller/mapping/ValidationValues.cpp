@@ -102,4 +102,4 @@ encoders: []
 )", "patch kind");
 }
 
-} // namespace MappingTest
+}

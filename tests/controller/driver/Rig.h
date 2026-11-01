@@ -31,4 +31,4 @@ std::string velocityHex (std::uint8_t value);
 Bytes padLed (int pad, Controller::PadState state);
 Bytes buttonLed (int cc, Controller::PadState state);
 
-} // namespace DriverTest
+}

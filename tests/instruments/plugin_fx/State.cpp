@@ -55,4 +55,4 @@ void runStateRoundTrip (juce::AudioPluginFormatManager& manager,
            "Latency survives the state round-trip");
 }
 
-} // namespace PluginFxTest
+}

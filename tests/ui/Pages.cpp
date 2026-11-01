@@ -1,15 +1,3 @@
-// ihub-ui-pages: the T127 page-snapshot acceptance wrapper.
-//
-// The functional page checks live in `ui/src/testing/snapshot.tsx`, which
-// renders the real React tree under `react-dom/server` against a fixture
-// control API and writes one snapshot per route. This test runs that harness
-// from ctest and validates the produced Grid, Instrument, Plugins and Audio
-// snapshots from outside, so `ctest -R 'ihub-e2e|ihub-ui'` covers the pages
-// without needing a browser or a display.
-//
-// Run manually:
-//   ./build/tests/ihub-ui-pages-test
-
 #include <juce_core/juce_core.h>
 
 #include <fstream>
@@ -79,7 +67,7 @@ struct PageSnapshot
     std::size_t bytes = 0;
 };
 
-} // namespace
+}
 
 int main()
 {

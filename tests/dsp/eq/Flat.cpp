@@ -55,4 +55,4 @@ void runFlat()
     check (eq.isEnabled(), "the EQ can be re-enabled");
 }
 
-} // namespace DspTest::Eq
+}

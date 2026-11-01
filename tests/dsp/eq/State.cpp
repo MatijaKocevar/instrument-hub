@@ -27,4 +27,4 @@ void runState()
     check (! destination.isEnabled(), "the global enable survives a round-trip");
 }
 
-} // namespace DspTest::Eq
+}

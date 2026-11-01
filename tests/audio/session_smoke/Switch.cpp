@@ -34,8 +34,6 @@ void runSwitch()
         check (AudioEngine::RtGuard::assertNoOpenScopes(),
                "no realtime scope leaked out of the render");
 
-        // The device-facing callback shares the render path; drive one
-        // block through it and require the armed slot to be non-silent.
         session.armSlot (1);
         const auto callbackRms = renderCallbackRms (session);
         check (callbackRms > 0.0,
@@ -43,4 +41,4 @@ void runSwitch()
     }
 }
 
-} // namespace AudioTest::SessionSmoke
+}

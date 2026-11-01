@@ -1,10 +1,4 @@
 #!/bin/sh
-# ihub-app-serve smoke test (T137).
-#
-# Starts the real application in --serve mode on an ephemeral port, waits for
-# the documented readiness line, asks the control API for /state, then stops
-# the process. The application prints Ctrl-C as the normal way out, so the
-# final 143 from SIGTERM is expected and is not a test failure.
 
 set -eu
 

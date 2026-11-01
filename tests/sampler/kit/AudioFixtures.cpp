@@ -21,4 +21,4 @@ void writeFixtures (const juce::File& directory)
                                engineRate);
 }
 
-} // namespace KitTest
+}

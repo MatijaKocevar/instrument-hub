@@ -23,9 +23,6 @@ ihub::SessionConfig makeConfig (float fadeMilliseconds)
     config.fadeMilliseconds = fadeMilliseconds;
     config.slots = ihub::Session::makeDefaultSet();
 
-    // The default set is unassigned/silent. This acceptance needs the
-    // deterministic audible source, so the fixture's init-tone patches are
-    // requested explicitly here as well.
     for (auto& slot : config.slots)
     {
         slot.kind = ihub::SessionSlotKind::initTone;
@@ -124,4 +121,4 @@ double renderRms (ihub::Session& session, int settleBlocks, int rmsBlocks)
                     (settleBlocks + rmsBlocks) * kBlockSize);
 }
 
-} // namespace PadAudio
+}

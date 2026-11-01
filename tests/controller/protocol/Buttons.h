@@ -5,4 +5,4 @@ namespace ProtocolTest
 
 void testButtons();
 
-} // namespace ProtocolTest
+}

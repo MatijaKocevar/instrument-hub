@@ -41,7 +41,7 @@ void runTapTempo()
     transport.resetTapTempo();
     transport.tapAt (0.0);
     transport.tapAt (0.5);
-    const double gapReset = transport.tapAt (4.0);   // 3.5 s gap, outside range
+    const double gapReset = transport.tapAt (4.0);
     check (gapReset == 0.0,
            "a gap outside the supported tempo range starts a new sequence");
     check (nearlyEqual (transport.tapAt (4.5), 120.0, 1.0e-12),
@@ -59,4 +59,4 @@ void runTapTempo()
            "tap tempo does not override an external tempo");
 }
 
-} // namespace AudioTest::Transport
+}

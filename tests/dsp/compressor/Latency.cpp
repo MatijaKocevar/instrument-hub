@@ -32,8 +32,6 @@ int measureImpulseDelay (ihub::dsp::Compressor& compressor,
         }
     }
 
-    // Only the impulse may be non-zero; anything else means the delay line
-    // is leaking or the gain stage is ringing.
     for (int i = 0; i < numSamples; ++i)
         if (i != peakIndex && std::abs (buffer.getSample (0, i)) > 1.0e-6f)
             return -1000 - i;
@@ -80,7 +78,6 @@ void runLatency()
         }
     }
 
-    // A stereo impulse is delayed on both channels by the same amount.
     ihub::dsp::Compressor compressor;
     compressor.setLookaheadMs (5.0f);
     compressor.prepareToPlay (kSampleRate, kBlockSize);
@@ -100,4 +97,4 @@ void runLatency()
            "5 ms at 48 kHz reports 240 samples");
 }
 
-} // namespace DspTest::Compressor
+}

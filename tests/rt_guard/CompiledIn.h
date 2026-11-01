@@ -5,4 +5,4 @@ namespace RtGuardTest
 
 void runGuardIsCompiledIn();
 
-} // namespace RtGuardTest
+}

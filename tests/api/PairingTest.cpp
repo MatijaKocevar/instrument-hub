@@ -1,12 +1,3 @@
-// T101 acceptance test: LAN mode, 6-digit pairing codes and tokens.
-//
-// 1. With LAN mode off the loopback API needs no token.
-// 2. Enabling LAN mode rebinds the listener, issues a 6-digit code and starts
-//    answering unauthenticated requests with 401.
-// 3. POST /pair with the code returns a token; that token grants /state.
-// 4. Codes are single-use, tokens can be revoked, and turning LAN mode off
-//    restores loopback-only unauthenticated access.
-
 #include "TestSupport.h"
 #include "pairing/LanOff.h"
 #include "pairing/Pairing.h"

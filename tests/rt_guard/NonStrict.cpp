@@ -73,4 +73,4 @@ void runNonStrictCountsViolations()
     AudioEngine::RtGuard::resetCounters();
 }
 
-} // namespace RtGuardTest
+}

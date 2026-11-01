@@ -26,4 +26,4 @@ void runAuth (Rig& rig)
     server.setAuthToken ("");
 }
 
-} // namespace ApiTest::CoreApi
+}

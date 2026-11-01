@@ -48,4 +48,4 @@ encoders: []
     runValueChecks();
 }
 
-} // namespace MappingTest
+}

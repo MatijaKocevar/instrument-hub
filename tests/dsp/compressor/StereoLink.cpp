@@ -15,7 +15,6 @@ void runStereoLink()
     const auto numSamples = static_cast<int> (1.5 * kSampleRate);
     juce::AudioBuffer<float> signal (2, numSamples);
 
-    // Left is 6 dB over the -18 dBFS threshold, right is 24 dB below it.
     fillTone (signal, 0, -12.0, kToneFrequency, kSampleRate);
     fillTone (signal, 1, -42.0, 500.0, kSampleRate);
 
@@ -37,4 +36,4 @@ void runStereoLink()
            "the linked pair follows the loud channel's static curve");
 }
 
-} // namespace DspTest::Compressor
+}

@@ -87,4 +87,4 @@ void runDeviceEnumeration()
     }
 }
 
-} // namespace ApiTest::MidiApi
+}

@@ -26,4 +26,4 @@ juce::File tempFile (const juce::String& suffix)
         .getNonexistentChildFile ("ihub-diagnostics", suffix, false);
 }
 
-} // namespace DiagTest
+}

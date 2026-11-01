@@ -108,4 +108,4 @@ void runConcurrentWriters()
     check (contiguous, "the final window holds contiguous, newest records");
 }
 
-} // namespace DiagTest
+}

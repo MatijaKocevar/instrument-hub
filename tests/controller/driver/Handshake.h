@@ -7,4 +7,4 @@ namespace DriverTest
 
 void runHandshakeChecks (Rig& rig);
 
-} // namespace DriverTest
+}

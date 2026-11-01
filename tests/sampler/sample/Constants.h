@@ -8,4 +8,4 @@ constexpr double standardRate = 44100.0;
 constexpr double sineFrequency = 1000.0;
 constexpr double sineAmplitude = 0.5;
 
-} // namespace SampleTest
+}

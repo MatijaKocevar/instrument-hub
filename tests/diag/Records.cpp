@@ -67,4 +67,4 @@ void runStructuredRecords()
            "a long message is truncated to the record capacity");
 }
 
-} // namespace DiagTest
+}

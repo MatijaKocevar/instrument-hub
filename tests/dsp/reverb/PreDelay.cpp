@@ -35,4 +35,4 @@ void runPreDelay()
            "the tail starts after the pre-delay");
 }
 
-} // namespace DspTest::Reverb
+}

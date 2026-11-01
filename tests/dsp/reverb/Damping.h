@@ -5,4 +5,4 @@ namespace DspTest::Reverb
 
 void runDamping();
 
-} // namespace DspTest::Reverb
+}

@@ -45,7 +45,7 @@ namespace
 
 void* volatile allocationEscapeSink = nullptr;
 
-} // namespace
+}
 
 ProbeSource::ProbeSource (Injection injectionToUse)
     : injection (injectionToUse),
@@ -198,4 +198,4 @@ AbortResult runStrictChild (Injection injection)
     return result;
 }
 
-} // namespace RtGuardTest
+}

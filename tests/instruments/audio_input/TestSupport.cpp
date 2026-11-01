@@ -38,4 +38,4 @@ void fillSine (juce::AudioBuffer<float>& buffer, int channel)
     }
 }
 
-} // namespace AudioInputTest
+}

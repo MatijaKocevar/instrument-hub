@@ -25,4 +25,4 @@ void runComposition()
            "the bus is sized at the maximum block size");
 }
 
-} // namespace AudioTest::SessionSmoke
+}

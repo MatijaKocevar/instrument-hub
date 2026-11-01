@@ -1,21 +1,3 @@
-// T121 acceptance test: the per-patch FX chain API drives the real audio path.
-//
-// Builds a small headless session, attaches the HTTP control server, arms a
-// patch and then edits its insert chain entirely through the API:
-//
-//   - add a compressor (with look-ahead latency) and an EQ, and prove the
-//     rendered audio changes;
-//   - reorder the two inserts and prove the rendered audio changes again
-//     (a compressor is non-linear, so it does not commute with the EQ);
-//   - bypass an insert and watch its latency disappear from the chain total;
-//   - set the wet/dry balance to zero and back;
-//   - add, inspect and remove a hosted VST3 insert;
-//   - replace the whole chain with PUT and clear it again;
-//   - check the error statuses for bad slots, indices and fields.
-//
-// Everything is offline and deterministic: this test drives the render calls,
-// so the result does not depend on a sound card or wall-clock timing.
-
 #include "TestSupport.h"
 #include "patch_fx_api/Bypass.h"
 #include "patch_fx_api/Chain.h"

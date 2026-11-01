@@ -165,4 +165,4 @@ int runChainOrder (const juce::File& bundle)
     return 0;
 }
 
-} // namespace FxChainTest
+}

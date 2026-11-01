@@ -47,4 +47,4 @@ void runChokeChecks (Rig& rig)
            "the choked voice stays silent after the window");
 }
 
-} // namespace VoiceTest
+}

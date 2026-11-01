@@ -111,4 +111,4 @@ void runArm (SessionRig& rig)
     }
 }
 
-} // namespace ApiTest::SessionApi
+}

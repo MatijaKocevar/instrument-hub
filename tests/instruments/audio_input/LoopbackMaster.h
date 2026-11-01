@@ -5,4 +5,4 @@ namespace AudioInputTest
 
 void runLoopbackThroughMasterBus();
 
-} // namespace AudioInputTest
+}

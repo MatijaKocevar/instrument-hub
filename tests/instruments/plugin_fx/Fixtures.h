@@ -31,4 +31,4 @@ juce::PluginDescription* findTestPlugin (juce::AudioPluginFormatManager& manager
 void fillPattern (juce::AudioBuffer<float>& buffer);
 void pumpMessages (int milliseconds);
 
-} // namespace PluginFxTest
+}

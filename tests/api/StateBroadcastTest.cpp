@@ -1,22 +1,3 @@
-// ihub-state-broadcast-test: the T103 acceptance check.
-//
-// The whole live-mirror path, without hardware:
-//
-//   LaunchpadDriver (the real note decoder and pad dispatch)
-//     -> Api::StateBroadcast::publishPad()
-//     -> /events WebSocket -> two connected clients
-//
-// Every event is timestamped on the test thread immediately before the note
-// is injected, and again when a client receives the frame. The gap is the
-// end-to-end latency the task contract caps at 100 ms.
-//
-// The same check is run for the UI path: `POST /arm` (what a grid tap does)
-// must reach both sockets within 100 ms and carry the new armed slot.
-//
-// The MIDI leg uses the driver's injectMidiMessage() seam, so no ALSA
-// sequencer port is opened and the test exercises the same decoder the MIDI
-// thread uses.
-
 #include "TestSupport.h"
 #include "state_broadcast/Accounting.h"
 #include "state_broadcast/InitialState.h"

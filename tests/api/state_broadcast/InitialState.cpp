@@ -36,4 +36,4 @@ void runInitialState (Rig& rig)
     }
 }
 
-} // namespace ApiTest::StateBroadcast
+}

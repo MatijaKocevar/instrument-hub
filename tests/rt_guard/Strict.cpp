@@ -42,4 +42,4 @@ void runStrictAbortsOnInjection()
     }
 }
 
-} // namespace RtGuardTest
+}

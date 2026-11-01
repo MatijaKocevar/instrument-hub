@@ -72,4 +72,4 @@ void runMeters (SessionRig& rig)
     websocket.close();
 }
 
-} // namespace ApiTest::SessionApi
+}

@@ -105,4 +105,4 @@ scenes: []
 )", "pad must be within");
 }
 
-} // namespace LaunchpadMappingTest
+}

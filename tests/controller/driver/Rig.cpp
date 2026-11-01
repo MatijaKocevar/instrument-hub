@@ -124,4 +124,4 @@ bool Rig::load (std::string& errorText)
     return loaded;
 }
 
-} // namespace DriverTest
+}

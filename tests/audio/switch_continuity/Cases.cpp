@@ -74,4 +74,4 @@ void runCase (const std::string& label, float fadeMilliseconds, bool expectDetec
     }
 }
 
-} // namespace AudioTest::SwitchContinuity
+}

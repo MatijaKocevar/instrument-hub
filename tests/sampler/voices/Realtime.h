@@ -7,4 +7,4 @@ namespace VoiceTest
 
 void runRealtimeChecks (Rig& rig);
 
-} // namespace VoiceTest
+}

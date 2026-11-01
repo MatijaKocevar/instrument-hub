@@ -22,4 +22,4 @@ struct LoopbackResult
 
 LoopbackResult runLoopback (ihub::Session& session, PadRig& rig);
 
-} // namespace PadAudio
+}

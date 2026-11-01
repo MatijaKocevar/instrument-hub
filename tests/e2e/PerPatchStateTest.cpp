@@ -1,25 +1,3 @@
-// ihub-per-patch-state-test: automated acceptance for T131.
-//
-// Eight patches, one per Launchpad family, all hosting the in-repo TestPlugin.
-// The test uses the normal asynchronous warm pool. It never enables a
-// synchronous loading mode and never opens an editor.
-//
-//   1. Build a headless session with one plugin patch per family. Starting
-//      with slot 0, arm each patch and pump the JUCE message loop (bounded by
-//      a 5 s deadline) until `getWarmState()` is `active`.
-//   2. Give patch 0 state A and patch 1 state B, capture both from the plugin,
-//      then load A into the even slots and B into the odd slots and capture
-//      every patch's blob to the per-patch sidecar.
-//   3. Sweep all eight patches again. The first sweep left the early slots
-//      outside the warm neighbourhood, so the second one must evict and
-//      reload them from the sidecar; every live state hash must match.
-//   4. Destroy the session and build a fresh one from the same sidecar
-//      ("restart"). Every patch must restore its own state hash again.
-//
-// JUCE plugin instantiation posts to the message thread and blocks, so the
-// test keeps pumping that loop while the warm pool works. The TestPlugin
-// bundle path is injected by CMake (IHUB_TESTPLUGIN_VST3).
-
 #include "Session.h"
 #include "plugins/PluginInstrument.h"
 
@@ -40,8 +18,8 @@ namespace
 {
 constexpr double kSampleRate = 48000.0;
 constexpr int kBlockSize = 128;
-constexpr int kSlots = 8;          // one patch per Launchpad family
-constexpr int kNeighbourCount = 1; // warm limit 2: the sweep really evicts
+constexpr int kSlots = 8;
+constexpr int kNeighbourCount = 1;
 constexpr int kArmTimeoutMs = 5000;
 
 constexpr float kMarkerA = 0.25f;
@@ -67,7 +45,6 @@ void check (bool condition, const std::string& what)
         ++failures;
 }
 
-/** Stable identity hash for an opaque plugin blob (FNV-1a 64). */
 std::string hashOf (const juce::MemoryBlock& data)
 {
     std::uint64_t hash = 1469598103934665603ull;
@@ -85,15 +62,11 @@ std::string hashOf (const juce::MemoryBlock& data)
     return text;
 }
 
-/** Pumps the JUCE message loop once. Plugin creation is posted here by JUCE,
-    so a console app must keep it running while a warm load is in flight. */
 void pumpMessages()
 {
     juce::MessageManager::getInstance()->runDispatchLoopUntil (10);
 }
 
-/** Calls `armSlot(slot)` and pumps until that slot is active or the 5 s
-    deadline expires. On timeout the failure names the observed warm state. */
 bool armAndWait (ihub::Session& session, int slot)
 {
     session.armSlot (slot);
@@ -273,7 +246,7 @@ bool verifySweep (ihub::Session& session,
     return ok;
 }
 
-} // namespace
+}
 
 int main()
 {
@@ -318,8 +291,6 @@ int main()
             return 1;
         }
 
-        // Patch 0 carries state A; reading it back gives the fixture every
-        // even slot must restore.
         if (! armAndWait (session, 0))
         {
             (void) tempRoot.deleteRecursively();
@@ -345,7 +316,6 @@ int main()
         check (session.capturePluginState (0),
                "patch 0 state A was written to the sidecar");
 
-        // Patch 1 carries state B.
         if (! armAndWait (session, 1))
         {
             (void) tempRoot.deleteRecursively();
@@ -373,8 +343,6 @@ int main()
         check (session.capturePluginState (1),
                "patch 1 state B was written to the sidecar");
 
-        // The remaining six slots get one of the two captured states. This is
-        // a cold arm each time, so it also exercises the normal load path.
         for (int slot = 2; slot < kSlots; ++slot)
         {
             if (! armAndWait (session, slot))
@@ -402,10 +370,6 @@ int main()
                    "slot " + std::to_string (slot) + " state was written to the sidecar");
         }
 
-        //--------------------------------------------------------------------------
-        // The warm pool evicted the early slots during the first sweep; this
-        // second sweep must reload them from the sidecar.
-
         check (! session.isSlotWarm (0) && ! session.isSlotWarm (2),
                "the warm pool evicted the early patches after the capture sweep");
         check (session.getPeakInstrumentCount() <= 1 + kNeighbourCount,
@@ -424,9 +388,6 @@ int main()
                    && session.getPluginStateSize (kSlots - 1) > 0,
                "the sidecar holds non-empty blobs for the first and last patch");
     }
-
-    //--------------------------------------------------------------------------
-    // Restart: a fresh session reads the same sidecar from disk.
 
     {
         ihub::Session session;

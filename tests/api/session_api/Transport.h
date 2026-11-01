@@ -7,4 +7,4 @@ namespace ApiTest::SessionApi
 
 void runTransport (SessionRig& rig);
 
-} // namespace ApiTest::SessionApi
+}

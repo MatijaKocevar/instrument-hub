@@ -13,10 +13,9 @@ void runTransport()
     Simulator simulator (kSampleRate, 120.0);
     simulator.start();
 
-    simulator.run (fixture.transport, 48000, kBlockSize);   // 1 s
+    simulator.run (fixture.transport, 48000, kBlockSize);
 
     const double heldPpq = fixture.transport.getPpq();
-    // Holding is exact to within the block-quantised interpolation phase.
     const double holdTolerance = static_cast<double> (kBlockSize) / (kSampleRate * 60.0 / 120.0);
 
     check (simulator.clockIn.isPlaying() && fixture.transport.isPlaying(),
@@ -35,7 +34,6 @@ void runTransport()
     check (nearlyEqual (fixture.transport.getPpq(), heldPpq, holdTolerance),
            "the position is held while stopped");
 
-    // The master keeps sending clock while stopped: the position must not move.
     simulator.run (fixture.transport, 48000, kBlockSize);
     check (nearlyEqual (fixture.transport.getPpq(), heldPpq, holdTolerance),
            "clock while stopped does not advance the position");
@@ -52,7 +50,6 @@ void runTransport()
     check (nearlyEqual (fixture.transport.getPpq(), heldPpq + 2.0, 2.0 * tick),
            "continue resumes from the held position and advances 2 quarter notes");
 
-    // Start rewinds to zero.
     simulator.stop();
     simulator.run (fixture.transport, kBlockSize, kBlockSize);
     simulator.start();
@@ -64,4 +61,4 @@ void runTransport()
            "start resets the transport to the beginning");
 }
 
-} // namespace AudioTest::ClockIn
+}

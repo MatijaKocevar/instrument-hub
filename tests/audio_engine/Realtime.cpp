@@ -14,7 +14,7 @@ namespace
 
 void* volatile allocationSink = nullptr;
 
-} // namespace
+}
 
 void runNoAllocationsDuringProcessBlock()
 {
@@ -82,4 +82,4 @@ void runNoAllocationsDuringProcessBlock()
            "counting allocator detects a deliberate allocation");
 }
 
-} // namespace AudioEngineTest
+}

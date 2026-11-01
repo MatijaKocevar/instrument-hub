@@ -7,4 +7,4 @@ namespace ApiTest::Pairing
 
 void runPairing (Fixture& fixture);
 
-} // namespace ApiTest::Pairing
+}

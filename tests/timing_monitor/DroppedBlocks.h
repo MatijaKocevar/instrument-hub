@@ -5,4 +5,4 @@ namespace TimingMonitorTest
 
 void runDroppedBlocks();
 
-} // namespace TimingMonitorTest
+}

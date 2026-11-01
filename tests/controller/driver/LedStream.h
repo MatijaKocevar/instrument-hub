@@ -7,4 +7,4 @@ namespace DriverTest
 
 void runLedStreamChecks (Rig& rig);
 
-} // namespace DriverTest
+}

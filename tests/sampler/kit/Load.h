@@ -7,4 +7,4 @@ namespace KitTest
 
 void runLoadChecks (const juce::File& directory);
 
-} // namespace KitTest
+}

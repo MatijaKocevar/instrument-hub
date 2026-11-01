@@ -7,4 +7,4 @@ namespace VoiceTest
 
 void runPoolChecks (Rig& rig);
 
-} // namespace VoiceTest
+}

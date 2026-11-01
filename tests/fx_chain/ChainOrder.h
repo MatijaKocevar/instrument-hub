@@ -7,4 +7,4 @@ namespace FxChainTest
 
 int runChainOrder (const juce::File& bundle);
 
-} // namespace FxChainTest
+}

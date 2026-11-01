@@ -15,4 +15,4 @@ void checkValue (const juce::String& commandLine,
                  const juce::String& expected);
 void checkMode (const juce::String& commandLine, ihub::app::AppMode expected);
 
-} // namespace AppModesTest
+}

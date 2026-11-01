@@ -82,4 +82,4 @@ bool runLifecycle (ihub::Session& session, httplib::Client& client)
     return true;
 }
 
-} // namespace ApiTest::PluginEditorApi
+}

@@ -44,4 +44,4 @@ void runCrossCorrelation()
            "silence reports no lag");
 }
 
-} // namespace LatencyProbeTest
+}

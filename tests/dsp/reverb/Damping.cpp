@@ -32,4 +32,4 @@ void runDamping()
            "heavy damping lowers the high-frequency content of the tail");
 }
 
-} // namespace DspTest::Reverb
+}

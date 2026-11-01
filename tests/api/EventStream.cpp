@@ -42,4 +42,4 @@ bool readEventUntil (httplib::ws::WebSocketClient& websocket,
     return false;
 }
 
-} // namespace ApiTest
+}

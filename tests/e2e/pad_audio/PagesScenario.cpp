@@ -27,9 +27,6 @@ PagesResult runPagesScenario()
 {
     PagesResult result;
 
-    // The default init-tone set leaves every colour at 0. Give the two page
-    // slots the palette indices the shipped set.yaml assigns to those rows
-    // (Drums 1, Bass 2) so the LED assertion exercises a real patch colour.
     auto config = makeConfig (3.0f);
     config.slots[static_cast<std::size_t> (kPagePad)].colorIndex = 1;
     config.slots[static_cast<std::size_t> (kPageIdlePad)].colorIndex = 2;
@@ -75,8 +72,6 @@ PagesResult runPagesScenario()
 
     httplib::Client client ("127.0.0.1", server.getPort());
 
-    // 1. The Grid page's click path: one POST /arm, exactly what
-    //    AppStore::armSlot() sends after a cell is clicked.
     const auto click = client.Post ("/arm",
                                     R"({"slot":10})",
                                     "application/json");
@@ -116,8 +111,6 @@ PagesResult runPagesScenario()
     check (result.clickRmsDbfs > kMinimumRmsDbfs,
            "the clicked patch renders non-silent audio");
 
-    // 2. The same patch through the Launchpad. Move away first (pad 0) so the
-    //    pad press really is what re-arms slot 10, then press pad 10.
     rig.press (0);
     check (session.waitForSlotActive (0, 5000),
            "pad 0 arms slot 0 before the page pad press");
@@ -143,9 +136,6 @@ PagesResult runPagesScenario()
     result.samePatch = result.clickArmed == result.padArmed;
     check (result.samePatch, "the grid click and the Launchpad pad armed one patch");
 
-    // 3. The LED mirror: the armed pad is red, the idle pad shows its patch
-    //    colour. The patch colour index comes from the same /state document
-    //    the Grid page renders.
     const auto snapshot = state.snapshot();
     const Api::PatchState* armedPatch = nullptr;
     const Api::PatchState* idlePatch = nullptr;
@@ -213,4 +203,4 @@ PagesResult runPagesScenario()
     return result;
 }
 
-} // namespace PadAudio
+}

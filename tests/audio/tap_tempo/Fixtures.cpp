@@ -13,4 +13,4 @@ double fourTaps (const double* seconds)
     return tempo.getBpm();
 }
 
-} // namespace AudioTest::TapTempo
+}

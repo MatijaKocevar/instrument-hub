@@ -7,4 +7,4 @@ namespace ApiTest::PatchFxApi
 
 void runChain (SessionRig& rig, Context& context);
 
-} // namespace ApiTest::PatchFxApi
+}

@@ -38,4 +38,4 @@ void runStartupFlag (Fixture& fixture)
     lanServer.stop();
 }
 
-} // namespace ApiTest::Pairing
+}

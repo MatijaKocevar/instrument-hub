@@ -20,18 +20,12 @@ void silentAlsaError (const char*, int, const char*, int, const char*, ...)
 {
 }
 
-/** Keeps ALSA's underrun chatter out of the ctest log.
-
-    The loopback pass is an offline render fed through a real-time PCM ring.
-    Recoverable underruns are expected and do not change the captured samples
-    that are measured, so the library's stderr noise is suppressed.
-*/
 struct AlsaErrorSilencer
 {
     AlsaErrorSilencer()  { snd_lib_error_set_handler (&silentAlsaError); }
     ~AlsaErrorSilencer() { snd_lib_error_set_handler (nullptr); }
 };
-} // namespace
+}
 #endif
 
 namespace
@@ -49,7 +43,7 @@ std::vector<std::int16_t> toPcm16 (const juce::AudioBuffer<float>& buffer, int f
 
     return result;
 }
-} // namespace
+}
 
 LoopbackResult runLoopback (ihub::Session& session, PadRig& rig)
 {
@@ -76,9 +70,6 @@ LoopbackResult runLoopback (ihub::Session& session, PadRig& rig)
     std::vector<std::int16_t> pcmBlock (static_cast<std::size_t> (kBlockSize), 0);
     std::vector<std::int16_t> silence (static_cast<std::size_t> (kBlockSize), 0);
 
-    // Start both streams with silence so the capture has real frames to read
-    // before the first rendered block is written. Eight periods of slack keep
-    // the PCM ring ahead of this offline render loop.
     for (int index = 0; index < 4; ++index)
     {
         if (! pcm.write (silence.data(), kBlockSize))
@@ -138,4 +129,4 @@ LoopbackResult runLoopback (ihub::Session& session, PadRig& rig)
 #endif
 }
 
-} // namespace PadAudio
+}

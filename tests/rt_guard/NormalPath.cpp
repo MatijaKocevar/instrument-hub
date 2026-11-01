@@ -46,4 +46,4 @@ void runNormalPath()
            "the test thread is outside the audio scope again");
 }
 
-} // namespace RtGuardTest
+}

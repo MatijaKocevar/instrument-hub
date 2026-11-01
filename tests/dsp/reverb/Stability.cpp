@@ -18,8 +18,6 @@ void runStability()
 
     juce::AudioBuffer<float> noise (2, numSamples);
 
-    // Deterministic LCG so the test never depends on the standard library's
-    // distribution details.
     std::uint32_t state = 0x12345678u;
 
     const auto next = [&state] () noexcept
@@ -51,9 +49,6 @@ void runStability()
     check (finite, "all output samples are finite");
     check (peak < 8.0f, "the network does not run away at maximum room size");
 
-    // Silence in, silence out: the tail must eventually die. A room size of
-    // 0.6 decays fast enough to be gone within the reported tail length; at
-    // 1.0 the Freeverb feedback is deliberately very long.
     ihub::dsp::Reverb closing;
     closing.prepareToPlay (kSampleRate, kBlockSize);
     closing.setSettings (makeSettings (0.6f, 0.4f, 1.0f, 1.0f));
@@ -75,4 +70,4 @@ void runStability()
     check (last < 1.0e-5, "the tail decays to silence");
 }
 
-} // namespace DspTest::Reverb
+}

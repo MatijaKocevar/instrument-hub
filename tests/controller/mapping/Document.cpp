@@ -115,4 +115,4 @@ void runDocumentChecks()
            "shared/schema/set.schema.json exists and describes schemaVersion");
 }
 
-} // namespace MappingTest
+}

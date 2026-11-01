@@ -5,4 +5,4 @@ namespace AudioTest::Transport
 
 void runExternalSync();
 
-} // namespace AudioTest::Transport
+}

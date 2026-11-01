@@ -7,4 +7,4 @@ namespace ApiTest::CoreApi
 
 void runSettings (Rig& rig);
 
-} // namespace ApiTest::CoreApi
+}

@@ -68,4 +68,4 @@ void runMeters (Rig& rig)
     websocket.close();
 }
 
-} // namespace ApiTest::CoreApi
+}

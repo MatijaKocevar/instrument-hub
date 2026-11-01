@@ -23,8 +23,6 @@ void runRealtime()
 
     for (int block = 0; block < 10000; ++block)
     {
-        // One tick per four 128-frame blocks at 120 BPM: push the same way the
-        // MIDI thread would, then run the audio-thread entry point.
         if (block % 4 == 0)
             simulator.clockIn.pushRealtime (0xF8, static_cast<double> (block) * 128.0 / kSampleRate);
 
@@ -41,4 +39,4 @@ void runRealtime()
            "10000 push/process pairs allocate nothing");
 }
 
-} // namespace AudioTest::ClockIn
+}

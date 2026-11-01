@@ -16,9 +16,6 @@ void runOverflow()
 
     AudioEngine::ClockOut clock;
 
-    // First block: start plus ticks 1..9. Then a block that needs ten clocks
-    // but is given room for one, to prove the overflow is counted and the tick
-    // grid still advances.
     AudioEngine::ClockOut::Event roomy[256];
     const int firstCount = clock.generate (transport, 9600, roomy, 256);
     check (firstCount == 10, "a 9600-frame block at 120 BPM carries start and 9 clocks");
@@ -36,9 +33,8 @@ void runOverflow()
     check (clock.getNextTick() == 20,
            "the tick counter advances past the skipped events");
 
-    // A zero-capacity call is a no-op, not a crash.
     check (clock.generate (transport, 128, nullptr, 0) == 0,
            "a null/zero-capacity destination is ignored");
 }
 
-} // namespace AudioTest::ClockOut
+}

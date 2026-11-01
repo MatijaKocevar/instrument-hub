@@ -5,4 +5,4 @@ namespace SandboxTest
 
 void runRealPlugin();
 
-} // namespace SandboxTest
+}

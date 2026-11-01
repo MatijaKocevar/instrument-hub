@@ -102,4 +102,4 @@ void runFormattedReport()
            "the crash dump path is printed");
 }
 
-} // namespace DiagTest
+}

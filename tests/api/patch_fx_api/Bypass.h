@@ -7,4 +7,4 @@ namespace ApiTest::PatchFxApi
 
 void runBypass (SessionRig& rig, const Context& context);
 
-} // namespace ApiTest::PatchFxApi
+}

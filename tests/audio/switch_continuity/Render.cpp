@@ -44,8 +44,6 @@ RunResult renderRun (float fadeMilliseconds)
     juce::AudioBuffer<float> block (kNumChannels, kBlockSize);
     juce::MidiBuffer midi;
 
-    // One slot is selected before recording; its fade-in starts from silence,
-    // so the very first samples are continuous too.
     switcher.armSlot (0);
 
     for (int preRollBlock = 0; preRollBlock < kPreRollBlocks; ++preRollBlock)
@@ -61,8 +59,6 @@ RunResult renderRun (float fadeMilliseconds)
             result.master.push_back (block.getSample (0, frame));
     }
 
-    // Deterministic random schedule. Gaps as short as 16 samples force re-arms
-    // in the middle of a 3 ms fade, which is the hardest continuity case.
     std::mt19937 rng (kSeed);
     std::uniform_int_distribution<int> gapDistribution (kMinimumGapSamples, kMaximumGapSamples);
     std::uniform_int_distribution<int> slotDistribution (0, kNumSlots - 1);
@@ -87,8 +83,6 @@ RunResult renderRun (float fadeMilliseconds)
     {
         const int blockStart = blockIndex * kBlockSize;
 
-        // At most one request per block: the switcher consumes requests at
-        // block boundaries, so every issue below is one audible transition.
         if (nextEvent < eventPositions.size()
             && eventPositions[nextEvent] < blockStart + kBlockSize)
         {
@@ -130,4 +124,4 @@ RunResult renderRun (float fadeMilliseconds)
     return result;
 }
 
-} // namespace AudioTest::SwitchContinuity
+}

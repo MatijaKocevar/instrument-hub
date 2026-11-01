@@ -7,4 +7,4 @@ namespace VoiceTest
 
 void runStealingChecks (Rig& rig);
 
-} // namespace VoiceTest
+}

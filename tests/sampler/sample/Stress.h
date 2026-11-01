@@ -5,4 +5,4 @@ namespace SampleTest
 
 void runStressChecks();
 
-} // namespace SampleTest
+}

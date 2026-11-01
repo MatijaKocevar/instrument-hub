@@ -1,18 +1,3 @@
-// ihub-patch-persistence-test: acceptance check for T119.
-//
-// The check has two halves:
-//
-//   1. `shared/set.yaml` carries every patch's persistent state: instrument
-//      descriptor, volume/pan/mute/solo, the resolved colour index (family
-//      default plus patch override) and the ordered FX chain. All 64 patches
-//      resolve, including the family-default and override colour cases.
-//
-//   2. A 64-slot `.ihub` set built from that document round-trips through the
-//      real container. Exactly one patch has been loaded/edited, so exactly
-//      one plugin state blob is stored; the other 63 patches are descriptors
-//      only. Their mixer state, colour index and FX chain survive byte for
-//      byte, and `Serializer::load()` leaves them cold.
-
 #include "controller/Mapping.h"
 #include "project/Serializer.h"
 #include "project/SetFile.h"
@@ -89,7 +74,6 @@ ihub::project::SourceKind sourceKindFor (const std::string& kind)
     return SourceKind::empty;
 }
 
-/** Builds the 64-slot document the container would persist. */
 ihub::project::SetFile buildSet (const Controller::SetMapping& document,
                                  const std::string& mappingYaml,
                                  const std::string& hotStateId)
@@ -148,10 +132,6 @@ ihub::project::SetFile buildSet (const Controller::SetMapping& document,
             slot.fxChain.push_back (std::move (fx));
         }
 
-        // The shipped set is made of empty (unassigned) descriptors. For the
-        // container round-trip every patch becomes a plugin descriptor; slot 0
-        // is the one patch that has been loaded, so it is the only one with a
-        // blob.
         if (patch->slot == 0)
         {
             slot.instrument.kind = SourceKind::plugin;
@@ -173,15 +153,12 @@ ihub::project::SetFile buildSet (const Controller::SetMapping& document,
     return set;
 }
 
-} // namespace
+}
 
 int main()
 {
     juce::ScopedJuceInitialiser_GUI juceInitialiser;
 
-    //==========================================================================
-    // 1. set.yaml carries the full patch state
-    //==========================================================================
     Controller::SetMapping document;
     Controller::MappingError mappingError;
 
@@ -270,9 +247,6 @@ int main()
                && strings->resolvedColorIndex == 0,
            "a patch without an override inherits the family colour");
 
-    //==========================================================================
-    // 2. A 64-patch .ihub round-trips with one hot patch
-    //==========================================================================
     const juce::File mappingFile (IHUB_SET_YAML);
     const auto mappingYaml = mappingFile.loadFileAsString().toStdString();
 
@@ -401,7 +375,6 @@ int main()
     check (loaded.slots[0].colorIndex == 1,
            "the loaded patch keeps its resolved colour");
 
-    // --- Apply the descriptors without instantiating anything --------------
     AudioEngine::AudioEngine engine (64);
     engine.prepare (48000.0, 128, 2);
     check (loaded.applyTo (engine, error),

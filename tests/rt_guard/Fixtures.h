@@ -21,7 +21,6 @@ enum class Injection
 
 const char* toString (Injection injection) noexcept;
 
-/** A sine source that can break one rule of the audio-thread contract. */
 class ProbeSource final : public AudioEngine::SlotSource
 {
 public:
@@ -40,7 +39,6 @@ private:
     bool armed = false;
 };
 
-/** Engine + probe + pre-allocated buffers, wired exactly like the app. */
 struct Harness
 {
     explicit Harness (Injection injection);
@@ -63,4 +61,4 @@ struct AbortResult
 
 AbortResult runStrictChild (Injection injection);
 
-} // namespace RtGuardTest
+}

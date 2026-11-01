@@ -28,7 +28,7 @@ void printChildSummary (const juce::String& output)
         }
     }
 }
-} // namespace
+}
 
 int runChild (const juce::File& executable,
               const juce::StringArray& arguments,
@@ -91,4 +91,4 @@ int runChildWithRetry (const juce::File& executable,
     return 124;
 }
 
-} // namespace AnalogLab
+}

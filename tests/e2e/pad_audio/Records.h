@@ -23,4 +23,4 @@ void writePagesRecord (const PagesResult& pages);
 
 void writeMeasurementRecord (const MeasurementRecord& record);
 
-} // namespace PadAudio
+}

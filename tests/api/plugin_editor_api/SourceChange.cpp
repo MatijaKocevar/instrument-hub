@@ -27,4 +27,4 @@ void runSourceChange (ihub::Session& session, httplib::Client& client)
     check (response && response->status == 404, "an out-of-range slot is rejected");
 }
 
-} // namespace ApiTest::PluginEditorApi
+}

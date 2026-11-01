@@ -11,4 +11,4 @@ double estimateFrequency (const juce::AudioBuffer<float>& buffer,
 
 double meanOfMiddle (const juce::AudioBuffer<float>& buffer, int channel = 0);
 
-} // namespace SamplerTest
+}

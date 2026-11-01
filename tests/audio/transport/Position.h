@@ -5,4 +5,4 @@ namespace AudioTest::Transport
 
 void runPosition();
 
-} // namespace AudioTest::Transport
+}

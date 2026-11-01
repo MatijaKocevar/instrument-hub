@@ -1,20 +1,4 @@
 #!/usr/bin/env bash
-# Put a fresh Linux box into the same state as the machine the autopilot has
-# been running on: toolchain, headers, audio devices, submodule, UI deps,
-# git identity, opencode credentials, build, tests, then the driver.
-#
-# Missing system packages are installed with `--install`, which asks for your
-# password here. Without the flag the script only reports them.
-#
-# Usage:
-#   scripts/bootstrap.sh              # check everything, build, test
-#   scripts/bootstrap.sh --install    # install missing packages/devices, then build
-#   scripts/bootstrap.sh --check      # diagnostics only, change nothing
-#   scripts/bootstrap.sh --no-build   # checks + deps, skip build/test
-#   scripts/bootstrap.sh --start      # checks + build, then run the autopilot
-#
-# --install prompts for your sudo password in this terminal. The autopilot
-# itself never runs sudo: this is the human-supervised path.
 
 set -uo pipefail
 
@@ -24,13 +8,25 @@ cd "$ROOT"
 BUILD=1
 START=0
 INSTALL=0
+
+usage() {
+    cat <<'EOF'
+Usage:
+  scripts/bootstrap.sh              # check everything, build, test
+  scripts/bootstrap.sh --install    # install missing packages/devices, then build
+  scripts/bootstrap.sh --check      # diagnostics only, change nothing
+  scripts/bootstrap.sh --no-build   # checks + deps, skip build/test
+  scripts/bootstrap.sh --start      # checks + build, then run the autopilot
+EOF
+}
+
 for arg in "$@"; do
     case "$arg" in
         --install)  INSTALL=1 ;;
         --check)    BUILD=0 ;;
         --no-build) BUILD=0 ;;
         --start)    START=1 ;;
-        -h|--help)  sed -n '2,16p' "$0"; exit 0 ;;
+        -h|--help)  usage; exit 0 ;;
         *) echo "unknown flag: $arg" >&2; exit 2 ;;
     esac
 done
@@ -77,7 +73,6 @@ if (( INSTALL )); then
     echo "installing system dependencies (you will be asked for your password)"
     install_system_deps || { echo "install failed" >&2; exit 1; }
 
-    # Realtime audio limits, as recorded in BLOCKERS.md B001.
     if [[ ! -f /etc/security/limits.d/99-audio-realtime.conf ]]; then
         printf '@audio - rtprio 95\n@audio - memlock unlimited\n' \
             | sudo tee /etc/security/limits.d/99-audio-realtime.conf >/dev/null
@@ -96,7 +91,6 @@ warn() { printf '  warn  %s\n' "$*"; }
 
 echo "repo: $ROOT"
 
-# ---------------------------------------------------------------- toolchain
 echo
 echo "toolchain"
 for cmd in git cmake ninja pkg-config node npm python3 opencode; do
@@ -117,7 +111,6 @@ for mod in alsa jack freetype2 x11 gl webkit2gtk-4.1; do
     fi
 done
 
-# ---------------------------------------------------------------- audio/midi
 echo
 echo "audio and midi"
 if [[ -e /dev/snd/seq ]]; then
@@ -142,7 +135,6 @@ else
     warn "not in the audio group (needs the group added, then a re-login)"
 fi
 
-# ---------------------------------------------------------------- repo
 echo
 echo "repo"
 if [[ -f third_party/JUCE/CMakeLists.txt ]]; then
@@ -162,7 +154,6 @@ else
     ok "git identity: $name <$email>"
 fi
 
-# ---------------------------------------------------------------- opencode
 echo
 echo "opencode"
 if command -v opencode >/dev/null 2>&1; then
@@ -183,7 +174,6 @@ if command -v opencode >/dev/null 2>&1; then
     fi
 fi
 
-# ---------------------------------------------------------------- sudo queue
 if (( fail )); then
     cat <<'EOF'
 
@@ -205,7 +195,6 @@ EOF
     exit 1
 fi
 
-# ---------------------------------------------------------------- build
 if (( BUILD )); then
     if [[ ! -d ui/node_modules ]]; then
         echo

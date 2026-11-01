@@ -116,4 +116,4 @@ void runResampleChecks (const juce::File& directory)
     }
 }
 
-} // namespace SampleTest
+}

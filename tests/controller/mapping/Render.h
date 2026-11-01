@@ -38,4 +38,4 @@ void renderBlock (AudioEngine::SlotSwitcher& switcher,
                   RenderStats& stats,
                   float& previousSample);
 
-} // namespace MappingTest
+}

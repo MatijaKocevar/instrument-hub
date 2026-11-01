@@ -42,4 +42,4 @@ void configure (ihub::dsp::Delay& delay,
 
 int measureEcho (ihub::dsp::Delay& delay, int impulseIndex, int numSamples);
 
-} // namespace DspTest::Delay
+}

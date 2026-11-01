@@ -63,4 +63,4 @@ void runGateChecks (Rig& rig)
     check (instrument.getActiveVoiceCount() == 1, "the MIDI event starts a voice");
 }
 
-} // namespace VoiceTest
+}

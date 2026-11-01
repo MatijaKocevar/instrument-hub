@@ -38,4 +38,4 @@ void runValidation (SessionRig& rig)
            "reorder rejects an order that is not a permutation");
 }
 
-} // namespace ApiTest::PatchFxApi
+}

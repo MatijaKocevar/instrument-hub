@@ -42,4 +42,4 @@ ihub::dsp::ReverbSettings makeSettings (float roomSize, float damping,
                                         float width, float mix,
                                         float preDelayMs = 0.0f);
 
-} // namespace DspTest::Reverb
+}

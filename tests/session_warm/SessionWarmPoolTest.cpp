@@ -1,21 +1,3 @@
-// ihub-session-warm-test: acceptance check for T118.
-//
-// The composed session is configured with all 64 Launchpad patches. Only the
-// armed slot, its K neighbours and the previous patch may be instantiated:
-//
-//   1. `Session::makeDefaultSet()` describes 64 patches in 8 families x 8.
-//   2. The fixed engine has 64 slots and the warm pool's live-instance count
-//      never exceeds K+1 while sweeping every pad.
-//   3. Arming a cold patch reports `warming` while its instrument is created,
-//      then `active`; the previous patch stays warm and returns instantly.
-//   4. The active patch renders non-silent audio and the previous patch is
-//      still resident for an instant return.
-//   5. `GET /state` carries the 8 x 8 family/patch tree, 64 slots and each
-//      slot's warm state.
-//
-// The artificial load delay is a test seam on SessionConfig; production sets
-// it to zero. Everything is headless; no audio device is opened.
-
 #include "Session.h"
 #include "api/Server.h"
 #include "api/SessionBridge.h"
@@ -99,12 +81,12 @@ ihub::SessionConfig makeConfig()
     config.fadeMilliseconds = 3.0f;
     config.initialSlot = 0;
     config.neighbourCount = kNeighbours;
-    config.loadDelayMilliseconds = 40; // make warming observable
+    config.loadDelayMilliseconds = 40;
     config.slots = ihub::Session::makeDefaultSet (ihub::SessionSlotKind::initTone);
     return config;
 }
 
-} // namespace
+}
 
 int main()
 {
@@ -123,7 +105,6 @@ int main()
         return 1;
     }
 
-    // --- 1. 64 patches in 8 families --------------------------------------
     check (session.getNumSlots() == kSlots, "the fixed engine has 64 slots");
     check (static_cast<int> (session.getSlotConfigs().size()) == kSlots,
            "64 patch descriptors are configured");
@@ -153,7 +134,6 @@ int main()
                       == kFamilies * kPatchesPerFamily,
            "the 64 patches form 8 families x 8 patches");
 
-    // --- 2. Warm the initial neighbourhood --------------------------------
     check (session.waitForSlotWarm (0, 5000), "the initial patch warms");
     session.armSlot (0);
     check (session.waitForSlotActive (0, 5000),
@@ -166,7 +146,6 @@ int main()
     check (session.getLiveInstrumentCount() <= kInstanceLimit,
            "at most K+1 instruments are instantiated at startup");
 
-    // --- 3. Cold arm: warming -> active, previous stays warm --------------
     const int coldSlot = 40;
     check (! session.isSlotWarm (coldSlot), "slot 40 starts cold");
 
@@ -210,7 +189,6 @@ int main()
     check (session.getLiveInstrumentCount() <= kInstanceLimit,
            "the cold load stays within the instance bound");
 
-    // --- 4. Instant return to the previous patch --------------------------
     session.armSlot (0);
     check (session.getWarmStateName (0) == std::string ("active"),
            "returning to the previous patch is immediate, not warming");
@@ -219,7 +197,6 @@ int main()
     check (returnRms > 0.0 && toDbfs (returnRms) > kMinimumRmsDbfs,
            "the previous patch plays immediately on return");
 
-    // --- 5. Sweep every pad; the instance bound holds ---------------------
     int worstLive = 0;
 
     for (int slot = 0; slot < kSlots; ++slot)
@@ -247,7 +224,6 @@ int main()
     check (session.getPeakInstrumentCount() < kSlots,
            "cold patches are descriptors, not 64 live instances");
 
-    // --- 6. /state carries the tree and warm state ------------------------
     Api::StateStore state (session.getNumSlots());
 
     Api::Server::Options options;

@@ -63,4 +63,4 @@ httplib::Result deleteWithDispatch (httplib::Client& client,
     });
 }
 
-} // namespace ApiTest
+}

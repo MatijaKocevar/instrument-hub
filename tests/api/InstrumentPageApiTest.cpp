@@ -1,21 +1,3 @@
-// ihub-instrument-page-test: acceptance check for T124.
-//
-// The instrument page's controls all end in the control API, so this test
-// drives the same requests the page sends and measures what the engine does:
-//
-//   - the volume fader (PATCH volumeDb) changes the RENDERED level, not just
-//     the JSON: -20 dB drops the armed slot's RMS to a tenth, 0 dB restores it;
-//   - mute silences the slot and unmute restores it, and pan reaches /state;
-//   - the insert chain can be built, bypassed, reordered, replaced and cleared
-//     through the same endpoints the page's chain editor uses;
-//   - the instrument source can be swapped: a new tone frequency is audible
-//     (measured by zero crossings) and a VST3 source loads, becomes active and
-//     renders non-silent audio (when TestPlugin is built);
-//   - every invalid request is rejected without half-applying the change.
-//
-// Everything is offline and deterministic: the test drives the render calls,
-// so the result does not depend on a sound card or wall-clock timing.
-
 #include "TestSupport.h"
 #include "instrument_page_api/Inserts.h"
 #include "instrument_page_api/Mixer.h"

@@ -30,4 +30,4 @@ double captureFrequency (ihub::Session& session,
                          double sampleRate = kSampleRate,
                          int blockSize = kBlockSize);
 
-} // namespace ApiTest
+}

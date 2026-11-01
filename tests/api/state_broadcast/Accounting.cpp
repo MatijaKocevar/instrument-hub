@@ -22,4 +22,4 @@ void runAccounting (Rig& rig)
               << rig.worstPadLatencyMs << " ms" << std::endl;
 }
 
-} // namespace ApiTest::StateBroadcast
+}

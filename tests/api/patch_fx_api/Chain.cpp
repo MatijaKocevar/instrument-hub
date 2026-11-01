@@ -102,4 +102,4 @@ void runChain (SessionRig& rig, Context& context)
            "the two orders produce different sample streams");
 }
 
-} // namespace ApiTest::PatchFxApi
+}

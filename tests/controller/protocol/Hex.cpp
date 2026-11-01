@@ -29,4 +29,4 @@ std::string hexBytes (const std::array<std::uint8_t, 3>& bytes)
     return hexBytes (std::vector<std::uint8_t> (bytes.begin(), bytes.end()));
 }
 
-} // namespace ProtocolTest
+}

@@ -156,7 +156,7 @@ ContinuityResult runSwitchTest (std::vector<float>& output, bool& producedEveryB
     return result;
 }
 
-} // namespace
+}
 
 void runContinuity()
 {
@@ -179,4 +179,4 @@ void runContinuity()
            "worst deviation is below -60 dBFS");
 }
 
-} // namespace SlotSwitcherTest
+}

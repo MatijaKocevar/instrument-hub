@@ -15,4 +15,4 @@ void check (bool condition, const std::string& what)
         ++failures;
 }
 
-} // namespace E2E
+}

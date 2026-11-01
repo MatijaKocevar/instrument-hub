@@ -42,4 +42,4 @@ void runTransportIntegration()
            "a successful tap does not override an external tempo");
 }
 
-} // namespace AudioTest::TapTempo
+}

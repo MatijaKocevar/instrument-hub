@@ -86,4 +86,4 @@ ihub::plugins::SandboxHost::Options makeFakeOptions (bool abortOnPurpose)
     return options;
 }
 
-} // namespace SandboxTest
+}

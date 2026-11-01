@@ -1,14 +1,3 @@
-// ihub-set-file-test: acceptance check for T080 (`.ihub` set file format).
-//
-// It builds a set with four slots and two plugin state chunks, writes it to a
-// real `.ihub` ZIP, inspects the container layout, reloads it into a fresh
-// model and a fresh AudioEngine, and asserts deep equality of every field
-// (including the opaque blobs and the raw mapping.yaml bytes).
-//
-// It also checks that validation rejects unsafe state ids, duplicate ids,
-// dangling plugin references, unsupported schema versions and corrupt files,
-// and that a failed load leaves the caller's set untouched.
-
 #include "project/SetFile.h"
 #include "project/Serializer.h"
 
@@ -187,7 +176,7 @@ ihub::project::SetFile makeAcceptanceSet (const std::string& mappingYaml,
     return set;
 }
 
-} // namespace
+}
 
 int main()
 {
@@ -225,13 +214,11 @@ int main()
     check (original.slots.size() == 4, "the set has four slots");
     check (original.pluginStates.size() == 2, "the set has two plugin state chunks");
 
-    // --- Save ---------------------------------------------------------------
     check (ihub::project::Serializer::save (original, setPath, error),
            "Serializer::save writes the container: " + error.toStdString());
     check (setPath.existsAsFile(), "the .ihub file exists");
     check (setPath.getSize() > 0, "the .ihub file is not empty");
 
-    // --- Container layout ---------------------------------------------------
     {
         juce::ZipFile zip (setPath);
 
@@ -261,7 +248,6 @@ int main()
                "mapping.yaml is stored byte for byte");
     }
 
-    // --- Reload and deep equality ------------------------------------------
     ihub::project::SetFile loaded;
     check (ihub::project::Serializer::load (setPath, loaded, error),
            "Serializer::load reads the container: " + error.toStdString());
@@ -276,7 +262,6 @@ int main()
                && loaded.slots[0].solo,
            "the reloaded patch keeps pan, colour index and solo");
 
-    // --- Apply to a fresh engine -------------------------------------------
     AudioEngine::AudioEngine freshEngine (4);
     freshEngine.prepare (48000.0, 128, 2);
 
@@ -297,7 +282,6 @@ int main()
                    + " has the loaded activation state");
     }
 
-    // --- Save the reloaded model again -------------------------------------
     check (ihub::project::Serializer::save (loaded, reloadedPath, error),
            "the reloaded set can be written again: " + error.toStdString());
 
@@ -306,7 +290,6 @@ int main()
            "the second container loads: " + error.toStdString());
     check (secondLoad == original, "the second round-trip is still deeply equal");
 
-    // --- Validation failures -----------------------------------------------
     {
         auto unsafe = original;
         unsafe.pluginStates[0].uuid = "../escape";
@@ -382,9 +365,7 @@ int main()
         corruptPath.deleteFile();
     }
 
-    // --- Unsupported schema version ----------------------------------------
     {
-        // Rewrite just set.json inside a copy of the archive.
         juce::ZipFile source (setPath);
         const auto manifest = readEntry (source, "set.json");
         auto changed = manifest;

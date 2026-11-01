@@ -18,4 +18,4 @@ struct Context
     double eqFirstRms = 0.0;
 };
 
-} // namespace ApiTest::PatchFxApi
+}

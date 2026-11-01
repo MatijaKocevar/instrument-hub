@@ -5,4 +5,4 @@ namespace KitTest
 
 void runParseChecks();
 
-} // namespace KitTest
+}

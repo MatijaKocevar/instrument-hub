@@ -7,4 +7,4 @@ namespace ApiTest::Pairing
 
 void runLanOff (Fixture& fixture);
 
-} // namespace ApiTest::Pairing
+}

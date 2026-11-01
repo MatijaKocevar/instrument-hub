@@ -28,4 +28,4 @@ void runHardSwitch()
     }
 }
 
-} // namespace AudioTest::SessionSmoke
+}

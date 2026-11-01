@@ -38,7 +38,6 @@ void runDynamics()
         return compressor.getGainReductionDb();
     };
 
-    // Fast attack reaches more of the target in 3 ms than a slow one.
     const auto fastAttack = renderAndReadGr (1.0f, 100.0f, 0.003, 0.0, -18.0f);
     const auto slowAttack = renderAndReadGr (100.0f, 100.0f, 0.003, 0.0, -18.0f);
 
@@ -50,7 +49,6 @@ void runDynamics()
     check (fastAttack > 8.0,
            "a 1 ms attack is most of the way to the static curve after 3 ms");
 
-    // A short release gives gain back sooner than a long one.
     const auto shortRelease = renderAndReadGr (1.0f, 50.0f, 0.2, 0.1, -18.0f);
     const auto longRelease = renderAndReadGr (1.0f, 2000.0f, 0.2, 0.1, -18.0f);
 
@@ -60,10 +58,9 @@ void runDynamics()
     check (shortRelease < longRelease - 1.0,
            "a short release gives gain back sooner than a long release");
 
-    // After a long silence the gain reduction is back to zero.
     const auto settled = renderAndReadGr (1.0f, 100.0f, 0.2, 1.5, -18.0f);
     check (settled <= 0.05f,
            "a long silence returns the gain reduction to 0");
 }
 
-} // namespace DspTest::Compressor
+}

@@ -41,4 +41,4 @@ void runWidth()
            "width 1 decorrelates the left and right channels");
 }
 
-} // namespace DspTest::Reverb
+}

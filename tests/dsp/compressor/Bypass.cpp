@@ -49,7 +49,6 @@ void runBypass()
     check (std::abs (compressor.getGainReductionDb()) < 1.0e-9f,
            "bypass reports zero gain reduction");
 
-    // Re-enabling compresses again.
     compressor.setEnabled (true);
     compressor.reset();
 
@@ -58,4 +57,4 @@ void runBypass()
            "re-enabling restores compression");
 }
 
-} // namespace DspTest::Compressor
+}

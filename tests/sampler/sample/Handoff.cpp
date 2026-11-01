@@ -111,4 +111,4 @@ void runHandoffChecks (const juce::File& directory)
     }
 }
 
-} // namespace SampleTest
+}

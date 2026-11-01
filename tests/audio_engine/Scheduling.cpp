@@ -85,4 +85,4 @@ void runOnlyActiveAndFadingSlotsProcess()
            "slots that never activated stay unprocessed");
 }
 
-} // namespace AudioEngineTest
+}

@@ -83,4 +83,4 @@ void fillPattern (juce::AudioBuffer<float>& buffer)
         }
 }
 
-} // namespace FxChainTest
+}

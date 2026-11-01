@@ -17,7 +17,7 @@ void runRealtime()
     transport.start();
 
     AudioEngine::ClockOut clock;
-    clock.process (transport, 128);   // start message
+    clock.process (transport, 128);
     clock.clearQueue();
 
     allocCount::total.store (0, std::memory_order_relaxed);
@@ -28,7 +28,6 @@ void runRealtime()
         clock.process (transport, 128);
         transport.process (128);
 
-        // Keep the queue from filling: draining is a message-thread operation.
         allocCount::enabled.store (false, std::memory_order_relaxed);
         clock.clearQueue();
         allocCount::enabled.store (true, std::memory_order_relaxed);
@@ -45,4 +44,4 @@ void runRealtime()
            "clearQueue between blocks loses no events");
 }
 
-} // namespace AudioTest::ClockOut
+}

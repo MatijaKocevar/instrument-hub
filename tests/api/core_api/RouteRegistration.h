@@ -7,4 +7,4 @@ namespace ApiTest::CoreApi
 
 void runRouteRegistration (Rig& rig);
 
-} // namespace ApiTest::CoreApi
+}

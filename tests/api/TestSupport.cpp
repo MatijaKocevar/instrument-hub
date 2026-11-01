@@ -20,4 +20,4 @@ void skip (const std::string& what)
     std::cout << "SKIP " << what << std::endl;
 }
 
-} // namespace ApiTest
+}

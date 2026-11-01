@@ -13,8 +13,6 @@ ihub::SessionConfig makeConfig (float fadeMilliseconds)
     config.fadeMilliseconds = fadeMilliseconds;
     config.slots = ihub::Session::makeDefaultSet();
 
-    // The shipping default is silent. This smoke measurement needs a source,
-    // so it uses the engine's deterministic initialisation tone fixture.
     for (auto& slot : config.slots)
     {
         slot.kind = ihub::SessionSlotKind::initTone;
@@ -60,4 +58,4 @@ double renderCallbackRms (ihub::Session& session)
     return blockSize > 0 ? std::sqrt (sumSquares / static_cast<double> (blockSize)) : 0.0;
 }
 
-} // namespace AudioTest::SessionSmoke
+}

@@ -128,4 +128,4 @@ void runPatchMix (SessionRig& rig)
     events.close();
 }
 
-} // namespace ApiTest::SessionApi
+}

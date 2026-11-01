@@ -55,4 +55,4 @@ void runHostedInsert (SessionRig& rig)
            "the VST3 insert was removed");
 }
 
-} // namespace ApiTest::PatchFxApi
+}

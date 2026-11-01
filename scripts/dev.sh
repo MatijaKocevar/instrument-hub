@@ -1,19 +1,4 @@
 #!/usr/bin/env bash
-# Run the Vite dev server and the Debug engine together.
-#
-# Usage:
-#   scripts/dev.sh [--watch] [engine arguments...]
-#
-#   --watch   rebuild the Debug app and restart it whenever a C++ source in
-#             engine/src changes. Vite keeps running, so the UI and the engine
-#             API survive the restart. Leave it off and the script never builds.
-#
-# Outside --watch this script never builds. With --watch it rebuilds and
-# restarts the engine only when a C++ file changes. Build the Debug app once
-# with `scripts/build.sh debug`; after that this starts in seconds. Debug
-# builds of WebView open http://localhost:5173, so saving any file in ui/src
-# triggers Vite's HMR update inside the embedded web view. Stop with Ctrl-C;
-# the dev server is cleaned up on the way out.
 
 set -euo pipefail
 
@@ -110,9 +95,6 @@ if [[ "$WATCH" == "0" ]]; then
     exit 0
 fi
 
-# Watch mode: rebuild and restart the engine on C++ changes. Vite keeps
-# serving the UI, so only the engine process is bounced. The build is
-# app-only, so it stays small.
 JOBS="${IH_BUILD_JOBS:-$(( $(nproc) / 2 ))}"
 [[ "$JOBS" -ge 1 ]] || JOBS=1
 BINARY=build-debug/engine/instrument-hub
@@ -176,7 +158,6 @@ while true; do
         continue
     fi
 
-    # Let a burst of saves settle before rebuilding.
     while true; do
         sleep 0.4
         settled="$(source_files)"

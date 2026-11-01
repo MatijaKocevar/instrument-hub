@@ -12,8 +12,6 @@ namespace AnalogLab
 using E2E::check;
 
 
-/** Pumps the JUCE message loop once. JUCE posts plugin creation there, so the
-    loop must keep running while a warm load is in flight. */
 void pumpMessages()
 {
     juce::MessageManager::getInstance()->runDispatchLoopUntil (10);
@@ -154,4 +152,4 @@ bool buildSession (ihub::Session& session,
     return true;
 }
 
-} // namespace AnalogLab
+}

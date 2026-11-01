@@ -18,4 +18,4 @@ void runMidi()
            "the follower counts 24 pulses per quarter note");
 }
 
-} // namespace AudioTest::ClockIn
+}

@@ -13,7 +13,7 @@ void runAcceptance()
     constexpr double bpm = 120.0;
     constexpr int blockSize = 128;
     constexpr std::int64_t frames = 480000;
-    constexpr double samplesPerTick = sampleRate * 60.0 / (bpm * 24.0);   // 1000
+    constexpr double samplesPerTick = sampleRate * 60.0 / (bpm * 24.0);
 
     AudioEngine::Transport transport;
     transport.prepare (sampleRate, blockSize);
@@ -45,8 +45,6 @@ void runAcceptance()
     check (worst < sampleRate * 0.001,
            "clock jitter is under 1 ms (48 samples at 48 kHz)");
 
-    // Ticks must be the contiguous range 1..480. Tick zero is the start
-    // position and is covered by the start message, not a clock.
     bool ticksContiguous = true;
     bool offsetsValid = true;
     std::int64_t expectedTick = 1;
@@ -74,4 +72,4 @@ void runAcceptance()
            "every event has a valid in-block offset and a 24-PPQN position");
 }
 
-} // namespace AudioTest::ClockOut
+}

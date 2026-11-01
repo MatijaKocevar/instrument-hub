@@ -15,9 +15,9 @@ void runRewind()
     transport.start();
 
     AudioEngine::ClockOut clock;
-    render (clock, transport, 48000, 128);   // ticks 1..48
+    render (clock, transport, 48000, 128);
 
-    transport.setPpq (10.0);                 // jump while running
+    transport.setPpq (10.0);
 
     auto jumpBlock = render (clock, transport, 128, 128);
     check (jumpBlock.empty(),
@@ -34,4 +34,4 @@ void runRewind()
            "one second after the jump emits 48 clocks at 120 BPM");
 }
 
-} // namespace AudioTest::ClockOut
+}

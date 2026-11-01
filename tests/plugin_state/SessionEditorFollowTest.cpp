@@ -1,19 +1,3 @@
-// ihub-session-editor-follow-test: acceptance check for the editor half of
-// T130.
-//
-// Two TestPlugin patches (slot 0 and slot 2) are used because opening a real
-// native editor needs a display. The test proves:
-//
-//   1. opening an editor for the armed patch works;
-//   2. arming a different patch closes the previous patch's editor instead of
-//      leaving a window bound to the old sound;
-//   3. an editor explicitly opened on a non-armed patch is closed when the
-//      armed patch changes, while the armed patch's own window stays;
-//   4. closing an editor captures the patch state and persists the sidecar
-//      blob.
-//
-// Runs under DISPLAY=:0 like the T129 editor test.
-
 #include "Session.h"
 #include "plugins/PluginInstrument.h"
 #include "plugins/PluginWindow.h"
@@ -118,7 +102,7 @@ ihub::SessionConfig makeConfig (const juce::String& bundlePath)
     return config;
 }
 
-} // namespace
+}
 
 int main()
 {
@@ -175,9 +159,6 @@ int main()
         check (ihub::plugins::PluginWindow::getOpenWindowCount() == 1,
                "exactly one native window is open");
 
-        //--------------------------------------------------------------------------
-        // Arming a different patch closes the previous patch's editor.
-
         if (! waitForWarm (session, kSlotB, 15000))
         {
             session.armSlot (kSlotB);
@@ -190,10 +171,6 @@ int main()
                "arming patch B closes patch A's non-armed editor");
         check (ihub::plugins::PluginWindow::getOpenWindowCount() == 0,
                "no editor stays bound to the previous patch");
-
-        //--------------------------------------------------------------------------
-        // An editor opened on the armed patch survives the arm; one opened on
-        // the other patch is closed.
 
         check (session.openEditor (kSlotB, editorError),
                "patch B opens its own editor");
@@ -214,9 +191,6 @@ int main()
                "the non-armed patch's editor is closed by the switch");
         check (ihub::plugins::PluginWindow::getOpenWindowCount() == 1,
                "exactly the armed patch's window survives");
-
-        //--------------------------------------------------------------------------
-        // Closing an editor captures the patch state and persists it.
 
         auto* instrument = session.getPluginInstrument (kSlotA);
         check (instrument != nullptr, "patch A has a live instrument to edit");
@@ -239,17 +213,12 @@ int main()
         check (stateFile.existsAsFile() && stateFile.getSize() > 0,
                "the editor-close capture persisted the sidecar blob");
 
-        //--------------------------------------------------------------------------
-        // Disarm also closes editors, so no window outlives the selection.
-
         check (session.openEditor (kSlotA, editorError),
                "the editor reopens after its close");
         session.armSlot (-1);
         check (ihub::plugins::PluginWindow::getOpenWindowCount() == 0,
                "disarming closes every editor");
 
-        // Let the asynchronous editor/window teardown messages drain before
-        // the session destroys its plugin instances.
         const double drainDeadline = juce::Time::getMillisecondCounterHiRes() + 250.0;
 
         while (juce::Time::getMillisecondCounterHiRes() < drainDeadline)

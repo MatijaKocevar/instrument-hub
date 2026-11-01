@@ -36,4 +36,4 @@ void runArm (Rig& rig)
     check (rig.state.getArmedSlot() == -1, "state store disarmed after null");
 }
 
-} // namespace ApiTest::CoreApi
+}

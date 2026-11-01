@@ -166,4 +166,4 @@ void captureLoop (snd_pcm_t* pcm,
     }
 }
 
-} // namespace SelfTest
+}

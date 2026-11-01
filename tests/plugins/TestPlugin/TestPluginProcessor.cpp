@@ -13,9 +13,8 @@ float readParameter (juce::AudioProcessorValueTreeState& state, const char* id) 
 
     return 0.0f;
 }
-} // namespace
+}
 
-//==============================================================================
 juce::AudioProcessorValueTreeState::ParameterLayout
 TestPluginAudioProcessor::createParameterLayout()
 {
@@ -43,16 +42,10 @@ TestPluginAudioProcessor::createParameterLayout()
         NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.0f,
         AudioParameterFloatAttributes().withLabel ("x")));
 
-    // Deliberately unused by processBlock. It exists so T022 can prove that
-    // a non-default, DSP-irrelevant value survives save/load.
     layout.add (std::make_unique<AudioParameterFloat> (
         ParameterID { stateMarkerParamID, 1 }, "State Marker",
         NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.5f));
 
-    // When on, the sine generator only sounds while a note is held. The
-    // T128 session test uses this to prove live MIDI reaches an armed plugin
-    // and that a note-off silences it. Default off keeps every existing test's
-    // continuous-tone behaviour.
     layout.add (std::make_unique<AudioParameterFloat> (
         ParameterID { midiGateParamID, 1 }, "MIDI Gate",
         NormalisableRange<float> (0.0f, 1.0f, 0.001f), 0.0f));
@@ -60,7 +53,6 @@ TestPluginAudioProcessor::createParameterLayout()
     return layout;
 }
 
-//==============================================================================
 TestPluginAudioProcessor::TestPluginAudioProcessor()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), false)
@@ -69,7 +61,6 @@ TestPluginAudioProcessor::TestPluginAudioProcessor()
 {
 }
 
-//==============================================================================
 void TestPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 44100.0;
@@ -109,9 +100,6 @@ bool TestPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layout
 
     const auto input = layouts.getMainInputChannelSet();
 
-    // The input bus is optional, but when it is present it must match the
-    // output layout. That gives the host 2-in/2-out, 1-in/1-out and
-    // 0-in/2-out (generator) modes.
     return input.isDisabled() || input == output;
 }
 
@@ -174,9 +162,6 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     const auto phaseIncrement = juce::MathConstants<double>::twoPi
                               * static_cast<double> (frequency) / currentSampleRate;
 
-    // Gain and the optional sine generator. The generator is added after the
-    // gain so a plugin instance can be used as a pure gain stage (sine level 0)
-    // or as a tone source for slot/summing tests.
     for (int sample = 0; sample < numSamples; ++sample)
     {
         const auto sine = static_cast<float> (std::sin (phase)) * sineLevel * gate;
@@ -193,8 +178,6 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         }
     }
 
-    // Artificial latency. The delay line is pre-allocated in prepareToPlay();
-    // changing the parameter while running only moves the read cursor.
     if (wantedLatency > 0 && delayBuffer.getNumSamples() > wantedLatency)
     {
         const auto bufferLength = delayBuffer.getNumSamples();
@@ -219,13 +202,11 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     }
 }
 
-//==============================================================================
 juce::AudioProcessorEditor* TestPluginAudioProcessor::createEditor()
 {
     return new juce::GenericAudioProcessorEditor (*this);
 }
 
-//==============================================================================
 void TestPluginAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     const auto state = apvts.copyState();

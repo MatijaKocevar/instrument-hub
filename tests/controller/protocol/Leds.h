@@ -5,4 +5,4 @@ namespace ProtocolTest
 
 void testLeds();
 
-} // namespace ProtocolTest
+}

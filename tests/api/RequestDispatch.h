@@ -25,4 +25,4 @@ httplib::Result putWithDispatch (httplib::Client& client,
 httplib::Result deleteWithDispatch (httplib::Client& client,
                                     const std::string& path);
 
-} // namespace ApiTest
+}

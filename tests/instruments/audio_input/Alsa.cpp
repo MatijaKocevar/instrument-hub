@@ -129,4 +129,4 @@ void playbackLoop (snd_pcm_t* pcm,
     }
 }
 
-} // namespace AudioInputTest
+}

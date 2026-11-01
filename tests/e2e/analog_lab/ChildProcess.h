@@ -15,4 +15,4 @@ int runChildWithRetry (const juce::File& executable,
                        const juce::File& logFile,
                        const juce::String& label);
 
-} // namespace AnalogLab
+}

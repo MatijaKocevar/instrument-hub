@@ -7,4 +7,4 @@ namespace ApiTest::SessionApi
 
 void runArm (SessionRig& rig);
 
-} // namespace ApiTest::SessionApi
+}

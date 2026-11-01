@@ -55,4 +55,4 @@ void runGainAndLatency()
     input.noteOff (1, 60);
 }
 
-} // namespace AudioInputTest
+}

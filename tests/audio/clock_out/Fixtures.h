@@ -38,4 +38,4 @@ int countClocks (const std::vector<AudioEngine::ClockOut::Event>& events);
 double worstJitterSamples (const std::vector<AudioEngine::ClockOut::Event>& events,
                            double samplesPerTick);
 
-} // namespace AudioTest::ClockOut
+}

@@ -70,4 +70,4 @@ void SessionRig::stop()
         serverInstance->stop();
 }
 
-} // namespace ApiTest
+}

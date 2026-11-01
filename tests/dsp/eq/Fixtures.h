@@ -47,4 +47,4 @@ double measureMagnitudeDb (ihub::dsp::Eq& eq, double sampleRate, double frequenc
 
 std::array<ihub::dsp::EqBandSettings, ihub::dsp::Eq::numBands> makeTestBands();
 
-} // namespace DspTest::Eq
+}

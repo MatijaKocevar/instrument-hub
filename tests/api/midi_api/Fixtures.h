@@ -27,4 +27,4 @@ struct FakeBackend
     void attach (Api::Server& server);
 };
 
-} // namespace ApiTest::MidiApi
+}

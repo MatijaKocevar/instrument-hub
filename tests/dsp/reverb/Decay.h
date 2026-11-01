@@ -5,4 +5,4 @@ namespace DspTest::Reverb
 
 void runDecay();
 
-} // namespace DspTest::Reverb
+}

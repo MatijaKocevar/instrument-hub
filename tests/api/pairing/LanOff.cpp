@@ -41,4 +41,4 @@ void runLanOff (Fixture& fixture)
            "POST /pairing/lan rejects a non-boolean toggle");
 }
 
-} // namespace ApiTest::Pairing
+}

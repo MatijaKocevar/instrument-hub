@@ -10,4 +10,4 @@ namespace KitTest
 void runValidationChecks (const juce::File& directory,
                           ihub::sampler::LoadedKit& kit);
 
-} // namespace KitTest
+}

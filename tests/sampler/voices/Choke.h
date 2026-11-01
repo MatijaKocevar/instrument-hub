@@ -7,4 +7,4 @@ namespace VoiceTest
 
 void runChokeChecks (Rig& rig);
 
-} // namespace VoiceTest
+}

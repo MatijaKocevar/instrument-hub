@@ -13,4 +13,4 @@ std::string twoLayerJson();
 extern const std::string softLayer;
 extern const std::string hardLayer;
 
-} // namespace KitTest
+}

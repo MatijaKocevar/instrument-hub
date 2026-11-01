@@ -90,4 +90,4 @@ int runGainAndLatency (juce::AudioPluginFormatManager& manager,
     return 0;
 }
 
-} // namespace PluginFxTest
+}

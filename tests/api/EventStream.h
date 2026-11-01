@@ -13,4 +13,4 @@ bool readEventUntil (httplib::ws::WebSocketClient& websocket,
                      int timeoutMs,
                      juce::var& result);
 
-} // namespace ApiTest
+}

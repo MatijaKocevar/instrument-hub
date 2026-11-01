@@ -48,4 +48,4 @@ void PadRig::press (int pad)
                                                          static_cast<juce::uint8> (0)));
 }
 
-} // namespace PadAudio
+}

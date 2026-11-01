@@ -29,4 +29,4 @@ void checkReport (const ihub::SessionSwitchReport& report, const std::string& la
 
 double renderCallbackRms (ihub::Session& session);
 
-} // namespace AudioTest::SessionSmoke
+}

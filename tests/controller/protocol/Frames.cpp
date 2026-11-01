@@ -68,4 +68,4 @@ void testFrames()
     check (! noEnd.isValid(), "a missing F7 is rejected");
 }
 
-} // namespace ProtocolTest
+}

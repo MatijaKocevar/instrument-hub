@@ -45,4 +45,4 @@ void testGrid()
            "pad 63 is row 7, column 7");
 }
 
-} // namespace ProtocolTest
+}

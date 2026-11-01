@@ -5,4 +5,4 @@ namespace AppModesTest
 
 void runCommandLine();
 
-} // namespace AppModesTest
+}

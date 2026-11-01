@@ -45,4 +45,4 @@ void runEditor (juce::AudioPluginFormatManager& manager,
     check (fx.getProcessor() == nullptr, "no processor remains after unload");
 }
 
-} // namespace PluginFxTest
+}

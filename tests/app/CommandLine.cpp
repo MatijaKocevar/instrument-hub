@@ -20,4 +20,4 @@ void runCommandLine()
     checkValue ("--snapshot --serve", "--snapshot", "--serve");
 }
 
-} // namespace AppModesTest
+}

@@ -76,4 +76,4 @@ void runAdvertisement()
 #endif
 }
 
-} // namespace ApiTest::Discovery
+}
