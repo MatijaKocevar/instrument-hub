@@ -340,29 +340,38 @@ the kit and sample loaders. Both implement `Instrument` and `SlotSource`.
 - [PluginInstrument.h](../engine/src/plugins/PluginInstrument.h) /
   [PluginInstrument.cpp](../engine/src/plugins/PluginInstrument.cpp) — hosted
   VST3 as an `Instrument`: load, MIDI, process, latency, state round-trip and
-  editor. The sandbox is a separate `Instrument` implementation, not a mode of
-  this class.
+  editor. Loading/preparation lives in `plugins/host/` beside the audio
+  process, MIDI queue, state and parameter bridge. The sandbox is a separate
+  `Instrument` implementation, not a mode of this class.
 - [PluginInventory.h](../engine/src/plugins/PluginInventory.h) /
   [PluginInventory.cpp](../engine/src/plugins/PluginInventory.cpp) — the
   read-only installed-plugin inventory behind `/plugins`; search, rescan and
-  snapshot.
+  snapshot. Record projection and the background scan live in
+  `plugins/scanner/`.
 - [Scanner.h](../engine/src/plugins/Scanner.h) / [Scanner.cpp](../engine/src/plugins/Scanner.cpp)
   and [ScannerProcess.h](../engine/src/plugins/ScannerProcess.h) /
   [ScannerProcess.cpp](../engine/src/plugins/ScannerProcess.cpp) — out-of-process
   VST3 scanning; one `ihub-scanner` child per bundle, timeouts and failures.
+  Directory discovery and the scan run are separate units in
+  `plugins/scanner/`.
 - [PluginCache.h](../engine/src/plugins/PluginCache.h) /
   [PluginCache.cpp](../engine/src/plugins/PluginCache.cpp) — per-bundle scan
-  cache so an unchanged directory does not rescan.
+  cache so an unchanged directory does not rescan. Fingerprinting and XML
+  persistence are separate units in `plugins/scanner/`.
 - [PluginWindow.h](../engine/src/plugins/PluginWindow.h) /
   [PluginWindow.cpp](../engine/src/plugins/PluginWindow.cpp) — application-owned
-  native editor window. `onBeforeClose` is the capture point for patch state.
+  native editor window. `onBeforeClose` is the capture point for patch state;
+  the document window and editor lifecycle are separate units in
+  `plugins/window/`.
 - [SandboxHost.h](../engine/src/plugins/SandboxHost.h) /
   [SandboxHost.cpp](../engine/src/plugins/SandboxHost.cpp) and
   [SandboxClient.h](../engine/src/plugins/SandboxClient.h) /
   [SandboxClient.cpp](../engine/src/plugins/SandboxClient.cpp) — out-of-process
   plugin hosting over a shared-memory file mapping; a crash or hang kills only
-  `ihub-sandbox`. It is implemented and tested, but the live `Session` selects
-  `PluginInstrument` today; see §8.
+  `ihub-sandbox`. Child-process lifecycle, the watchdog, audio transport and
+  MIDI queue live in `plugins/sandbox/`; so do the helper's argument parsing
+  and fake-tone test seam. It is implemented and tested, but the live `Session`
+  selects `PluginInstrument` today; see §8.
 - [scanner_main.cpp](../engine/src/plugins/scanner_main.cpp) and
   [sandbox_main.cpp](../engine/src/plugins/sandbox_main.cpp) — entry points for
   the two helper executables.
@@ -1023,10 +1032,10 @@ engine splits T162–T168).
 | [Session.h](../engine/src/Session.h) | 776 | Public surface for all of the above. | Follows `Session.cpp`: the facade header keeps build/device/render/arm/inspection; collaborators get their own headers in `session/`. |
 
 Two smaller files are worth watching but are **not** on the split list yet:
-`plugins/SandboxHost.cpp` (769), `sampler/KitLoader.cpp` (734),
-`api/Discovery.cpp` (725), `controller/LaunchpadDriver.cpp` (617) and
-`sampler/SamplerInstrument.cpp` (610). They are cohesive; splitting them now
-would add files without reducing coupling.
+`sampler/KitLoader.cpp` (734), `api/Discovery.cpp` (725),
+`controller/LaunchpadDriver.cpp` (617) and `sampler/SamplerInstrument.cpp`
+(610). They are cohesive; splitting them now would add files without reducing
+coupling.
 
 The intended end state after T134–T138 is: no translation unit above ~800
 lines, one route module per resource, `Session` a facade, `Main` a shell, and

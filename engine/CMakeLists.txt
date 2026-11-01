@@ -176,11 +176,31 @@ target_sources(instrument-hub
         src/instruments/AudioInputInstrument.cpp
         src/instruments/PluginFx.cpp
         src/plugins/PluginInstrument.cpp
+        src/plugins/host/PluginInstrumentBus.cpp
+        src/plugins/host/PluginInstrumentMidi.cpp
+        src/plugins/host/PluginInstrumentParameters.cpp
+        src/plugins/host/PluginInstrumentProcess.cpp
+        src/plugins/host/PluginInstrumentState.cpp
         src/plugins/PluginCache.cpp
+        src/plugins/scanner/PluginCacheFingerprint.cpp
+        src/plugins/scanner/PluginCachePersistence.cpp
         src/plugins/PluginInventory.cpp
+        src/plugins/scanner/PluginInfo.cpp
+        src/plugins/scanner/PluginInventoryRecords.cpp
+        src/plugins/scanner/PluginInventoryScan.cpp
         src/plugins/PluginWindow.cpp
+        src/plugins/window/PluginEditorWindow.cpp
+        src/plugins/window/PluginWindowEditor.cpp
         src/plugins/SandboxHost.cpp
+        src/plugins/sandbox/SandboxHostMidi.cpp
+        src/plugins/sandbox/SandboxHostProcess.cpp
+        src/plugins/sandbox/SandboxHostStatus.cpp
+        src/plugins/sandbox/SandboxHostStop.cpp
+        src/plugins/sandbox/SandboxHostTransport.cpp
+        src/plugins/sandbox/SandboxWatchdog.cpp
         src/plugins/Scanner.cpp
+        src/plugins/scanner/ScannerDiscovery.cpp
+        src/plugins/scanner/ScannerRun.cpp
         src/plugins/ScannerProcess.cpp
         src/project/Migrations.cpp
         src/project/SetFile.cpp
@@ -385,7 +405,14 @@ target_sources(ihub-sandbox
     PRIVATE
         src/plugins/sandbox_main.cpp
         src/plugins/SandboxClient.cpp
+        src/plugins/sandbox/FakeToneInstrument.cpp
+        src/plugins/sandbox/SandboxClientArguments.cpp
         src/plugins/PluginInstrument.cpp
+        src/plugins/host/PluginInstrumentBus.cpp
+        src/plugins/host/PluginInstrumentMidi.cpp
+        src/plugins/host/PluginInstrumentParameters.cpp
+        src/plugins/host/PluginInstrumentProcess.cpp
+        src/plugins/host/PluginInstrumentState.cpp
         src/instruments/Instrument.cpp
 )
 

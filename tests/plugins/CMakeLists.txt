@@ -156,7 +156,7 @@ juce_add_console_app(ihub-plugin-instance-test
 target_sources(ihub-plugin-instance-test
     PRIVATE
         PluginInstanceTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginInstrument.cpp"
+        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
 )
 
 target_include_directories(ihub-plugin-instance-test
@@ -211,8 +211,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-plugin-window-test
         PRIVATE
             PluginWindowTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginWindow.cpp"
+            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
+            ${IHUB_PLUGIN_WINDOW_SOURCES}
     )
 
     target_include_directories(ihub-plugin-window-test
@@ -295,9 +295,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-plugin-scanner-test
         PRIVATE
             ScannerTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginCache.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/Scanner.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/ScannerProcess.cpp"
+            ${IHUB_PLUGIN_SCAN_SOURCES}
     )
 
     target_include_directories(ihub-plugin-scanner-test
@@ -355,9 +353,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-plugin-cache-test
         PRIVATE
             PluginCacheTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginCache.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/Scanner.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/ScannerProcess.cpp"
+            ${IHUB_PLUGIN_SCAN_SOURCES}
     )
 
     target_include_directories(ihub-plugin-cache-test
@@ -422,10 +418,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_API_ROUTES_SOURCES}
             ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/StateBroadcast.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginCache.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/PluginInventory.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/Scanner.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/ScannerProcess.cpp"
+            ${IHUB_PLUGIN_INVENTORY_SOURCES}
     )
 
     target_include_directories(ihub-plugin-inventory-api-test
@@ -496,7 +489,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-sandbox-test
         PRIVATE
             SandboxTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/plugins/SandboxHost.cpp"
+            ${IHUB_SANDBOX_HOST_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/FxChain.cpp"

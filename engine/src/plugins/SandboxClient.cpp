@@ -1,16 +1,16 @@
 #include "SandboxClient.h"
 
 #include "PluginInstrument.h"
+#include "sandbox/FakeToneInstrument.h"
+#include "sandbox/SandboxClientArguments.h"
 
 #include <juce_audio_processors_headless/juce_audio_processors_headless.h>
 
-#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <memory>
-#include <vector>
 
 #if JUCE_LINUX || JUCE_MAC
  #include <unistd.h>
@@ -20,140 +20,6 @@ namespace ihub::plugins
 {
 namespace
 {
-struct ParameterAssignment
-{
-    juce::String name;
-    float value = 0.0f;
-};
-
-struct ChildArguments
-{
-    juce::File mapFile;
-    juce::File pluginBundle;
-    double fakeToneFrequency = 0.0;
-    int abortAfterBlocks = -1;
-    std::vector<ParameterAssignment> parameters;
-
-    bool valid = false;
-    juce::String error;
-};
-
-ChildArguments parseArguments (const juce::StringArray& commandLine)
-{
-    ChildArguments arguments;
-
-    auto takeString = [&commandLine] (int& index, juce::String& target) -> bool
-    {
-        if (index + 1 >= commandLine.size())
-            return false;
-
-        target = commandLine[++index];
-        return true;
-    };
-
-    for (int i = 1; i < commandLine.size(); ++i)
-    {
-        const auto& argument = commandLine[i];
-
-        if (argument == sandbox::cli::mapFlag)
-        {
-            juce::String value;
-
-            if (! takeString (i, value))
-            {
-                arguments.error = "missing value after " + argument;
-                return arguments;
-            }
-
-            arguments.mapFile = juce::File (value).getFullPathName();
-        }
-        else if (argument == sandbox::cli::pluginFlag)
-        {
-            juce::String value;
-
-            if (! takeString (i, value))
-            {
-                arguments.error = "missing value after " + argument;
-                return arguments;
-            }
-
-            arguments.pluginBundle = juce::File (value).getFullPathName();
-        }
-        else if (argument == sandbox::cli::fakeToneFlag)
-        {
-            juce::String value;
-
-            if (! takeString (i, value))
-            {
-                arguments.error = "missing value after " + argument;
-                return arguments;
-            }
-
-            arguments.fakeToneFrequency = value.getDoubleValue();
-
-            if (arguments.fakeToneFrequency <= 0.0)
-            {
-                arguments.error = "invalid fake tone frequency: " + value;
-                return arguments;
-            }
-        }
-        else if (argument == sandbox::cli::abortAfterFlag)
-        {
-            juce::String value;
-
-            if (! takeString (i, value))
-            {
-                arguments.error = "missing value after " + argument;
-                return arguments;
-            }
-
-            arguments.abortAfterBlocks = value.getIntValue();
-
-            if (arguments.abortAfterBlocks < 0)
-            {
-                arguments.error = "invalid abort-after block count: " + value;
-                return arguments;
-            }
-        }
-        else if (argument == sandbox::cli::paramFlag)
-        {
-            juce::String value;
-
-            if (! takeString (i, value))
-            {
-                arguments.error = "missing value after " + argument;
-                return arguments;
-            }
-
-            const auto separator = value.indexOfChar ('=');
-
-            if (separator <= 0 || separator + 1 >= value.length())
-            {
-                arguments.error = "invalid parameter assignment (expected name=value): " + value;
-                return arguments;
-            }
-
-            ParameterAssignment assignment;
-            assignment.name = value.substring (0, separator).trim();
-            assignment.value = value.substring (separator + 1).trim().getFloatValue();
-            arguments.parameters.push_back (assignment);
-        }
-        else
-        {
-            arguments.error = "unknown argument: " + argument;
-            return arguments;
-        }
-    }
-
-    if (arguments.mapFile == juce::File())
-        arguments.error = "no --map path given";
-    else if (arguments.pluginBundle == juce::File() && arguments.fakeToneFrequency <= 0.0)
-        arguments.error = "no --plugin bundle and no --fake-tone frequency given";
-
-    arguments.valid = arguments.error.isEmpty();
-    return arguments;
-}
-
 void setState (sandbox::SharedMemory& shared, sandbox::ProcessState state) noexcept
 {
     sandbox::storeRelease (shared.state, static_cast<std::int32_t> (state));
@@ -171,57 +37,6 @@ int fail (sandbox::SharedMemory& shared, const juce::String& message, int exitCo
     std::cerr << "ihub-sandbox: " << message << std::endl;
     return exitCode;
 }
-
-/** The test seam: a fake instrument that needs no VST3.
-
-    It renders a steady tone so the host's shared-memory transport can be
-    verified end to end. `--abort-after N` makes the fake plugin call
-    `std::abort()` on block N+1, which is exactly the hostile-plugin case the
-    sandbox exists for: only this process dies.
-*/
-class FakeToneInstrument
-{
-public:
-    FakeToneInstrument (double sampleRateToUse, double frequency, int abortAfter)
-        : increment (juce::MathConstants<double>::twoPi * frequency / sampleRateToUse),
-          abortAfterBlocks (abortAfter)
-    {
-    }
-
-    int latencySamples() const noexcept { return 0; }
-
-    void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
-    {
-        juce::ignoreUnused (midi);
-
-        if (abortAfterBlocks >= 0 && blocksRendered >= abortAfterBlocks)
-            std::abort(); // deliberate: the sandbox must die, not the host
-
-        const auto numSamples = buffer.getNumSamples();
-        const auto amplitude = 0.25f;
-
-        for (int sample = 0; sample < numSamples; ++sample)
-        {
-            const auto value = amplitude * static_cast<float> (std::sin (phase));
-
-            phase += increment;
-
-            if (phase >= juce::MathConstants<double>::twoPi)
-                phase -= juce::MathConstants<double>::twoPi;
-
-            for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
-                buffer.setSample (channel, sample, value);
-        }
-
-        ++blocksRendered;
-    }
-
-private:
-    double increment;
-    int abortAfterBlocks;
-    double phase = 0.0;
-    int blocksRendered = 0;
-};
 
 bool hostIsAlive (const sandbox::SharedMemory& shared) noexcept
 {
@@ -243,7 +58,7 @@ bool hostIsAlive (const sandbox::SharedMemory& shared) noexcept
 //==============================================================================
 int SandboxClient::run (const juce::StringArray& commandLine)
 {
-    const auto arguments = parseArguments (commandLine);
+    const auto arguments = sandbox_client::parseArguments (commandLine);
 
     if (! arguments.valid)
     {
@@ -281,7 +96,7 @@ int SandboxClient::run (const juce::StringArray& commandLine)
                                            static_cast<int> (shared.numChannels));
 
     std::unique_ptr<PluginInstrument> plugin;
-    std::unique_ptr<FakeToneInstrument> fake;
+    std::unique_ptr<sandbox_client::FakeToneInstrument> fake;
 
     int reportedLatency = 0;
 
@@ -318,9 +133,9 @@ int SandboxClient::run (const juce::StringArray& commandLine)
         }
         else
         {
-            fake = std::make_unique<FakeToneInstrument> (sampleRate,
-                                                         arguments.fakeToneFrequency,
-                                                         arguments.abortAfterBlocks);
+            fake = std::make_unique<sandbox_client::FakeToneInstrument> (sampleRate,
+                                                                         arguments.fakeToneFrequency,
+                                                                         arguments.abortAfterBlocks);
         }
     }
     catch (const std::exception& exception)

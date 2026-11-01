@@ -10,6 +10,8 @@
 namespace ihub::plugins
 {
 class PluginInstrument;
+class PluginEditorWindow;
+class WindowCallbackToken;
 
 /** An application-owned window that shows a hosted plugin's native editor.
 
@@ -112,10 +114,6 @@ public:
     static int getLiveInstanceCount() noexcept;
 
 private:
-    class Window;
-
-    struct Lifetime;
-
     bool showEditor (juce::AudioProcessor& processor,
                      const juce::String& title,
                      juce::Component* owner);
@@ -128,11 +126,11 @@ private:
         instance's unload can never close a window that now shows a newer one. */
     void clearInstrumentCallback() noexcept;
 
-    std::unique_ptr<Window> window;
+    std::unique_ptr<PluginEditorWindow> window;
     juce::AudioProcessor* processor = nullptr;
     PluginInstrument* instrument = nullptr;
     mutable juce::String lastError;
-    std::shared_ptr<Lifetime> lifetime;
+    std::shared_ptr<WindowCallbackToken> lifetime;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginWindow)
 };
