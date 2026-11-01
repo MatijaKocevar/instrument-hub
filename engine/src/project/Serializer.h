@@ -24,6 +24,11 @@ namespace ihub::project
 
     The serializer is plain `juce_core`: no engine, plugin or UI dependency.
     It is safe to call from any non-audio thread.
+
+    The implementation is split by concern under `project/serializer/`: ZIP
+    entry I/O, the `set.json` manifest, slot/patch documents, plugin-state
+    blobs and the shared typed JSON fields. Schema upgrades stay in
+    `Migrations`.
 */
 class Serializer final
 {
