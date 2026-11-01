@@ -1,6 +1,10 @@
 #include "Server.h"
+
+#include "AuthGuard.h"
+#include "MeterSampler.h"
 #include "Routes.h"
 #include "StateBroadcast.h"
+#include "WebSocketRoutes.h"
 
 #include <httplib.h>
 
@@ -14,26 +18,6 @@
 namespace Api
 {
 
-namespace
-{
-constexpr int minimumMeterHz = 1;
-constexpr int maximumMeterHz = 120;
-
-int clampMeterHz (int hz) noexcept
-{
-    return juce::jlimit (minimumMeterHz, maximumMeterHz, hz);
-}
-
-bool isLoopbackAddress (const std::string& address)
-{
-    return address == "127.0.0.1"
-        || address == "::1"
-        || address == "[::1]"
-        || address == "::ffff:127.0.0.1"
-        || address.rfind ("127.", 0) == 0;
-}
-} // namespace
-
 //==============================================================================
 // Server
 //==============================================================================
@@ -43,215 +27,22 @@ struct Server::Impl
     Impl (StateStore& storeToUse, Options optionsToUse)
         : state (storeToUse),
           options (std::move (optionsToUse)),
-          authToken (options.authToken),
-          meterHz (clampMeterHz (options.meterHz)),
-          broadcast (storeToUse),
           pairing ({}, options.port),
-          nextPort (options.port)
+          auth (pairing, options.authToken),
+          broadcast (storeToUse),
+          meters (storeToUse, options.meterHz),
+          webSockets (meters, broadcast, auth, running)
     {
+        nextPort = options.port;
+
         if (options.lanMode)
             pairing.setLanEnabled (true);
-    }
-
-    bool isLoopbackRequest (const httplib::Request& request) const
-    {
-        return isLoopbackAddress (request.remote_addr);
-    }
-
-    bool authorized (const httplib::Request& request) const
-    {
-        // Exchanging a pairing code is how a client obtains its first token, so
-        // it cannot require one. The management endpoints expose the live code
-        // and are therefore loopback-only, even for an already paired client:
-        // a tablet must not be able to mint more tokens for itself.
-        if (request.path == "/pair")
-            return true;
-
-        if (request.path.rfind ("/pairing", 0) == 0)
-            return isLoopbackRequest (request);
-
-        std::string expected;
-        bool lanEnabled = false;
-
-        {
-            const std::lock_guard<std::mutex> lock (configMutex);
-            expected = authToken;
-            lanEnabled = pairing.isLanEnabled();
-        }
-
-        if (expected.empty() && ! lanEnabled)
-            return true;
-
-        auto supplied = request.get_header_value ("X-Instrument-Hub-Token");
-
-        if (supplied.empty())
-        {
-            const auto authorization = request.get_header_value ("Authorization");
-            constexpr const char* bearer = "Bearer ";
-
-            if (authorization.rfind (bearer, 0) == 0)
-                supplied = authorization.substr (std::char_traits<char>::length (bearer));
-        }
-
-        if (! expected.empty() && supplied == expected)
-            return true;
-
-        return lanEnabled && pairing.validateToken (supplied);
     }
 
     /** The address the listener should be bound to right now. */
     std::string desiredAddress() const
     {
         return pairing.isLanEnabled() ? "0.0.0.0" : options.address;
-    }
-
-    MeterFrame makeDefaultFrame() const
-    {
-        const auto snapshot = state.snapshot();
-
-        MeterFrame frame;
-        frame.timestampMs = snapshot.uptimeMs;
-        frame.slots.reserve (snapshot.slots.size());
-
-        for (const auto& slot : snapshot.slots)
-        {
-            SlotMeter meter;
-            meter.slot = slot.index;
-            meter.armed = slot.armed;
-            meter.gain = slot.armed ? 1.0f : 0.0f;
-            frame.slots.push_back (meter);
-        }
-
-        return frame;
-    }
-
-    void meterLoop()
-    {
-        const auto interval = std::chrono::milliseconds (1000 / meterHz);
-        auto next = std::chrono::steady_clock::now();
-        std::uint64_t sequence = 0;
-
-        while (running.load (std::memory_order_acquire))
-        {
-            MeterProvider provider;
-
-            {
-                const std::lock_guard<std::mutex> lock (configMutex);
-                provider = meterProvider;
-            }
-
-            MeterFrame frame;
-
-            if (provider != nullptr)
-            {
-                try
-                {
-                    frame = provider();
-                }
-                catch (...)
-                {
-                    frame = makeDefaultFrame();
-                }
-            }
-            else
-            {
-                frame = makeDefaultFrame();
-            }
-
-            frame.sequence = ++sequence;
-
-            if (! (frame.timestampMs > 0.0))
-                frame.timestampMs = state.getUptimeMs();
-
-            auto json = toJson (meterFrameToVar (frame));
-
-            {
-                const std::lock_guard<std::mutex> lock (frameMutex);
-                latestFrameJson = std::move (json);
-                latestFrameVersion = sequence;
-            }
-
-            next += interval;
-            const auto now = std::chrono::steady_clock::now();
-
-            if (next > now)
-                std::this_thread::sleep_until (next);
-            else
-                next = now;
-        }
-    }
-
-    void registerMeterRoute()
-    {
-        http->WebSocket ("/meters", [this] (const httplib::Request& request,
-                                            httplib::ws::WebSocket& websocket)
-        {
-            if (! authorized (request))
-            {
-                websocket.close (httplib::ws::CloseStatus::PolicyViolation, "unauthorized");
-                return;
-            }
-
-            activeWebSockets.fetch_add (1, std::memory_order_acq_rel);
-
-            // Short read timeout: the loop must stay responsive to new meter
-            // frames while still reading so ping/pong and closes are handled.
-            websocket.set_read_timeout (0, 10000);
-
-            std::uint64_t sentVersion = 0;
-            std::string incoming;
-
-            while (running.load (std::memory_order_acquire) && websocket.is_open())
-            {
-                std::string payload;
-                std::uint64_t version = 0;
-
-                {
-                    const std::lock_guard<std::mutex> lock (frameMutex);
-                    version = latestFrameVersion;
-
-                    if (version != sentVersion)
-                        payload = latestFrameJson;
-                }
-
-                if (version != sentVersion)
-                {
-                    if (! websocket.send (payload))
-                        break;
-
-                    sentVersion = version;
-                    meterFramesSent.fetch_add (1, std::memory_order_relaxed);
-                }
-
-                const auto result = websocket.read (incoming);
-
-                if (result == httplib::ws::ReadResult::Fail)
-                    break;
-            }
-
-            if (websocket.is_open())
-                websocket.close (httplib::ws::CloseStatus::Normal, "server stopping");
-
-            activeWebSockets.fetch_sub (1, std::memory_order_acq_rel);
-        });
-    }
-
-    /** Serves `/events`: the coalesced live state mirror (T103). */
-    void registerStateRoute()
-    {
-        http->WebSocket ("/events", [this] (const httplib::Request& request,
-                                           httplib::ws::WebSocket& websocket)
-        {
-            if (! authorized (request))
-            {
-                websocket.close (httplib::ws::CloseStatus::PolicyViolation, "unauthorized");
-                return;
-            }
-
-            activeWebSockets.fetch_add (1, std::memory_order_acq_rel);
-            broadcast.handleClient (websocket);
-            activeWebSockets.fetch_sub (1, std::memory_order_acq_rel);
-        });
     }
 
     /** Starts advertising the API on the LAN, replacing any old record set.
@@ -318,7 +109,7 @@ struct Server::Impl
                 return httplib::Server::HandlerResponse::Handled;
             }
 
-            if (! authorized (request))
+            if (! auth.authorized (request))
             {
                 setError (response, 401, "unauthorized");
                 return httplib::Server::HandlerResponse::Handled;
@@ -352,8 +143,7 @@ struct Server::Impl
         context.setLanMode = [this] (bool enabled) { return applyLanMode (enabled); };
 
         registerRoutes (*http, context);
-        registerMeterRoute();
-        registerStateRoute();
+        webSockets.registerRoutes (*http);
 
         const auto address = desiredAddress();
         int port = nextPort;
@@ -494,21 +284,13 @@ struct Server::Impl
     StateStore& state;
     const Options options;
 
-    std::unique_ptr<httplib::Server> http;
-    std::thread listenerThread;
-    std::thread meterThread;
-    std::thread controlThread;
-
     std::atomic<bool> running { false };
     std::atomic<bool> listening { false };
     std::atomic<bool> rebinding { false };
     std::atomic<int> requestsInFlight { 0 };
     std::atomic<int> boundPort { 0 };
-    std::atomic<int> activeWebSockets { 0 };
-    std::atomic<std::uint64_t> meterFramesSent { 0 };
 
     mutable std::mutex configMutex;
-    MeterProvider meterProvider;
     AudioStateProvider audioProvider;
     AudioApplyHandler audioApply;
     AudioMeasureHandler audioMeasure;
@@ -517,17 +299,20 @@ struct Server::Impl
     MidiStateProvider midiProvider;
     MidiInputHandler midiEnableInput;
     MidiPadTestHandler midiPadTest;
-    std::string authToken;
-    const int meterHz;
-    StateBroadcast broadcast;
-
-    mutable std::mutex frameMutex;
-    std::string latestFrameJson;
-    std::uint64_t latestFrameVersion = 0;
 
     // LAN mode / pairing
     PairingManager pairing;
     Discovery discovery;
+
+    AuthGuard auth;
+    StateBroadcast broadcast;
+    MeterSampler meters;
+    WebSocketRoutes webSockets;
+
+    std::unique_ptr<httplib::Server> http;
+    std::thread listenerThread;
+    std::thread controlThread;
+
     mutable std::mutex lifecycleMutex;
     std::string listenerAddress;
     int nextPort = 0;
@@ -566,6 +351,7 @@ bool Server::start()
 
     self.running.store (true, std::memory_order_release);
     self.broadcast.start();
+    self.meters.start();
 
     {
         const std::lock_guard<std::mutex> lock (self.controlMutex);
@@ -573,7 +359,6 @@ bool Server::start()
         self.rebindRequested = false;
     }
 
-    self.meterThread = std::thread ([&self] { self.meterLoop(); });
     self.controlThread = std::thread ([&self] { self.controlLoop(); });
 
     return true;
@@ -606,14 +391,13 @@ void Server::stop()
 
     // WebSocket handlers leave their read loop within one short timeout.
     for (int spin = 0; spin < 200
-                       && self.activeWebSockets.load (std::memory_order_acquire) > 0;
+                       && self.webSockets.getActiveConnections() > 0;
          ++spin)
     {
         std::this_thread::sleep_for (std::chrono::milliseconds (10));
     }
 
-    if (self.meterThread.joinable())
-        self.meterThread.join();
+    self.meters.stop();
 
     self.boundPort.store (0, std::memory_order_release);
 }
@@ -641,8 +425,7 @@ std::string Server::getAddress() const
 
 void Server::setMeterProvider (MeterProvider provider)
 {
-    const std::lock_guard<std::mutex> lock (impl->configMutex);
-    impl->meterProvider = std::move (provider);
+    impl->meters.setProvider (std::move (provider));
 }
 
 void Server::setAudioHandlers (AudioStateProvider provider,
@@ -675,14 +458,12 @@ void Server::setMidiHandlers (MidiStateProvider provider,
 
 void Server::setAuthToken (std::string token)
 {
-    const std::lock_guard<std::mutex> lock (impl->configMutex);
-    impl->authToken = std::move (token);
+    impl->auth.setToken (std::move (token));
 }
 
 bool Server::hasAuthToken() const
 {
-    const std::lock_guard<std::mutex> lock (impl->configMutex);
-    return ! impl->authToken.empty();
+    return impl->auth.hasToken();
 }
 
 PairingManager& Server::getPairing()
@@ -727,7 +508,7 @@ bool Server::isLanModeEnabled() const
 
 std::uint64_t Server::getMeterFrameCount() const noexcept
 {
-    return impl->meterFramesSent.load (std::memory_order_acquire);
+    return impl->webSockets.getMeterFrameCount();
 }
 
 } // namespace Api

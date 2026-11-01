@@ -143,15 +143,27 @@ knows what a `Session` is.
   UI-facing mirror: armed slot, settings, transport, family tree, per-slot
   mix, latency, editor flags) and the plain structs it projects.
 - [Server.h](../engine/src/api/Server.h) / [Server.cpp](../engine/src/api/Server.cpp)
-  — `Server` (cpp-httplib lifecycle, auth/token, LAN rebind, CORS, `/meters`
-  at 30 Hz, `/events` WebSocket, pairing and discovery ownership).
+  — `Server` (cpp-httplib listener lifecycle, LAN rebind, CORS, pairing and
+  discovery ownership). Authentication, meter sampling and the WebSocket
+  endpoints are delegated to the modules below.
+- [AuthGuard.h](../engine/src/api/AuthGuard.h) /
+  [AuthGuard.cpp](../engine/src/api/AuthGuard.cpp) — the token/LAN policy
+  checked before every route and WebSocket upgrade; loopback-only pairing
+  management and the `X-Instrument-Hub-Token` / bearer rules.
+- [MeterSampler.h](../engine/src/api/MeterSampler.h) /
+  [MeterSampler.cpp](../engine/src/api/MeterSampler.cpp) — samples the meter
+  provider at `meterHz` on its own thread and serialises the newest frame.
+- [WebSocketRoutes.h](../engine/src/api/WebSocketRoutes.h) /
+  [WebSocketRoutes.cpp](../engine/src/api/WebSocketRoutes.cpp) — installs
+  `/meters` and `/events`, coalesces frames per client and tracks open
+  connections for shutdown.
 - [Routes.h](../engine/src/api/Routes.h) / [Routes.cpp](../engine/src/api/Routes.cpp)
   — the route table built by `registerRoutes()`, plus the JSON helpers and the
   public JSON serialisers. Each resource lives in its own small module under
-  [routes/](../engine/src/api/routes/): state and settings, patch mix/source/
-  editor/capture, per-patch FX, audio device, MIDI, plug-in inventory,
-  transport and pairing. A module only sees a `RouteContext` of function
-  objects, so no route links against `Session`.
+  [routes/](../engine/src/api/routes/): routes by resource and the matching
+  state/audio/MIDI/pairing/meter serialisers in their own translation units.
+  A module only sees a `RouteContext` of function objects, so no route links
+  against `Session`.
 - [SessionBridge.h](../engine/src/api/SessionBridge.h) /
   [SessionBridge.cpp](../engine/src/api/SessionBridge.cpp) — the adapter that
   installs live handlers on `StateStore`: arm, transport, patch mix/source,

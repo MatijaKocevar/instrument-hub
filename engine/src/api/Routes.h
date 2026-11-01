@@ -117,7 +117,7 @@ struct RouteContext
 
     Authentication and CORS pre-flight are handled by `Server` before routing,
     so the handlers here only deal with their payloads. The WebSocket meter and
-    state endpoints stay in `Server`.
+    state endpoints are installed separately by `WebSocketRoutes`.
 */
 void registerRoutes (httplib::Server& server, RouteContext context);
 
