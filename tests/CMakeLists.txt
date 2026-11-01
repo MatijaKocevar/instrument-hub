@@ -314,6 +314,9 @@ juce_add_console_app(ihub-app-modes-test
 target_sources(ihub-app-modes-test
     PRIVATE
         app/AppModesTest.cpp
+        app/TestSupport.cpp
+        app/CommandLine.cpp
+        app/Modes.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/Modes.cpp"
 )
@@ -398,6 +401,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     add_executable(ihub-selftest
         selftest/AudioSmoke.cpp
+        selftest/Options.cpp
+        selftest/Alsa.cpp
+        selftest/Wav.cpp
+        selftest/Analysis.cpp
     )
 
     target_compile_features(ihub-selftest PRIVATE cxx_std_20)
@@ -499,6 +506,12 @@ juce_add_console_app(ihub-audio-engine-test
 target_sources(ihub-audio-engine-test
     PRIVATE
         audio_engine/AudioEngineTest.cpp
+        audio_engine/AllocationCount.cpp
+        audio_engine/Fixtures.cpp
+        audio_engine/Mix.cpp
+        audio_engine/Scheduling.cpp
+        audio_engine/Realtime.cpp
+        audio_engine/Limiter.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
@@ -573,6 +586,16 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-instrument-test
         PRIVATE
             instruments/AudioInputInstrumentTest.cpp
+            instruments/audio_input/TestSupport.cpp
+            instruments/audio_input/Alsa.cpp
+            instruments/audio_input/Unity.cpp
+            instruments/audio_input/GainLatency.cpp
+            instruments/audio_input/Channels.cpp
+            instruments/audio_input/DirectMonitor.cpp
+            instruments/audio_input/LatencyBudget.cpp
+            instruments/audio_input/EngineInput.cpp
+            instruments/audio_input/LoopbackMaster.cpp
+            instruments/audio_input/LoopbackMonitor.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
@@ -629,6 +652,14 @@ juce_add_console_app(ihub-timing-monitor-test
 target_sources(ihub-timing-monitor-test
     PRIVATE
         timing_monitor/TimingMonitorTest.cpp
+        timing_monitor/TestSupport.cpp
+        timing_monitor/Deadline.cpp
+        timing_monitor/CallbackBoundary.cpp
+        timing_monitor/Stall.cpp
+        timing_monitor/DroppedBlocks.cpp
+        timing_monitor/Window.cpp
+        timing_monitor/Measured.cpp
+        timing_monitor/Reset.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
@@ -674,6 +705,14 @@ find_package(Threads REQUIRED)
 target_sources(ihub-diagnostics-test
     PRIVATE
         diag/DiagnosticsTest.cpp
+        diag/TestSupport.cpp
+        diag/Records.cpp
+        diag/Names.cpp
+        diag/Concurrency.cpp
+        diag/CrashFormat.cpp
+        diag/SignalHandler.cpp
+        diag/Plugins.cpp
+        diag/Report.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/CrashDump.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/Diagnostics.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/LogRing.cpp"
@@ -725,6 +764,9 @@ juce_add_console_app(ihub-latency-probe-test
 target_sources(ihub-latency-probe-test
     PRIVATE
         latency_probe/LatencyProbeTest.cpp
+        latency_probe/TestSupport.cpp
+        latency_probe/CrossCorrelation.cpp
+        latency_probe/Loopback.cpp
         ${IHUB_LATENCY_PROBE_SOURCES}
 )
 
@@ -774,6 +816,13 @@ if(IHUB_ENABLE_RT_GUARD)
     target_sources(ihub-rt-guard-test
         PRIVATE
             rt_guard/RtGuardTest.cpp
+            rt_guard/Fixtures.cpp
+            rt_guard/CompiledIn.cpp
+            rt_guard/Scope.cpp
+            rt_guard/NormalPath.cpp
+            rt_guard/NonStrict.cpp
+            rt_guard/Strict.cpp
+            rt_guard/Disabled.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             ${IHUB_BUS_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
@@ -860,6 +909,9 @@ juce_add_console_app(ihub-fx-chain-test
 target_sources(ihub-fx-chain-test
     PRIVATE
         fx_chain/FxChainTest.cpp
+        fx_chain/Fixtures.cpp
+        fx_chain/EmptyChain.cpp
+        fx_chain/ChainOrder.cpp
         ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -916,6 +968,10 @@ juce_add_console_app(ihub-plugin-fx-test
 target_sources(ihub-plugin-fx-test
     PRIVATE
         instruments/PluginFxTest.cpp
+        instruments/plugin_fx/Fixtures.cpp
+        instruments/plugin_fx/GainLatency.cpp
+        instruments/plugin_fx/State.cpp
+        instruments/plugin_fx/Editor.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/PluginFx.cpp"
@@ -979,6 +1035,11 @@ juce_add_console_app(ihub-slot-switcher-test
 target_sources(ihub-slot-switcher-test
     PRIVATE
         slot_switcher/SlotSwitcherTest.cpp
+        slot_switcher/AllocationCount.cpp
+        slot_switcher/Fixtures.cpp
+        slot_switcher/Continuity.cpp
+        slot_switcher/Realtime.cpp
+        slot_switcher/Disarm.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1044,6 +1105,7 @@ juce_add_console_app(ihub-warm-pool-test
 target_sources(ihub-warm-pool-test
     PRIVATE
         warm_pool/WarmPoolTest.cpp
+        warm_pool/Fixtures.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
