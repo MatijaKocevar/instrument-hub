@@ -211,7 +211,10 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   — owns the insert processors for one patch, builds built-ins from `dsp/`
   and loads hosted VST3 inserts through its `AudioPluginFormatManager`,
   exposes snapshots and parameter edits, and rebuilds the non-owning
-  `FxChain` after an edit.
+  `FxChain` after an edit. The insert wrapper, factory, parameter mapping,
+  editing, ordering, latency and snapshot code live in
+  [audio/fx/](../engine/src/audio/fx/), so the rack file keeps only chain
+  wiring and transport forwarding.
 - [Bus.h](../engine/src/audio/Bus.h) / [Bus.cpp](../engine/src/audio/Bus.cpp)
   — master summing buffer and zero-latency peak limiter. Unity below threshold.
 - [WarmPool.h](../engine/src/audio/WarmPool.h) /
@@ -1002,9 +1005,8 @@ then call it. That pattern appears in `StateStore`, `Mapping`,
 The threshold used here is **~800 lines**. At T133 the following files exceed
 it, except `Session.h`, which is included because it is the paired facade
 header for `Session.cpp` and must split with it. The target splits are the ones
-already scheduled in [plan/ROADMAP.md](../plan/ROADMAP.md) (T134–T138), plus
-two follow-ups (`FxRack`, `WarmPool`) that are not covered by a numbered task
-yet.
+already scheduled in [plan/ROADMAP.md](../plan/ROADMAP.md) (T134–T138 and the
+engine splits T162–T168).
 
 | File | Lines | What makes it big | Target decomposition |
 |---|---:|---|---|
@@ -1013,7 +1015,6 @@ yet.
 | [Main.cpp](../engine/src/Main.cpp) | 2001 | Application shell plus eight one-shot modes plus snapshot capture, LED poll and default-set loading. | **T137:** extract `app/modes/*` (diagnostics, selftest, snapshot, serve, session smoke, scan, RT strict, latency) and `app/AppShell` (window/web view). Leave an entry point and composition. Target `Main.cpp` < 600; identical CLI behaviour and output. |
 | [api/Server.cpp](../engine/src/api/Server.cpp) | 1779 | `StateStore`, the HTTP server, auth, LAN rebind, meter thread and WebSocket loops. | **T135:** split `StateStore` + DTOs into `api/StateStore.{h,cpp}`; leave `Server` with transport/auth/listener/meter/WebSocket. Then move route bodies out. Target `Server.h`/`Server.cpp` each < 700. |
 | [api/Server.h](../engine/src/api/Server.h) | 1037 | All state DTOs, `StateStore` and `Server` in one header. | Same as above: DTOs and `StateStore` move to their own header; `Server.h` keeps the server surface. |
-| [audio/FxRack.cpp](../engine/src/audio/FxRack.cpp) | 1047 | Built-in factory, VST3 insert loading, parameter mapping, snapshots, latency and rebuild. | Split the built-in factory (`audio/fx/BuiltinInserts.cpp`), the VST3 insert adapter, the parameter/snapshot code and the `FxRack` orchestration. Target < 600. |
 | [audio/WarmPool.cpp](../engine/src/audio/WarmPool.cpp) | 998 | Policy (protected set, LRU, limits, deferred) and worker/thread/lifetime in one translation unit. | Split `WarmPoolPolicy` (what to keep, what to evict) from `WarmPoolWorker` (thread, factory, hand-off, posted destroys). Target < 600 each. |
 | [project/Serializer.cpp](../engine/src/project/Serializer.cpp) | 979 | ZIP container I/O, JSON (de)serialisation, validation and migration glue. | Split container I/O, document (de)serialisation and validation. Target < 600. This is below T134–T138 priority but crosses the same threshold. |
 | [Session.h](../engine/src/Session.h) | 776 | Public surface for all of the above. | Follows `Session.cpp`: the facade header keeps build/device/render/arm/inspection; collaborators get their own headers in `session/`. |

@@ -328,6 +328,9 @@ private:
 
     std::map<std::string, float> readParameters (const InsertEffect& effect) const;
 
+    /** Moves one insert to `to`. The caller validates both indices. */
+    void moveInsert (int from, int to) noexcept;
+
     void applyTransportTo (InsertEffect& effect) const;
 
     juce::AudioPluginFormatManager* formatManager = nullptr;
