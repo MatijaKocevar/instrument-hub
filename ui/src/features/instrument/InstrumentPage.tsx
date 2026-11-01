@@ -11,10 +11,10 @@ import type {
 import { InsertChain } from "./InsertChain";
 import { InstrumentFrame } from "./InstrumentFrame";
 import { Mixer } from "./Mixer";
+import { SaveSoundAction } from "./SaveSoundAction";
 import { SourceCard } from "./SourceCard";
 import { SourceEditor } from "./SourceEditor";
 import { SourcePicker } from "./SourcePicker";
-import { formatStateSize, isPluginSource } from "./model";
 import "./instrument.css";
 
 export interface InstrumentPageProps
@@ -110,8 +110,6 @@ export function InstrumentPage ({
     onRetryChain,
 }: InstrumentPageProps): ReactElement
 {
-    const isPlugin = patch !== null && isPluginSource (patch);
-
     return (
         <InstrumentFrame
             patch={patch}
@@ -141,54 +139,13 @@ export function InstrumentPage ({
                                   {...(onCloseEditor !== undefined ? { onCloseEditor } : {})}
                               />
 
-                              <div className="instrument__save"
-                                   data-testid="patch-state-save"
-                                   data-slot={patch.slot}
-                                   data-enabled={isPlugin ? "true" : "false"}
-                                   data-busy={captureBusy === true ? "true" : "false"}>
-                                  <button
-                                      className="instrument__button instrument__button--save"
-                                      type="button"
-                                      data-testid="source-save-state"
-                                      data-slot={patch.slot}
-                                      disabled={! isPlugin || captureBusy === true || onCaptureState === undefined}
-                                      onClick={() => { onCaptureState?.(patch.slot); }}
-                                  >
-                                      Save sound to patch
-                                  </button>
-
-                                  <p className="instrument__field-hint" data-testid="source-save-hint">
-                                      {isPlugin
-                                          ? "Captures the running plug-in's current sound into this patch without switching away."
-                                          : "Only plug-in sources have a sound state to save."}
-                                  </p>
-
-                                  {captureBusy === true
-                                      ? <p className="instrument__field-hint"
-                                            data-testid="source-save-busy"
-                                            aria-busy="true">
-                                            Saving the running sound…
-                                        </p>
-                                      : null}
-
-                                  {captureError !== null && captureError !== undefined && captureError.length > 0
-                                      ? <p className="instrument__error"
-                                            role="alert"
-                                            data-testid="source-save-error">
-                                            {captureError}
-                                        </p>
-                                      : null}
-
-                                  {capture !== null && capture !== undefined && capture.slot === patch.slot
-                                      ? <p className="instrument__field-hint instrument__save-status"
-                                            role="status"
-                                            data-testid="source-save-status"
-                                            data-size-bytes={capture.sizeBytes}
-                                            data-slot={capture.slot}>
-                                            Saved to patch · {formatStateSize (capture.sizeBytes)}
-                                        </p>
-                                      : null}
-                              </div>
+                              <SaveSoundAction
+                                  patch={patch}
+                                  captureBusy={captureBusy}
+                                  capture={capture}
+                                  captureError={captureError}
+                                  {...(onCaptureState !== undefined ? { onCaptureState } : {})}
+                              />
 
                               <SourcePicker
                                   patch={patch}
