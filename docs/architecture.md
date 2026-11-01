@@ -144,9 +144,12 @@ knows what a `Session` is.
   lifecycle, auth/token, LAN rebind, CORS, `/meters` at 30 Hz, `/events`
   WebSocket, pairing and discovery ownership).
 - [Routes.h](../engine/src/api/Routes.h) / [Routes.cpp](../engine/src/api/Routes.cpp)
-  — every HTTP route, request validation, JSON serialisation and error
-  statuses. `registerRoutes()` takes a `RouteContext` with function objects, so
-  the route module does not link against `Session`.
+  — the route table built by `registerRoutes()`, plus the JSON helpers and the
+  public JSON serialisers. Each resource lives in its own small module under
+  [routes/](../engine/src/api/routes/): state and settings, patch mix/source/
+  editor/capture, per-patch FX, audio device, MIDI, plug-in inventory,
+  transport and pairing. A module only sees a `RouteContext` of function
+  objects, so no route links against `Session`.
 - [SessionBridge.h](../engine/src/api/SessionBridge.h) /
   [SessionBridge.cpp](../engine/src/api/SessionBridge.cpp) — the adapter that
   installs live handlers on `StateStore`: arm, transport, patch mix/source,
