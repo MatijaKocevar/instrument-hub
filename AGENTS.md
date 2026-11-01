@@ -11,6 +11,23 @@ toolchain, opencode auth, `IH_REPO`, how to stop a run cleanly).
 
 ---
 
+## Working with the developer
+
+The human on this machine is a developer working interactively, not an
+autopilot. They start and stop the app and the dev server themselves
+(`scripts/dev.sh`; Vite on :5173, engine API on `127.0.0.1:8080`).
+
+- Never start the app, `scripts/dev.sh`, Vite, or any other long-lived
+  server yourself, and never leave one running when your turn ends. Use the
+  instance the developer already has open, or ask them to start one.
+- Single-run diagnostics (`--selftest`, `--snapshot`, a test harness on its
+  own port) are fine when they shut down before you report back.
+- Do not build or test after every edit. Make the change first; build only
+  when a binary is actually needed, and run the test suite once when the
+  change is finished (or when the developer asks). No rebuild loops.
+
+---
+
 ## Current phase: bug fixing
 
 The feature roadmap is complete (`T000–T139`) and the app is playable: the
@@ -21,9 +38,10 @@ on the work is **bug fixing**, not feature work or refactoring.
 - Fix reported bugs. Do not start new features, refactors or cleanup
   tasks unless the human explicitly asks.
 - Reproduce first: exact steps, expected vs actual, and the log or
-  screenshot. Record it in `plan/BUGS.md`.
-- Add a regression test where practical. A fix is not done until
-  `scripts/test.sh` passes.
+  screenshot. Record it in `plan/BUGS.md`. Use the developer's running
+  instance; do not start a dev server to reproduce.
+- Add a regression test where practical. Run `scripts/test.sh` once when
+  the fix is complete, not after every edit.
 - One bug per commit; update the entry's status and evidence.
 - Keep the audio-thread contract and the Launchpad/Linux assumptions.
 - Launch the app detached (desktop entry, `setsid`, or a long-lived
@@ -85,12 +103,16 @@ queried once per load, not per block.
 
 `plan/TESTING.md` defines how to prove things without hardware: ALSA
 loopback for audio, a virtual Launchpad on the ALSA sequencer for MIDI,
-an in-repo `TestPlugin` VST3, and snapshots taken inside JUCE. A change is
-not done until its acceptance check has been run and its output recorded.
+an in-repo `TestPlugin` VST3, and snapshots taken inside JUCE.
 
-Run tests through `scripts/test.sh` (or `ctest --timeout 120`). A deadlocked
-test must fail within two minutes; never leave a test or test wrapper
-unbounded, and never treat "the command is still running" as progress.
+Verification is on demand. Run the acceptance check once when a change is
+finished — not after each edit — and record its output. The developer
+verifies interactively and decides when a full run is worth the time.
+
+When you do run it, use `scripts/test.sh` (or `ctest --timeout 120`). A
+deadlocked test must fail within two minutes; never leave a test or test
+wrapper unbounded, and never treat "the command is still running" as
+progress.
 
 ---
 
