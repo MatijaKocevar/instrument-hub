@@ -155,6 +155,10 @@ target_sources(instrument-hub
         src/audio/TapTempo.cpp
         src/audio/Transport.cpp
         src/audio/WarmPool.cpp
+        src/audio/warm/WarmPoolEviction.cpp
+        src/audio/warm/WarmPoolSlots.cpp
+        src/audio/warm/WarmPoolWarming.cpp
+        src/audio/warm/WarmPoolWorker.cpp
         src/controller/LaunchpadDriver.cpp
         src/controller/LaunchpadProtocol.cpp
         src/controller/Mapping.cpp
@@ -199,6 +203,9 @@ target_sources(instrument-hub
         src/session/SlotSources.cpp
         src/session/TransportControl.cpp
         src/session/WarmPoolController.cpp
+        src/session/warm/WarmPoolArm.cpp
+        src/session/warm/WarmPoolMeasurement.cpp
+        src/session/warm/WarmPoolVoice.cpp
         src/sampler/Kit.cpp
         src/sampler/KitLoader.cpp
         src/sampler/SampleLoader.cpp

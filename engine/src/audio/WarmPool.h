@@ -23,6 +23,10 @@ namespace AudioEngine
     slot and its `K` nearest neighbours instantiated, so arming one of them is
     a pointer hand-over plus a 3 ms crossfade.
 
+    The implementation is split by concern under `audio/warm/`: slot
+    reservation, warm-up state, eviction/accounting and the worker. This
+    header is the public surface.
+
     ## What "neighbour" means
 
     Slots are an ordered set (`setNumSlots()`), one instance per slot. The

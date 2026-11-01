@@ -31,6 +31,10 @@ namespace ihub::session
     it: which editor to close, which patch state to capture, and how to wire
     the graph. All control-thread methods take `armMutex`; the audio thread
     never calls any of them.
+
+    The implementation is split under `session/warm/`: the voice proxy, the
+    arm hand-off and the waits/measurement helpers. This header is the public
+    surface.
 */
 class WarmPoolController
 {

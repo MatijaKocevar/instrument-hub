@@ -221,7 +221,9 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   [WarmPool.cpp](../engine/src/audio/WarmPool.cpp) — background instrument
   cache: protected set (active + K neighbours), hard `1 + K` live-instance
   limit, LRU eviction, pinning, deferred loads, destroy posted to the message
-  thread.
+  thread. Slot reservation, warm-up queue, eviction/accounting and the worker
+  thread live in [audio/warm/](../engine/src/audio/warm/), so the pool file
+  keeps lifecycle, configuration and inspection.
 - [DeviceManager.h](../engine/src/audio/DeviceManager.h) /
   [DeviceManager.cpp](../engine/src/audio/DeviceManager.cpp) — JUCE device
   enumeration, setup and open/close.
@@ -597,7 +599,7 @@ paths have the same per-patch state guarantee.
 
 **Step 6 — warm-pool load (pool worker thread), only for a cold slot.**
 
-`WarmPool::run()` ([WarmPool.cpp](../engine/src/audio/WarmPool.cpp)) pops the
+`WarmPool::run()` ([WarmPoolWorker.cpp](../engine/src/audio/warm/WarmPoolWorker.cpp)) pops the
 queued slot. If the live count is at the limit (`1 + K`, default 3), it calls
 `evictOneLocked()` to retire the least-recently-used unprotected instance;
 destruction is posted to the message thread. It then calls
@@ -1015,7 +1017,6 @@ engine splits T162–T168).
 | [Main.cpp](../engine/src/Main.cpp) | 2001 | Application shell plus eight one-shot modes plus snapshot capture, LED poll and default-set loading. | **T137:** extract `app/modes/*` (diagnostics, selftest, snapshot, serve, session smoke, scan, RT strict, latency) and `app/AppShell` (window/web view). Leave an entry point and composition. Target `Main.cpp` < 600; identical CLI behaviour and output. |
 | [api/Server.cpp](../engine/src/api/Server.cpp) | 1779 | `StateStore`, the HTTP server, auth, LAN rebind, meter thread and WebSocket loops. | **T135:** split `StateStore` + DTOs into `api/StateStore.{h,cpp}`; leave `Server` with transport/auth/listener/meter/WebSocket. Then move route bodies out. Target `Server.h`/`Server.cpp` each < 700. |
 | [api/Server.h](../engine/src/api/Server.h) | 1037 | All state DTOs, `StateStore` and `Server` in one header. | Same as above: DTOs and `StateStore` move to their own header; `Server.h` keeps the server surface. |
-| [audio/WarmPool.cpp](../engine/src/audio/WarmPool.cpp) | 998 | Policy (protected set, LRU, limits, deferred) and worker/thread/lifetime in one translation unit. | Split `WarmPoolPolicy` (what to keep, what to evict) from `WarmPoolWorker` (thread, factory, hand-off, posted destroys). Target < 600 each. |
 | [project/Serializer.cpp](../engine/src/project/Serializer.cpp) | 979 | ZIP container I/O, JSON (de)serialisation, validation and migration glue. | Split container I/O, document (de)serialisation and validation. Target < 600. This is below T134–T138 priority but crosses the same threshold. |
 | [Session.h](../engine/src/Session.h) | 776 | Public surface for all of the above. | Follows `Session.cpp`: the facade header keeps build/device/render/arm/inspection; collaborators get their own headers in `session/`. |
 
