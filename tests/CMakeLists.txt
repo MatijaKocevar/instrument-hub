@@ -20,6 +20,13 @@ set(IHUB_API_ROUTES_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/TransportRoutes.cpp"
 )
 
+# The API server is transport/auth plus the state store it projects. Tests
+# that exercise the HTTP or WebSocket surface compile both.
+set(IHUB_API_SERVER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateStore.cpp"
+)
+
 # The mapping layer is split into model, YAML reader/validator and the
 # watcher/facade. Tests that exercise any part compile the whole set.
 set(IHUB_MAPPING_SOURCES
@@ -1034,7 +1041,7 @@ target_sources(ihub-session-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
@@ -1124,7 +1131,7 @@ target_sources(ihub-patch-fx-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
@@ -1216,7 +1223,7 @@ target_sources(ihub-instrument-page-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
@@ -1306,7 +1313,7 @@ target_sources(ihub-patch-state-capture-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
@@ -1398,7 +1405,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+            ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
@@ -1500,7 +1507,7 @@ target_sources(ihub-session-warm-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
@@ -1779,7 +1786,7 @@ target_sources(ihub-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
 )
 
@@ -1828,7 +1835,7 @@ target_sources(ihub-pairing-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
 )
 
@@ -1880,7 +1887,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+            ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
@@ -1937,7 +1944,7 @@ target_sources(ihub-audio-settings-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
@@ -1999,7 +2006,7 @@ target_sources(ihub-midi-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+        ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
@@ -3297,7 +3304,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
+            ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"

@@ -36,7 +36,7 @@ Read in this order. It is deliberately small: roughly one focused morning.
 | 4 | [engine/src/Session.cpp](../engine/src/Session.cpp): `Session::build()`, `armSlot()`, `finishArmLocked()`, `warmCallback()`, `renderInternal()`, `audioDeviceIOCallbackWithContext()` | The control path and the audio path in one file. |
 | 5 | [engine/src/audio/SlotSwitcher.h](../engine/src/audio/SlotSwitcher.h), [Slot.h](../engine/src/audio/Slot.h), [FxChain.h](../engine/src/audio/FxChain.h), [Bus.h](../engine/src/audio/Bus.h) | What actually renders a block, and where the equal-power crossfade lives. |
 | 6 | [engine/src/audio/WarmPool.h](../engine/src/audio/WarmPool.h) | The instance cache, its thread, its limit and its lifetime rules. |
-| 7 | [engine/src/api/Server.h](../engine/src/api/Server.h) (`StateStore`), then [engine/src/api/SessionBridge.cpp](../engine/src/api/SessionBridge.cpp) | How HTTP reaches the session without the route code knowing what a `Session` is. |
+| 7 | [engine/src/api/StateStore.h](../engine/src/api/StateStore.h) (`StateStore`), then [engine/src/api/SessionBridge.cpp](../engine/src/api/SessionBridge.cpp) | How HTTP reaches the session without the route code knowing what a `Session` is. |
 | 8 | [engine/src/controller/LaunchpadProtocol.h](../engine/src/controller/LaunchpadProtocol.h), then [LaunchpadDriver.h](../engine/src/controller/LaunchpadDriver.h), then [Mapping.h](../engine/src/controller/Mapping.h) | The pad path, from a raw note to a slot number. |
 | 9 | [engine/src/Session.cpp](../engine/src/Session.cpp): `capturePluginState()`, `writePluginStateFile()` in the anonymous namespace, `applyStoredPluginState()` | Per-patch sound persistence, including the explicit save action. |
 | 10 | [tests/e2e/PadToAudio.cpp](../tests/e2e/PadToAudio.cpp), [tests/session_warm/SessionWarmPoolTest.cpp](../tests/session_warm/SessionWarmPoolTest.cpp), [tests/api/SessionApiTest.cpp](../tests/api/SessionApiTest.cpp) | The executable version of this document. |
@@ -138,11 +138,13 @@ is followed by the types worth knowing.
 The control surface. It is a facade over `StateStore`; only `SessionBridge`
 knows what a `Session` is.
 
+- [StateStore.h](../engine/src/api/StateStore.h) /
+  [StateStore.cpp](../engine/src/api/StateStore.cpp) — `StateStore` (the
+  UI-facing mirror: armed slot, settings, transport, family tree, per-slot
+  mix, latency, editor flags) and the plain structs it projects.
 - [Server.h](../engine/src/api/Server.h) / [Server.cpp](../engine/src/api/Server.cpp)
-  — `StateStore` (the UI-facing mirror: armed slot, settings, transport, family
-  tree, per-slot mix, latency, editor flags) and `Server` (cpp-httplib
-  lifecycle, auth/token, LAN rebind, CORS, `/meters` at 30 Hz, `/events`
-  WebSocket, pairing and discovery ownership).
+  — `Server` (cpp-httplib lifecycle, auth/token, LAN rebind, CORS, `/meters`
+  at 30 Hz, `/events` WebSocket, pairing and discovery ownership).
 - [Routes.h](../engine/src/api/Routes.h) / [Routes.cpp](../engine/src/api/Routes.cpp)
   — the route table built by `registerRoutes()`, plus the JSON helpers and the
   public JSON serialisers. Each resource lives in its own small module under
@@ -538,7 +540,7 @@ mirror, and `Session` is the single writer of the audio graph.
 
 **Step 4 — store → session (`SessionBridge` arm handler).**
 
-`StateStore::setArmedSlot()` ([Server.cpp](../engine/src/api/Server.cpp))
+`StateStore::setArmedSlot()` ([StateStore.cpp](../engine/src/api/StateStore.cpp))
 validates the slot, updates `armedSlot` under the store mutex, copies the
 handlers, then calls the arm handler outside the lock. The handler was
 installed by `Api::attachSession()` in
@@ -1051,7 +1053,7 @@ capabilities that are tested but not selected by the live factory.
 2. Add the route in [Routes.cpp](../engine/src/api/Routes.cpp) (or the future
    per-resource module). Parse/validate, then call a `StateStore` method.
 3. Add the handler field and method to `StateStore`
-   ([Server.h](../engine/src/api/Server.h)), install the live implementation in
+   ([StateStore.h](../engine/src/api/StateStore.h)), install the live implementation in
    [SessionBridge.cpp](../engine/src/api/SessionBridge.cpp), and keep the
    plain-struct boundary.
 4. If the change reaches audio, go through `Session` on a control thread; never

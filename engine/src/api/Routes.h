@@ -1,9 +1,12 @@
 #pragma once
 
-#include "Server.h"
+#include "Pairing.h"
+#include "StateStore.h"
 
 #include <httplib.h>
 
+#include <cstdint>
+#include <functional>
 #include <string>
 
 namespace Api
