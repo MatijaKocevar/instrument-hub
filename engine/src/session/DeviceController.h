@@ -12,12 +12,6 @@ struct SessionDeviceConfig;
 namespace ihub::session
 {
 
-/** Owns the audio device wrapper and the callback registration.
-
-    Device selection is the only part that knows about `SessionDeviceConfig`;
-    the session still decides when to prepare the graph, so this collaborator
-    never touches the engine.
-*/
 class DeviceController
 {
 public:
@@ -30,7 +24,6 @@ public:
 
     bool isOpen() const noexcept { return devices.isOpen(); }
 
-    /** Installs or clears the audio callback. */
     void setCallback (juce::AudioIODeviceCallback* callback);
     bool hasCallback() const noexcept { return callbackInstalled; }
 
@@ -49,4 +42,4 @@ private:
     bool callbackInstalled = false;
 };
 
-} // namespace ihub::session
+}

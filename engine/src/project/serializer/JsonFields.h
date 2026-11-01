@@ -7,18 +7,10 @@
 namespace ihub::project::serializer
 {
 
-/** Creates an empty JSON object. */
 juce::var makeObject();
 
-/** Builds a dotted field path for an error message. */
 juce::String fieldName (const juce::String& context, const char* key);
 
-/** Typed readers shared by the `set.json` document parsers.
-
-    Each reader validates the field's JSON type and range, leaves `destination`
-    untouched when the field is optional and absent, and fills `error` with a
-    path-qualified message on failure.
-*/
 bool readString (const juce::var& parent,
                  const char* key,
                  const juce::String& context,
@@ -70,4 +62,4 @@ bool readArray (const juce::var& parent,
                 juce::String& error,
                 bool required = true);
 
-} // namespace ihub::project::serializer
+}

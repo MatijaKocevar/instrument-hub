@@ -81,14 +81,13 @@ bool readInteger (const juce::var& value,
     destination = static_cast<std::int64_t> (number);
     return true;
 }
-} // namespace detail
+}
 
 namespace
 {
 constexpr const char* jsonMimeType = "application/json; charset=utf-8";
-} // namespace
+}
 
-//==============================================================================
 std::string toJson (const juce::var& value)
 {
     return juce::JSON::toString (value, false).toStdString();
@@ -141,4 +140,4 @@ bool parseJsonObject (const httplib::Request& request,
     return true;
 }
 
-} // namespace Api
+}

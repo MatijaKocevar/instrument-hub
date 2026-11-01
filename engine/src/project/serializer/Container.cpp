@@ -74,4 +74,4 @@ bool addEntry (juce::ZipFile::Builder& builder,
     return true;
 }
 
-} // namespace ihub::project::serializer
+}

@@ -12,13 +12,6 @@ namespace ihub::session
 
 namespace
 {
-/** A phase-continuous sine and a real `Instrument` / `SlotSource`.
-
-    This is the default set's stand-in source until a set with plugins or
-    samples is loaded. It demonstrates the composition without any external
-    asset and keeps the audio-thread contract: the phase is plain state, the
-    render loop never allocates or locks.
-*/
 class InitToneSource final : public Instrument,
                              public AudioEngine::SlotSource
 {
@@ -78,7 +71,6 @@ private:
     double increment = 0.0;
 };
 
-/** A real `SlotSource` that renders nothing. */
 class SilentSource final : public AudioEngine::SlotSource
 {
 public:
@@ -92,7 +84,6 @@ public:
     int latencySamples() const noexcept override { return 0; }
 };
 
-/** A sampler patch whose kit is owned by the pooled instance. */
 class PooledSamplerSource final : public AudioEngine::SlotSource
 {
 public:
@@ -135,7 +126,7 @@ private:
     std::unique_ptr<sampler::SamplerInstrument> instrument;
 };
 
-} // namespace
+}
 
 std::unique_ptr<AudioEngine::SlotSource> makeInitToneSource (double frequency,
                                                              float amplitude)
@@ -160,4 +151,4 @@ std::unique_ptr<AudioEngine::SlotSource> makeSamplerSource (const juce::File& fi
     return source;
 }
 
-} // namespace ihub::session
+}

@@ -3,9 +3,6 @@
 namespace ihub
 {
 
-//==============================================================================
-// Per-patch insert chain (T121)
-
 bool Session::getSlotFxChain (int slot,
                               AudioEngine::FxChainSnapshot& snapshot,
                               std::string& error) const
@@ -67,4 +64,4 @@ void Session::updateFxTransport() noexcept
     fxChain.updateTransport (transportControl.getFxTransport());
 }
 
-} // namespace ihub
+}

@@ -29,7 +29,6 @@ std::string trim (const std::string& text)
     return first < last ? std::string (first, last) : std::string();
 }
 
-/** Length-independent comparison for secrets. */
 bool constantTimeEquals (const std::string& left, const std::string& right)
 {
     if (left.size() != right.size())
@@ -65,9 +64,8 @@ std::string joinHostAndPort (const std::string& address, int port)
 
     return "[" + address + "]:" + std::to_string (port);
 }
-} // namespace
+}
 
-//==============================================================================
 PairingManager::PairingManager (std::string advertisedAddressToUse, int portToUse)
     : advertisedAddress (advertisedAddressToUse.empty()
                              ? discoverLanAddress()
@@ -188,8 +186,6 @@ bool PairingManager::pair (const std::string& suppliedCode,
     auto issued = randomToken();
     tokens[issued] = std::move (clientName);
 
-    // A code is single-use: rotate it immediately so a shoulder-surfed code
-    // cannot be replayed, and so the desktop UI shows the next one.
     issueCodeLocked();
 
     token = std::move (issued);
@@ -219,7 +215,6 @@ std::size_t PairingManager::pairedClientCount() const
     return tokens.size();
 }
 
-//==============================================================================
 std::string PairingManager::discoverLanAddress()
 {
     auto local = juce::IPAddress::getLocalAddress (false);
@@ -249,7 +244,6 @@ bool PairingManager::isValidCode (const std::string& codeToCheck)
     });
 }
 
-//==============================================================================
 void PairingManager::issueCodeLocked()
 {
     code = randomDigits (codeDigits);
@@ -265,7 +259,6 @@ std::string PairingManager::makePayloadLocked() const
            + pairingPath + "?code=" + code;
 }
 
-//==============================================================================
 std::string PairingManager::randomDigits (int count)
 {
     std::uniform_int_distribution<int> digit (0, 9);
@@ -297,4 +290,4 @@ std::string PairingManager::randomToken()
     return result;
 }
 
-} // namespace Api
+}

@@ -8,14 +8,6 @@
 namespace ihub::session
 {
 
-/**
-    Lock-free MIDI hand-off from one producer (MIDI input thread) to the audio
-    callback.
-
-    Storage is fixed at construction, so `push()` and `drain()` never allocate,
-    lock or log. SysEx is deliberately dropped: forwarding a multi-message
-    stream in pieces would need unbounded storage.
-*/
 class MidiBridge
 {
 public:
@@ -23,16 +15,12 @@ public:
 
     MidiBridge() = default;
 
-    /** Sizes the block buffer once, in `prepare()`. */
     void prepare();
 
-    /** Drops events queued for a stopped stream. */
     void reset() noexcept;
 
-    /** Queues one short MIDI message for the next block. */
     bool push (const juce::MidiMessage& message) noexcept;
 
-    /** Audio-thread call: moves queued messages into `destination` at sample 0. */
     void drain (juce::MidiBuffer& destination) noexcept;
 
     int getQueuedCount() const noexcept { return fifo.getNumReady(); }
@@ -51,4 +39,4 @@ private:
     juce::MidiBuffer blockMidi;
 };
 
-} // namespace ihub::session
+}

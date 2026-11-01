@@ -14,4 +14,4 @@ AudioEngine::FxTransport TransportControl::getFxTransport() const noexcept
     return result;
 }
 
-} // namespace ihub::session
+}

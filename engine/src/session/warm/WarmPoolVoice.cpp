@@ -5,7 +5,6 @@
 namespace ihub::session
 {
 
-//==============================================================================
 void WarmPoolController::bindVoice (int slot, AudioEngine::SlotSource* instance) noexcept
 {
     if (slot < 0 || slot >= static_cast<int> (voices.size()))
@@ -81,5 +80,5 @@ void WarmPoolVoice::clearIf (AudioEngine::SlotSource* instance) noexcept
     bypassesChain.store (false, std::memory_order_relaxed);
 }
 
-} // namespace detail
-} // namespace ihub::session
+}
+}

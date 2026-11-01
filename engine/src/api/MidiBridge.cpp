@@ -21,7 +21,6 @@ bool containsIgnoringCase (const juce::String& name, const char* fragment)
     return name.toLowerCase().contains (fragment);
 }
 
-/** Last whitespace-separated token of a device name, upper-cased. */
 std::string lastToken (const juce::String& name)
 {
     const auto text = name.trim().toStdString();
@@ -36,9 +35,8 @@ std::string lastToken (const juce::String& name)
 
     return token;
 }
-} // namespace
+}
 
-//==============================================================================
 MidiBridge::MidiBridge() = default;
 
 MidiBridge::~MidiBridge()
@@ -73,9 +71,6 @@ void MidiBridge::setMidiSink (std::function<bool (const juce::MidiMessage&)> sin
 bool MidiBridge::forwardMidiMessage (const juce::String& deviceName,
                                      const juce::MidiMessage& message)
 {
-    // The Launchpad's MI port carries pad notes as controller events. They
-    // arm a patch through the driver/mapping path and must never reach an
-    // instrument as a playable note.
     if (roleForName (deviceName) == "launchpad")
         return false;
 
@@ -94,7 +89,6 @@ void MidiBridge::setRestoreHandler (RestoreHandler handler)
     restoreHandler = std::move (handler);
 }
 
-//==============================================================================
 std::string MidiBridge::roleForName (const juce::String& name)
 {
     if (Controller::LaunchpadDriver::isLaunchpadName (name))
@@ -134,8 +128,6 @@ std::vector<MidiInputState> MidiBridge::enumerateInputs()
         state.role = roleForName (device.name);
         state.port = portForName (device.name);
 
-        // The Launchpad driver opens the MI port at startup; every other
-        // input starts switched off so the engine never steals a port.
         state.enabled = false;
         state.open = false;
         inputs.push_back (std::move (state));
@@ -144,7 +136,6 @@ std::vector<MidiInputState> MidiBridge::enumerateInputs()
     return inputs;
 }
 
-//==============================================================================
 MidiStateSnapshot MidiBridge::snapshot()
 {
     MidiStateSnapshot state;
@@ -159,8 +150,6 @@ MidiStateSnapshot MidiBridge::snapshot()
         {
             if (input.role == "launchpad")
             {
-                // Only the port the driver actually owns is switched on; the
-                // DA row stays visible and off because it carries no grid data.
                 const bool driverOpen = driver != nullptr && driver->isConnected();
                 const bool ownedPort = driverOpen
                                        && (input.port == "MI"
@@ -182,7 +171,6 @@ MidiStateSnapshot MidiBridge::snapshot()
         }
     }
 
-    // Launchpad status: the driver is authoritative when it is attached.
     if (driver != nullptr)
     {
         state.launchpad.connected = driver->isConnected();
@@ -200,7 +188,6 @@ MidiStateSnapshot MidiBridge::snapshot()
             if (input.role != "launchpad")
                 continue;
 
-            // Prefer the MI port when both ports are visible.
             if (state.launchpad.name.empty() || portForName (juce::String (input.name)) == "MI")
                 state.launchpad.name = input.name;
         }
@@ -211,8 +198,6 @@ MidiStateSnapshot MidiBridge::snapshot()
 
     state.launchpad.port = portForName (juce::String (state.launchpad.name));
 
-    // Keystation status: present in the ALSA list, owned by the bridge when
-    // its checkbox is on.
     for (const auto& input : state.inputs)
     {
         if (input.role != "keystation")
@@ -235,7 +220,6 @@ MidiStateSnapshot MidiBridge::snapshot()
     return state;
 }
 
-//==============================================================================
 bool MidiBridge::setInputEnabled (const std::string& id, bool enabled, std::string& error)
 {
     const auto inputs = enumerateInputs();
@@ -335,7 +319,6 @@ bool MidiBridge::setInputEnabled (const std::string& id, bool enabled, std::stri
     return true;
 }
 
-//==============================================================================
 void MidiBridge::closeInputs()
 {
     std::map<std::string, Monitor> closing;
@@ -397,10 +380,7 @@ void MidiBridge::handleIncomingMidiMessage (juce::MidiInput* source,
         monitor->second.lastEvent = describeMessage (message);
     }
 
-    // A monitor is opened only for a non-Launchpad input the user enabled in
-    // the MIDI page. Forward it into the session's lock-free queue; the audio
-    // callback drains it into the armed patch's block.
     forwardMidiMessage (name, message);
 }
 
-} // namespace Api
+}

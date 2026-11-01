@@ -8,12 +8,8 @@ namespace ihub::session
 
 namespace
 {
-/** Per-block peak-meter decay. At 48 kHz / 128 frames a full-scale peak falls
-    by about 20 dB in 26 ms, so a meter frame read at 30 Hz sees a steady value
-    while a slot plays instead of the tone's per-block zero crossings.
-*/
 constexpr float meterDecay = 0.85f;
-} // namespace
+}
 
 void MeterBridge::prepare (int slotCount)
 {
@@ -106,4 +102,4 @@ float MeterBridge::getMasterPeak() const noexcept
     return masterMeterPeak.load (std::memory_order_relaxed);
 }
 
-} // namespace ihub::session
+}

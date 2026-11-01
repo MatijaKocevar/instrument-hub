@@ -7,14 +7,8 @@ void MidiBridge::prepare()
 {
     blockMidi.clear();
 
-    // Pre-size the block storage so draining the queue on the audio thread
-    // never grows the underlying array. Each event costs a 6-byte header
-    // (int32 sample + uint16 size) plus its 3-byte payload, so 12 bytes per
-    // queued event is a safe bound.
     blockMidi.ensureSize (static_cast<std::size_t> (queueCapacity) * 12u + 64u);
 
-    // A device change is a clean hand-off point: drop events queued for the
-    // stopped stream instead of replaying them into a later block.
     fifo.reset();
 }
 
@@ -71,4 +65,4 @@ void MidiBridge::drain (juce::MidiBuffer& destination) noexcept
     add (scope.startIndex2, scope.blockSize2);
 }
 
-} // namespace ihub::session
+}

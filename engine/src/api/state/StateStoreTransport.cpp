@@ -27,7 +27,6 @@ TransportState StateStore::getTransport() const
         }
         catch (...)
         {
-            // A broken provider must not take the HTTP thread down.
         }
     }
 
@@ -125,4 +124,4 @@ void StateStore::setTransportProvider (TransportProvider provider)
     transportProvider = std::move (provider);
 }
 
-} // namespace Api
+}

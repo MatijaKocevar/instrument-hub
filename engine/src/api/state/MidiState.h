@@ -14,7 +14,6 @@ struct MidiInputState
     std::string name;
     std::string role = "input";
 
-    /** Short port label (`MI`, `DA`, `USB`) when the device name carries one. */
     std::string port;
 
     bool enabled = false;
@@ -23,18 +22,14 @@ struct MidiInputState
     std::string lastEvent;
 };
 
-/** Status of one named controller port (Launchpad MI, Keystation USB). */
 struct MidiPortState
 {
-    /** Device name, empty when the device is not present. */
     std::string name;
 
-    /** Short port label: `MI`, `DA` or `USB`. */
     std::string port;
 
     bool connected = false;
 
-    /** True once the controller echoed its programmer/session-mode frame. */
     bool handshake = false;
 
     std::string inputName;
@@ -42,7 +37,6 @@ struct MidiPortState
     std::string error;
 };
 
-/** Result of the most recent pad test. */
 struct MidiPadTestState
 {
     bool active = false;
@@ -50,7 +44,6 @@ struct MidiPadTestState
     int durationMs = 0;
 };
 
-/** Everything `GET /midi` returns. */
 struct MidiStateSnapshot
 {
     std::vector<MidiInputState> inputs;
@@ -60,18 +53,12 @@ struct MidiStateSnapshot
     std::string error;
 };
 
-/** Supplies the current MIDI device and controller state. Called on an HTTP
-    thread; a live implementation must not block the audio callback. */
 using MidiStateProvider = std::function<MidiStateSnapshot()>;
 
-/** Enables or disables one MIDI input. Returns false with a message when the
-    port cannot be opened. */
 using MidiInputHandler = std::function<bool (const std::string& id,
                                              bool enabled,
                                              std::string& error)>;
 
-/** Runs the Launchpad pad test. Returns false with a message when there is no
-    connected Launchpad. */
 using MidiPadTestHandler = std::function<bool (std::string& error)>;
 
-} // namespace Api
+}

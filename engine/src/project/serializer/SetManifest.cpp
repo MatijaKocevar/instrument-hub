@@ -40,7 +40,7 @@ bool parseTransport (const var& value,
     return true;
 }
 
-} // namespace
+}
 
 juce::String makeManifest (const SetFile& set)
 {
@@ -156,4 +156,4 @@ bool parseManifest (const juce::MemoryBlock& manifest,
     return true;
 }
 
-} // namespace ihub::project::serializer
+}

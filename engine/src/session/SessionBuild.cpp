@@ -6,8 +6,6 @@
 #include "session/SlotSources.h"
 
 #if defined (JUCE_MODULE_AVAILABLE_juce_gui_basics) && JUCE_MODULE_AVAILABLE_juce_gui_basics
- // The GUI build hosts the standard VST3 format, whose declaration lives in
- // the non-headless module.
  #include "plugins/PluginWindow.h"
 #endif
 
@@ -19,9 +17,8 @@ namespace ihub
 
 namespace
 {
-/** Amplitude of the built-in initialisation tone. */
 constexpr float initToneAmplitude = 0.12f;
-} // namespace
+}
 
 bool Session::build (const SessionConfig& newConfig, juce::String& error)
 {
@@ -30,12 +27,9 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     prepared = false;
     transportControl.reset();
 
-    // Editors reference the old instances; close them before the graph and the
-    // warm pool are dropped.
     if (editorHost != nullptr)
         editorHost->closeAll();
 
-    // Drop the graph before its proxies: the slots hold non-owning pointers.
     warmPool.shutdown();
     switcher.reset();
     engine.reset();
@@ -66,8 +60,6 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     }
 
     {
-        // The pool factory reads this copy, so a later source swap can never
-        // race a load that is already in flight.
         const std::lock_guard<std::mutex> lock (sourceMutex);
         sourceConfigs = config.slots;
         sourceRevision = 0;
@@ -87,9 +79,6 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     pluginFormats = std::make_unique<juce::AudioPluginFormatManager>();
 
    #if defined (JUCE_MODULE_AVAILABLE_juce_gui_basics) && JUCE_MODULE_AVAILABLE_juce_gui_basics
-    // The GUI build hosts the standard VST3 format, whose instances expose
-    // their native editor. The headless format would return hasEditor() ==
-    // false even for a plugin that has a window.
     juce::addDefaultFormatsToManager (*pluginFormats);
    #else
     juce::addHeadlessDefaultFormatsToManager (*pluginFormats);
@@ -110,10 +99,6 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
         },
         [this] (AudioEngine::SlotSource& instance)
         {
-            // Capture before the processor is destroyed. The pool may evict a
-            // patch at any time, so this is the last reliable point to store
-            // its state (T130). The editor host then closes the window while
-            // the processor is still alive.
             if (auto* instrument = dynamic_cast<plugins::PluginInstrument*> (&instance);
                 instrument != nullptr)
             {
@@ -153,13 +138,8 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
         slotPointers.push_back (&slot);
     }
 
-    // All slots are wired in parallel once. Nothing rewires later; arming only
-    // changes which warm-pool instance the fixed proxy points at.
     switcher->setSlots (slotPointers);
 
-    // Give the pool its format before any request can be queued. `build()`
-    // calls `setRequest()` before `prepare()`, and a pool without a format
-    // would create an unprepared instrument (silent init tone).
     warmPool.setFormat (config.device.sampleRate, config.device.bufferSize);
     warmPool.setNumSlots (slotCount);
 
@@ -177,9 +157,6 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
              config.device.bufferSize,
              config.device.numOutputChannels);
 
-    // The rack owns the insert processors; the slot's FxChain only holds
-    // non-owning pointers, so build the racks after the graph is prepared and
-    // rebuild each chain once from the persisted set.
     fxChain.setEngine (engine.get());
     fxChain.setFormat (sampleRate, maximumBlockSize, numChannels);
     fxChain.build (config.slots, *pluginFormats, transportControl.getFxTransport());
@@ -260,9 +237,6 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
                 return nullptr;
             }
 
-            // Restore this patch's own state before the instance is published
-            // to a slot. The warm pool prepares it afterwards, exactly as if a
-            // fresh preset had been chosen in the plugin.
             const session::PluginStateIdentity identity {
                 juce::String (slotConfig.path),
                 juce::String (slotConfig.pluginId),
@@ -270,8 +244,6 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
             };
             pluginState.apply (slotIndex, *instrument, identity, true);
 
-            // The editor host resolves this slot to this instance. An older
-            // instance stays registered until its own destroy hook forgets it.
             if (editorHost != nullptr)
                 editorHost->registerInstrument (slotIndex, instrument.get());
 
@@ -306,8 +278,6 @@ void Session::prepare (double newSampleRate, int newMaximumBlockSize, int newNum
 
     warmPool.setFormat (sampleRate, maximumBlockSize);
 
-    // The engine owns the slots, the summing bus and the timing monitor. The
-    // switcher owns the crossfade envelope over the same slots.
     engine->prepare (sampleRate, maximumBlockSize, numChannels);
 
     if (switcher != nullptr)
@@ -341,4 +311,4 @@ void Session::resetGraph() noexcept
     midi.reset();
 }
 
-} // namespace ihub
+}

@@ -246,7 +246,7 @@ bool parseFxUpdate (const juce::var& value, FxUpdateRequest& update, std::string
 
     return true;
 }
-} // namespace
+}
 
 void registerFxRoutes (httplib::Server& server, const RouteContext& context)
 {
@@ -547,4 +547,4 @@ void registerFxRoutes (httplib::Server& server, const RouteContext& context)
     });
 }
 
-} // namespace Api::Routes
+}

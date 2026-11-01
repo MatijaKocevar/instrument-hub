@@ -3,9 +3,6 @@
 namespace ihub
 {
 
-//==============================================================================
-// Warm-pool inspection (safe on any non-audio thread)
-
 int Session::getWarmInstanceLimit() const noexcept
 {
     return warmPool.getPool() != nullptr
@@ -63,4 +60,4 @@ bool Session::waitForSlotActive (int slot, int timeoutMs)
     return warmPool.waitForSlotActive (slot, timeoutMs);
 }
 
-} // namespace ihub
+}

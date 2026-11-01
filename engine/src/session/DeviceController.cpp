@@ -110,4 +110,4 @@ void DeviceController::setCallback (juce::AudioIODeviceCallback* callback)
     callbackInstalled = callback != nullptr;
 }
 
-} // namespace ihub::session
+}

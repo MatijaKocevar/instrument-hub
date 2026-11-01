@@ -151,7 +151,7 @@ bool parseFx (const var& value,
     return true;
 }
 
-} // namespace
+}
 
 var slotToVar (const SlotConfig& slot)
 {
@@ -246,4 +246,4 @@ bool parseSlot (const var& value,
     return true;
 }
 
-} // namespace ihub::project::serializer
+}

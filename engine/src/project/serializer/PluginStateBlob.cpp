@@ -95,4 +95,4 @@ bool parsePluginStates (const juce::MemoryBlock& manifest,
     return true;
 }
 
-} // namespace ihub::project::serializer
+}

@@ -41,11 +41,10 @@ juce::var pluginInventoryToVar (const PluginInventoryState& inventory)
 
     return root;
 }
-} // namespace
+}
 
 void registerPluginRoutes (httplib::Server& server, const RouteContext& context)
 {
-    // --- Plug-in inventory (T122) ------------------------------------------
 
     server.Get ("/plugins", [context] (const httplib::Request& request,
                                        httplib::Response& response)
@@ -118,4 +117,4 @@ void registerPluginRoutes (httplib::Server& server, const RouteContext& context)
     });
 }
 
-} // namespace Api::Routes
+}

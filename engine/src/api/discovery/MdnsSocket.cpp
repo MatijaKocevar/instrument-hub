@@ -44,10 +44,9 @@ void setMulticastInterface (int fd, const std::string& address)
     setSocketOption (fd, IPPROTO_IP, IP_MULTICAST_IF, &interface, sizeof (interface));
 }
 #endif
-} // namespace
+}
 
 #if ! defined (_WIN32)
-/** Creates the shared mDNS socket, or returns -1 with `error` set. */
 int createMdnsSocket (const std::string& address, std::string& error)
 {
     const int fd = ::socket (AF_INET, SOCK_DGRAM, 0);
@@ -124,4 +123,4 @@ int createMdnsSocket (const std::string&, std::string& error)
 void sendPacket (int, const std::vector<std::uint8_t>&) {}
 #endif
 
-} // namespace Api::discovery
+}

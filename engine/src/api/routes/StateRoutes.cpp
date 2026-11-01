@@ -94,4 +94,4 @@ void registerStateRoutes (httplib::Server& server, const RouteContext& context)
     });
 }
 
-} // namespace Api::Routes
+}

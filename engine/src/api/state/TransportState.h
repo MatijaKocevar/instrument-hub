@@ -13,7 +13,6 @@ struct SettingsState
     bool metronome = false;
 };
 
-/** Sample-accurate transport values exposed by `POST /transport` and `/state`. */
 struct TransportState
 {
     bool playing = false;
@@ -22,4 +21,4 @@ struct TransportState
     std::int64_t positionSamples = 0;
 };
 
-} // namespace Api
+}

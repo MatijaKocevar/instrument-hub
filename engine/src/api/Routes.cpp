@@ -17,4 +17,4 @@ void registerRoutes (httplib::Server& server, RouteContext context)
     Routes::registerPairingRoutes (server, context);
 }
 
-} // namespace Api
+}

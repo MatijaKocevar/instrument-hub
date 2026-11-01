@@ -86,4 +86,4 @@ bool StateStore::updateSettings (const juce::var& patch, std::string& error)
     return true;
 }
 
-} // namespace Api
+}

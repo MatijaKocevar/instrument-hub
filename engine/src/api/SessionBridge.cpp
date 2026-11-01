@@ -136,12 +136,10 @@ bool toFxInsertConfig (const FxInsertRequest& request,
 
     return true;
 }
-} // namespace
+}
 
 void attachSession (StateStore& state, Server& server, ihub::Session& session)
 {
-    // Mirror the composed set's names and chain latency once. These are static
-    // for the life of a set; the live values below are read per request.
     const auto& slotConfigs = session.getSlotConfigs();
     const double sampleRate = session.getEngine().getSampleRate();
 
@@ -203,16 +201,11 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
 
     state.setFamilyTree (std::move (families));
 
-    // PATCH /patches/{slot} -> the fixed slot's atomic gain. The store has
-    // already resolved mute/solo, so this only publishes the effective gain.
     state.setPatchHandler ([&session] (int slot, const PatchState&, float gain)
     {
         session.setSlotGain (slot, gain);
     });
 
-    // POST /patches/{slot}/source -> a live instrument-source swap in the
-    // fixed graph. The store publishes the new descriptor after the session
-    // has accepted the change.
     state.setPatchSourceHandler ([&session] (int slot,
                                              const PatchSourceRequest& request,
                                              std::string& error)
@@ -254,10 +247,6 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         return session.setSlotSource (slot, source, error);
     });
 
-    // POST/DELETE /patches/{slot}/editor -> the patch's native window. The
-    // session resolves the live PluginInstrument, marshals to the message
-    // thread and opens or reuses one window per slot. Nothing here is reached
-    // by selecting or arming a patch.
     state.setPatchEditorHandlers (
         [&session] (int slot, std::string& error)
         {
@@ -268,10 +257,6 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
             return session.closeEditor (slot, error);
         });
 
-    // POST /patches/{slot}/state/capture -> an explicit save of the running
-    // plugin's sound. Unlike the automatic captures on switch-away, editor
-    // close and eviction, this writes the patch sidecar while the instance is
-    // still armed, so a tweak can be kept without changing patches.
     state.setPatchStateCaptureHandler (
         [&session] (int slot, PatchStateCapture& capture, std::string& error)
         {
@@ -287,9 +272,6 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
             return true;
         });
 
-    // GET/POST/PUT/PATCH/DELETE /patches/{slot}/fx -> the live insert rack.
-    // The session owns the processors, gates the slot for one block while it
-    // rebuilds the chain, and publishes fresh latency into the store.
     state.setFxHandlers (
         [&session] (int slot, FxChainState& chain, std::string& error)
         {
@@ -399,9 +381,6 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
             return true;
         });
 
-    // POST /arm -> SlotSwitcher::armSlot(): one lock-free atomic publish.
-    // The outgoing patch is captured before the switch so the API path has the
-    // same per-patch state guarantee as the controller path (T130).
     state.setArmHandler ([&session] (int slot)
     {
         const int previous = session.getArmedSlot();
@@ -412,9 +391,6 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         session.armSlot (slot);
     });
 
-    // POST /transport -> the session's sample-accurate transport. Only the
-    // fields the request sent are applied, so a position that has advanced
-    // since the store's last snapshot is never rewound by a stop command.
     state.setTransportHandler ([&session] (const TransportState& next,
                                            const juce::var& patch)
     {
@@ -440,11 +416,9 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         if (object->hasProperty ("positionSamples"))
             transport.setPositionSamples (next.positionSamples);
 
-        // Tempo-synced delay inserts follow the transport BPM.
         session.updateFxTransport();
     });
 
-    // GET /state (and the /events mirror): real slot states and gains.
     state.setSlotRuntimeProvider ([&session] (int slot)
     {
         SlotRuntimeState runtime;
@@ -458,14 +432,11 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         return runtime;
     });
 
-    // GET /transport and /state.transport: the running transport, not the
-    // values a client happened to POST last.
     state.setTransportProvider ([&session]
     {
         return toTransportState (session.getTransport().snapshot());
     });
 
-    // /meters: peaks measured from the real slot outputs and the master bus.
     server.setMeterProvider ([&session, &state]
     {
         MeterFrame frame;
@@ -490,12 +461,10 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         return frame;
     });
 
-    // Seed the store with the slot the session is already fading to, so a
-    // fresh /state request matches the audio before the first arm request.
     const int armed = session.getArmedSlot();
 
     if (armed >= 0)
         (void) state.setArmedSlot (armed);
 }
 
-} // namespace Api
+}

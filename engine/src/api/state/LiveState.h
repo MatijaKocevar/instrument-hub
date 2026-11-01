@@ -21,13 +21,10 @@ struct SlotRuntimeState
     bool editorOpen = false;
 };
 
-/** Supplies one slot's live state. */
 using SlotRuntimeProvider = std::function<SlotRuntimeState (int slot)>;
 
-/** Supplies the live transport. */
 using TransportProvider = std::function<TransportState()>;
 
-/** A consistent-enough snapshot of everything `GET /state` returns. */
 struct StateSnapshot
 {
     int schemaVersion = 1;
@@ -37,7 +34,6 @@ struct StateSnapshot
     int armedSlot = -1;
     std::vector<SlotSnapshot> slots;
 
-    /** 8 families x 8 patches for the Launchpad's 64-pad grid. */
     std::vector<FamilyState> families;
 
     SettingsState settings;
@@ -46,7 +42,6 @@ struct StateSnapshot
     double uptimeMs = 0.0;
 };
 
-/** One slot in a meter frame. */
 struct SlotMeter
 {
     int slot = 0;
@@ -55,7 +50,6 @@ struct SlotMeter
     bool armed = false;
 };
 
-/** One coalesced meter frame, broadcast at `meterHz` (30 by default). */
 struct MeterFrame
 {
     std::uint64_t sequence = 0;
@@ -64,12 +58,6 @@ struct MeterFrame
     std::vector<SlotMeter> slots;
 };
 
-/** Supplies meter values to the broadcaster.
-
-    Called on the broadcaster thread, never from the audio thread. A provider
-    that reads an engine must only read lock-free/atomic values: the API server
-    must not add locks to the audio path.
-*/
 using MeterProvider = std::function<MeterFrame()>;
 
-} // namespace Api
+}

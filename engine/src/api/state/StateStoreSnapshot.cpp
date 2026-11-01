@@ -48,8 +48,6 @@ StateSnapshot StateStore::snapshot() const
         slotReader = slotRuntimeProvider;
     }
 
-    // The providers read the live session. They run outside the store's lock
-    // and only touch lock-free audio-graph values.
     if (transportReader != nullptr)
     {
         try
@@ -77,12 +75,10 @@ StateSnapshot StateStore::snapshot() const
             }
             catch (...)
             {
-                // Keep the store's synthetic values for this slot.
             }
         }
     }
 
-    // Merge the per-patch state and the live slot values into the family tree.
     for (auto& family : result.families)
     {
         for (auto& patch : family.patches)
@@ -121,4 +117,4 @@ StateSnapshot StateStore::snapshot() const
     return result;
 }
 
-} // namespace Api
+}

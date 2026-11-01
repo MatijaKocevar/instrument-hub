@@ -34,4 +34,4 @@ void registerTransportRoutes (httplib::Server& server, const RouteContext& conte
     });
 }
 
-} // namespace Api::Routes
+}

@@ -64,7 +64,6 @@ void appendName (std::vector<std::uint8_t>& out, const Labels& labels)
     out.push_back (0);
 }
 
-/** Reads a possibly-compressed DNS name. `offset` is advanced past it. */
 bool readName (const std::uint8_t* data, std::size_t size, std::size_t& offset,
                Labels& labels)
 {
@@ -186,7 +185,6 @@ std::vector<std::uint8_t> encodeTxt (const DiscoveryService& service)
         result.insert (result.end(), text.begin(), text.end());
     }
 
-    // An empty TXT record still needs one zero-length string.
     if (result.empty())
         result.push_back (0);
 
@@ -273,8 +271,8 @@ RecordSet makeRecordSet (const DiscoveryService& service, bool goodbye)
     set.srv.type = dnsTypeSRV;
     set.srv.klass = static_cast<std::uint16_t> (dnsClassIN | dnsCacheFlush);
     set.srv.ttl = hostTtl;
-    appendU16 (set.srv.rdata, 0); // priority
-    appendU16 (set.srv.rdata, 0); // weight
+    appendU16 (set.srv.rdata, 0);
+    appendU16 (set.srv.rdata, 0);
     appendU16 (set.srv.rdata, static_cast<std::uint16_t> (service.port));
     appendName (set.srv.rdata, host);
 
@@ -295,9 +293,6 @@ RecordSet makeRecordSet (const DiscoveryService& service, bool goodbye)
         set.address.rdata.assign (ip.begin(), ip.end());
         set.hasAddress = true;
 
-        // RFC 6762 §6.1: deny the record types this host does not have, so a
-        // resolver asking for AAAA completes instead of waiting for an answer
-        // that will never come. The bitmap lists A only (window 0, 4 bytes).
         set.nsec.name = host;
         set.nsec.type = dnsTypeNSEC;
         set.nsec.klass = static_cast<std::uint16_t> (dnsClassIN | dnsCacheFlush);
@@ -349,7 +344,7 @@ bool isRecordOfInterest (const Labels& name, std::uint16_t type,
     return false;
 }
 
-} // namespace
+}
 
 std::vector<std::uint8_t> buildResponse (const DiscoveryService& service, bool goodbye)
 {
@@ -358,12 +353,12 @@ std::vector<std::uint8_t> buildResponse (const DiscoveryService& service, bool g
     std::vector<std::uint8_t> packet;
     packet.reserve (512);
 
-    appendU16 (packet, 0);          // multicast responses use ID 0
-    appendU16 (packet, 0x8400);     // response + authoritative
-    appendU16 (packet, 0);          // questions
-    appendU16 (packet, 2);          // answers (service PTR + type enumeration)
-    appendU16 (packet, 0);          // authority
-    appendU16 (packet, records.hasAddress ? 4 : 2); // additional: SRV + TXT [+ A + NSEC]
+    appendU16 (packet, 0);
+    appendU16 (packet, 0x8400);
+    appendU16 (packet, 0);
+    appendU16 (packet, 2);
+    appendU16 (packet, 0);
+    appendU16 (packet, records.hasAddress ? 4 : 2);
 
     appendRecord (packet, records.servicePtr);
     appendRecord (packet, records.enumerationPtr);
@@ -387,7 +382,7 @@ bool wantsResponse (const std::uint8_t* data, std::size_t size,
 
     const auto flags = readU16 (data + 2);
 
-    if ((flags & 0x8000) != 0) // a response, not a query
+    if ((flags & 0x8000) != 0)
         return false;
 
     const auto questions = readU16 (data + 4);
@@ -410,4 +405,4 @@ bool wantsResponse (const std::uint8_t* data, std::size_t size,
     return false;
 }
 
-} // namespace Api
+}
