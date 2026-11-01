@@ -4,14 +4,17 @@
 #include "audio/DeviceManager.h"
 #include "audio/FxRack.h"
 #include "audio/SlotSwitcher.h"
-#include "audio/Transport.h"
-#include "audio/WarmPool.h"
 #include "instruments/Instrument.h"
+#include "session/DeviceController.h"
+#include "session/FxChainController.h"
+#include "session/MeterBridge.h"
+#include "session/MidiBridge.h"
+#include "session/PluginStateStore.h"
+#include "session/TransportControl.h"
+#include "session/WarmPoolController.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
-#include <atomic>
-#include <array>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -24,14 +27,14 @@ namespace juce
 class AudioPluginFormatManager;
 }
 
-namespace ihub::sampler
-{
-class LoadedKit;
-}
-
 namespace ihub::plugins
 {
 class PluginInstrument;
+}
+
+namespace ihub::session
+{
+class EditorHost;
 }
 
 namespace ihub
@@ -303,9 +306,9 @@ public:
 
     void closeDevice();
 
-    bool isDeviceOpen() const noexcept { return deviceOpen; }
+    bool isDeviceOpen() const noexcept { return devices.isOpen(); }
 
-    AudioEngine::DeviceManager& getDevices() noexcept { return devices; }
+    AudioEngine::DeviceManager& getDevices() noexcept { return devices.getManager(); }
 
     //==============================================================================
     // Graph inspection
@@ -331,8 +334,14 @@ public:
         Control-thread setters are lock-free; the audio thread only calls
         `process()`.
     */
-    AudioEngine::Transport& getTransport() noexcept { return transport; }
-    const AudioEngine::Transport& getTransport() const noexcept { return transport; }
+    AudioEngine::Transport& getTransport() noexcept
+    {
+        return transportControl.getTransport();
+    }
+    const AudioEngine::Transport& getTransport() const noexcept
+    {
+        return transportControl.getTransport();
+    }
 
     /** Most recent crossfade-weighted peak of one slot, 0 when silent. */
     float getSlotMeterPeak (int slot) const noexcept;
@@ -424,8 +433,7 @@ public:
 
     juce::File getPluginStateDirectory() const
     {
-        const std::lock_guard<std::mutex> lock (pluginStateMutex);
-        return pluginStateDirectory;
+        return pluginState.getDirectory();
     }
 
     /** Re-reads every `slot-<n>.bin` from the current directory. */
@@ -572,7 +580,7 @@ public:
     /** Number of MIDI events waiting for the next audio block. Test seam. */
     int getQueuedMidiCount() const noexcept
     {
-        return midiFifo.getNumReady();
+        return midi.getQueuedCount();
     }
 
     /** Renders `numSamples` of the session into `output`.
@@ -611,68 +619,23 @@ public:
                                            const juce::AudioIODeviceCallbackContext& context) override;
 
 private:
-    /** Permanent, real-time-safe proxy wired to one fixed engine slot. */
-    struct Voice;
-
-    /** Message-thread owner of the native editor windows (T129).
-
-        Declared here and defined in Session.cpp so builds without the GUI
-        modules (headless offline tools) still link this translation unit.
-    */
-    struct EditorHost;
-
-    /** One queued short MIDI message. Three bytes cover every channel event;
-        SysEx is dropped instead of being forwarded in pieces. */
-    struct QueuedMidi
-    {
-        std::array<std::uint8_t, 3> data {};
-        std::uint8_t size = 0;
-    };
-
-    static constexpr int midiQueueCapacity = 1024;
-
-    void drainMidi (juce::MidiBuffer& destination) noexcept;
-
     std::unique_ptr<AudioEngine::SlotSource> createPooledSource (int slotIndex,
                                                                  juce::String& error);
-    void warmCallback (int slot);
-    void bindVoice (int slot, AudioEngine::SlotSource* instance) noexcept;
-    void clearVoice (AudioEngine::SlotSource* instance) noexcept;
-    bool finishArmLocked (int slot, AudioEngine::SlotSource* pinnedInstance);
-    bool warmSlotBlockingLocked (int slot, int timeoutMs);
-    bool waitForWarmIdle (int timeoutMs);
-    void releaseAllPinsLocked();
-    void shutdownWarmPool() noexcept;
 
-    bool resolveDevice (AudioEngine::DeviceSetup& setup, juce::String& error);
     void renderInternal (int numSamples, juce::MidiBuffer& midi) noexcept;
-    void updateMeters (int numSamples) noexcept;
     void copyToOutput (float* const* outputChannelData,
                        int numOutputChannels,
                        int numSamples) noexcept;
 
-    // Per-patch plugin state helpers (T130). All run on a control thread.
-    void registerPluginInstrument (int slot, plugins::PluginInstrument& instrument) noexcept;
-    void unregisterPluginInstrument (plugins::PluginInstrument& instrument) noexcept;
+    // Per-patch plugin state helper (T130). Runs on a control thread.
     void capturePluginStateForInstance (AudioEngine::SlotSource& instance);
-    void applyStoredPluginState (int slot,
-                                 plugins::PluginInstrument& instrument,
-                                 const juce::String& pluginPath,
-                                 const juce::String& pluginId,
-                                 const juce::String& pluginName,
-                                 bool force = false);
-    void applyStoredPluginState (int slot) noexcept;
-    void clearPluginState (int slot);
-    bool writePluginState (int slot);
-    bool readPluginStateFile (int slot, const juce::File& file);
+    bool pluginIdentityForSlot (int slot, session::PluginStateIdentity& identity) const;
 
-    // Per-patch insert chain helpers (control thread, `fxMutex` held).
-    bool beginFxEditLocked (int slot, std::string& error);
-    void endFxEditLocked (int slot) noexcept;
-    void rebuildFxChainLocked (int slot);
-    bool makeFxSnapshotLocked (int slot,
-                               AudioEngine::FxChainSnapshot& snapshot) const;
-    AudioEngine::FxTransport currentFxTransport() const noexcept;
+    /** True while the device callback is installed and rendering. */
+    bool isStreamActive() const noexcept
+    {
+        return devices.isOpen() && devices.hasCallback();
+    }
 
     SessionConfig config;
 
@@ -687,88 +650,32 @@ private:
     mutable std::mutex sourceAssignedMutex;
 
     /** Editor windows and their live-instrument registry (T129). */
-    std::unique_ptr<EditorHost> editorHost;
+    std::unique_ptr<session::EditorHost> editorHost;
 
-    /** One opaque plugin-state blob per patch (T130).
-
-        `revision` advances when the live instance is captured; `appliedRevision`
-        is the revision currently loaded in the resident instance. The
-        difference is what makes "restore when armed again" a real operation
-        instead of blindly replacing a live edit.
-    */
-    struct StoredPluginState
-    {
-        juce::MemoryBlock data;
-        std::uint64_t revision = 0;
-        std::uint64_t appliedRevision = 0;
-        juce::String pluginPath;
-        juce::String pluginId;
-        juce::String pluginName;
-    };
-
-    /** Sidecar directory next to `set.yaml` (`set.plugin-state/`). */
-    juce::File pluginStateDirectory;
-
-    /** Guarded by `pluginStateMutex`: blob writes (capture), the pool factory
-        (restore) and the editor/destroy hooks all meet here. */
-    mutable std::mutex pluginStateMutex;
-    std::vector<StoredPluginState> pluginStates;
-
-    /** Registered by the warm-pool factory and forgotten by its destroy hook.
-        A raw pointer is safe because the hook runs on the message thread just
-        before the instance is deleted. */
-    std::array<plugins::PluginInstrument*, defaultLogicalSlots> pluginInstruments {};
+    /** One opaque plugin-state blob per patch (T130), plus the live
+        instrument registry the warm-pool factory fills. */
+    session::PluginStateStore pluginState { defaultLogicalSlots };
 
     // Destruction order matters: the plugin format manager must outlive the
     // instruments, and the engine must be destroyed before the proxies its
     // slots point at. The destructor tears the pool down explicitly.
     std::unique_ptr<juce::AudioPluginFormatManager> pluginFormats;
-    std::unique_ptr<AudioEngine::WarmPool> warmPool;
-    std::vector<std::unique_ptr<Voice>> voices;
-    std::vector<std::unique_ptr<AudioEngine::FxRack>> fxRacks;
+    session::WarmPoolController warmPool;
+    session::FxChainController fxChain;
 
     std::unique_ptr<AudioEngine::AudioEngine> engine;
     std::unique_ptr<AudioEngine::SlotSwitcher> switcher;
-    AudioEngine::DeviceManager devices;
-    AudioEngine::Transport transport;
+    session::DeviceController devices;
+    session::TransportControl transportControl;
+    session::MeterBridge meters;
+    session::MidiBridge midi;
 
     juce::AudioBuffer<float> renderBuffer;
-    juce::MidiBuffer blockMidi;
-
-    /** Lock-free audio <- MIDI hand-off. One writer (the MIDI input thread),
-        one reader (the audio callback). The storage is fixed and allocated in
-        the Session constructor, so neither side ever allocates. */
-    juce::AbstractFifo midiFifo { midiQueueCapacity };
-    std::array<QueuedMidi, midiQueueCapacity> midiQueue {};
-
-    // Peak meters published by the audio thread. Allocated once in prepare().
-    std::unique_ptr<std::atomic<float>[]> slotMeterPeaks;
-    std::atomic<float> masterMeterPeak { 0.0f };
-    int meterSlotCount = 0;
-
-    // Serialises API chain edits. The audio thread never takes it: an edit
-    // gates the target slot and waits for one rendered block instead.
-    mutable std::mutex fxMutex;
-
-    /** Incremented by the audio path after every rendered block. An FX edit
-        waits for it to advance, which proves the callback moved past the gate. */
-    std::atomic<std::uint64_t> renderEpoch { 0 };
-
-    // Warm-pool arm hand-off. The audio thread never touches these; the
-    // switcher request itself is the only lock-free publish.
-    mutable std::mutex armMutex;
-    std::atomic<int> requestedSlot { -1 };
-    std::atomic<int> activeSlot { -1 };
-    std::atomic<int> pendingArmSlot { -1 };
-    int pinnedActiveSlot = -1;
-    int pinnedPreviousSlot = -1;
 
     double sampleRate = 48000.0;
     int maximumBlockSize = 0;
     int numChannels = 2;
     bool prepared = false;
-    bool deviceOpen = false;
-    bool callbackInstalled = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Session)
 };
