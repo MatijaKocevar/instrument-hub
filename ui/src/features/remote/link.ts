@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { MeterStore } from "../grid/meters";
+import { MeterStore } from "../grid";
 import type { RemoteConnection } from "./model";
 
 /**
