@@ -491,6 +491,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-sandbox-test
         PRIVATE
             SandboxTest.cpp
+            sandbox/TestSupport.cpp
+            sandbox/Transport.cpp
+            sandbox/CrashIsolation.cpp
+            sandbox/RealPlugin.cpp
             ${IHUB_SANDBOX_HOST_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Bus.cpp"

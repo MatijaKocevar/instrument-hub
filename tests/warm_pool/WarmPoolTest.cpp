@@ -1,204 +1,11 @@
-// ihub-warm-pool-test: acceptance check for T033.
-//
-// Every instance is a real TestPlugin.vst3 loaded through PluginInstrument on
-// the pool's background thread, and a counting wrapper proves the live-instance
-// count directly:
-//
-//   1. With 8 slots and K = 2 the pool holds at most 3 instances at any time,
-//      including during a preload and while sweeping the active slot over every
-//      slot. The counter records the peak, not just a sampled value.
-//   2. Arming a warm slot (acquire + Slot::setSource + SlotSwitcher::armSlot)
-//      completes in under 5 ms; a cold PluginInstrument load is timed for
-//      contrast.
-//   3. Moving the active slot evicts outside the neighbourhood, a pinned
-//      instance survives, and a warm request that could not fit is retried
-//      after the pin is released.
-//   4. Changing a slot's request id retires the old instance and warms the new
-//      one; a failing factory is reported once and does not spin.
-//
-// The bundle path is injected by CMake (IHUB_TESTPLUGIN_VST3); an explicit path
-// may also be passed as the first command-line argument.
+#include "Fixtures.h"
 
-#include "audio/Slot.h"
-#include "audio/SlotSwitcher.h"
-#include "audio/WarmPool.h"
-#include "plugins/PluginInstrument.h"
-
-#include <juce_audio_processors_headless/juce_audio_processors_headless.h>
-
-#include <atomic>
-#include <chrono>
-#include <functional>
+#include <any>
 #include <iostream>
-#include <memory>
-#include <string>
 #include <thread>
-#include <vector>
 
-namespace
-{
-int failures = 0;
+using namespace WarmPoolTest;
 
-void check (bool condition, const std::string& what)
-{
-    std::cout << (condition ? "ok  : " : "FAIL: ") << what << std::endl;
-
-    if (! condition)
-        ++failures;
-}
-
-constexpr int kNumSlots = 8;
-constexpr int kNeighbours = 2;
-constexpr int kExpectedLimit = 1 + kNeighbours;
-constexpr double kSampleRate = 48000.0;
-constexpr int kBlockSize = 128;
-
-//==============================================================================
-// Live-instance accounting. The counter is updated by the wrapper's constructor
-// and destructor, so `peak` is the true maximum number of plugin instances that
-// coexisted, not a snapshot taken at a convenient moment.
-
-struct InstanceCounter
-{
-    std::atomic<int> live { 0 };
-    std::atomic<int> peak { 0 };
-    std::atomic<int> violations { 0 };
-    int limit = kExpectedLimit;
-
-    void noteCreated()
-    {
-        const int now = live.fetch_add (1, std::memory_order_relaxed) + 1;
-
-        if (now > limit)
-            violations.fetch_add (1, std::memory_order_relaxed);
-
-        int previous = peak.load (std::memory_order_relaxed);
-
-        while (now > previous
-               && ! peak.compare_exchange_weak (previous, now,
-                                                std::memory_order_relaxed))
-        {
-        }
-    }
-
-    void noteDestroyed()
-    {
-        live.fetch_sub (1, std::memory_order_relaxed);
-    }
-
-    void resetPeak()
-    {
-        peak.store (live.load (std::memory_order_relaxed), std::memory_order_relaxed);
-        violations.store (0, std::memory_order_relaxed);
-    }
-};
-
-struct CountedInstance final : AudioEngine::SlotSource
-{
-    CountedInstance (InstanceCounter& counterToUse,
-                     std::unique_ptr<ihub::plugins::PluginInstrument> instrumentToOwn)
-        : counter (counterToUse), instrument (std::move (instrumentToOwn))
-    {
-        counter.noteCreated();
-    }
-
-    ~CountedInstance() override
-    {
-        // Unload first so the counter never reports a plugin that is already
-        // gone, or misses one that is still alive.
-        instrument.reset();
-        counter.noteDestroyed();
-    }
-
-    void prepare (double sampleRate, int maximumBlockSize) override
-    {
-        if (instrument != nullptr)
-            instrument->prepare (sampleRate, maximumBlockSize);
-    }
-
-    void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override
-    {
-        if (instrument != nullptr)
-            instrument->process (buffer, midi);
-    }
-
-    int latencySamples() const noexcept override
-    {
-        return instrument != nullptr ? instrument->latencySamples() : 0;
-    }
-
-    InstanceCounter& counter;
-    std::unique_ptr<ihub::plugins::PluginInstrument> instrument;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CountedInstance)
-};
-
-//==============================================================================
-double toMilliseconds (std::chrono::steady_clock::duration duration)
-{
-    return std::chrono::duration<double, std::milli> (duration).count();
-}
-
-juce::PluginDescription* findTestPlugin (juce::AudioPluginFormatManager& manager,
-                                         const juce::File& bundle,
-                                         juce::OwnedArray<juce::PluginDescription>& types)
-{
-    const auto path = bundle.getFullPathName();
-
-    for (auto* format : manager.getFormats())
-        if (format->fileMightContainThisPluginType (path))
-            format->findAllTypesForFile (types, path);
-
-    for (auto* type : types)
-        if (type->name.contains ("TestPlugin"))
-            return type;
-
-    return nullptr;
-}
-
-bool contains (const std::vector<int>& values, int value)
-{
-    return std::find (values.begin(), values.end(), value) != values.end();
-}
-
-//==============================================================================
-// JUCE posts plugin instantiation to the message thread and blocks the caller
-// until it runs. A console app therefore has to keep pumping while the pool's
-// background thread loads; `waitForIdle()` alone would deadlock.
-
-bool pumpUntil (const std::function<bool()>& predicate, int timeoutMs = 30000)
-{
-    const auto deadline = std::chrono::steady_clock::now()
-                        + std::chrono::milliseconds (timeoutMs);
-
-    while (std::chrono::steady_clock::now() < deadline)
-    {
-        if (predicate())
-            return true;
-
-        juce::MessageManager::getInstance()->runDispatchLoopUntil (2);
-    }
-
-    return predicate();
-}
-
-std::string join (const std::vector<int>& values)
-{
-    std::string text;
-
-    for (size_t i = 0; i < values.size(); ++i)
-    {
-        if (i != 0)
-            text += ", ";
-
-        text += std::to_string (values[i]);
-    }
-
-    return text;
-}
-} // namespace
-
-//==============================================================================
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI juceInitialiser;
@@ -246,8 +53,6 @@ int main (int argc, char** argv)
             return nullptr;
         }
 
-        // Count the wrapper before the plugin object exists, so the tracked
-        // peak is the real number of coexisting instances.
         auto counted = std::make_unique<CountedInstance> (
             counter, std::unique_ptr<ihub::plugins::PluginInstrument> {});
 
@@ -282,7 +87,6 @@ int main (int argc, char** argv)
     check (pool.getInstanceLimit() == kExpectedLimit,
            "instance limit is active + K = 3 for 8 slots and K = 2");
 
-    // --- 1. Preload --------------------------------------------------------
     pool.setActiveSlot (0);
 
     auto report = pool.preloadAll();
@@ -322,7 +126,6 @@ int main (int argc, char** argv)
 
     counter.resetPeak();
 
-    // --- 2. The cap holds while the active slot moves over every slot ------
     for (int target = 0; target < kNumSlots; ++target)
     {
         pool.setActiveSlot (target);
@@ -355,7 +158,6 @@ int main (int argc, char** argv)
            "the pool holds at most 3 instances after the sweep");
     check (pool.getEvictionCount() > 0, "moving the active slot evicted instances");
 
-    // --- 3. Arming a warm slot --------------------------------------------
     pool.setActiveSlot (3);
 
     check (pumpUntil ([&] { return pool.isIdle(); }), "pool idle before the arm measurement");
@@ -410,11 +212,9 @@ int main (int argc, char** argv)
                "the armed slot renders its first block");
     }
 
-    // Detach before the pool is allowed to retire slot 4.
     slots[4]->setSource (nullptr);
     pool.release (4);
 
-    // Cold load, for contrast: this is the cost the warm pool hides.
     {
         const auto coldStart = std::chrono::steady_clock::now();
 
@@ -430,13 +230,8 @@ int main (int argc, char** argv)
         check (coldLoaded, "a cold PluginInstrument load succeeds for comparison" +
                                (coldError.isEmpty() ? std::string()
                                                     : " (" + coldError.toStdString() + ")"));
-
-        // Printed for contrast only: a cold load is outside the pool, so it is
-        // not part of the instance-cap assertion, and its timing depends on
-        // disk cache warmth.
     }
 
-    // --- 4. Pins, eviction and the deferred retry --------------------------
     check (pumpUntil ([&] { return pool.isIdle(); }), "pool idle after releasing slot 4");
     check (counter.live.load() <= kExpectedLimit, "live count is still within the cap");
 
@@ -472,7 +267,6 @@ int main (int argc, char** argv)
     check (counter.live.load() <= kExpectedLimit,
            "the live count stays within the cap through eviction and retry");
 
-    // --- 5. Request changes and failures -----------------------------------
     pool.setActiveSlot (3);
 
     check (pumpUntil ([&] { return pool.isIdle(); }), "pool idle at slot 3 before the request change");
@@ -496,8 +290,6 @@ int main (int argc, char** argv)
     check (pool.getEvictionCount() > evictionsBefore, "the old instance was evicted");
     check (pool.getWarmCount() > warmBefore, "the new instance was created");
 
-    // A pinned slot cannot swap its instance immediately; the replacement is
-    // warmed as soon as the pin is released.
     auto* pinnedForChange = pool.acquire (3);
 
     check (pinnedForChange != nullptr, "slot 3 is pinned before the second change");
@@ -540,8 +332,6 @@ int main (int argc, char** argv)
         check (pumpUntil ([&] { return failingPool.isIdle(); }, 5000),
                "a failed request does not spin the background thread");
 
-        // A second preload reports the remembered failure instead of retrying
-        // it forever.
         failingReport = failingPool.preloadAll();
 
         check (failingReport.failed == 1, "a factory failure is reported");
@@ -550,14 +340,11 @@ int main (int argc, char** argv)
         check (failingPool.getWarmCount() == 0, "nothing was warmed");
     }
 
-    // --- Wrap up -----------------------------------------------------------
     pool.clear();
 
     check (pumpUntil ([&] { return pool.isIdle(); }), "clear() leaves the pool idle");
     check (pool.getLiveInstanceCount() == 0, "clear() retires every instance");
 
-    // Give the destructor path a moment to run; this proves nothing leaks when
-    // the pool goes away with warm instances still resident.
     for (int index = 0; index < kNumSlots; ++index)
         pool.setActiveSlot (index);
 
@@ -569,8 +356,6 @@ int main (int argc, char** argv)
     check (counter.violations.load() == 0,
            "the instance cap was never exceeded across the whole run");
 
-    // Shut down the way a host must: retire everything and keep the message
-    // loop running until the pool's background thread has destroyed it.
     pool.clear();
 
     check (pumpUntil ([&] { return pool.isIdle(); }, 30000),
