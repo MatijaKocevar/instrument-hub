@@ -8,7 +8,7 @@ import {
     chainWithMove,
     chainWithoutInsert,
     moveOrder,
-} from "../features/instrument/model";
+} from "../features/instrument";
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 

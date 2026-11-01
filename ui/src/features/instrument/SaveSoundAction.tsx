@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
 
 import type { ControlPatch, ControlPatchStateCapture } from "../../api/client";
-import { formatStateSize, isPluginSource } from "./model";
+import { formatStateSize } from "./format";
+import { isPluginSource } from "./source";
 
 interface SaveSoundActionProps
 {

@@ -1,12 +1,12 @@
 import { useState, type ReactElement } from "react";
 
 import type { ControlPatch, ControlPatchSourceRequest, ControlPlugin } from "../../api/client";
+import { instrumentPlugins } from "./selection";
 import {
-    instrumentPlugins,
     sourceRequestForEmpty,
     sourceRequestForInitTone,
     sourceRequestForPlugin,
-} from "./model";
+} from "./source";
 
 interface SourcePickerProps
 {

@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
 import type { ControlPatch } from "../../api/client";
-import { isPluginSource } from "./model";
+import { isPluginSource } from "./source";
 
 interface SourceEditorProps
 {
