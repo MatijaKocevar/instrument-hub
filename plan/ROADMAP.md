@@ -13,7 +13,8 @@ file. If the check fails you are not done.
 >
 > The single-responsibility refactor queue **T140–T174** was added by an
 > explicit human request; see `plan/REFACTOR.md` for the rationale and
-> target structure.
+> target structure. **T182** (Prettier for the UI) is likewise an explicit
+> human request.
 
 ---
 
@@ -917,3 +918,10 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - goal: Walk the whole first-party tree and remove any non-directive comment that survived. Verify that strings, URLs, regexes and generated markers were not damaged. Record the final counts and every exemption in `plan/COMMENTS.md`.
 - files: `engine/`, `ui/src/`, `tests/`, `scripts/`, build files, `plan/COMMENTS.md`
 - accept: a search of the first-party tree finds only the directives listed in `plan/COMMENTS.md`; `pnpm typecheck`, `pnpm test:snapshot` and `scripts/test.sh` pass; no source behaviour changed.
+
+## T182 · Adopt Prettier for the UI
+- depends: T181
+- size: M
+- goal: Make Prettier the single formatting authority for `ui/`: add `prettier` to `devDependencies`, add `ui/.prettierrc` and `ui/.prettierignore` (skip `dist/`, `dist-test/`, `node_modules/` and generated `src/api/schema.d.ts`), add `format` and `format:check` scripts, format the UI tree, and run `format:check` in CI. Use Prettier defaults (2-space indent, K&R braces); the current hand-written Allman style is intentionally replaced, and no brace-style plugin is added.
+- files: `ui/package.json`, `ui/pnpm-lock.yaml`, `ui/.prettierrc`, `ui/.prettierignore`, `ui/src/`, `ui/vite.config.ts`, `ui/vite.snapshot.config.ts`, `.github/workflows/`
+- accept: `pnpm format:check`, `pnpm typecheck` and `pnpm test:snapshot` pass; the diff is formatting only; no behaviour, markup or generated-file change.
