@@ -159,11 +159,32 @@ target_sources(instrument-hub
         src/audio/warm/WarmPoolSlots.cpp
         src/audio/warm/WarmPoolWarming.cpp
         src/audio/warm/WarmPoolWorker.cpp
-        src/controller/LaunchpadDriver.cpp
+        src/controller/launchpad/LaunchpadDriverConnection.cpp
+        src/controller/launchpad/LaunchpadDriverDevice.cpp
+        src/controller/launchpad/LaunchpadDriverLeds.cpp
+        src/controller/launchpad/LaunchpadDriverMidi.cpp
+        src/controller/launchpad/LaunchpadDriverOutput.cpp
+        src/controller/LaunchpadLed.cpp
         src/controller/LaunchpadProtocol.cpp
         src/controller/Mapping.cpp
+        src/controller/mapping/MappingApply.cpp
+        src/controller/mapping/MappingButtonEvents.cpp
+        src/controller/mapping/MappingDecoder.cpp
+        src/controller/mapping/MappingDefaults.cpp
+        src/controller/mapping/MappingDiagnostics.cpp
+        src/controller/mapping/MappingFamilies.cpp
+        src/controller/mapping/MappingFile.cpp
+        src/controller/mapping/MappingFx.cpp
+        src/controller/mapping/MappingMacros.cpp
+        src/controller/mapping/MappingPadBindings.cpp
+        src/controller/mapping/MappingPadEvents.cpp
+        src/controller/mapping/MappingReload.cpp
+        src/controller/mapping/MappingScenes.cpp
+        src/controller/mapping/MappingWatcher.cpp
+        src/controller/mapping/YamlParser.cpp
+        src/controller/mapping/YamlScalar.cpp
+        src/controller/mapping/YamlScanner.cpp
         src/controller/MappingModel.cpp
-        src/controller/MappingValidator.cpp
         src/controller/MappingYaml.cpp
         src/dsp/Compressor.cpp
         src/dsp/Delay.cpp
