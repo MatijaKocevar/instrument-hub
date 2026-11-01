@@ -413,6 +413,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             PluginInventoryApiTest.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Discovery.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/discovery/DnsPacket.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/discovery/MdnsSocket.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Pairing.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/PluginBridge.cpp"
             ${IHUB_API_ROUTES_SOURCES}
@@ -492,6 +494,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_SANDBOX_HOST_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Bus.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/MasterLimiter.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/FxChain.cpp"
             ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Slot.cpp"
