@@ -1,30 +1,9 @@
-import { useEffect, useState } from "react";
-
-/** Screen-wake-lock life-cycle. */
-export type WakeLockStatus = "idle" | "requesting" | "active" | "unavailable" | "denied";
-
-/** The slice of `WakeLockSentinel` the controller needs. */
-export interface WakeLockSentinelLike
-{
-    readonly released: boolean;
-    release (): Promise<void>;
-    addEventListener? (type: "release", listener: () => void): void;
-}
-
-/** The slice of `Navigator` the controller needs; lets tests inject a fake. */
-export interface WakeLockCapableNavigator
-{
-    readonly wakeLock?: {
-        request (type: "screen"): Promise<WakeLockSentinelLike>;
-    };
-}
-
-export interface WakeLockControllerOptions
-{
-    navigator?: WakeLockCapableNavigator | null;
-    /** Called on every status change, so a hook can re-render. */
-    onStatus?: (status: WakeLockStatus) => void;
-}
+import type {
+    WakeLockCapableNavigator,
+    WakeLockControllerOptions,
+    WakeLockSentinelLike,
+    WakeLockStatus,
+} from "./wakeLockTypes";
 
 /**
     Keep the tablet screen awake while the stage remote is open.
@@ -184,50 +163,4 @@ export class WakeLockController
         this.statusValue = status;
         this.onStatus?.(status);
     }
-}
-
-/**
-    Keep the screen awake for the lifetime of the calling component.
-
-    Returns the current status so the remote can show a truthful "screen on"
-    badge. Effects never run during server rendering, so the snapshot test
-    never asks the host for a lock.
-*/
-export function useWakeLock (navigatorLike?: WakeLockCapableNavigator | null): WakeLockStatus
-{
-    const [status, setStatus] = useState<WakeLockStatus> ("idle");
-
-    useEffect (() =>
-    {
-        const target = navigatorLike
-            ?? (typeof navigator === "undefined"
-                ? null
-                : navigator as unknown as WakeLockCapableNavigator);
-
-        const controller = new WakeLockController ({
-            navigator: target,
-            onStatus: setStatus,
-        });
-
-        void controller.start ();
-
-        const onVisibilityChange = (): void =>
-        {
-            void controller.visibilityChanged (
-                typeof document === "undefined" || document.visibilityState === "visible");
-        };
-
-        if (typeof document !== "undefined")
-            document.addEventListener ("visibilitychange", onVisibilityChange);
-
-        return () =>
-        {
-            if (typeof document !== "undefined")
-                document.removeEventListener ("visibilitychange", onVisibilityChange);
-
-            void controller.release ();
-        };
-    }, [navigatorLike]);
-
-    return status;
 }

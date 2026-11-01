@@ -4,7 +4,6 @@ import { metersUrlFor } from "../grid";
 import { useAppState, useAppStore } from "../../state/AppStoreContext";
 import { codeFromSearch, PairingGate } from "../pairing";
 import { RemoteView } from "./RemoteView";
-import { useRemoteLink } from "./link";
 import { remoteFromState, stepPatch } from "./model";
 import {
     loadRemoteContrast,
@@ -13,7 +12,8 @@ import {
     type ContrastStorage,
     type RemoteContrast,
 } from "./theme";
-import { useWakeLock } from "./wakeLock";
+import { useRemoteLink } from "./useRemoteLink";
+import { useWakeLock } from "./useWakeLock";
 
 function contrastStorage (): ContrastStorage | null
 {

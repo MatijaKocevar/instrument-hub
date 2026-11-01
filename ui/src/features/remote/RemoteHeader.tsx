@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 
 import type { RemoteConnection } from "./model";
 import { contrastLabel, type RemoteContrast } from "./theme";
-import type { WakeLockStatus } from "./wakeLock";
+import type { WakeLockStatus } from "./wakeLockTypes";
 
 const CONNECTION_LABEL: Record<RemoteConnection, string> = {
     idle: "Idle",
