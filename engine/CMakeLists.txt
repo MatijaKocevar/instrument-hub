@@ -124,6 +124,9 @@ target_sources(instrument-hub
         src/controller/LaunchkeyProtocol.cpp
         src/controller/LaunchpadProtocol.cpp
         src/controller/Mapping.cpp
+        src/controller/MappingModel.cpp
+        src/controller/MappingValidator.cpp
+        src/controller/MappingYaml.cpp
         src/dsp/Compressor.cpp
         src/dsp/Delay.cpp
         src/dsp/Eq.cpp

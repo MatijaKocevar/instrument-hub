@@ -3,6 +3,15 @@
 # ihub-selftest is plain ALSA; the device manager test links JUCE so it can
 # exercise the same AudioDeviceManager wrapper the application uses.
 
+# The mapping layer is split into model, YAML reader/validator and the
+# watcher/facade. Tests that exercise any part compile the whole set.
+set(IHUB_MAPPING_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingModel.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingValidator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingYaml.cpp"
+)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(ALSA REQUIRED)
 
@@ -1566,7 +1575,7 @@ find_package(Threads REQUIRED)
 
 add_executable(ihub-launchpad-mapping-test
     controller/LaunchpadMappingTest.cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+    ${IHUB_MAPPING_SOURCES}
 )
 
 target_compile_features(ihub-launchpad-mapping-test PRIVATE cxx_std_20)
@@ -1619,7 +1628,7 @@ target_sources(ihub-launchpad-driver-test
         controller/LaunchpadDriverTest.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+        ${IHUB_MAPPING_SOURCES}
 )
 
 target_include_directories(ihub-launchpad-driver-test
@@ -1736,7 +1745,7 @@ juce_add_console_app(ihub-mapping-test
 target_sources(ihub-mapping-test
     PRIVATE
         controller/MappingTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+        ${IHUB_MAPPING_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1804,7 +1813,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             midi/LaunchkeySim.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyDriver.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchkeyProtocol.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+            ${IHUB_MAPPING_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -2742,7 +2751,7 @@ juce_add_console_app(ihub-patch-persistence-test
 target_sources(ihub-patch-persistence-test
     PRIVATE
         project/PatchPersistenceTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+        ${IHUB_MAPPING_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
@@ -3475,7 +3484,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+            ${IHUB_MAPPING_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
