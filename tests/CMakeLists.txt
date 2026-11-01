@@ -116,6 +116,41 @@ set(IHUB_WARM_POOL_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolWorker.cpp"
 )
 
+# The device manager is a facade over lookup, enumeration, description,
+# opening/hot swapping, the open device's state, channel maps and latency
+# readouts. Tests that touch a device compile the whole set.
+set(IHUB_DEVICE_MANAGER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceChannels.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceDescription.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceEnumeration.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLatency.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLookup.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceOpen.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceState.cpp"
+)
+
+# The latency probe is the measurement loop over the ALSA plumbing, the
+# impulse capture and the pure correlation.
+set(IHUB_LATENCY_PROBE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/latency/AlsaLoopback.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/latency/LatencyCapture.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/latency/LatencyCorrelation.cpp"
+)
+
+# The settings bridge is a facade over device selection, the `/audio`
+# snapshot, patch application, channel maps, the latency budget and the probe.
+set(IHUB_AUDIO_SETTINGS_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsApply.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsChannels.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsMeasure.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsOpen.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsSnapshot.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/LatencyBudget.cpp"
+)
+
 # The sampler is split into its three responsibilities: kit parsing and
 # loading, sample decode/hand-off and the voice renderer. Tests compile only
 # the groups they touch.
@@ -378,7 +413,7 @@ juce_add_console_app(ihub-device-manager-test
 target_sources(ihub-device-manager-test
     PRIVATE
         device_manager/DeviceManagerTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
 )
 
 target_include_directories(ihub-device-manager-test
@@ -430,7 +465,7 @@ target_sources(ihub-audio-engine-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
@@ -506,7 +541,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
     )
@@ -605,7 +640,7 @@ target_sources(ihub-diagnostics-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/CrashDump.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/Diagnostics.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/LogRing.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
@@ -652,7 +687,7 @@ juce_add_console_app(ihub-latency-probe-test
 target_sources(ihub-latency-probe-test
     PRIVATE
         latency_probe/LatencyProbeTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
 )
 
 target_include_directories(ihub-latency-probe-test
@@ -704,7 +739,7 @@ if(IHUB_ENABLE_RT_GUARD)
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
@@ -1087,14 +1122,14 @@ target_sources(ihub-session-smoke-test
         ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1212,14 +1247,14 @@ target_sources(ihub-session-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1299,10 +1334,10 @@ target_sources(ihub-patch-fx-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1388,10 +1423,10 @@ target_sources(ihub-instrument-page-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1475,10 +1510,10 @@ target_sources(ihub-patch-state-capture-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1564,10 +1599,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1663,14 +1698,14 @@ target_sources(ihub-session-warm-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -2092,9 +2127,9 @@ target_sources(ihub-audio-settings-test
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_AUDIO_SETTINGS_SOURCES}
+        ${IHUB_DEVICE_MANAGER_SOURCES}
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
@@ -2686,7 +2721,7 @@ target_sources(ihub-set-file-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
@@ -2745,7 +2780,7 @@ target_sources(ihub-migrations-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
@@ -2804,7 +2839,7 @@ target_sources(ihub-patch-persistence-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
@@ -3167,14 +3202,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -3253,14 +3288,14 @@ target_sources(ihub-session-plugin-state-test
         ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+        ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -3332,14 +3367,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -3434,14 +3469,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -3522,14 +3557,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -3607,14 +3642,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
+            ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"

@@ -124,12 +124,18 @@ target_sources(instrument-hub
         src/app/CommandLine.cpp
         src/app/ControlApi.cpp
         src/app/ControllerSurface.cpp
-        src/app/DiagnosticModes.cpp
         src/app/Modes.cpp
         src/app/SessionSetup.cpp
         src/app/SnapshotCapture.cpp
         src/app/SourcePersistence.cpp
         src/app/UiModes.cpp
+        src/app/diagnostics/DeviceListMode.cpp
+        src/app/diagnostics/DiagnosticsMode.cpp
+        src/app/diagnostics/LatencyMode.cpp
+        src/app/diagnostics/PluginScanMode.cpp
+        src/app/diagnostics/RtProbeSource.cpp
+        src/app/diagnostics/RtStrictMode.cpp
+        src/app/diagnostics/SessionSmokeMode.cpp
         src/Bridge/WebView.cpp
         src/audio/AudioEngine.cpp
         src/audio/AudioSettings.cpp
@@ -139,6 +145,13 @@ target_sources(instrument-hub
         src/audio/DeviceManager.cpp
         src/audio/FxChain.cpp
         src/audio/FxRack.cpp
+        src/audio/device/DeviceChannels.cpp
+        src/audio/device/DeviceDescription.cpp
+        src/audio/device/DeviceEnumeration.cpp
+        src/audio/device/DeviceLatency.cpp
+        src/audio/device/DeviceLookup.cpp
+        src/audio/device/DeviceOpen.cpp
+        src/audio/device/DeviceState.cpp
         src/audio/fx/FxInsertFactory.cpp
         src/audio/fx/FxInsertParameters.cpp
         src/audio/fx/FxInsertType.cpp
@@ -147,8 +160,17 @@ target_sources(instrument-hub
         src/audio/fx/FxRackOrder.cpp
         src/audio/fx/FxRackSnapshot.cpp
         src/audio/fx/InsertEffect.cpp
+        src/audio/latency/AlsaLoopback.cpp
+        src/audio/latency/LatencyCapture.cpp
+        src/audio/latency/LatencyCorrelation.cpp
         src/audio/LatencyProbe.cpp
         src/audio/RtGuard.cpp
+        src/audio/settings/AudioSettingsApply.cpp
+        src/audio/settings/AudioSettingsChannels.cpp
+        src/audio/settings/AudioSettingsMeasure.cpp
+        src/audio/settings/AudioSettingsOpen.cpp
+        src/audio/settings/AudioSettingsSnapshot.cpp
+        src/audio/settings/LatencyBudget.cpp
         src/audio/Slot.cpp
         src/audio/SlotSwitcher.cpp
         src/audio/TimingMonitor.cpp
