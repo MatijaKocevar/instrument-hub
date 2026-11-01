@@ -379,7 +379,10 @@ engine and is currently exercised by tests, not by the app (see §8).
 - [Serializer.h](../engine/src/project/Serializer.h) /
   [Serializer.cpp](../engine/src/project/Serializer.cpp) — reads/writes a ZIP
   with `set.json`, `mapping.yaml` and `plugin-state/<uuid>.bin`; atomic save,
-  bounded all-or-nothing load.
+  bounded all-or-nothing load. The ZIP entry helpers, `set.json` manifest,
+  slot/patch documents and plugin-state blobs live under
+  [project/serializer/](../engine/src/project/serializer/); `Serializer.cpp`
+  keeps validation and archive orchestration.
 - [Migrations.h](../engine/src/project/Migrations.h) /
   [Migrations.cpp](../engine/src/project/Migrations.cpp) — schema upgrades
   (1 → 2 and 2 → 3); never rewrites a document in an old format.
@@ -1017,7 +1020,6 @@ engine splits T162–T168).
 | [Main.cpp](../engine/src/Main.cpp) | 2001 | Application shell plus eight one-shot modes plus snapshot capture, LED poll and default-set loading. | **T137:** extract `app/modes/*` (diagnostics, selftest, snapshot, serve, session smoke, scan, RT strict, latency) and `app/AppShell` (window/web view). Leave an entry point and composition. Target `Main.cpp` < 600; identical CLI behaviour and output. |
 | [api/Server.cpp](../engine/src/api/Server.cpp) | 1779 | `StateStore`, the HTTP server, auth, LAN rebind, meter thread and WebSocket loops. | **T135:** split `StateStore` + DTOs into `api/StateStore.{h,cpp}`; leave `Server` with transport/auth/listener/meter/WebSocket. Then move route bodies out. Target `Server.h`/`Server.cpp` each < 700. |
 | [api/Server.h](../engine/src/api/Server.h) | 1037 | All state DTOs, `StateStore` and `Server` in one header. | Same as above: DTOs and `StateStore` move to their own header; `Server.h` keeps the server surface. |
-| [project/Serializer.cpp](../engine/src/project/Serializer.cpp) | 979 | ZIP container I/O, JSON (de)serialisation, validation and migration glue. | Split container I/O, document (de)serialisation and validation. Target < 600. This is below T134–T138 priority but crosses the same threshold. |
 | [Session.h](../engine/src/Session.h) | 776 | Public surface for all of the above. | Follows `Session.cpp`: the facade header keeps build/device/render/arm/inspection; collaborators get their own headers in `session/`. |
 
 Two smaller files are worth watching but are **not** on the split list yet:

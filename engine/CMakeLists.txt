@@ -185,6 +185,11 @@ target_sources(instrument-hub
         src/project/Migrations.cpp
         src/project/SetFile.cpp
         src/project/Serializer.cpp
+        src/project/serializer/Container.cpp
+        src/project/serializer/JsonFields.cpp
+        src/project/serializer/PluginStateBlob.cpp
+        src/project/serializer/SetManifest.cpp
+        src/project/serializer/SetPatch.cpp
         src/Session.cpp
         src/session/DeviceController.cpp
         src/session/EditorHost.cpp

@@ -34,6 +34,20 @@ set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
 )
 
+# The project serializer is a facade over the ZIP container, the set.json
+# manifest, slot/patch documents, plugin-state blobs and schema migrations.
+# Tests that load or save a set compile the whole set.
+set(IHUB_PROJECT_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/Container.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/JsonFields.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/PluginStateBlob.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/SetManifest.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/SetPatch.cpp"
+)
+
 # The mapping layer is split into model, YAML reader/validator and the
 # watcher/facade. Tests that exercise any part compile the whole set.
 set(IHUB_MAPPING_SOURCES
@@ -2572,9 +2586,7 @@ juce_add_console_app(ihub-set-file-test
 target_sources(ihub-set-file-test
     PRIVATE
         project/SetFileTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
+        ${IHUB_PROJECT_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
@@ -2633,9 +2645,7 @@ juce_add_console_app(ihub-migrations-test
 target_sources(ihub-migrations-test
     PRIVATE
         project/MigrationsTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
+        ${IHUB_PROJECT_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
@@ -2694,9 +2704,7 @@ target_sources(ihub-patch-persistence-test
     PRIVATE
         project/PatchPersistenceTest.cpp
         ${IHUB_MAPPING_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
+        ${IHUB_PROJECT_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
