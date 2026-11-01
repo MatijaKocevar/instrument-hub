@@ -113,6 +113,15 @@ target_sources(instrument-hub
         src/api/Server.cpp
         src/api/SessionBridge.cpp
         src/api/StateBroadcast.cpp
+        src/app/CommandLine.cpp
+        src/app/ControlApi.cpp
+        src/app/ControllerSurface.cpp
+        src/app/DiagnosticModes.cpp
+        src/app/Modes.cpp
+        src/app/SessionSetup.cpp
+        src/app/SnapshotCapture.cpp
+        src/app/SourcePersistence.cpp
+        src/app/UiModes.cpp
         src/Bridge/WebView.cpp
         src/audio/AudioEngine.cpp
         src/audio/AudioSettings.cpp
