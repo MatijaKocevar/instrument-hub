@@ -58,6 +58,16 @@ set(IHUB_FX_RACK_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/InsertEffect.cpp"
 )
 
+# The warm pool is a facade over slot reservation, warm-up state, eviction and
+# the worker thread. Tests that touch the pool compile the whole set.
+set(IHUB_WARM_POOL_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolEviction.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolSlots.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolWarming.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolWorker.cpp"
+)
+
 # The composed session is a façade over the warm pool, plugin state, editor
 # host, meter bridge, transport, FX chain, device and MIDI collaborators.
 # Tests that build a Session compile the whole set.
@@ -80,6 +90,9 @@ set(IHUB_SESSION_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SlotSources.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/TransportControl.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/WarmPoolController.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolArm.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolMeasurement.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolVoice.cpp"
 )
 
 # --- Application modes and command line (T137) ------------------------------
@@ -827,7 +840,7 @@ target_sources(ihub-warm-pool-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        ${IHUB_WARM_POOL_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
 )
 
@@ -954,7 +967,7 @@ target_sources(ihub-session-smoke-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        ${IHUB_WARM_POOL_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -1082,7 +1095,7 @@ target_sources(ihub-session-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        ${IHUB_WARM_POOL_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -1168,7 +1181,7 @@ target_sources(ihub-patch-fx-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        ${IHUB_WARM_POOL_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -1260,7 +1273,7 @@ target_sources(ihub-instrument-page-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        ${IHUB_WARM_POOL_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -1350,7 +1363,7 @@ target_sources(ihub-patch-state-capture-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        ${IHUB_WARM_POOL_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -1442,7 +1455,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
@@ -1548,7 +1561,7 @@ target_sources(ihub-session-warm-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        ${IHUB_WARM_POOL_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -3068,7 +3081,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
@@ -3158,7 +3171,7 @@ target_sources(ihub-session-plugin-state-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+        ${IHUB_WARM_POOL_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -3240,7 +3253,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -3344,7 +3357,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadDriver.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
             ${IHUB_MAPPING_SOURCES}
@@ -3437,7 +3450,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
@@ -3525,7 +3538,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
