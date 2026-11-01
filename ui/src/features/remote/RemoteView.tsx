@@ -1,18 +1,16 @@
 import type { ReactElement } from "react";
 
-import {
-    formatBpm,
-    formatPosition,
-    type RemoteConnection,
-    type RemoteModel,
-} from "./model";
-import { remoteBanner, type RemoteLinkSnapshot } from "./link";
+import { linkPhase, type RemoteLinkSnapshot } from "./MeterLink";
+import type { RemoteConnection, RemoteModel } from "./model";
 import { NowPlayingCard } from "./NowPlayingCard";
+import { ReconnectBanner } from "./ReconnectBanner";
 import { RemoteHeader } from "./RemoteHeader";
 import { RemoteLayout } from "./RemoteLayout";
+import { RemotePanic } from "./RemotePanic";
+import { RemoteTransport } from "./RemoteTransport";
 import { SetList } from "./SetList";
 import type { RemoteContrast } from "./theme";
-import type { WakeLockStatus } from "./wakeLock";
+import type { WakeLockStatus } from "./wakeLockTypes";
 import "./remote.css";
 
 export type { RemoteConnection } from "./model";
@@ -49,18 +47,6 @@ export interface RemoteViewProps
     readonly onPanic?: () => void;
 }
 
-/** `live` / `lost` / `connecting` / `unknown`, for data attributes. */
-function linkPhase (link: RemoteLinkSnapshot | null): string
-{
-    if (link === null)
-        return "unknown";
-
-    if (link.connected)
-        return "live";
-
-    return link.everConnected ? "lost" : "connecting";
-}
-
 /**
     The tablet/stage remote.
 
@@ -69,9 +55,9 @@ function linkPhase (link: RemoteLinkSnapshot | null): string
     cannot be missed. The layout is a single column below 800 px and a
     two-column performance layout above it.
 
-    The stage header, now-playing card, set list and performance grid live in
-    their own components; this file keeps the page shell, banner and transport
-    wiring.
+    The stage header, now-playing card, set list, transport, panic and
+    reconnect banner live in their own components; this file keeps the page
+    shell and wiring.
 */
 export function RemoteView ({
     model,
@@ -91,7 +77,6 @@ export function RemoteView ({
 }: RemoteViewProps): ReactElement
 {
     const playing = model.transport.playing;
-    const banner = remoteBanner (connection, link);
 
     return (
         <main
@@ -114,22 +99,7 @@ export function RemoteView ({
                 onToggleContrast={onToggleContrast}
             />
 
-            {banner.visible
-                ? <div
-                      className={`remote__banner remote__banner--${banner.tone}`}
-                      role={banner.tone === "critical" ? "alert" : "status"}
-                      data-testid="remote-banner"
-                      data-tone={banner.tone}
-                      data-link={linkPhase (link)}
-                      data-failures={link?.failures ?? 0}
-                  >
-                      <span className="remote__banner-dot" aria-hidden="true" />
-                      <span className="remote__banner-text">
-                          <strong className="remote__banner-title">{banner.title}</strong>
-                          <span className="remote__banner-detail">{banner.detail}</span>
-                      </span>
-                  </div>
-                : null}
+            <ReconnectBanner connection={connection} link={link} />
 
             {error !== null
                 ? <p className="remote__error" role="alert" data-testid="remote-error">
@@ -154,72 +124,13 @@ export function RemoteView ({
                     />
                 }
                 transport={
-                    <section
-                        className="remote__transport"
-                        aria-label="Transport"
-                        data-testid="remote-transport"
-                        data-playing={playing ? "true" : "false"}
-                    >
-                        <header className="remote__section-head">
-                            <h2 className="remote__section-title">Transport</h2>
-                            <span
-                                className={`remote__transport-state${playing ? " remote__transport-state--playing" : ""}`}
-                                data-testid="remote-transport-state"
-                            >
-                                {playing ? "Playing" : "Stopped"}
-                            </span>
-                        </header>
-
-                        <p className="remote__bpm" data-testid="remote-bpm">
-                            {formatBpm (model.transport.bpm)}
-                        </p>
-                        <p className="remote__position" data-testid="remote-position">
-                            Bar {formatPosition (model.transport.ppq)}
-                            <span className="remote__position-detail">
-                                {model.transport.positionSamples.toLocaleString ("en-US")} samples
-                            </span>
-                        </p>
-
-                        <div className="remote__transport-actions">
-                            <button
-                                className="remote__transport-button remote__transport-button--play"
-                                type="button"
-                                data-testid="remote-play"
-                                aria-pressed={playing}
-                                onClick={onTogglePlay}
-                            >
-                                {playing ? "Pause" : "Play"}
-                            </button>
-                            <button
-                                className="remote__transport-button"
-                                type="button"
-                                data-testid="remote-stop"
-                                onClick={onStop}
-                            >
-                                Stop
-                            </button>
-                        </div>
-                    </section>
+                    <RemoteTransport
+                        transport={model.transport}
+                        onTogglePlay={onTogglePlay}
+                        onStop={onStop}
+                    />
                 }
-                panic={
-                    <section
-                        className="remote__panic"
-                        aria-label="Panic"
-                        data-testid="remote-panic-panel"
-                    >
-                        <button
-                            className="remote__panic-button"
-                            type="button"
-                            data-testid="remote-panic"
-                            onClick={onPanic}
-                        >
-                            Panic
-                        </button>
-                        <p className="remote__panic-hint">
-                            Stops the transport and disarms every patch.
-                        </p>
-                    </section>
-                }
+                panic={<RemotePanic onPanic={onPanic} />}
             />
         </main>
     );

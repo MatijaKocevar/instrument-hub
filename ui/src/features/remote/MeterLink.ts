@@ -1,7 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
-
 import { MeterStore } from "../grid";
-import type { RemoteConnection } from "./model";
 
 /**
     The remote's live-link view.
@@ -42,6 +39,18 @@ function sameLink (a: RemoteLinkSnapshot, b: RemoteLinkSnapshot): boolean
         && a.everConnected === b.everConnected
         && a.lastLiveAt === b.lastLiveAt
         && a.failures === b.failures;
+}
+
+/** `live` / `lost` / `connecting` / `unknown`, for data attributes. */
+export function linkPhase (link: RemoteLinkSnapshot | null): string
+{
+    if (link === null)
+        return "unknown";
+
+    if (link.connected)
+        return "live";
+
+    return link.everConnected ? "lost" : "connecting";
 }
 
 /**
@@ -138,83 +147,4 @@ export class MeterLink
         for (const listener of this.listeners)
             listener ();
     }
-}
-
-/** What the banner should say, if anything. */
-export type RemoteBannerTone = "warning" | "critical";
-
-export interface RemoteBanner
-{
-    readonly visible: boolean;
-    readonly tone: RemoteBannerTone;
-    readonly title: string;
-    readonly detail: string;
-}
-
-const NO_BANNER: RemoteBanner = {
-    visible: false,
-    tone: "warning",
-    title: "",
-    detail: "",
-};
-
-/**
-    Decide whether the stage needs a reconnect banner.
-
-    Two independent links can fail: the HTTP poll behind the set list
-    (`connection`) and the live WebSocket. A dead API is critical because new
-    taps cannot land; a dead socket is a warning because the set list and the
-    optimistic controls still work and the socket retries on its own.
-*/
-export function remoteBanner (connection: RemoteConnection,
-                              link: RemoteLinkSnapshot | null): RemoteBanner
-{
-    if (connection === "offline")
-    {
-        return {
-            visible: true,
-            tone: "critical",
-            title: "Engine unreachable",
-            detail: "Retrying automatically — controls return when the engine does.",
-        };
-    }
-
-    if (link !== null && link.everConnected && !link.connected)
-    {
-        return {
-            visible: true,
-            tone: "warning",
-            title: "Live link lost",
-            detail: "Reconnecting automatically — the set list stays usable.",
-        };
-    }
-
-    return NO_BANNER;
-}
-
-/**
-    Subscribe the stage to the live socket.
-
-    The URL is stable for a session, so the store is created once. Server
-    rendering never opens a socket: `start()` runs in an effect.
-*/
-export function useRemoteLink (url: string): RemoteLinkSnapshot
-{
-    const [link] = useState (() => new MeterLink (new MeterStore ({
-        url,
-        reconnectBaseMs: 250,
-        reconnectMaxMs: 2000,
-    })));
-
-    useEffect (() =>
-    {
-        link.start ();
-
-        return () =>
-        {
-            link.stop ();
-        };
-    }, [link]);
-
-    return useSyncExternalStore (link.subscribe, link.getSnapshot, link.getSnapshot);
 }
