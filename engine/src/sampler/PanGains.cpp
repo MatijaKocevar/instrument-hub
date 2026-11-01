@@ -21,4 +21,4 @@ float panGainRight (float pan, float gain) noexcept
     return std::sin (angle) * gain;
 }
 
-} // namespace ihub::sampler
+}

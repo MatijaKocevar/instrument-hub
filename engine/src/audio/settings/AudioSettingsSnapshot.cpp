@@ -15,9 +15,8 @@ std::string toString (const juce::String& text)
 {
     return text.toStdString();
 }
-} // namespace
+}
 
-//==============================================================================
 Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -122,4 +121,4 @@ Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
     return result;
 }
 
-} // namespace AudioEngine
+}

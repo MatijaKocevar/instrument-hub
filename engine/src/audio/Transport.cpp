@@ -18,7 +18,7 @@ std::int64_t clampPosition (std::int64_t value) noexcept
 {
     return value > 0 ? value : 0;
 }
-} // namespace
+}
 
 void Transport::prepare (double newSampleRate, int newMaximumBlockSize) noexcept
 {
@@ -191,8 +191,6 @@ double Transport::tapAt (double timestampSeconds) noexcept
 {
     const double estimate = tapTempo.tapAt (timestampSeconds);
 
-    // A non-finite timestamp is ignored by TapTempo; do not let its retained
-    // estimate overwrite a tempo the user set by hand.
     if (std::isfinite (timestampSeconds)
         && estimate > 0.0
         && syncSource.load (std::memory_order_relaxed) == SyncSource::internal)
@@ -248,7 +246,6 @@ bool Transport::applyExternalSync (const ExternalSync& sync) noexcept
 
     if (! sync.locked)
     {
-        // The clock disappeared: hold the position and tempo, but stop.
         playing.store (false, std::memory_order_relaxed);
         return true;
     }
@@ -294,4 +291,4 @@ double Transport::clampBpm (double tempo) noexcept
     return std::clamp (tempo, minBpm, maxBpm);
 }
 
-} // namespace AudioEngine
+}

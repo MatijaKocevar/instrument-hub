@@ -42,7 +42,6 @@ int AudioInputInstrument::latencySamples() const noexcept
     return cachedLatency.load (std::memory_order_relaxed);
 }
 
-//==============================================================================
 void AudioInputInstrument::setDirectMonitor (bool shouldMonitor) noexcept
 {
     directMonitor.store (shouldMonitor, std::memory_order_relaxed);
@@ -101,7 +100,6 @@ void AudioInputInstrument::process (juce::AudioBuffer<float>& buffer,
     if (inputChannels != nullptr && channel >= 0 && channel < numInputChannels)
         input = inputChannels[channel];
 
-    // One block only: never keep a pointer to a device buffer across callbacks.
     clearInput();
 
     const int samples = juce::jmin (buffer.getNumSamples(), maximumBlockSize);
@@ -123,8 +121,6 @@ void AudioInputInstrument::process (juce::AudioBuffer<float>& buffer,
         return;
     }
 
-    // Unity is the default and must stay bit-exact: skip the multiply so the
-    // master bus sees the input samples unchanged.
     if (std::abs (gain - 1.0f) <= 0.0f)
     {
         for (int outChannel = 0; outChannel < channels; ++outChannel)
@@ -141,7 +137,6 @@ void AudioInputInstrument::process (juce::AudioBuffer<float>& buffer,
         }
     }
 
-    // Never leave stale samples in a block larger than the prepared maximum.
     if (totalSamples > samples)
         for (int outChannel = 0; outChannel < channels; ++outChannel)
             buffer.clear (outChannel, samples, totalSamples - samples);
@@ -155,4 +150,4 @@ void AudioInputInstrument::noteOff (int, int)
 {
 }
 
-} // namespace ihub
+}

@@ -5,7 +5,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 FxInsertSnapshot FxRack::getInsert (int index) const
 {
     FxInsertSnapshot snapshot;
@@ -43,4 +42,4 @@ std::vector<FxInsertSnapshot> FxRack::snapshots() const
     return result;
 }
 
-} // namespace AudioEngine
+}

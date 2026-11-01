@@ -88,8 +88,6 @@ bool configureAlsaPcm (snd_pcm_t* pcm,
         && snd_pcm_hw_params_set_period_size_near (pcm, hw, &period, &dir) < 0)
         return false;
 
-    // Two periods of buffering keeps the probe close to the `2 * buffer`
-    // figure used by the acceptance check.
     buffer = period * 2;
 
     if (snd_pcm_hw_params_set_buffer_size (pcm, hw, buffer) < 0
@@ -125,6 +123,6 @@ int recoverAlsaPcm (snd_pcm_t* pcm, int error)
     return snd_pcm_recover (pcm, error, 0);
 }
 
-} // namespace AudioEngine::detail
+}
 
 #endif

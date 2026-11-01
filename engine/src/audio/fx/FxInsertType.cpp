@@ -3,7 +3,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 const char* toString (FxInsertType type) noexcept
 {
     switch (type)
@@ -29,4 +28,4 @@ bool fxInsertTypeFromString (std::string_view text, FxInsertType& type) noexcept
     return false;
 }
 
-} // namespace AudioEngine
+}

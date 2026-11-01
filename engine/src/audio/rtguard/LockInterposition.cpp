@@ -8,13 +8,6 @@
  #define IHUB_RT_HAS_LOCK_WRAP 0
 #endif
 
-//==============================================================================
-// pthread wrappers
-//
-// Covers std::mutex, std::timed_mutex, std::shared_mutex, juce::CriticalSection
-// and raw pthread locks, all of which are realtime hazards inside a callback.
-// Enabled by CMake with -Wl,--wrap=pthread_mutex_lock,... on Linux.
-
 #if IHUB_RT_HAS_LOCK_WRAP
 
 extern "C"
@@ -83,5 +76,5 @@ extern "C"
     }
 }
 
-#endif // IHUB_RT_HAS_LOCK_WRAP
+#endif
 

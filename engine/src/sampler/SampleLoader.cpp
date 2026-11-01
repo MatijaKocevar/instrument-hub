@@ -9,14 +9,9 @@
 namespace ihub::sampler
 {
 
-//==============================================================================
-// SampleLoader
-
 SampleLoader::SampleLoader()
     : juce::Thread ("ihub-sample-loader")
 {
-    // The loader is a service: it exists from startup to shutdown even while
-    // idle, so the audio thread never has to start a thread.
     startThread (juce::Thread::Priority::low);
 }
 
@@ -201,4 +196,4 @@ void SampleLoader::run()
     }
 }
 
-} // namespace ihub::sampler
+}

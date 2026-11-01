@@ -8,12 +8,6 @@
 namespace ihub::sampler::kit_detail
 {
 
-/** Typed access helpers for the kit JSON document.
-
-    They keep every bound check and error label in one place, so the object
-    walkers in `KitParser.cpp` read like the schema.
-*/
-
 const juce::var* findProperty (const juce::DynamicObject& object, const char* name) noexcept;
 
 bool hasOnlyProperties (const juce::DynamicObject& object,
@@ -56,4 +50,4 @@ bool readOptionalString (const juce::DynamicObject& object,
                          std::string& destination,
                          juce::String& error);
 
-} // namespace ihub::sampler::kit_detail
+}

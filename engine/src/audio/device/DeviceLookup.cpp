@@ -3,9 +3,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
-// Device type and device lookup shared by enumeration and opening.
-
 juce::AudioIODeviceType* DeviceManager::findDeviceType (const juce::String& typeName)
 {
     ensureInitialised();
@@ -39,11 +36,9 @@ std::unique_ptr<juce::AudioIODevice> DeviceManager::createDevice (const juce::St
     if (! hasInput && ! hasOutput)
         return {};
 
-    // ALSA keeps separate input and output name lists; passing the matching
-    // name for both sides lets JUCE report the rates for the combined device.
     return std::unique_ptr<juce::AudioIODevice> (
         type->createDevice (hasOutput ? deviceName : juce::String(),
                             hasInput ? deviceName : juce::String()));
 }
 
-} // namespace AudioEngine
+}

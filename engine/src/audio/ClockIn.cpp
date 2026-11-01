@@ -10,14 +10,11 @@ namespace AudioEngine
 
 namespace
 {
-/** Rounding slack around the interval gate, in seconds. */
 constexpr double intervalTolerance = 1.0e-9;
 
-/** Never let the intra-tick phase reach the next tick. */
 constexpr double maxPhaseFraction = 0.999999;
-} // namespace
+}
 
-//==============================================================================
 void ClockIn::reset() noexcept
 {
     clearQueue();
@@ -62,7 +59,6 @@ int ClockIn::clearQueue() noexcept
     return pending;
 }
 
-//==============================================================================
 bool ClockIn::pushRealtime (std::uint8_t statusByte, double timestampSeconds) noexcept
 {
     Type type;
@@ -83,7 +79,6 @@ bool ClockIn::pushRealtime (std::uint8_t statusByte, double timestampSeconds) no
     return push (event);
 }
 
-//==============================================================================
 void ClockIn::process (Transport& transport, int numSamples) noexcept
 {
     const double sampleRate = transport.getSampleRate();
@@ -134,8 +129,6 @@ void ClockIn::process (Transport& transport, int numSamples) noexcept
                 }
                 else
                 {
-                    // A gap or an impossible interval means a tick was lost or
-                    // the master restarted: the run has to be measured again.
                     const auto ticks = clockCountInternal;
                     resetTempoRun();
                     clockCountInternal = ticks;
@@ -161,9 +154,6 @@ void ClockIn::process (Transport& transport, int numSamples) noexcept
             loseClock();
     }
 
-    //==========================================================================
-    // Tempo estimate.
-
     if (intervalCount >= minTempoIntervals)
     {
         const double median = medianInterval();
@@ -186,15 +176,8 @@ void ClockIn::process (Transport& transport, int numSamples) noexcept
         lockedInternal = true;
     }
 
-    //==========================================================================
-    // Position and published state.
-
     double ppqNow = static_cast<double> (positionTicks) / pulsesPerQuarterNote;
 
-    // The phase continues to be reported while stopped so that a stop in the
-    // middle of a tick holds the exact position instead of rewinding to the
-    // last tick. It stops advancing because `samplesSinceTick` only grows
-    // while `playingInternal` is set.
     if (estimateBpm > 0.0)
     {
         const double quartersPerSample = estimateBpm / (60.0 * sampleRate);
@@ -216,9 +199,6 @@ void ClockIn::process (Transport& transport, int numSamples) noexcept
     if (! seenClock)
         return;
 
-    //==========================================================================
-    // One transport update per block.
-
     const bool present = clockPresent.load (std::memory_order_relaxed);
     const double appliedBpm = estimateBpm > 0.0 ? estimateBpm : transport.getBpm();
 
@@ -238,13 +218,10 @@ void ClockIn::process (Transport& transport, int numSamples) noexcept
 
     transport.applyExternalSync (sync);
 
-    // The published position is the one at the start of this block; the phase
-    // then advances by the frames the caller is about to process.
     if (playingInternal && ! tickedThisBlock)
         samplesSinceTick += static_cast<double> (numSamples);
 }
 
-//==============================================================================
 void ClockIn::handleEvent (const Event& event) noexcept
 {
     seenClock = true;
@@ -317,7 +294,6 @@ void ClockIn::loseClock() noexcept
     samplesSinceTick = 0.0;
 }
 
-//==============================================================================
 int ClockIn::drain (Event* destination, int capacity) noexcept
 {
     if (destination == nullptr || capacity <= 0)
@@ -350,12 +326,10 @@ bool ClockIn::push (const Event& event) noexcept
 
     queue[write] = event;
 
-    // Publishing the write index is what makes the event visible to drain().
     queueWriteIndex.store (next, std::memory_order_release);
     return true;
 }
 
-//==============================================================================
 bool ClockIn::isLocked() const noexcept
 {
     return locked.load (std::memory_order_relaxed);
@@ -420,7 +394,6 @@ ClockIn::Snapshot ClockIn::snapshot() const noexcept
     return result;
 }
 
-//==============================================================================
 double ClockIn::clampBpm (double tempo) noexcept
 {
     return std::clamp (tempo, Transport::minBpm, Transport::maxBpm);
@@ -431,4 +404,4 @@ double ClockIn::tickPeriodSeconds (double tempo) noexcept
     return 60.0 / (tempo * pulsesPerQuarterNote);
 }
 
-} // namespace AudioEngine
+}

@@ -48,7 +48,6 @@ bool isSafeSamplePath (std::string_view path) noexcept
         }
     }
 
-    // A path made only of separators and whitespace is not a file name.
     return std::any_of (path.begin(), path.end(),
                         [] (char character)
                         {
@@ -59,4 +58,4 @@ bool isSafeSamplePath (std::string_view path) noexcept
                         });
 }
 
-} // namespace ihub::sampler
+}

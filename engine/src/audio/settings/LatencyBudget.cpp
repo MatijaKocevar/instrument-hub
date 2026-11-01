@@ -17,4 +17,4 @@ Api::AudioLatencyState computeLatencyBudget (int bufferSize,
     return budget;
 }
 
-} // namespace AudioEngine::detail
+}

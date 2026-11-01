@@ -89,4 +89,4 @@ void AudioSettingsBridge::close()
     manager.close();
 }
 
-} // namespace AudioEngine
+}

@@ -14,7 +14,7 @@ float clampUnit (float value) noexcept
 {
     return juce::jlimit (0.0f, 1.0f, value);
 }
-} // namespace
+}
 
 const char* SlotSwitcher::toString (State state) noexcept
 {
@@ -81,15 +81,13 @@ void SlotSwitcher::prepare (double newSampleRate, int newMaximumBlockSize, int n
     const float fadeSamples = fadeMilliseconds * 0.001f * static_cast<float> (sampleRate);
 
     if (fadeMilliseconds <= 0.0f || fadeSamples < 1.0f)
-        fadeIncrement = 1.0f; // immediate switch, used only by continuity tests
+        fadeIncrement = 1.0f;
     else
         fadeIncrement = 1.0f / fadeSamples;
 
     for (auto& state : runtime)
         state = RuntimeState {};
 
-    // Keep a pending arm request: on a device change the armed slot fades back
-    // in instead of going silent.
     consumedSlot = -1;
     incomingSlot = -1;
     fadePosition = 0.0f;
@@ -266,8 +264,6 @@ void SlotSwitcher::beginTransition (int slotIndex) noexcept
     {
         auto& state = runtime[static_cast<size_t> (index)];
 
-        // Start from what the bus heard last, so a re-arm in the middle of a
-        // fade is continuous.
         state.startGain = clampUnit (state.gain);
 
         if (index == incomingSlot)
@@ -285,7 +281,6 @@ void SlotSwitcher::beginTransition (int slotIndex) noexcept
             needsFade = true;
     }
 
-    // A 0 ms fade is a deliberate test seam: switch at the block boundary.
     if (! needsFade || fadeIncrement >= 1.0f)
     {
         for (auto& state : runtime)
@@ -311,12 +306,9 @@ float SlotSwitcher::gainAt (const RuntimeState& state, float phase) const noexce
 
     if (state.targetGain > 0.0f)
     {
-        // Incoming: g0 + (1 - g0) * sin(p * pi/2).  With g0 = 0 this is the
-        // sine leg of an equal-power pair.
         return state.startGain + (1.0f - state.startGain) * sine;
     }
 
-    // Outgoing: g0 * cos(p * pi/2).  cos^2 + sin^2 = 1.
     return state.startGain * std::cos (p * halfPi);
 }
 
@@ -336,4 +328,4 @@ void SlotSwitcher::publishStates() noexcept
     }
 }
 
-} // namespace AudioEngine
+}

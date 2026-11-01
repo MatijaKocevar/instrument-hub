@@ -6,7 +6,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 void WarmPool::setActiveSlot (int slotIndex)
 {
     {
@@ -86,28 +85,22 @@ void WarmPool::release (int slotIndex)
         {
             retireLocked (slotIndex, true);
 
-            // The replacement request could not be started while the old
-            // instance was pinned; start it now.
             if (isProtectedLocked (slotIndex))
                 enqueueWarmLocked (slotIndex);
         }
         else if (slot.instance != nullptr && ! isProtectedLocked (slotIndex))
         {
-            // The active slot moved on while this one was pinned.
             pendingDestroy.push_back (std::move (slot.instance));
             ++evictionCount;
             slot.lastError.clear();
         }
 
-        // A released pin may have made room for a deferred warm request; the
-        // background thread re-queues them before it exits.
         retryDeferred = true;
     }
 
     notifyWorker();
 }
 
-//==============================================================================
 WarmPool::PreloadReport WarmPool::preloadAll()
 {
     PreloadReport report;
@@ -157,7 +150,6 @@ WarmPool::PreloadReport WarmPool::preloadAll()
     return report;
 }
 
-//==============================================================================
 bool WarmPool::isWarm (int slotIndex) const
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -182,7 +174,6 @@ bool WarmPool::isWarming (int slotIndex) const
     return slot.queued || slot.deferred;
 }
 
-//==============================================================================
 void WarmPool::enqueueWarmLocked (int slotIndex)
 {
     if (! needsWarmLocked (slotIndex))
@@ -229,8 +220,6 @@ void WarmPool::setActiveLocked (int slotIndex)
 
     activeSlot = isValidSlotLocked (slotIndex) ? slotIndex : -1;
 
-    // Evict everything outside the new neighbourhood right away; this is what
-    // bounds memory when a pad arms a distant slot.
     for (int index = 0; index < numSlots; ++index)
     {
         auto& slot = slots[static_cast<size_t> (index)];
@@ -250,4 +239,4 @@ void WarmPool::setActiveLocked (int slotIndex)
         enqueueWarmLocked (index);
 }
 
-} // namespace AudioEngine
+}

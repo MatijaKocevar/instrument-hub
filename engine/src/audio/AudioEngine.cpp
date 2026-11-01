@@ -16,7 +16,6 @@ AudioEngine::AudioEngine (int numSlots, int numChannelsToUse)
     for (int index = 0; index < slotCount; ++index)
         slots.push_back (std::make_unique<Slot> (index));
 
-    // No samples are needed until prepare() is called.
     renderBuffer.setSize (numChannels, 0, false, true, true);
 }
 
@@ -102,8 +101,6 @@ void AudioEngine::processBlock (juce::AudioBuffer<float>& output,
                                 juce::MidiBuffer& midi,
                                 int numSamples) noexcept
 {
-    // T014: every violation of the audio-thread contract inside this call
-    // (allocation, lock or log) aborts in --rt-strict mode.
     const RtGuard::Scope rtScope;
 
     if (! prepared || numSamples <= 0)
@@ -117,8 +114,6 @@ void AudioEngine::processBlock (juce::AudioBuffer<float>& output,
     renderBlock (samples, midi);
     copyToOutput (output, samples);
 
-    // If the caller asked for more than the prepared maximum, keep the tail
-    // silent instead of repeating stale audio.
     if (numSamples > samples)
         for (int channel = 0; channel < output.getNumChannels(); ++channel)
             output.clear (channel, samples, numSamples - samples);
@@ -127,9 +122,6 @@ void AudioEngine::processBlock (juce::AudioBuffer<float>& output,
 void AudioEngine::feedDeviceInput (const float* const* channelData,
                                    int newNumChannels) noexcept
 {
-    // Every slot sees the same pointers; only a source that reports
-    // `acceptsDeviceInput()` keeps them, and it forgets them at the end of its
-    // next process() call. No copying, no allocation.
     for (auto& slot : slots)
         slot->feedDeviceInput (channelData, newNumChannels);
 }
@@ -165,7 +157,6 @@ void AudioEngine::copyToOutput (juce::AudioBuffer<float>& output, int numSamples
         output.clear (channel, 0, output.getNumSamples());
 }
 
-//==============================================================================
 void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
 {
     if (device == nullptr)
@@ -186,15 +177,11 @@ void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
                  juce::jmax (deviceBlockSize, maximumBlockSize),
                  numChannels);
 
-    // The advertised buffer size can shrink without a re-prepare; the deadline
-    // must still follow what the device will actually ask for.
     timingMonitor.prepare (deviceSampleRate, deviceBlockSize);
 }
 
 void AudioEngine::audioDeviceStopped()
 {
-    // Keep slot activation and buffers; the next start fades in again if the
-    // device needed a re-prepare.
 }
 
 void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
@@ -225,8 +212,6 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* inputCha
 
     const int samples = juce::jmin (numSamples, maximumBlockSize);
 
-    // A first-class audio-input slot: hand the interface block to any slot
-    // source that consumes it, before the graph renders.
     feedDeviceInput (inputChannelData, numInputChannels);
 
     deviceMidi.clear();
@@ -253,4 +238,4 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* inputCha
     timingMonitor.endCallback (timingToken, samples);
 }
 
-} // namespace AudioEngine
+}

@@ -7,12 +7,6 @@
 namespace AudioEngine::detail
 {
 
-/** One impulse sent through a loopback and the signals it produced.
-
-    `reference` is the emitted impulse and `captured` is the recorded input,
-    both already converted to float and the same length. `sampleRate` and
-    `bufferSize` carry the values the device actually accepted.
-*/
 struct CapturedLoopbackImpulse
 {
     bool valid = false;
@@ -30,7 +24,6 @@ struct CapturedLoopbackImpulse
     juce::String error;
 };
 
-/** Streams one impulse through the ALSA Loopback and records the result. */
 CapturedLoopbackImpulse captureLoopbackImpulse (const LatencyProbeOptions& options);
 
-} // namespace AudioEngine::detail
+}

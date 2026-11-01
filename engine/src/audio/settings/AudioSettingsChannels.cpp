@@ -15,9 +15,8 @@ juce::BigInteger makeMask (const std::vector<int>& channels)
 
     return mask;
 }
-} // namespace
+}
 
-//==============================================================================
 bool validateChannels (const std::vector<int>& channels,
                        int available,
                        const char* name,
@@ -71,4 +70,4 @@ ChannelMap resolveChannelMap (const std::optional<std::vector<int>>& requested,
     return map;
 }
 
-} // namespace AudioEngine::detail
+}

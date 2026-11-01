@@ -41,7 +41,6 @@ void FxChain::reset() noexcept
             processor->reset();
 }
 
-//==============================================================================
 int FxChain::add (juce::AudioProcessor* processor)
 {
     if (processor == nullptr)
@@ -112,7 +111,6 @@ int FxChain::indexOf (const juce::AudioProcessor* processor) const noexcept
     return -1;
 }
 
-//==============================================================================
 void FxChain::refreshLatency() noexcept
 {
     int total = 0;
@@ -124,7 +122,6 @@ void FxChain::refreshLatency() noexcept
     cachedLatency.store (total, std::memory_order_relaxed);
 }
 
-//==============================================================================
 void FxChain::prepareProcessor (juce::AudioProcessor& processor)
 {
     processor.setRateAndBufferSizeDetails (sampleRate, maximumBlockSize);
@@ -134,8 +131,6 @@ void FxChain::prepareProcessor (juce::AudioProcessor& processor)
     auto layout = processor.getBusesLayout();
     bool changed = false;
 
-    // An FX chain feeds the main input. A generator may reject the input bus;
-    // the fallback below then keeps it working with its output alone.
     if (! layout.inputBuses.isEmpty() && layout.inputBuses.getReference (0) != target)
     {
         layout.inputBuses.getReference (0) = target;
@@ -162,11 +157,8 @@ void FxChain::prepareProcessor (juce::AudioProcessor& processor)
     processor.prepareToPlay (sampleRate, maximumBlockSize);
 }
 
-//==============================================================================
 void FxChain::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) noexcept
 {
-    // The empty chain is the common case and must be a bit-exact passthrough:
-    // do not touch a single sample or MIDI byte.
     if (processors.empty())
         return;
 
@@ -184,8 +176,6 @@ void FxChain::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
         const int processorChannels = juce::jmax (processor->getTotalNumInputChannels(),
                                                   processor->getTotalNumOutputChannels());
 
-        // A processor that wants more channels than the engine can feed is
-        // left out of the path instead of reading past the buffer.
         if (processorChannels <= 0 || processorChannels > bufferChannels)
             continue;
 
@@ -195,8 +185,6 @@ void FxChain::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
         }
         else
         {
-            // Fewer processor channels than engine channels: hand it a view of
-            // the first channels. The remaining channels pass through.
             juce::AudioBuffer<float> view (buffer.getArrayOfWritePointers(),
                                            processorChannels,
                                            numSamples);
@@ -205,4 +193,4 @@ void FxChain::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
     }
 }
 
-} // namespace AudioEngine
+}

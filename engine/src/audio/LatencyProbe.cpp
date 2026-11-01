@@ -5,7 +5,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 LatencyProbe::LatencyProbe() = default;
 LatencyProbe::~LatencyProbe() = default;
 
@@ -19,8 +18,6 @@ LatencyResult LatencyProbe::measure (int bufferSize, double sampleRate)
 
 LatencyResult LatencyProbe::measure (const LatencyProbeOptions& options)
 {
-    // The loopback occasionally drops the first capture block while the two
-    // streams start. One retry is enough and keeps the call bounded.
     LatencyResult last;
 
     for (int attempt = 0; attempt < 3; ++attempt)
@@ -88,4 +85,4 @@ LatencyResult LatencyProbe::measureOnce (const LatencyProbeOptions& options)
     return result;
 }
 
-} // namespace AudioEngine
+}

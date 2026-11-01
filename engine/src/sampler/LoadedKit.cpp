@@ -114,4 +114,4 @@ ResolvedHit LoadedKit::resolveWithVariant (int note, int velocity, int variantIn
     return {};
 }
 
-} // namespace ihub::sampler
+}

@@ -13,35 +13,22 @@
 namespace ihub::sampler
 {
 
-/** One concrete sample chosen for a note and velocity.
-
-    Returned by `LoadedKit::resolve()`. It is a small value type: the audio
-    thread can copy it, read the pointers and the already-combined gain, pan
-    and playback rate, and start a voice without any further lookup or
-    allocation.
-*/
 struct ResolvedHit
 {
-    /** Decoded sample at the engine rate. Owned by the `LoadedKit`. */
     const SampleData* sample = nullptr;
 
-    /** The pad and layer the sample came from. Owned by the `LoadedKit`. */
     const KitPad* pad = nullptr;
     const VelocityLayer* layer = nullptr;
 
     int note = 0;
     int velocity = 0;
 
-    /** Index of the round-robin variant that was chosen. */
     int variant = 0;
 
-    /** Pad gain multiplied by the sample gain (linear, not dB). */
     float gain = 1.0f;
 
-    /** Pad pan plus sample pan, clamped to -1 .. 1. */
     float pan = 0.0f;
 
-    /** Pad tune plus sample tune, as a playback-rate multiplier. */
     double playbackRatio = 1.0;
 
     bool isValid() const noexcept { return sample != nullptr && ! sample->isEmpty(); }
@@ -50,25 +37,6 @@ struct ResolvedHit
     float rightGain() const noexcept { return panGainRight (pan, gain); }
 };
 
-/**
-    A parsed kit with every referenced sample already decoded at the engine
-    rate, plus the per-layer round-robin positions.
-
-    Build one with `KitLoader` and keep it alive for as long as voices may
-    reference its samples. The object is immutable after loading except for
-    the atomic round-robin counters, so:
-
-    - `resolve()` is safe from the audio thread. It performs no allocation,
-      no locking, no logging and no file I/O; it only reads the prepared
-      tables and increments one atomic counter.
-    - `resolveWithVariant()` is also safe from the audio thread and does not
-      touch the counters, which makes it useful for previews and tests.
-    - Do not destroy a `LoadedKit` while a voice still points into it. The
-      engine switches kits with the stream stopped (or after all voices are
-      idle), exactly like `SampleHandoff`.
-
-    `getKit()` and the inspection methods are for control threads.
-*/
 class LoadedKit final
 {
 public:
@@ -81,33 +49,19 @@ public:
     LoadedKit (LoadedKit&&) noexcept = default;
     LoadedKit& operator= (LoadedKit&&) noexcept = default;
 
-    /** True once a kit and its samples have been installed. */
     bool isValid() const noexcept { return ! kit.pads.empty(); }
 
-    /** The parsed kit document. */
     const Kit& getKit() const noexcept { return kit; }
 
-    /** Unique decoded sample files (identical paths are decoded once). */
     std::size_t getNumLoadedSamples() const noexcept { return samples.size(); }
 
-    /** A unique decoded sample by index, or nullptr. For tests and previews. */
     const SampleData* getLoadedSample (std::size_t index) const noexcept
     {
         return index < samples.size() ? samples[index].get() : nullptr;
     }
 
-    /** Picks the layer for `velocity` and the next round-robin variant.
-
-        Returns an invalid hit when no pad has this note or no layer covers
-        the velocity (which validation already rejects for a valid kit).
-        Safe from the audio thread.
-    */
     ResolvedHit resolve (int note, int velocity) noexcept;
 
-    /** Like `resolve()`, but selects a specific round-robin variant without
-        advancing the counter. `variantIndex` wraps. Safe from the audio
-        thread.
-    */
     ResolvedHit resolveWithVariant (int note, int velocity, int variantIndex) const noexcept;
 
 private:
@@ -134,21 +88,16 @@ private:
 
     Kit kit;
 
-    /** Unique decoded files, in first-reference order. */
     std::vector<std::shared_ptr<const SampleData>> samples;
 
-    /** One pointer per sample reference, in traversal order. */
     std::vector<const SampleData*> samplePointers;
 
-    /** Flattened layers in pad-then-layer order. */
     std::vector<LayerBinding> layerBindings;
 
-    /** Pads in document order; each owns a contiguous range of layers. */
     std::vector<PadBinding> padBindings;
 
-    /** One round-robin counter per flattened layer. Allocated at load. */
     std::unique_ptr<std::atomic<std::uint32_t>[]> roundRobinCounters;
     std::size_t numRoundRobinCounters = 0;
 };
 
-} // namespace ihub::sampler
+}

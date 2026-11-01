@@ -12,26 +12,10 @@ namespace ihub::sampler::sample_detail
 namespace
 {
 
-//==============================================================================
-// Resampler
-
-/** Number of zero crossings on each side of the windowed-sinc kernel at the
-    engine Nyquist. 24 gives a transition band narrow enough for sample
-    playback while keeping a 44.1 -> 48 kHz conversion at 48 taps per output
-    sample. */
 constexpr int resamplerZeroCrossings = 24;
 
-/** Phase-table resolution. Two adjacent rows are linearly interpolated, so
-    512 rows keep the interpolation error far below the 24-bit decode floor. */
 constexpr int resamplerPhases = 512;
 
-/** The windowed-sinc table for one (source rate, engine rate) pair.
-
-    For each fractional phase it stores an already DC-normalised kernel. The
-    kernel's cutoff is the lower of the two Nyquist frequencies, expressed in
-    cycles per source sample, so downsampling is band-limited instead of
-    aliasing.
-*/
 struct SincTable
 {
     SincTable (double sourceRate, double destinationRate)
@@ -54,8 +38,6 @@ struct SincTable
 
             for (int tap = 0; tap < taps; ++tap)
             {
-                // x is the distance in source samples between the output
-                // position and this input sample.
                 const double x = fraction + (double) halfWidth - 1.0 - (double) tap;
 
                 double sinc = 1.0;
@@ -64,7 +46,6 @@ struct SincTable
                     sinc = std::sin (juce::MathConstants<double>::pi * twoFc * x)
                            / (juce::MathConstants<double>::pi * twoFc * x);
 
-                // Hann window over +-halfWidth.
                 const double window = 0.5 + 0.5 * std::cos (juce::MathConstants<double>::pi * x
                                                              / (double) halfWidth);
 
@@ -89,7 +70,7 @@ struct SincTable
     std::vector<float> weights;
 };
 
-} // namespace
+}
 
 juce::AudioBuffer<float> resampleBuffer (const juce::AudioBuffer<float>& source,
                                          double sourceRate,
@@ -177,4 +158,4 @@ bool isSupportedEngineRate (double rate) noexcept
     return std::isfinite (rate) && rate >= 8000.0 && rate <= 384000.0;
 }
 
-} // namespace ihub::sampler::sample_detail
+}

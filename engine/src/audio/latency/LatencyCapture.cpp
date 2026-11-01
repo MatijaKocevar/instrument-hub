@@ -19,7 +19,7 @@ struct AlsaErrorSilencer
     AlsaErrorSilencer()  { snd_lib_error_set_handler (&silentAlsaError); }
     ~AlsaErrorSilencer() { snd_lib_error_set_handler (nullptr); }
 };
-} // namespace
+}
 #endif
 
 CapturedLoopbackImpulse captureLoopbackImpulse (const LatencyProbeOptions& options)
@@ -129,9 +129,6 @@ CapturedLoopbackImpulse captureLoopbackImpulse (const LatencyProbeOptions& optio
     {
         const int want = juce::jmin (period, captureSamples - offset);
 
-        // Read first, then write. This is the same order as a full-duplex
-        // audio callback and gives the loopback a chance to fill its capture
-        // ring before the impulse is queued.
         auto read = snd_pcm_readi (captureDevice, recorded.data() + offset,
                                    static_cast<snd_pcm_uframes_t> (want));
 
@@ -161,4 +158,4 @@ CapturedLoopbackImpulse captureLoopbackImpulse (const LatencyProbeOptions& optio
 #endif
 }
 
-} // namespace AudioEngine::detail
+}

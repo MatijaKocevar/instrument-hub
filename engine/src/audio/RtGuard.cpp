@@ -14,8 +14,6 @@
 #if IHUB_RT_GUARD
  #include <juce_core/juce_core.h>
 
- // RtGuard installs a global replacement for operator new, so JUCE's own
- // allocation hooks must stay off: they define the same symbols.
  #if JUCE_ENABLE_ALLOCATION_HOOKS
   #error "IHUB_RT_GUARD replaces operator new; build with JUCE_ENABLE_ALLOCATION_HOOKS=0"
  #endif
@@ -33,12 +31,6 @@ std::atomic<std::uint64_t> locks { 0 };
 std::atomic<std::uint64_t> logs { 0 };
 std::atomic<std::uint64_t> scopeErrors { 0 };
 
-/** Writes a fatal diagnostic without stdio, allocation or a lock.
-
-    stdio is deliberately avoided: the violation might have happened while the
-    callback held the stdio lock (for example a printf that allocated), and
-    taking that lock again before aborting would hang instead of failing.
-*/
 void writeFatalText (const char* text) noexcept
 {
     if (text == nullptr)
@@ -56,9 +48,8 @@ void writeFatalText (const char* text) noexcept
     std::fputs (text, stderr);
    #endif
 }
-} // namespace
+}
 
-//==============================================================================
 bool RtGuard::isEnabled() noexcept
 {
     return enabled.load (std::memory_order_relaxed);
@@ -79,7 +70,6 @@ void RtGuard::setStrict (bool shouldBeStrict) noexcept
     strict.store (shouldBeStrict, std::memory_order_relaxed);
 }
 
-//==============================================================================
 int RtGuard::getOpenScopeCount() noexcept
 {
     return RtDetail::openScopes.load (std::memory_order_relaxed);
@@ -95,7 +85,6 @@ bool RtGuard::assertNoOpenScopes() noexcept
     return open == 0;
 }
 
-//==============================================================================
 void RtGuard::noteAllocation (const char* what) noexcept
 {
    #if IHUB_RT_GUARD
@@ -166,9 +155,6 @@ void RtGuard::noteViolation (Violation kind, const char* detail) noexcept
 
 void RtGuard::fail (Violation kind, const char* detail) noexcept
 {
-    // Fatal path only. No stdio, no allocation, no locks: see writeFatalText.
-    // RtDetail::handlingViolation stays set for the whole call so the abort
-    // path cannot recurse into the allocator hook.
     writeFatalText ("rt-guard: FATAL ");
     writeFatalText (toString (kind));
     writeFatalText (" inside audio callback");
@@ -183,7 +169,6 @@ void RtGuard::fail (Violation kind, const char* detail) noexcept
     std::abort();
 }
 
-//==============================================================================
 RtGuard::Counters RtGuard::getCounters() noexcept
 {
     Counters result;
@@ -220,15 +205,10 @@ const char* RtGuard::toString (Violation kind) noexcept
     return "violation";
 }
 
-//==============================================================================
 #if IHUB_RT_GUARD
 namespace
 {
-/** A Logger that reports writes made inside a realtime scope.
 
-    Messages that are not violations are forwarded to stderr directly rather
-    than through Logger, so reporting can never re-enter the probe.
-*/
 class RtGuardLogProbe final : public juce::Logger
 {
 public:
@@ -243,15 +223,13 @@ public:
 
 RtGuardLogProbe& getLogProbe() noexcept
 {
-    // Intentionally leaked: its destructor must never run while JUCE still
-    // points currentLogger at it.
     static auto* probe = new RtGuardLogProbe();
     return *probe;
 }
 
 juce::Logger* previousLogger = nullptr;
 bool logProbeInstalled = false;
-} // namespace
+}
 
 void RtGuard::installLogProbe() noexcept
 {
@@ -285,4 +263,4 @@ void RtGuard::uninstallLogProbe() noexcept {}
 bool RtGuard::isLogProbeInstalled() noexcept { return false; }
 #endif
 
-} // namespace AudioEngine
+}

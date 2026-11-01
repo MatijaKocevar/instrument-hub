@@ -160,4 +160,4 @@ bool readOptionalString (const juce::DynamicObject& object,
     return true;
 }
 
-} // namespace ihub::sampler::kit_detail
+}

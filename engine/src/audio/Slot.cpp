@@ -11,7 +11,7 @@ namespace
 constexpr float userGainRampMilliseconds = 10.0f;
 constexpr float minimumFadeMilliseconds = 0.5f;
 constexpr float maximumGain = 4.0f;
-} // namespace
+}
 
 const char* toString (SlotState state) noexcept
 {
@@ -45,9 +45,6 @@ void Slot::prepare (double newSampleRate, int newMaximumBlockSize, int newNumCha
     storage.setSize (numChannels, maximumBlockSize, false, true, true);
     storage.clear();
 
-    // `view` refers to `storage` for every block. Rebinding it keeps the
-    // per-block channel pointers in place without growing a heap allocation:
-    // the channel count never increases inside process().
     view.setSize (0, 0, false, true, true);
     view.setDataToReferTo (storage.getArrayOfWritePointers(), numChannels, 0);
 
@@ -68,8 +65,6 @@ void Slot::prepare (double newSampleRate, int newMaximumBlockSize, int newNumCha
 
     prepared = true;
 
-    // Keep the activation request across a device change; it fades back in on
-    // the first block rather than silently going quiet.
     if (source != nullptr)
         source->prepare (sampleRate, maximumBlockSize);
 
@@ -163,7 +158,6 @@ bool Slot::process (int numSamples, juce::MidiBuffer& midi) noexcept
 
     if (source == nullptr)
     {
-        // Nothing to render; do not stay in a "processing" state forever.
         state = SlotState::idle;
         fadeGain = 0.0f;
         publishedState.store (state, std::memory_order_relaxed);
@@ -205,13 +199,6 @@ bool Slot::renderSource (int numSamples, juce::MidiBuffer& midi) noexcept
     view.clear();
     source->process (view, midi);
 
-    // instrument -> ordered FX chain -> bus. An empty chain returns without
-    // touching the buffer, so this stays a bit-exact passthrough.
-    //
-    // Direct monitoring asks the slot to leave the chain out of the audible
-    // path: the input reaches the bus at the source's own latency instead of
-    // waiting for a heavy effect. An FX-chain edit takes the same dry path for
-    // one block, so the control thread can rebuild the chain safely.
     if (! source->bypassesFxChain()
         && ! fxChainEditing.load (std::memory_order_acquire))
         fxChain.process (view, midi);
@@ -258,8 +245,6 @@ void Slot::applyGains (int numSamples, bool applyFade) noexcept
 
         const float gain = (applyFade ? fadeGain : 1.0f) * appliedGain;
 
-        // Unity is the overwhelmingly common case; skipping the multiply also
-        // keeps bit-exact unity gain.
         if (std::abs (gain - 1.0f) <= 0.0f)
             continue;
 
@@ -272,8 +257,6 @@ int Slot::latencySamples() const noexcept
 {
     const int sourceLatency = source != nullptr ? source->latencySamples() : 0;
 
-    // A bypassed chain adds no delay to the audible path, so plugin delay
-    // compensation must not over-delay the other slots for it.
     if (source != nullptr && source->bypassesFxChain())
         return sourceLatency;
 
@@ -288,4 +271,4 @@ double Slot::latencyMilliseconds() const noexcept
     return static_cast<double> (latencySamples()) * 1000.0 / sampleRate;
 }
 
-} // namespace AudioEngine
+}

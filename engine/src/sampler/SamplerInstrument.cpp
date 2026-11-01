@@ -7,7 +7,6 @@ namespace ihub::sampler
 
 using namespace instrument_detail;
 
-//==============================================================================
 SamplerInstrument::SamplerInstrument()
 {
     for (auto& mode : padModes)
@@ -19,11 +18,8 @@ SamplerInstrument::SamplerInstrument()
 
 SamplerInstrument::~SamplerInstrument() = default;
 
-//==============================================================================
 void SamplerInstrument::setKit (LoadedKit* newKit) noexcept
 {
-    // Changing the kit behind a sounding voice would leave a dangling sample
-    // pointer, so stop everything first. The caller keeps the stream stopped.
     stopAllVoicesNow();
     kit.store (newKit, std::memory_order_release);
 }
@@ -90,7 +86,6 @@ void SamplerInstrument::reset() noexcept
                             std::memory_order_release);
 }
 
-//==============================================================================
 void SamplerInstrument::prepare (double newSampleRate, int maxBlock)
 {
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 48000.0;
@@ -107,7 +102,6 @@ int SamplerInstrument::clampGroup (int group) noexcept
     return juce::jlimit (noChokeGroup, maximumChokeGroup, group);
 }
 
-//==============================================================================
 int SamplerInstrument::getActiveVoiceCount() const noexcept
 {
     return activeVoiceCount.load (std::memory_order_relaxed);
@@ -128,4 +122,4 @@ int SamplerInstrument::getStartedVoiceCount() const noexcept
     return startedVoiceCount.load (std::memory_order_relaxed);
 }
 
-} // namespace ihub::sampler
+}

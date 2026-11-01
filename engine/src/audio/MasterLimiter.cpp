@@ -5,7 +5,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 void MasterLimiter::prepare (double sampleRate,
                              float thresholdDb,
                              float releaseMilliseconds) noexcept
@@ -17,8 +16,6 @@ void MasterLimiter::prepare (double sampleRate,
         1.0f,
         releaseMilliseconds * 0.001f * static_cast<float> (juce::jmax (1.0, sampleRate)));
 
-    // One-pole release towards unity: the gain recovers by ~63% per release
-    // time after a peak.
     releaseCoefficient = 1.0f - std::exp (-1.0f / releaseSamples);
 }
 
@@ -50,8 +47,6 @@ void MasterLimiter::process (juce::AudioBuffer<float>& buffer, int numSamples) n
 
         if (peak > threshold)
         {
-            // Instantaneous attack: never let this sample through above the
-            // threshold. Keep an existing, lower gain.
             const float requiredGain = threshold / peak;
 
             if (requiredGain < gain)
@@ -81,4 +76,4 @@ float MasterLimiter::getGainReductionDb() const noexcept
     return 20.0f * std::log10 (gain);
 }
 
-} // namespace AudioEngine
+}

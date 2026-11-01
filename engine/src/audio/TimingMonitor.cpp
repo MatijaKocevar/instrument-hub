@@ -10,10 +10,8 @@ namespace
 {
 constexpr double noDeadline = 0.0;
 
-/** Tolerance used only to keep `2 * deadline / deadline` from rounding up to
-    the next whole period at the boundary. */
 constexpr double periodEpsilon = 1.0e-9;
-} // namespace
+}
 
 TimingMonitor::TimingMonitor (int windowSizeToUse)
     : windowSize (std::max (1, windowSizeToUse)),
@@ -102,9 +100,6 @@ void TimingMonitor::recordCallback (double elapsedMs, int numSamplesProcessed) n
 
     overruns.fetch_add (1, std::memory_order_relaxed);
 
-    // Only complete extra periods count as dropped blocks. A callback at 1.5x
-    // the deadline overruns, but has not yet swallowed a whole block period;
-    // 2x drops exactly one, 3x drops two.
     const double periods = elapsedMs / deadline;
     const auto wholePeriods = static_cast<std::uint64_t> (
         std::floor (periods + periodEpsilon));
@@ -118,7 +113,6 @@ void TimingMonitor::pushWindow (double milliseconds) noexcept
     const auto current = sequence;
     const auto capacity = static_cast<std::uint64_t> (windowSize);
 
-    // Drop entries that leave the window once `current` is added.
     while (windowCount > 0
            && window[static_cast<size_t> (windowHead)].sequence + capacity <= current)
     {
@@ -126,8 +120,6 @@ void TimingMonitor::pushWindow (double milliseconds) noexcept
         --windowCount;
     }
 
-    // Keep the deque monotonic: anything at or below the new value can never
-    // be the maximum again while the new value is in the window.
     while (windowCount > 0)
     {
         const int last = (windowTail + windowSize - 1) % windowSize;
@@ -234,4 +226,4 @@ TimingSnapshot TimingMonitor::snapshot() const noexcept
     return result;
 }
 
-} // namespace AudioEngine
+}

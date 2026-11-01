@@ -8,7 +8,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 bool FxRack::add (const FxInsertConfig& config,
                   int position,
                   double sampleRate,
@@ -135,4 +134,4 @@ void FxRack::clear() noexcept
     inserts.clear();
 }
 
-} // namespace AudioEngine
+}

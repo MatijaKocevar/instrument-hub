@@ -29,7 +29,6 @@ std::string toStd (const juce::String& text)
     return text.toStdString();
 }
 
-/** Finds a parameter by id or display name, the same rule the plugin page uses. */
 juce::AudioProcessorParameter* findPluginParameter (juce::AudioProcessor& processor,
                                                     const std::string& idOrName)
 {
@@ -86,8 +85,6 @@ bool applyEqParameters (ihub::dsp::Eq& eq,
 
         auto& settings = bands[static_cast<std::size_t> (band)];
 
-        // `low`, `mid` and `high` are the legacy set-file names for a band's
-        // gain; keep accepting them so older sets load.
         if (field == "FrequencyHz")
             settings.frequencyHz = juce::jlimit (ihub::dsp::Eq::minFrequencyHz,
                                                  ihub::dsp::Eq::maxFrequencyHz, value);
@@ -144,8 +141,6 @@ bool applyDelayParameters (ihub::dsp::Delay& delay,
 {
     auto settings = delay.getSettings();
 
-    // The insert wrapper owns the wet/dry balance, so the built-in always runs
-    // fully wet and the API's `wet` is the single balance control.
     settings.mix = 1.0f;
 
     for (const auto& [key, value] : parameters)
@@ -189,7 +184,6 @@ bool applyReverbParameters (ihub::dsp::Reverb& reverb,
 {
     auto settings = reverb.getSettings();
 
-    // As with the delay, the insert wrapper is the wet/dry control.
     settings.mix = 1.0f;
 
     for (const auto& [key, value] : parameters)
@@ -270,9 +264,8 @@ std::map<std::string, float> readReverbParameters (const ihub::dsp::Reverb& reve
         { "preDelayMs", settings.preDelayMs }
     };
 }
-} // namespace
+}
 
-//==============================================================================
 bool FxRack::applyParameters (InsertEffect& effect,
                               const std::map<std::string, float>& parameters,
                               bool replaceAll,
@@ -288,8 +281,6 @@ bool FxRack::applyParameters (InsertEffect& effect,
         return false;
     }
 
-    // `mix` is the legacy set-file name for the insert's wet/dry balance. It
-    // is not a wrapped-effect parameter: the wrapper owns the balance.
     std::map<std::string, float> effectParameters;
 
     for (const auto& [key, value] : parameters)
@@ -384,4 +375,4 @@ std::map<std::string, float> FxRack::readParameters (const InsertEffect& effect)
     return {};
 }
 
-} // namespace AudioEngine
+}

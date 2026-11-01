@@ -3,9 +3,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
-// Latency and xrun counters reported by the open device.
-
 int DeviceManager::getInputLatencyInSamples() const
 {
     if (auto* device = deviceManager.getCurrentAudioDevice())
@@ -30,4 +27,4 @@ int DeviceManager::getXRunCount() const
     return 0;
 }
 
-} // namespace AudioEngine
+}

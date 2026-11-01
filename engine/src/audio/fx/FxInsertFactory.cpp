@@ -21,9 +21,8 @@ std::string toStd (const juce::String& text)
 {
     return text.toStdString();
 }
-} // namespace
+}
 
-//==============================================================================
 bool FxRack::create (const FxInsertConfig& config,
                      double sampleRate,
                      int maximumBlockSize,
@@ -123,8 +122,6 @@ bool FxRack::create (const FxInsertConfig& config,
                 if (layout.inputBuses.isEmpty() || layout.outputBuses.isEmpty())
                     return false;
 
-                // A generator's input bus starts disabled; an insert must
-                // receive the engine's audio, so enable it explicitly.
                 layout.inputBuses.getReference (0) = set;
                 layout.outputBuses.getReference (0) = set;
 
@@ -183,8 +180,6 @@ bool FxRack::create (const FxInsertConfig& config,
 
     applyTransportTo (*effect);
 
-    // Prepare now so the effect is ready before it joins the chain, and so its
-    // latency is cached for the API's first read.
     effect->prepareToPlay (sampleRate, juce::jmax (1, maximumBlockSize));
     effect->refreshLatency();
 
@@ -192,4 +187,4 @@ bool FxRack::create (const FxInsertConfig& config,
     return true;
 }
 
-} // namespace AudioEngine
+}

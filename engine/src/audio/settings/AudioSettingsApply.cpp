@@ -10,9 +10,8 @@ namespace AudioEngine
 namespace
 {
 constexpr double kLatencyEpsilon = 0.5;
-} // namespace
+}
 
-//==============================================================================
 bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::string& error)
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -41,8 +40,6 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
                           ? juce::String (*patch.deviceName)
                           : currentName;
 
-    // Switching device type without naming a device picks that type's first
-    // output, so the UI can change the type with one control.
     if ((! patch.deviceName.has_value() && targetType != currentType)
         || targetName.isEmpty())
     {
@@ -172,4 +169,4 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     return true;
 }
 
-} // namespace AudioEngine
+}

@@ -3,9 +3,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
-// State of the device that is currently open.
-
 DeviceSetup DeviceManager::getCurrentSetup() const
 {
     DeviceSetup setup;
@@ -64,4 +61,4 @@ int DeviceManager::getCurrentBitDepth() const
     return 0;
 }
 
-} // namespace AudioEngine
+}
