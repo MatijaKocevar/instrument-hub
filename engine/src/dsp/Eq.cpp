@@ -8,16 +8,11 @@ namespace ihub::dsp
 
 namespace
 {
-// A parameter change can race the audio thread's snapshot read. Bailing out of
-// the read after a few attempts is harmless: the current coefficients stay in
-// place for one more block.
 constexpr int maxSnapshotReadAttempts = 3;
 
-// Below this the band is treated as flat and gets an exact identity biquad.
 constexpr float flatGainEpsilonDb = 1.0e-6f;
-} // namespace
+}
 
-//==============================================================================
 Eq::Eq()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), true)
@@ -36,7 +31,6 @@ Eq::Eq()
     bandSettings[2].q = 0.7071068f;
 }
 
-//==============================================================================
 void Eq::prepareToPlay (double sampleRate, int)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
@@ -76,7 +70,6 @@ void Eq::reset()
             filter.reset();
 }
 
-//==============================================================================
 void Eq::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     const juce::ScopedNoDenormals noDenormals;
@@ -96,8 +89,6 @@ void Eq::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
     if (! enabled.load (std::memory_order_relaxed))
         return;
 
-    // Apply a pending parameter change at the block boundary. The copy into
-    // the existing Coefficient object reuses its storage: no allocation.
     const auto version = snapshot.version.load (std::memory_order_acquire);
 
     if (version != appliedVersion && (version & 1u) == 0u)
@@ -123,8 +114,6 @@ void Eq::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
             filter.process (juce::dsp::ProcessContextReplacing<float> (channelBlock));
     }
 
-    // A host should not change the channel count without another prepare, but
-    // if it does, keep the extra outputs silent instead of leaving garbage.
     for (int channel = channelsToProcess; channel < numChannels; ++channel)
         buffer.clear (channel, 0, numSamples);
 }
@@ -141,7 +130,6 @@ bool Eq::isBusesLayoutSupported (const BusesLayout& layouts) const
            || inputs == juce::AudioChannelSet::stereo();
 }
 
-//==============================================================================
 void Eq::setBand (int index, const EqBandSettings& settings)
 {
     if (! juce::isPositiveAndBelow (index, numBands))
@@ -204,7 +192,6 @@ bool Eq::isEnabled() const noexcept
     return enabled.load (std::memory_order_relaxed);
 }
 
-//==============================================================================
 double Eq::getMagnitudeDbAt (double frequencyHz) const noexcept
 {
     if (! enabled.load (std::memory_order_relaxed))
@@ -244,7 +231,6 @@ double Eq::getMagnitudeDbAt (double frequencyHz) const noexcept
                : -300.0;
 }
 
-//==============================================================================
 Eq::BiquadCoefficients Eq::designBand (const EqBandSettings& settings,
                                        double sampleRate) noexcept
 {
@@ -295,8 +281,6 @@ Eq::BiquadCoefficients Eq::designBand (const EqBandSettings& settings,
 juce::dsp::IIR::Coefficients<float>::Ptr Eq::makeJuceCoefficients (
     const BiquadCoefficients& coefficients)
 {
-    // The constructor normalises by a0 (which is already 1 here) and allocates
-    // its coefficient array. Message thread only.
     return new juce::dsp::IIR::Coefficients<float> (coefficients.b0,
                                                     coefficients.b1,
                                                     coefficients.b2,
@@ -313,7 +297,6 @@ void Eq::publishSettings() noexcept
         designed[(std::size_t) band] =
             designBand (bandSettings[(std::size_t) band], currentSampleRate);
 
-    // Writer side of the seqlock: odd version, relaxed payload, even version.
     snapshot.version.fetch_add (1, std::memory_order_acq_rel);
 
     for (int band = 0; band < numBands; ++band)
@@ -355,9 +338,6 @@ void Eq::applySnapshot (const std::array<BiquadCoefficients, numBands>& coeffici
         if (target == nullptr)
             continue;
 
-        // The Coefficients object was built as a second-order section, so its
-        // raw array holds exactly b0, b1, b2, a1, a2 (a0 removed). Writing in
-        // place reuses the allocation: no heap traffic on the audio thread.
         auto* raw = target->getRawCoefficients();
 
         if (target->getFilterOrder() != 2 || raw == nullptr)
@@ -373,12 +353,11 @@ void Eq::applySnapshot (const std::array<BiquadCoefficients, numBands>& coeffici
     }
 }
 
-//==============================================================================
 void Eq::getStateInformation (juce::MemoryBlock& destData)
 {
     juce::MemoryOutputStream stream (destData, false);
 
-    stream.writeInt (1); // format version
+    stream.writeInt (1);
     stream.writeBool (isEnabled());
 
     for (const auto& band : bandSettings)
@@ -401,7 +380,6 @@ void Eq::setStateInformation (const void* data, int sizeInBytes)
     if (stream.readInt() != 1)
         return;
 
-    // 1 int version (4 bytes) + 1 bool + numBands * (int, float, float, float, bool).
     constexpr int expectedBytes = 4 + 1 + numBands * (4 + 4 + 4 + 4 + 1);
 
     if (sizeInBytes < expectedBytes)
@@ -429,4 +407,4 @@ void Eq::setStateInformation (const void* data, int sizeInBytes)
     setEnabled (shouldBeEnabled);
 }
 
-} // namespace ihub::dsp
+}

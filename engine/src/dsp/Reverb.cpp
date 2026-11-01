@@ -8,27 +8,18 @@ namespace ihub::dsp
 
 namespace
 {
-// A parameter change can race the audio thread's snapshot read. Bailing out
-// after a few attempts is harmless: the current values stay in place for one
-// more block.
 constexpr int maxSnapshotReadAttempts = 3;
 
-// Freeverb tunings, in samples at 44.1 kHz. The right channel adds the
-// classic 23-sample stereo spread so the two banks are decorrelated.
 constexpr int referenceSampleRate = 44100;
 constexpr int combTuning[Reverb::numCombs] { 1116, 1188, 1277, 1356,
                                              1422, 1491, 1557, 1617 };
 constexpr int allpassTuning[Reverb::numAllpasses] { 556, 441, 341, 225 };
 constexpr int stereoSpread = 23;
 
-// Freeverb's input gain: the eight comb outputs are summed, so the input is
-// scaled down to keep the wet signal at a usable level.
 constexpr float inputGain = 0.015f;
 
-// Allpass feedback is fixed at 0.5 in the classic topology.
 constexpr float allpassFeedback = 0.5f;
 
-// Freeverb's damping scale: 1.0 maps to a coefficient of 0.4.
 constexpr float dampingScale = 0.4f;
 
 int scaledLength (int length, double sampleRate, int extra = 0) noexcept
@@ -36,9 +27,8 @@ int scaledLength (int length, double sampleRate, int extra = 0) noexcept
     const auto scale = sampleRate / static_cast<double> (referenceSampleRate);
     return juce::jmax (1, static_cast<int> (std::llround (length * scale)) + extra);
 }
-} // namespace
+}
 
-//==============================================================================
 void Reverb::Comb::prepare (int size)
 {
     buffer.assign (static_cast<std::size_t> (juce::jmax (1, size)), 0.0f);
@@ -56,7 +46,6 @@ float Reverb::Comb::process (float input, float feedback, float damp1, float dam
 {
     const auto output = buffer[static_cast<std::size_t> (index)];
 
-    // One-pole low-pass in the feedback loop.
     filterStore = output * damp2 + filterStore * damp1;
     buffer[static_cast<std::size_t> (index)] = input + filterStore * feedback;
 
@@ -66,7 +55,6 @@ float Reverb::Comb::process (float input, float feedback, float damp1, float dam
     return output;
 }
 
-//==============================================================================
 void Reverb::Allpass::prepare (int size)
 {
     buffer.assign (static_cast<std::size_t> (juce::jmax (1, size)), 0.0f);
@@ -92,7 +80,6 @@ float Reverb::Allpass::process (float input, float feedback) noexcept
     return output;
 }
 
-//==============================================================================
 void Reverb::Channel::prepare (int sampleRate, int preDelaySize, bool useStereoSpread)
 {
     const auto rate = sampleRate > 0 ? static_cast<double> (sampleRate) : 48000.0;
@@ -160,7 +147,6 @@ float Reverb::Channel::process (float dry, int preDelaySamples,
     return sum;
 }
 
-//==============================================================================
 Reverb::Reverb()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), true)
@@ -171,7 +157,6 @@ Reverb::Reverb()
     appliedVersion = snapshot.version.load (std::memory_order_acquire);
 }
 
-//==============================================================================
 void Reverb::prepareToPlay (double sampleRate, int)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
@@ -197,7 +182,6 @@ void Reverb::prepareToPlay (double sampleRate, int)
 
     prepared = true;
 
-    // The reverb adds no latency: it is a wet effect, not a lookahead device.
     setLatencySamples (0);
 }
 
@@ -212,7 +196,6 @@ void Reverb::reset()
         channel.reset();
 }
 
-//==============================================================================
 void Reverb::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     const juce::ScopedNoDenormals noDenormals;
@@ -229,7 +212,6 @@ void Reverb::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
         return;
     }
 
-    // Apply a pending parameter change at the block boundary.
     const auto version = snapshot.version.load (std::memory_order_acquire);
 
     if (version != appliedVersion && (version & 1u) == 0u)
@@ -255,8 +237,8 @@ void Reverb::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
     const float feedback = applied.combFeedback;
     const float damp1 = applied.damp1;
     const float damp2 = applied.damp2;
-    const float wetA = applied.wet1; // same-channel wet gain
-    const float wetB = applied.wet2; // cross-channel wet gain
+    const float wetA = applied.wet1;
+    const float wetB = applied.wet2;
     const float dryGain = applied.dryGain;
     const int preDelaySamples = juce::jlimit (0, maxPreDelaySamples,
                                               applied.preDelaySamples);
@@ -285,14 +267,10 @@ void Reverb::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
         }
         else if (! bypassed)
         {
-            // Mono: wet1 + wet2 collapses to the mix amount, so width has no
-            // effect on a single-channel bus.
             output[0][i] = dryLeft * dryGain + wetLeft * (wetA + wetB);
         }
     }
 
-    // A host should not change the channel count without another prepare, but
-    // if it does, keep the extra outputs silent instead of leaving garbage.
     for (int channel = channelsToProcess; channel < numChannels; ++channel)
         buffer.clear (channel, 0, numSamples);
 }
@@ -309,7 +287,6 @@ bool Reverb::isBusesLayoutSupported (const BusesLayout& layouts) const
            || inputs == juce::AudioChannelSet::stereo();
 }
 
-//==============================================================================
 ReverbSettings Reverb::clampSettings (const ReverbSettings& input) noexcept
 {
     ReverbSettings s = input;
@@ -343,7 +320,6 @@ Reverb::Published Reverb::computePublished() const noexcept
     return p;
 }
 
-//==============================================================================
 void Reverb::setSettings (const ReverbSettings& newSettings)
 {
     settings = clampSettings (newSettings);
@@ -400,12 +376,10 @@ bool Reverb::isEnabled() const noexcept
     return enabled.load (std::memory_order_relaxed);
 }
 
-//==============================================================================
 void Reverb::publishSettings() noexcept
 {
     const auto publishedValues = computePublished();
 
-    // Writer side of the seqlock: odd version, relaxed payload, even version.
     snapshot.version.fetch_add (1, std::memory_order_acq_rel);
     snapshot.values.store (publishedValues);
     snapshot.version.fetch_add (1, std::memory_order_release);
@@ -433,12 +407,11 @@ bool Reverb::readSnapshot (Published& destination) const noexcept
     return false;
 }
 
-//==============================================================================
 void Reverb::getStateInformation (juce::MemoryBlock& destData)
 {
     juce::MemoryOutputStream stream (destData, false);
 
-    stream.writeInt (1); // format version
+    stream.writeInt (1);
     stream.writeBool (isEnabled());
     stream.writeFloat (settings.roomSize);
     stream.writeFloat (settings.damping);
@@ -457,7 +430,6 @@ void Reverb::setStateInformation (const void* data, int sizeInBytes)
     if (stream.readInt() != 1)
         return;
 
-    // 1 int version (4 bytes) + 1 bool + 5 floats.
     constexpr int expectedBytes = 4 + 1 + 5 * 4;
 
     if (sizeInBytes < expectedBytes)
@@ -476,4 +448,4 @@ void Reverb::setStateInformation (const void* data, int sizeInBytes)
     setEnabled (shouldBeEnabled);
 }
 
-} // namespace ihub::dsp
+}

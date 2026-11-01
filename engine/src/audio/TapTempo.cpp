@@ -9,10 +9,8 @@ namespace AudioEngine
 
 namespace
 {
-/** Tolerance so an interval sitting exactly on a range boundary is accepted
-    even after floating-point division of `60 / bpm`. */
 constexpr double rangeEpsilon = 1.0e-9;
-} // namespace
+}
 
 TapTempo::TapTempo (int requestedHistorySize) noexcept
     : historySize (std::clamp (requestedHistorySize, 1, maximumHistorySize))
@@ -143,8 +141,6 @@ double TapTempo::medianIntervalSeconds() const noexcept
     if (intervalCount <= 0)
         return 0.0;
 
-    // The fixed array means this sort never allocates. Order is irrelevant to
-    // the median, so the ring buffer can be read as a flat prefix.
     std::array<double, maximumHistorySize> sorted {};
 
     for (int index = 0; index < intervalCount; ++index)
@@ -161,4 +157,4 @@ double TapTempo::medianIntervalSeconds() const noexcept
                   + sorted[static_cast<std::size_t> (upper)]);
 }
 
-} // namespace AudioEngine
+}

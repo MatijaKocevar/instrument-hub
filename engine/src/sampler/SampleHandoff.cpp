@@ -14,9 +14,6 @@ void SampleHandoff::publish (std::unique_ptr<SampleData> sample) noexcept
 {
     auto* raw = sample.release();
 
-    // If the audio thread never consumed the previous publication, it is
-    // safe to free it here: the exchange is the linearisation point, so the
-    // consumer either takes the old pointer or this thread does.
     delete incoming.exchange (raw, std::memory_order_acq_rel);
 }
 
@@ -52,9 +49,6 @@ void SampleHandoff::pushRetired (const SampleData* sample) noexcept
     }
     else
     {
-        // Never free on the audio thread. Leaking a sample in this
-        // pathological case is the least-bad option, and the counter makes it
-        // visible in tests and diagnostics.
         overflowCount.fetch_add (1, std::memory_order_relaxed);
     }
 }
@@ -85,4 +79,4 @@ int SampleHandoff::getNumRetired() const noexcept
     return retireFifo.getNumReady();
 }
 
-} // namespace ihub::sampler
+}

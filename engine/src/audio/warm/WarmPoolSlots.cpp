@@ -10,16 +10,14 @@ namespace AudioEngine
 namespace
 {
 constexpr int minimumWarmInstances = 1;
-} // namespace
+}
 
-//==============================================================================
 void WarmPool::setNeighbourCount (int count)
 {
     {
         const std::lock_guard<std::mutex> lock (mutex);
         neighbourCount = juce::jmax (0, count);
 
-        // The protected set just changed; let the background thread apply it.
         retryDeferred = true;
         setActiveLocked (activeSlot);
     }
@@ -43,8 +41,6 @@ void WarmPool::setNumSlots (int count)
         if (clamped == numSlots)
             return;
 
-        // Removed slots lose their instances. The caller promised the slots
-        // are not processing, so this is a plain move to the destroy queue.
         for (int index = clamped; index < numSlots; ++index)
         {
             auto& slot = slots[static_cast<size_t> (index)];
@@ -132,7 +128,6 @@ bool WarmPool::hasRequest (int slotIndex) const
     return slots[static_cast<size_t> (slotIndex)].request.isValid();
 }
 
-//==============================================================================
 std::vector<int> WarmPool::protectedLocked() const
 {
     std::vector<int> result;
@@ -154,8 +149,6 @@ std::vector<int> WarmPool::protectedLocked() const
             if (std::find (result.begin(), result.end(), index) != result.end())
                 continue;
 
-            // Double the distance and add one for the upper side, so equal
-            // distances prefer the lower index deterministically.
             const int distance = std::abs (index - anchor) * 2 + (index > anchor ? 1 : 0);
 
             if (distance < bestDistance)
@@ -204,9 +197,9 @@ bool WarmPool::needsWarmLocked (int slotIndex) const
         return false;
 
     if (slot.failedId == slot.request.id)
-        return false; // already failed once; wait for an explicit retry
+        return false;
 
     return isProtectedLocked (slotIndex);
 }
 
-} // namespace AudioEngine
+}

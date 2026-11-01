@@ -5,7 +5,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 void InsertEffect::refreshLatency() noexcept
 {
     const bool audible = ! bypassed.load (std::memory_order_relaxed)
@@ -17,9 +16,6 @@ void InsertEffect::refreshLatency() noexcept
 
     cachedLatency.store (latency, std::memory_order_relaxed);
 
-    // JUCE's `getLatencySamples()` is a plain member, not virtual, so publish
-    // the effective value through the base class. `FxChain::refreshLatency()`
-    // reads it from there.
     setLatencySamples (latency);
 }
 
@@ -34,4 +30,4 @@ int FxRack::latencySamples() const noexcept
     return total;
 }
 
-} // namespace AudioEngine
+}

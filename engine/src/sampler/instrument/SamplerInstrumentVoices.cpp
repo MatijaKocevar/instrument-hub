@@ -7,9 +7,6 @@ namespace ihub::sampler
 
 using namespace instrument_detail;
 
-//==============================================================================
-// Voice allocation and envelope control
-
 float SamplerInstrument::fadeStepForMilliseconds (float milliseconds) const noexcept
 {
     const auto samples = juce::jmax (1.0f,
@@ -36,9 +33,6 @@ void SamplerInstrument::startVoice (int channel, int note, int velocity) noexcep
 
     const auto group = chokeGroups[(std::size_t) clampedNote].load (std::memory_order_relaxed);
 
-    // Kill the previous hit(s) in the group before the new one starts. The
-    // fade is short (2 ms by default) so the cut is inaudible as a click but
-    // faster than the 5 ms acceptance window.
     if (group != noChokeGroup)
         chokeVoices (group, -1);
 
@@ -96,8 +90,6 @@ void SamplerInstrument::releaseVoices (int channel, int note) noexcept
         if (channel > 0 && voice.channel != channel)
             continue;
 
-        // Already fading faster (for example because of a choke): keep the
-        // faster envelope.
         voice.fadeStep = juce::jmax (voice.fadeStep, step);
     }
 }
@@ -185,4 +177,4 @@ void SamplerInstrument::setVoiceInactive (Voice& voice) noexcept
     }
 }
 
-} // namespace ihub::sampler
+}

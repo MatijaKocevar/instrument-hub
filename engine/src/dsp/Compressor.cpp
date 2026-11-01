@@ -7,17 +7,11 @@ namespace ihub::dsp
 
 namespace
 {
-// A parameter change can race the audio thread's snapshot read. Bailing out
-// after a few attempts is harmless: the current values stay in place for one
-// more block.
 constexpr int maxSnapshotReadAttempts = 3;
 
-// The detector floor. Anything quieter than this is treated as silence; it
-// also keeps the per-sample log away from -inf.
 constexpr float detectorFloorDb = -120.0f;
-} // namespace
+}
 
-//==============================================================================
 Compressor::Compressor()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), true)
@@ -28,7 +22,6 @@ Compressor::Compressor()
     appliedVersion = snapshot.version.load (std::memory_order_acquire);
 }
 
-//==============================================================================
 void Compressor::prepareToPlay (double sampleRate, int)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
@@ -44,8 +37,6 @@ void Compressor::prepareToPlay (double sampleRate, int)
 
     const auto numChannels = juce::jmax (1, getTotalNumInputChannels());
 
-    // The delay line is exactly one lookahead long: read-before-write at the
-    // same slot gives exactly `lookaheadSamples` of delay.
     delayBuffer.setSize (numChannels, juce::jmax (1, lookaheadSamples), false, true, false);
 
     reset();
@@ -56,8 +47,6 @@ void Compressor::prepareToPlay (double sampleRate, int)
 
     prepared = true;
 
-    // The whole latency is the delay line. Report it once per prepare; the
-    // host compensates with the same number.
     setLatencySamples (lookaheadSamples);
 }
 
@@ -75,7 +64,6 @@ void Compressor::reset()
     reportedGainReductionDb.store (0.0f, std::memory_order_relaxed);
 }
 
-//==============================================================================
 void Compressor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     const juce::ScopedNoDenormals noDenormals;
@@ -92,7 +80,6 @@ void Compressor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffe
         return;
     }
 
-    // Apply a pending parameter change at the block boundary.
     const auto version = snapshot.version.load (std::memory_order_acquire);
 
     if (version != appliedVersion && (version & 1u) == 0u)
@@ -157,8 +144,6 @@ void Compressor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffe
         delayIndex = index;
     }
 
-    // A host should not change the channel count without another prepare, but
-    // if it does, keep the extra outputs silent instead of leaving garbage.
     for (int channel = channelsToProcess; channel < numChannels; ++channel)
         buffer.clear (channel, 0, numSamples);
 
@@ -178,12 +163,8 @@ bool Compressor::isBusesLayoutSupported (const BusesLayout& layouts) const
            || inputs == juce::AudioChannelSet::stereo();
 }
 
-//==============================================================================
 float Compressor::advanceGain (float inputPeak, const Published& published) noexcept
 {
-    // Peak-hold detector: instant attack, release-shaped decay. The decay is
-    // what keeps a steady tone's detector at its true peak instead of the
-    // average of |sin|, which is what makes the static curve exact.
     if (inputPeak > detectorPeak)
         detectorPeak = inputPeak;
     else
@@ -206,7 +187,6 @@ float Compressor::advanceGain (float inputPeak, const Published& published) noex
     return juce::Decibels::decibelsToGain (-gainReductionDb) * published.makeupGain;
 }
 
-//==============================================================================
 CompressorSettings Compressor::clampSettings (const CompressorSettings& input) noexcept
 {
     CompressorSettings s = input;
@@ -243,7 +223,6 @@ Compressor::Published Compressor::computePublished() const noexcept
     return p;
 }
 
-//==============================================================================
 void Compressor::setSettings (const CompressorSettings& newSettings)
 {
     settings = clampSettings (newSettings);
@@ -316,12 +295,10 @@ float Compressor::getGainReductionDb() const noexcept
     return reportedGainReductionDb.load (std::memory_order_relaxed);
 }
 
-//==============================================================================
 void Compressor::publishSettings() noexcept
 {
     const auto publishedValues = computePublished();
 
-    // Writer side of the seqlock: odd version, relaxed payload, even version.
     snapshot.version.fetch_add (1, std::memory_order_acq_rel);
     snapshot.values.store (publishedValues);
     snapshot.version.fetch_add (1, std::memory_order_release);
@@ -349,12 +326,11 @@ bool Compressor::readSnapshot (Published& destination) const noexcept
     return false;
 }
 
-//==============================================================================
 void Compressor::getStateInformation (juce::MemoryBlock& destData)
 {
     juce::MemoryOutputStream stream (destData, false);
 
-    stream.writeInt (1); // format version
+    stream.writeInt (1);
     stream.writeBool (isEnabled());
     stream.writeFloat (settings.thresholdDb);
     stream.writeFloat (settings.ratio);
@@ -374,7 +350,6 @@ void Compressor::setStateInformation (const void* data, int sizeInBytes)
     if (stream.readInt() != 1)
         return;
 
-    // 1 int version (4 bytes) + 1 bool + 6 floats.
     constexpr int expectedBytes = 4 + 1 + 6 * 4;
 
     if (sizeInBytes < expectedBytes)
@@ -395,4 +370,4 @@ void Compressor::setStateInformation (const void* data, int sizeInBytes)
     setLookaheadMs (restoredLookaheadMs);
 }
 
-} // namespace ihub::dsp
+}

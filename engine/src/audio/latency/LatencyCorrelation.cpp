@@ -5,7 +5,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 int LatencyProbe::findLagSamples (const float* reference,
                                   int referenceSamples,
                                   const float* captured,
@@ -65,4 +64,4 @@ int LatencyProbe::findLagSamples (const float* reference,
     return bestLag;
 }
 
-} // namespace AudioEngine
+}

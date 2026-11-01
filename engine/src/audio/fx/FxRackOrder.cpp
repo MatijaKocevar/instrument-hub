@@ -6,7 +6,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 bool FxRack::reorder (const std::vector<int>& order, std::string& error)
 {
     if (order.size() != inserts.size())
@@ -46,4 +45,4 @@ void FxRack::moveInsert (int from, int to) noexcept
                     std::move (moved));
 }
 
-} // namespace AudioEngine
+}

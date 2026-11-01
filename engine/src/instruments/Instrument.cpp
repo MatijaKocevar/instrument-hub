@@ -15,4 +15,4 @@ const char* toString (Instrument::Kind kind) noexcept
     return "plugin";
 }
 
-} // namespace ihub
+}

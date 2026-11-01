@@ -9,9 +9,6 @@ namespace ihub::sampler
 
 using namespace instrument_detail;
 
-//==============================================================================
-// Event producers (control thread) and the lock-free queue
-
 void SamplerInstrument::noteOn (int channel, int note, float velocity)
 {
     if (velocity <= 0.0f)
@@ -79,7 +76,6 @@ bool SamplerInstrument::pushEvent (const std::uint8_t* bytes, int numBytes) noex
 
     event.numBytes = static_cast<std::uint8_t> (juce::jlimit (0, maximumMidiBytes, numBytes));
 
-    // Publishing the write index makes the event visible to process().
     pendingWriteIndex.store (next, std::memory_order_release);
     return true;
 }
@@ -91,9 +87,6 @@ int SamplerInstrument::getPendingEventCount() const noexcept
 
     return (int) ((write + maxPendingEvents - read) % maxPendingEvents);
 }
-
-//==============================================================================
-// Audio-thread event consumption
 
 void SamplerInstrument::drainQueuedEvents() noexcept
 {
@@ -136,7 +129,6 @@ void SamplerInstrument::applyQueuedEvent (const PendingEvent& event) noexcept
 
     if (type == 0xB0 && event.numBytes >= 3)
     {
-        // 123 = all notes off, 120 = all sound off.
         if (event.bytes[1] == 123 || event.bytes[1] == 120)
             allNotesOffNow();
     }
@@ -157,4 +149,4 @@ void SamplerInstrument::applyMidiEvent (const juce::MidiMessageMetadata& metadat
     applyQueuedEvent (event);
 }
 
-} // namespace ihub::sampler
+}

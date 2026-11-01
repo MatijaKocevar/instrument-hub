@@ -9,9 +9,6 @@ namespace ihub::sampler
 
 using namespace instrument_detail;
 
-//==============================================================================
-// Voice rendering and block scheduling
-
 void SamplerInstrument::renderVoices (juce::AudioBuffer<float>& buffer,
                                       int startSample, int numSamples) noexcept
 {
@@ -102,7 +99,6 @@ void SamplerInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuf
     if (numSamples <= 0)
         return;
 
-    // Events queued by noteOn()/noteOff() belong at the start of this block.
     drainQueuedEvents();
 
     int rendered = 0;
@@ -128,8 +124,6 @@ void SamplerInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuf
             rendered = nextEventPosition;
         }
 
-        // An event timestamped at or past the end of the block belongs to a
-        // later block; do not let it sound early.
         if (rendered >= numSamples)
             break;
 
@@ -144,13 +138,10 @@ void SamplerInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuf
 
         if (! handled)
         {
-            // Defensive: an event with a negative position or an iterator that
-            // did not advance must not stall the block. Render one sample and
-            // continue; events are still checked again on the next iteration.
             renderVoices (buffer, rendered, 1);
             ++rendered;
         }
     }
 }
 
-} // namespace ihub::sampler
+}

@@ -16,7 +16,7 @@ bool isFiniteInRange (double value, double minimum, double maximum) noexcept
     return std::isfinite (value) && value >= minimum && value <= maximum;
 }
 
-} // namespace
+}
 
 bool Kit::validate (juce::String& error) const
 {
@@ -132,8 +132,6 @@ bool Kit::validate (juce::String& error) const
             ranges.emplace_back (layer.minVelocity, layer.maxVelocity);
         }
 
-        // A pad must answer every velocity. Sorting makes the rule
-        // independent of the order layers appear in the document.
         std::sort (ranges.begin(), ranges.end());
 
         int expectedMinimum = minimumMidiVelocity;
@@ -162,4 +160,4 @@ bool Kit::validate (juce::String& error) const
     return true;
 }
 
-} // namespace ihub::sampler
+}

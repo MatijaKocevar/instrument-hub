@@ -21,10 +21,7 @@ bool readEngineSampleRate (double engineSampleRate, juce::String& error)
     return true;
 }
 
-} // namespace
-
-//==============================================================================
-// KitLoader
+}
 
 bool KitLoader::loadFromJson (const juce::String& json,
                               const juce::File& baseDirectory,
@@ -87,4 +84,4 @@ bool KitLoader::loadFromFile (const juce::File& file,
                          destination, error);
 }
 
-} // namespace ihub::sampler
+}

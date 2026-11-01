@@ -5,7 +5,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 InsertEffect::InsertEffect (std::unique_ptr<juce::AudioProcessor> processorToWrap,
                             FxInsertType typeToUse,
                             std::string idToUse,
@@ -41,8 +40,6 @@ void InsertEffect::prepareToPlay (double sampleRate, int maximumExpectedSamplesP
     dry.setSize (numChannels, maximumBlockSize, false, true, true);
     dry.clear();
 
-    // Give the wrapped processor the same channel layout the wrapper presents,
-    // with a mono fallback for an effect that cannot do stereo.
     const auto target = juce::AudioChannelSet::canonicalChannelSet (numChannels);
     auto layout = processor->getBusesLayout();
     bool changed = false;
@@ -95,8 +92,6 @@ void InsertEffect::reset()
 
 void InsertEffect::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
-    // Bypass and a fully dry balance are the same audio path: leave the buffer
-    // untouched so an idle insert is bit-exact.
     if (processor == nullptr || bypassed.load (std::memory_order_relaxed))
         return;
 
@@ -116,8 +111,6 @@ void InsertEffect::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuf
     const int innerChannels = juce::jmax (processor->getTotalNumInputChannels(),
                                           processor->getTotalNumOutputChannels());
 
-    // A layout the engine cannot feed stays dry instead of reading past the
-    // buffer. Every prepared buffer is at least `numChannels` wide.
     if (innerChannels <= 0 || innerChannels > bufferChannels
         || numSamples > dry.getNumSamples()
         || bufferChannels > dry.getNumChannels())
@@ -201,4 +194,4 @@ float InsertEffect::getWet() const noexcept
     return wet.load (std::memory_order_relaxed);
 }
 
-} // namespace AudioEngine
+}

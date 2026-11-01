@@ -41,9 +41,8 @@ juce::String formatBufferSizes (const juce::Array<int>& sizes)
 
     return text;
 }
-} // namespace
+}
 
-//==============================================================================
 juce::String DeviceManager::describeDevices()
 {
     juce::String text;
@@ -94,4 +93,4 @@ juce::String DeviceManager::describeDevices()
     return text;
 }
 
-} // namespace AudioEngine
+}

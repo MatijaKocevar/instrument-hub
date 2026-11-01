@@ -87,4 +87,4 @@ bool KitLoader::buildLoadedKit (const Kit& kit,
     return true;
 }
 
-} // namespace ihub::sampler
+}

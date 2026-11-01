@@ -8,17 +8,11 @@ namespace ihub::dsp
 
 namespace
 {
-// A parameter change can race the audio thread's snapshot read. Bailing out
-// after a few attempts is harmless: the current values stay in place for one
-// more block.
 constexpr int maxSnapshotReadAttempts = 3;
 
-// The read pointer may only move between block boundaries, and then only with
-// a short crossfade so a tempo change does not click.
 constexpr double crossfadeSeconds = 0.02;
-} // namespace
+}
 
-//==============================================================================
 Delay::Delay()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), true)
@@ -29,7 +23,6 @@ Delay::Delay()
     appliedVersion = snapshot.version.load (std::memory_order_acquire);
 }
 
-//==============================================================================
 int Delay::delaySamplesForDivision (DelayDivision division, double bpm,
                                     double sampleRate) noexcept
 {
@@ -55,7 +48,6 @@ int Delay::delaySamplesForMs (float milliseconds, double sampleRate) noexcept
                                                          * 0.001 * rate)));
 }
 
-//==============================================================================
 void Delay::prepareToPlay (double sampleRate, int)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
@@ -78,8 +70,6 @@ void Delay::prepareToPlay (double sampleRate, int)
 
     prepared = true;
 
-    // A delay has no latency of its own: the dry signal passes straight
-    // through. The repeats are content, not delay compensation.
     setLatencySamples (0);
 }
 
@@ -102,7 +92,6 @@ void Delay::reset()
     crossfadeLength = 0;
 }
 
-//==============================================================================
 void Delay::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     const juce::ScopedNoDenormals noDenormals;
@@ -119,7 +108,6 @@ void Delay::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
         return;
     }
 
-    // Apply a pending parameter change at the block boundary.
     const auto version = snapshot.version.load (std::memory_order_acquire);
 
     if (version != appliedVersion && (version & 1u) == 0u)
@@ -135,8 +123,6 @@ void Delay::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 
     const int lineSize = delayBuffer.getNumSamples();
 
-    // The line is always at least maxDelaySeconds long, so the published
-    // length fits. The guard is for a defensive path only.
     applied.delaySamples = juce::jlimit (1, juce::jmax (1, lineSize), applied.delaySamples);
 
     if (applied.delaySamples != activeDelaySamples)
@@ -188,8 +174,6 @@ void Delay::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
             if (fade > 0 && previous != active)
                 wet = line[channel][readPrevious] * (1.0f - fadeGain) + wet * fadeGain;
 
-            // Damping lives in the feedback path, so the first repeat keeps
-            // its full bandwidth and later ones get progressively darker.
             float& damped = dampingState[static_cast<std::size_t> (channel)];
             damped += (wet - damped) * applied.dampingCoeff;
 
@@ -214,8 +198,6 @@ void Delay::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
     writeIndex = write;
     crossfadeRemaining = fade;
 
-    // A host should not change the channel count without another prepare, but
-    // if it does, keep the extra outputs silent instead of leaving garbage.
     for (int channel = channelsToProcess; channel < numChannels; ++channel)
         buffer.clear (channel, 0, numSamples);
 }
@@ -232,7 +214,6 @@ bool Delay::isBusesLayoutSupported (const BusesLayout& layouts) const
            || inputs == juce::AudioChannelSet::stereo();
 }
 
-//==============================================================================
 DelaySettings Delay::clampSettings (const DelaySettings& input) noexcept
 {
     DelaySettings s = input;
@@ -271,7 +252,6 @@ Delay::Published Delay::computePublished() const noexcept
     p.feedback = clamped.feedback;
     p.mix = clamped.mix;
 
-    // One-pole low-pass: 1 - exp (-2 pi fc / fs).
     const auto cutoff = juce::jlimit (minDampingHz,
                                       juce::jmin (maxDampingHz,
                                                   0.45f * static_cast<float> (currentSampleRate)),
@@ -282,7 +262,6 @@ Delay::Published Delay::computePublished() const noexcept
     return p;
 }
 
-//==============================================================================
 void Delay::setSettings (const DelaySettings& newSettings)
 {
     settings = clampSettings (newSettings);
@@ -365,7 +344,6 @@ bool Delay::isEnabled() const noexcept
     return enabled.load (std::memory_order_relaxed);
 }
 
-//==============================================================================
 int Delay::getDelaySamples() const noexcept
 {
     return reportedDelaySamples.load (std::memory_order_relaxed);
@@ -388,12 +366,10 @@ double Delay::getNextRepeatPpq() const noexcept
     return transportPpq.load (std::memory_order_relaxed) + getDelayInPpq();
 }
 
-//==============================================================================
 void Delay::publishSettings() noexcept
 {
     const auto publishedValues = computePublished();
 
-    // Writer side of the seqlock: odd version, relaxed payload, even version.
     snapshot.version.fetch_add (1, std::memory_order_acq_rel);
     snapshot.values.store (publishedValues);
     snapshot.version.fetch_add (1, std::memory_order_release);
@@ -423,12 +399,11 @@ bool Delay::readSnapshot (Published& destination) const noexcept
     return false;
 }
 
-//==============================================================================
 void Delay::getStateInformation (juce::MemoryBlock& destData)
 {
     juce::MemoryOutputStream stream (destData, false);
 
-    stream.writeInt (1); // format version
+    stream.writeInt (1);
     stream.writeBool (isEnabled());
     stream.writeBool (settings.tempoSync);
     stream.writeInt (static_cast<int> (settings.division));
@@ -448,7 +423,6 @@ void Delay::setStateInformation (const void* data, int sizeInBytes)
     if (stream.readInt() != 1)
         return;
 
-    // 1 int version (4 bytes) + 2 bools + 1 int + 4 floats.
     constexpr int expectedBytes = 4 + 2 + 4 + 4 * 4;
 
     if (sizeInBytes < expectedBytes)
@@ -468,4 +442,4 @@ void Delay::setStateInformation (const void* data, int sizeInBytes)
     setEnabled (shouldBeEnabled);
 }
 
-} // namespace ihub::dsp
+}

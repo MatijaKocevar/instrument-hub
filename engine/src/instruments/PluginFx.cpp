@@ -11,16 +11,13 @@ namespace
 {
 juce::String parameterIdentifier (juce::AudioProcessorParameter& parameter)
 {
-    // VST3 exposes numeric IDs; that is the only stable identifier the format
-    // preserves. APVTS plugins still have readable names, checked as well.
     if (auto* hosted = dynamic_cast<juce::HostedAudioProcessorParameter*> (&parameter))
         return hosted->getParameterID();
 
     return {};
 }
-} // namespace
+}
 
-//==============================================================================
 PluginFx::PluginFx() = default;
 
 PluginFx::~PluginFx()
@@ -28,7 +25,6 @@ PluginFx::~PluginFx()
     unload();
 }
 
-//==============================================================================
 bool PluginFx::load (juce::AudioPluginFormatManager& formatManager,
                      const juce::PluginDescription& newDescription,
                      double initialSampleRate,
@@ -37,7 +33,6 @@ bool PluginFx::load (juce::AudioPluginFormatManager& formatManager,
 {
     error.clear();
 
-    // Replacing a running instance is not allowed; the stream must be stopped.
     unload();
 
     sampleRate = initialSampleRate > 0.0 ? initialSampleRate : 48000.0;
@@ -59,8 +54,6 @@ bool PluginFx::load (juce::AudioPluginFormatManager& formatManager,
 
     plugin->setRateAndBufferSizeDetails (sampleRate, maximumBlockSize);
 
-    // FX mode is not optional here: both the main input and the main output
-    // must be active. This is what separates a hosted effect from a generator.
     if (! configureBuses (numChannels))
     {
         error = "plugin does not provide an FX bus layout (main input + output)";
@@ -107,9 +100,6 @@ bool PluginFx::loadFromFile (juce::AudioPluginFormatManager& formatManager,
 
 void PluginFx::unload()
 {
-    // An AudioProcessor must not be destroyed while it still has an active
-    // editor (JUCE asserts on it). Close first; the window only borrows the
-    // processor.
     closeEditor();
 
     plugin.reset();
@@ -117,7 +107,6 @@ void PluginFx::unload()
     cachedLatency.store (0, std::memory_order_relaxed);
 }
 
-//==============================================================================
 bool PluginFx::configureBuses (int channels)
 {
     if (plugin == nullptr)
@@ -132,8 +121,6 @@ bool PluginFx::configureBuses (int channels)
         if (layout.inputBuses.isEmpty() || layout.outputBuses.isEmpty())
             return false;
 
-        // Unlike a generator, an FX must actually receive the engine's audio.
-        // A bus that starts disabled is enabled here.
         layout.inputBuses.getReference (0) = set;
         layout.outputBuses.getReference (0) = set;
 
@@ -150,9 +137,6 @@ bool PluginFx::configureBuses (int channels)
     if (apply (requested))
         return true;
 
-    // A mono-only effect can still sit in a stereo engine: the chain (and
-    // process()) hand it a view of the first channel. Only try this after the
-    // requested layout was refused.
     if (numChannels != 1 && apply (juce::AudioChannelSet::mono()))
         return true;
 
@@ -176,7 +160,6 @@ int PluginFx::getNumOutputChannels() const noexcept
     return plugin != nullptr ? plugin->getTotalNumOutputChannels() : 0;
 }
 
-//==============================================================================
 void PluginFx::prepare (double newSampleRate, int newMaximumBlockSize)
 {
     jassert (newSampleRate > 0.0);
@@ -216,7 +199,6 @@ int PluginFx::latencySamples() const noexcept
     return cachedLatency.load (std::memory_order_relaxed);
 }
 
-//==============================================================================
 juce::AudioProcessor* PluginFx::getProcessor() const noexcept
 {
     return plugin.get();
@@ -242,7 +224,6 @@ bool PluginFx::isInChain (const AudioEngine::FxChain& chain) const noexcept
     return chain.indexOf (getProcessor()) >= 0;
 }
 
-//==============================================================================
 void PluginFx::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     if (plugin == nullptr)
@@ -262,8 +243,6 @@ void PluginFx::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi
 
     if (pluginChannels <= 0 || pluginChannels > bufferChannels)
     {
-        // A layout the engine cannot feed. Stay silent instead of letting the
-        // plugin read or write past the engine's buffer.
         buffer.clear();
         return;
     }
@@ -274,9 +253,6 @@ void PluginFx::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi
     }
     else
     {
-        // Fewer plugin channels than engine channels: hand it a view of the
-        // first channels. The remaining channels pass through, matching what
-        // FxChain does for the same situation.
         juce::AudioBuffer<float> view (buffer.getArrayOfWritePointers(),
                                        pluginChannels,
                                        numSamples);
@@ -284,7 +260,6 @@ void PluginFx::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi
     }
 }
 
-//==============================================================================
 juce::MemoryBlock PluginFx::getStateInformation() const
 {
     juce::MemoryBlock state;
@@ -307,8 +282,6 @@ bool PluginFx::setStateInformation (const void* data, int numBytes)
 
     plugin->setStateInformation (data, numBytes);
 
-    // State may contain the latency parameter. Re-read the value the plugin
-    // currently reports; the next prepare() or process() will settle the rest.
     refreshLatency();
 
     return true;
@@ -319,7 +292,6 @@ bool PluginFx::setStateInformation (const juce::MemoryBlock& block)
     return setStateInformation (block.getData(), static_cast<int> (block.getSize()));
 }
 
-//==============================================================================
 int PluginFx::getNumParameters() const
 {
     return plugin != nullptr ? plugin->getParameters().size() : 0;
@@ -373,7 +345,6 @@ juce::String PluginFx::getParameterText (const juce::String& idOrName) const
     return {};
 }
 
-//==============================================================================
 bool PluginFx::openEditor (const juce::String& title, juce::Component* owner)
 {
     if (plugin == nullptr)
@@ -414,4 +385,4 @@ juce::String PluginFx::getName() const
     return description.name;
 }
 
-} // namespace ihub::plugins
+}

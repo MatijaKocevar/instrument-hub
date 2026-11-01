@@ -3,9 +3,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
-// Enumeration of device types, devices, sample rates and buffer sizes.
-
 juce::StringArray DeviceManager::getDeviceTypeNames()
 {
     ensureInitialised();
@@ -112,4 +109,4 @@ juce::Array<int> DeviceManager::getAvailableBufferSizes (const juce::String& typ
     return {};
 }
 
-} // namespace AudioEngine
+}

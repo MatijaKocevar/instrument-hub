@@ -6,7 +6,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 WarmPool::WarmPool (int neighbourCountToUse)
     : neighbourCount (juce::jmax (0, neighbourCountToUse)),
       pendingDeletes (std::make_shared<std::atomic<int>> (0)),
@@ -46,14 +45,10 @@ WarmPool::~WarmPool()
     if (worker.joinable())
         worker.join();
 
-    // The worker is gone, so these must be handed off here. On the message
-    // thread the post runs normally; if the loop has already stopped JUCE's
-    // own cleanup path takes over.
     for (auto& instance : leftovers)
         scheduleDestroy (std::move (instance), hook);
 }
 
-//==============================================================================
 void WarmPool::setFactory (Factory newFactory)
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -80,14 +75,11 @@ void WarmPool::setFormat (double newSampleRate, int newMaximumBlockSize)
     maximumBlockSize = juce::jmax (1, newMaximumBlockSize);
     hasFormat = true;
 
-    // A device change re-prepares the warm instances too, so the next arm
-    // starts at the new block size instead of the one they were created at.
     for (auto& slot : slots)
         if (slot.instance != nullptr)
             slot.instance->prepare (sampleRate, maximumBlockSize);
 }
 
-//==============================================================================
 int WarmPool::getInstanceLimit() const
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -140,4 +132,4 @@ bool WarmPool::waitForIdle (int timeoutMs)
                                [this] { return isIdleLocked(); });
 }
 
-} // namespace AudioEngine
+}

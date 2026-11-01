@@ -9,14 +9,11 @@ namespace AudioEngine
 
 namespace
 {
-/** PPQ is a double; this absorbs the rounding of one block's accumulation. */
 constexpr double ppqTolerance = 1.0e-9;
 
-/** A larger jump means rewind or reposition, not normal block-to-block motion. */
 constexpr double discontinuityTolerancePpq = 1.0e-6;
-} // namespace
+}
 
-//==============================================================================
 void ClockOut::reset() noexcept
 {
     clearQueue();
@@ -37,7 +34,6 @@ int ClockOut::clearQueue() noexcept
     return pending;
 }
 
-//==============================================================================
 void ClockOut::process (const Transport& transport, int numSamples) noexcept
 {
     Event events[maxEventsPerBlock];
@@ -104,8 +100,6 @@ int ClockOut::generate (const Transport& transport,
 
     if (! wasRunning)
     {
-        // Start tells a receiver to roll from song position zero; continue
-        // resumes wherever this transport already is.
         const bool atZero = ppqStart <= ppqTolerance;
 
         emit (atZero ? Type::start : Type::continue_,
@@ -117,8 +111,6 @@ int ClockOut::generate (const Transport& transport,
     }
     else if (std::abs (ppqStart - lastPpq) > discontinuityTolerancePpq)
     {
-        // Rewind or reposition while running: skip the covered ticks and
-        // resume on the tick grid at the new position.
         nextTick.store (firstTickAfter (ppqStart), std::memory_order_relaxed);
     }
 
@@ -155,7 +147,6 @@ int ClockOut::generate (const Transport& transport,
     return count;
 }
 
-//==============================================================================
 int ClockOut::drain (Event* destination, int capacity) noexcept
 {
     if (destination == nullptr || capacity <= 0)
@@ -217,7 +208,6 @@ std::int64_t ClockOut::getNextTick() const noexcept
     return nextTick.load (std::memory_order_relaxed);
 }
 
-//==============================================================================
 std::int64_t ClockOut::firstTickAfter (double ppq) noexcept
 {
     if (! std::isfinite (ppq) || ppq <= 0.0)
@@ -244,9 +234,8 @@ bool ClockOut::push (const Event& event) noexcept
 
     queue[write] = event;
 
-    // Publishing the write index is what makes the event visible to drain().
     queueWriteIndex.store (next, std::memory_order_release);
     return true;
 }
 
-} // namespace AudioEngine
+}

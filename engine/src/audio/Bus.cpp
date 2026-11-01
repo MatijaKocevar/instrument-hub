@@ -6,7 +6,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 void Bus::prepare (double newSampleRate, int newMaximumBlockSize, int newNumChannels)
 {
     jassert (newSampleRate > 0.0);
@@ -75,7 +74,6 @@ void Bus::finish (juce::AudioBuffer<float>& destination, int numSamples) noexcep
     for (int channel = 0; channel < copyChannels; ++channel)
         destination.copyFrom (channel, 0, mixBuffer, channel, 0, samples);
 
-    // Never leave stale audio in channels or samples the bus does not cover.
     for (int channel = copyChannels; channel < destinationChannels; ++channel)
         destination.clear (channel, 0, destination.getNumSamples());
 
@@ -84,4 +82,4 @@ void Bus::finish (juce::AudioBuffer<float>& destination, int numSamples) noexcep
             destination.clear (channel, samples, destination.getNumSamples() - samples);
 }
 
-} // namespace AudioEngine
+}

@@ -5,7 +5,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 FxRack::FxRack (juce::AudioPluginFormatManager* formatManagerToUse)
     : formatManager (formatManagerToUse)
 {
@@ -27,7 +26,6 @@ void FxRack::rebuild (FxChain& chain,
     chain.refreshLatency();
 }
 
-//==============================================================================
 void FxRack::setTransport (const FxTransport& newTransport) noexcept
 {
     transport = newTransport;
@@ -52,4 +50,4 @@ void FxRack::applyTransportTo (InsertEffect& effect) const
     }
 }
 
-} // namespace AudioEngine
+}

@@ -3,11 +3,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
-// Lifetime and callback plumbing. Device enumeration lives in
-// device/DeviceEnumeration.cpp, opening/hot swapping in device/DeviceOpen.cpp,
-// and the per-concern accessors next to them.
-
 DeviceManager::DeviceManager() = default;
 
 DeviceManager::~DeviceManager()
@@ -21,9 +16,6 @@ void DeviceManager::ensureInitialised()
     if (initialised)
         return;
 
-    // Zero channels means no device is selected here; the wrapper opens one
-    // only when open() is called, so constructing a manager never takes over
-    // the system default output.
     deviceManager.initialise (0, 0, nullptr, false);
     initialised = true;
 }
@@ -38,7 +30,6 @@ bool DeviceManager::isOpen() const
     return deviceManager.getCurrentAudioDevice() != nullptr;
 }
 
-//==============================================================================
 void DeviceManager::setAudioCallback (juce::AudioIODeviceCallback* callback)
 {
     if (callback == audioCallback)
@@ -68,4 +59,4 @@ const juce::AudioDeviceManager& DeviceManager::getNativeDeviceManager() const no
     return deviceManager;
 }
 
-} // namespace AudioEngine
+}

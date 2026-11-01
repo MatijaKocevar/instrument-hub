@@ -11,9 +11,6 @@ namespace
 
 using namespace kit_detail;
 
-//==============================================================================
-// Document walkers
-
 bool parseSample (const juce::var& value,
                   const juce::String& context,
                   KitSampleRef& destination,
@@ -199,10 +196,7 @@ bool parsePad (const juce::var& value,
     return true;
 }
 
-} // namespace
-
-//==============================================================================
-// KitLoader
+}
 
 bool KitLoader::parse (const juce::String& json, Kit& destination, juce::String& error)
 {
@@ -295,4 +289,4 @@ bool KitLoader::parse (const juce::String& json, Kit& destination, juce::String&
     return true;
 }
 
-} // namespace ihub::sampler
+}

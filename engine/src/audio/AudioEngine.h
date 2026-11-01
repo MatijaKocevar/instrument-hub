@@ -13,24 +13,6 @@
 namespace AudioEngine
 {
 
-/**
-    The fixed audio graph.
-
-    The engine owns a fixed set of `Slot` objects, all wired in parallel into a
-    summing `Bus` that feeds a master limiter. Nothing is ever rewired: a slot
-    is switched on or off by changing its state, and a 2-5 ms gain ramp hides
-    the transition.
-
-    Allocation rules:
-
-    - `prepare()` allocates every buffer at the maximum block size, once.
-    - `processBlock()` and the `AudioIODeviceCallback` path allocate nothing,
-      take no locks and log nothing.
-
-    `prepare()` and `reset()` must not run concurrently with `processBlock()`;
-    `prepare()` is normally driven from `audioDeviceAboutToStart()`, or called
-    explicitly by the application before it starts streaming.
-*/
 class AudioEngine final : public juce::AudioIODeviceCallback
 {
 public:
@@ -41,23 +23,11 @@ public:
                           int numChannels = defaultNumChannels);
     ~AudioEngine() override = default;
 
-    //==============================================================================
-    // Lifecycle (off the audio thread)
-
-    /** Sizes every buffer and prepares all slots and their sources.
-
-        May be called again after a device change. It never allocates after the
-        first call with the same or smaller maximum block size.
-    */
     void prepare (double sampleRate, int maximumBlockSize, int numChannels = defaultNumChannels);
 
-    /** Releases the audio buffers. The stream must be stopped. */
     void releaseResources();
 
     bool isPrepared() const noexcept { return prepared; }
-
-    //==============================================================================
-    // Graph
 
     int getNumSlots() const noexcept { return static_cast<int> (slots.size()); }
 
@@ -71,57 +41,24 @@ public:
     int getMaximumBlockSize() const noexcept { return maximumBlockSize; }
     int getNumChannels() const noexcept { return numChannels; }
 
-    /** Largest latency reported by any slot's source, in samples.
-
-        The bus does not delay short chains yet; this is the value a later
-        delay-compensation stage has to align the others to.
-    */
     int getLatencySamples() const noexcept;
 
-    /** Measures the device's real round-trip latency with an impulse.
-
-        Intended for the UI and command line: it briefly opens a full-duplex
-        Loopback device, so it must not be called from the audio thread or
-        while a set is streaming on that same device.
-    */
     LatencyResult measureRoundTripLatency (const LatencyProbeOptions& options = {});
 
-    /** Callback timing, overrun and dropped-block counters.
-
-        The device callback is measured automatically; the counters and the
-        rolling maximum are safe to read from the UI or control thread.
-    */
     TimingMonitor& getTimingMonitor() noexcept { return timingMonitor; }
     const TimingMonitor& getTimingMonitor() const noexcept { return timingMonitor; }
 
-    //==============================================================================
-    // Audio thread
-
-    /** Renders one block into `output` and copies the mix there.
-
-        `output.getNumSamples()` samples are rendered. Channels the engine does
-        not produce are cleared. Real-time safe.
-    */
     void processBlock (juce::AudioBuffer<float>& output, juce::MidiBuffer& midi) noexcept;
 
-    /** Same as above, with an explicit block length (<= max block size). */
     void processBlock (juce::AudioBuffer<float>& output,
                        juce::MidiBuffer& midi,
                        int numSamples) noexcept;
 
-    /** Clears the bus and returns every slot to idle. Stream must be stopped. */
     void reset() noexcept;
-
-    //==============================================================================
-    // juce::AudioIODeviceCallback
 
     void audioDeviceAboutToStart (juce::AudioIODevice* device) override;
     void audioDeviceStopped() override;
 
-    /** The live path. Audio-input slots receive `inputChannelData` through
-        their source before the graph renders, so an `AudioInputInstrument`
-        works without the caller touching the device buffer.
-    */
     void audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
                                            int numInputChannels,
                                            float* const* outputChannelData,
@@ -149,4 +86,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioEngine)
 };
 
-} // namespace AudioEngine
+}

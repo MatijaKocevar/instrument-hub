@@ -3,9 +3,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
-// Channel maps: the setup mask builder and the masks of the open device.
-
 juce::BigInteger DeviceSetup::channelMask (int numChannels)
 {
     juce::BigInteger mask;
@@ -53,4 +50,4 @@ juce::BigInteger DeviceManager::getAvailableOutputChannelMask() const
     return {};
 }
 
-} // namespace AudioEngine
+}

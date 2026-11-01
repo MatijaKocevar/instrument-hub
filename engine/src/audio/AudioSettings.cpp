@@ -5,12 +5,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
-// Device cache and the readouts fed by the rest of the engine. Opening lives in
-// settings/AudioSettingsOpen.cpp, the control API surface in
-// settings/AudioSettingsSnapshot.cpp and settings/AudioSettingsApply.cpp, and
-// the probe in settings/AudioSettingsMeasure.cpp.
-
 AudioSettingsBridge::AudioSettingsBridge()
 {
     refreshDevices();
@@ -74,7 +68,6 @@ juce::String AudioSettingsBridge::firstOutputDeviceOfType (const juce::String& t
     return {};
 }
 
-//==============================================================================
 void AudioSettingsBridge::setChainLatencySamples (int samples) noexcept
 {
     chainLatencySamples.store (juce::jmax (0, samples), std::memory_order_relaxed);
@@ -85,4 +78,4 @@ void AudioSettingsBridge::setTimingMonitor (TimingMonitor* monitor) noexcept
     timingMonitor = monitor;
 }
 
-} // namespace AudioEngine
+}

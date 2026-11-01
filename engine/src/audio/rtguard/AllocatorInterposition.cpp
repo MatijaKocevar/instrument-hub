@@ -11,14 +11,6 @@
  #define IHUB_RT_HAS_MALLOC_WRAP 0
 #endif
 
-//==============================================================================
-// Replacement allocator
-//
-// Only compiled when the guard is on. Outside a Scope the hooks are a
-// thread-local load, so the rest of the application (UI, device manager)
-// is unaffected. Inside a Scope they record a violation, and strict mode
-// aborts before returning the memory.
-
 #if IHUB_RT_GUARD
 
 namespace
@@ -37,7 +29,7 @@ void* rawAlignedAllocate (std::size_t size, std::size_t alignment) noexcept
                                           : ((size + alignment - 1) / alignment) * alignment;
     return std::aligned_alloc (alignment, rounded);
 }
-} // namespace
+}
 
 void* operator new (std::size_t size)
 {
@@ -132,14 +124,7 @@ void operator delete[] (void* pointer, std::size_t, std::align_val_t) noexcept
     ::operator delete (pointer);
 }
 
-#endif // IHUB_RT_GUARD
-
-//==============================================================================
-// malloc wrap
-//
-// Linker-level interposition catches raw malloc from engine code as well as
-// C++ allocations that reach the C heap. It is enabled by CMake with
-// -Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc.
+#endif
 
 #if IHUB_RT_HAS_MALLOC_WRAP
 
@@ -173,5 +158,5 @@ extern "C"
     }
 }
 
-#endif // IHUB_RT_HAS_MALLOC_WRAP
+#endif
 

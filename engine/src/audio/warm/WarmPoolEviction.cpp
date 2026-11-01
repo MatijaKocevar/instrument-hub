@@ -6,7 +6,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 int WarmPool::getLiveInstanceCount() const
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -66,11 +65,8 @@ void WarmPool::clear()
     notifyWorker();
 }
 
-//==============================================================================
 int WarmPool::liveCountLocked() const
 {
-    // Instances already handed to the message thread for deletion still exist,
-    // so they count against the budget until the posted callback has run.
     int live = static_cast<int> (pendingDestroy.size())
              + pendingDeletes->load (std::memory_order_relaxed);
 
@@ -137,7 +133,6 @@ void WarmPool::retireLocked (int slotIndex, bool force)
 
     if (slot.pins > 0 && ! force)
     {
-        // Still in use. `release()` retires it as soon as the pin drops.
         slot.retireAfterRelease = true;
         return;
     }
@@ -149,7 +144,6 @@ void WarmPool::retireLocked (int slotIndex, bool force)
     ++evictionCount;
 }
 
-//==============================================================================
 void WarmPool::scheduleDestroy (std::unique_ptr<Instance> instance, const DestroyHook& hook)
 {
     if (instance == nullptr)
@@ -173,16 +167,12 @@ void WarmPool::scheduleDestroy (std::unique_ptr<Instance> instance, const Destro
             }
         }
 
-        // The plugin's destructor runs here, on the message thread, which is
-        // where JUCE's VST3 wrapper expects it (`callSync` in its cleanup).
         shared.reset();
         counter->fetch_sub (1, std::memory_order_relaxed);
     });
 
     if (! posted)
     {
-        // The message loop is already gone (application shutdown). There is no
-        // safe thread left to defer to, so finish here.
         if (hook != nullptr)
         {
             try
@@ -199,4 +189,4 @@ void WarmPool::scheduleDestroy (std::unique_ptr<Instance> instance, const Destro
     }
 }
 
-} // namespace AudioEngine
+}

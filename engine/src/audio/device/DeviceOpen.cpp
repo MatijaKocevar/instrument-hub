@@ -11,10 +11,7 @@ bool sameRate (double a, double b)
 {
     return std::abs (a - b) < 0.5;
 }
-} // namespace
-
-//==============================================================================
-// Opening, hot swapping and format changes.
+}
 
 juce::AudioDeviceManager::AudioDeviceSetup DeviceManager::makeNativeSetup (const DeviceSetup& setup) const
 {
@@ -90,8 +87,6 @@ bool DeviceManager::open (const DeviceSetup& setup, juce::String* errorMessage)
 
     if (deviceManager.getCurrentAudioDeviceType() != typeName)
     {
-        // This may briefly open the type's default device; the explicit setup
-        // below replaces it in the same call, so no redundant streaming.
         deviceManager.setCurrentAudioDeviceType (typeName, true);
     }
 
@@ -171,4 +166,4 @@ bool DeviceManager::setSampleRate (double sampleRate, juce::String* errorMessage
     return true;
 }
 
-} // namespace AudioEngine
+}

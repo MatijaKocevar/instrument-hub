@@ -7,7 +7,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 std::unique_ptr<WarmPool::Instance> WarmPool::createInstance (const Request& request,
                                                               juce::String& error)
 {
@@ -62,9 +61,6 @@ void WarmPool::run()
         if (quit && pendingDestroy.empty())
             break;
 
-        // Retired instances are handed to the message thread before a new load,
-        // so the live-instance count never exceeds the limit while a
-        // replacement is created.
         if (! pendingDestroy.empty())
         {
             auto batch = std::move (pendingDestroy);
@@ -98,8 +94,6 @@ void WarmPool::run()
 
         if (warmQueue.empty())
         {
-            // A slot deferred earlier becomes reachable again as soon as a pin
-            // is dropped or a delete completes.
             if ((liveCountLocked() < limitLocked()
                  || pendingDeletes->load (std::memory_order_relaxed) > 0)
                 && requeueDeferredLocked())
@@ -127,8 +121,6 @@ void WarmPool::run()
         {
             if (evictOneLocked())
             {
-                // Re-queue and let the retire pass run first, so the count
-                // really drops before this load starts.
                 warmQueue.insert (warmQueue.begin(), slotIndex);
                 slots[static_cast<size_t> (slotIndex)].queued = true;
                 continue;
@@ -136,15 +128,12 @@ void WarmPool::run()
 
             if (pendingDeletes->load (std::memory_order_relaxed) > 0)
             {
-                // Room is on its way: the message thread just has to run the
-                // posted deletes. Poll briefly rather than spin.
                 warmQueue.insert (warmQueue.begin(), slotIndex);
                 slots[static_cast<size_t> (slotIndex)].queued = true;
                 condition.wait_for (lock, std::chrono::milliseconds (2));
                 continue;
             }
 
-            // Every other instance is pinned; try again after a release().
             slots[static_cast<size_t> (slotIndex)].deferred = true;
             condition.notify_all();
             continue;
@@ -189,8 +178,6 @@ void WarmPool::run()
             }
             else if (stillNeeded && isProtectedLocked (slotIndex))
             {
-                // A message-thread eviction filled the budget while this load
-                // was in flight. Try again once it has been freed.
                 slot.deferred = true;
             }
         }
@@ -199,9 +186,6 @@ void WarmPool::run()
 
         if (becameWarm)
         {
-            // The callback binds the instance and may finish an arm that was
-            // waiting for this cold patch. It runs without the pool lock so it
-            // can call acquire()/release().
             auto callback = warmCallback;
             lock.unlock();
 
@@ -228,4 +212,4 @@ void WarmPool::notifyWorker()
     condition.notify_all();
 }
 
-} // namespace AudioEngine
+}

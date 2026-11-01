@@ -3,7 +3,6 @@
 namespace AudioEngine
 {
 
-//==============================================================================
 Api::AudioMeasurementState AudioSettingsBridge::measure()
 {
     const std::lock_guard<std::mutex> lock (mutex);
@@ -26,8 +25,6 @@ Api::AudioMeasurementState AudioSettingsBridge::measure()
     LatencyResult measured;
     const bool wasOpen = manager.isOpen();
 
-    // Subdevice 0 normally belongs to the running stream; 1..3 are free on the
-    // ALSA Loopback card, so the probe can run without stopping audio.
     if (wasOpen)
     {
         for (int subdevice = 1; subdevice <= 3 && ! measured.valid; ++subdevice)
@@ -75,4 +72,4 @@ Api::AudioMeasurementState AudioSettingsBridge::measure()
     return result;
 }
 
-} // namespace AudioEngine
+}

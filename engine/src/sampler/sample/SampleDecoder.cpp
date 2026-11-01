@@ -85,4 +85,4 @@ std::unique_ptr<SampleData> decodeFile (const juce::File& file,
     return destination;
 }
 
-} // namespace ihub::sampler::sample_detail
+}
