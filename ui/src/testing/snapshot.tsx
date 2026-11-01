@@ -17,7 +17,8 @@ import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import App, { armAndOpenInstrument } from "../App";
+import App from "../App";
+import { armAndOpenInstrument } from "../features/shell";
 import {
     ApiError,
     createControlApi,
