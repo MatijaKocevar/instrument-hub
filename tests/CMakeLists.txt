@@ -8,23 +8,30 @@
 set(IHUB_API_ROUTES_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioRoutes.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioSerialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/FxRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/Json.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/MeterSerialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/MidiRoutes.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/MidiSerialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PairingRoutes.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PairingSerialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PatchRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PluginRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/RouteHelpers.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/Serialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/StateRoutes.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/StateSerialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/TransportRoutes.cpp"
 )
 
 # The API server is transport/auth plus the state store it projects. Tests
-# that exercise the HTTP or WebSocket surface compile both.
+# that exercise the HTTP or WebSocket surface compile the whole set.
 set(IHUB_API_SERVER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/AuthGuard.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MeterSampler.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateStore.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
 )
 
 # The mapping layer is split into model, YAML reader/validator and the
