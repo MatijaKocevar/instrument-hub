@@ -1287,6 +1287,16 @@ juce_add_console_app(ihub-session-api-test
 target_sources(ihub-session-api-test
     PRIVATE
         api/SessionApiTest.cpp
+        api/AudioMeasurements.cpp
+        api/EventStream.cpp
+        api/JsonSupport.cpp
+        api/SessionRig.cpp
+        api/TestSupport.cpp
+        api/session_api/Arm.cpp
+        api/session_api/ArmRejection.cpp
+        api/session_api/Meters.cpp
+        api/session_api/PatchMix.cpp
+        api/session_api/Transport.cpp
         ${IHUB_SESSION_SOURCES}
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -1374,6 +1384,17 @@ juce_add_console_app(ihub-patch-fx-api-test
 target_sources(ihub-patch-fx-api-test
     PRIVATE
         api/PatchFxApiTest.cpp
+        api/AudioMeasurements.cpp
+        api/FxChainJson.cpp
+        api/JsonSupport.cpp
+        api/RequestDispatch.cpp
+        api/SessionRig.cpp
+        api/TestSupport.cpp
+        api/patch_fx_api/Bypass.cpp
+        api/patch_fx_api/Chain.cpp
+        api/patch_fx_api/HostedInsert.cpp
+        api/patch_fx_api/Replace.cpp
+        api/patch_fx_api/Validation.cpp
         ${IHUB_SESSION_SOURCES}
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -1463,6 +1484,16 @@ juce_add_console_app(ihub-instrument-page-api-test
 target_sources(ihub-instrument-page-api-test
     PRIVATE
         api/InstrumentPageApiTest.cpp
+        api/AudioMeasurements.cpp
+        api/FxChainJson.cpp
+        api/JsonSupport.cpp
+        api/RequestDispatch.cpp
+        api/SessionRig.cpp
+        api/TestSupport.cpp
+        api/instrument_page_api/Inserts.cpp
+        api/instrument_page_api/Mixer.cpp
+        api/instrument_page_api/PluginSource.cpp
+        api/instrument_page_api/Source.cpp
         ${IHUB_SESSION_SOURCES}
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -1550,6 +1581,13 @@ juce_add_console_app(ihub-patch-state-capture-api-test
 target_sources(ihub-patch-state-capture-api-test
     PRIVATE
         api/PatchStateCaptureApiTest.cpp
+        api/JsonSupport.cpp
+        api/RequestDispatch.cpp
+        api/SessionRig.cpp
+        api/TestSupport.cpp
+        api/patch_state_capture_api/Capture.cpp
+        api/patch_state_capture_api/Fixtures.cpp
+        api/patch_state_capture_api/Restart.cpp
         ${IHUB_SESSION_SOURCES}
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -1639,6 +1677,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-plugin-editor-api-test
         PRIVATE
             api/PluginEditorApiTest.cpp
+            api/JsonSupport.cpp
+            api/RequestDispatch.cpp
+            api/SessionRig.cpp
+            api/TestSupport.cpp
+            api/plugin_editor_api/AnalogLab.cpp
+            api/plugin_editor_api/Fixtures.cpp
+            api/plugin_editor_api/Lifecycle.cpp
+            api/plugin_editor_api/SourceChange.cpp
             ${IHUB_SESSION_SOURCES}
             ${IHUB_DISCOVERY_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -2040,6 +2086,16 @@ juce_add_console_app(ihub-api-test
 target_sources(ihub-api-test
     PRIVATE
         api/ApiTest.cpp
+        api/JsonSupport.cpp
+        api/TestSupport.cpp
+        api/core_api/Arm.cpp
+        api/core_api/Auth.cpp
+        api/core_api/Fixtures.cpp
+        api/core_api/Meters.cpp
+        api/core_api/RouteRegistration.cpp
+        api/core_api/Settings.cpp
+        api/core_api/State.cpp
+        api/core_api/Transport.cpp
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
@@ -2089,6 +2145,12 @@ juce_add_console_app(ihub-pairing-test
 target_sources(ihub-pairing-test
     PRIVATE
         api/PairingTest.cpp
+        api/JsonSupport.cpp
+        api/TestSupport.cpp
+        api/pairing/Fixtures.cpp
+        api/pairing/LanOff.cpp
+        api/pairing/Pairing.cpp
+        api/pairing/StartupFlag.cpp
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
@@ -2141,6 +2203,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-state-broadcast-test
         PRIVATE
             api/StateBroadcastTest.cpp
+            api/EventStream.cpp
+            api/JsonSupport.cpp
+            api/TestSupport.cpp
+            api/state_broadcast/Accounting.cpp
+            api/state_broadcast/Fixtures.cpp
+            api/state_broadcast/InitialState.cpp
+            api/state_broadcast/PadPath.cpp
+            api/state_broadcast/UiPath.cpp
             ${IHUB_DISCOVERY_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
@@ -2197,6 +2267,11 @@ juce_add_console_app(ihub-audio-settings-test
 target_sources(ihub-audio-settings-test
     PRIVATE
         api/AudioSettingsTest.cpp
+        api/JsonSupport.cpp
+        api/TestSupport.cpp
+        api/audio_settings/DeviceBridge.cpp
+        api/audio_settings/Fixtures.cpp
+        api/audio_settings/Routes.cpp
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
@@ -2258,6 +2333,12 @@ juce_add_console_app(ihub-midi-api-test
 target_sources(ihub-midi-api-test
     PRIVATE
         api/MidiApiTest.cpp
+        api/JsonSupport.cpp
+        api/TestSupport.cpp
+        api/midi_api/DeviceEnumeration.cpp
+        api/midi_api/Fixtures.cpp
+        api/midi_api/PadTest.cpp
+        api/midi_api/Routes.cpp
         ${IHUB_DISCOVERY_SOURCES}
         ${IHUB_MIDI_BRIDGE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -2316,6 +2397,12 @@ juce_add_console_app(ihub-discovery-test
 target_sources(ihub-discovery-test
     PRIVATE
         api/DiscoveryTest.cpp
+        api/TestSupport.cpp
+        api/discovery/Advertisement.cpp
+        api/discovery/Dns.cpp
+        api/discovery/Helpers.cpp
+        api/discovery/Query.cpp
+        api/discovery/Socket.cpp
         ${IHUB_DISCOVERY_SOURCES}
 )
 
