@@ -2046,12 +2046,16 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     check (countOf (html, 'data-armed="true"') === 1, "exactly one cell is armed");
     check (html.includes ('data-slot="3" data-armed="true"'), "the armed cell is slot 3");
     check (countOf (html, 'data-fill="#ff1f2f"') === 1, "the armed cell is painted bright red");
-    check (html.includes ('data-phase="ready"'), "connection is ready");
+    check (html.includes ('data-testid="sidebar-session" data-phase="ready"'),
+           "the sidebar reports the connection is ready");
     check (html.includes ("Connected"), "snapshot shows the connected status");
     check (html.includes ("Instrument Hub"), "snapshot shows the application name");
     check (html.includes ("0.1.0"), "snapshot shows the application version");
     check (html.includes ('data-testid="armed-slot"'), "snapshot shows the armed-slot widget");
-    check (html.includes ('data-testid="connection-status"'), "snapshot shows the connection widget");
+    check (html.includes ('data-testid="app-status" data-phase="ready"'),
+           "the footer reports the connection phase");
+    check (! html.includes ("app__header") && ! html.includes ('data-testid="connection-status"'),
+           "the grid page has no global header or connection bar");
     check (html.includes ('data-testid="transport-bpm"'), "snapshot shows the transport widget");
     check (html.includes ('data-testid="instrument-grid"'), "snapshot shows the instrument grid");
     check (html.includes ('data-testid="app-sidebar"'), "snapshot shows the persistent sidebar");
@@ -2395,6 +2399,13 @@ async function shellTest (): Promise<void>
                    `the ${destination.route} destination renders its page`);
             check (page.includes (`data-testid="nav-${destination.route}" data-active="true"`),
                    `the ${destination.route} destination highlights its sidebar item`);
+            check (page.includes ('data-testid="sidebar-session"'),
+                   `the ${destination.route} page keeps connection state in the sidebar`);
+            check (page.includes ('data-testid="app-status"'),
+                   `the ${destination.route} page keeps connection state in the footer`);
+            check (! page.includes ("app__header")
+                       && ! page.includes ('data-testid="connection-status"'),
+                   `the ${destination.route} page has no global header or connection bar`);
             check (countOf (page, 'data-testid="nav-grid"') === 1,
                    `the ${destination.route} page has no duplicate Grid route button`);
         }
