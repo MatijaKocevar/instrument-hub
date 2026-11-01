@@ -53,6 +53,98 @@ set(IHUB_SESSION_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/WarmPoolController.cpp"
 )
 
+# --- Application modes and command line (T137) ------------------------------
+#
+# The application is a thin entry point plus `engine/src/app/*`. This target
+# pins command-line parsing and mode precedence, so the split cannot quietly
+# change which mode a flag selects.
+
+juce_add_console_app(ihub-app-modes-test
+    PRODUCT_NAME "ihub-app-modes-test"
+)
+
+target_sources(ihub-app-modes-test
+    PRIVATE
+        app/AppModesTest.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/Modes.cpp"
+)
+
+target_include_directories(ihub-app-modes-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-app-modes-test
+    PRIVATE
+        juce::juce_core
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-app-modes-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-app-modes
+    COMMAND ihub-app-modes-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# --- Application modes on the real binary (T137) ---------------------------
+#
+# The split must not change what a mode prints or which exit code it reports.
+# `--snapshot` and `--session-smoke` already have their own end-to-end tests;
+# these cover the remaining short-lived modes.
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(
+        NAME ihub-app-list-devices
+        COMMAND $<TARGET_FILE:instrument-hub> --list-devices
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    set_tests_properties(ihub-app-list-devices PROPERTIES
+        PASS_REGULAR_EXPRESSION "Loopback"
+    )
+
+    add_test(
+        NAME ihub-app-diagnostics
+        COMMAND $<TARGET_FILE:instrument-hub> --diagnostics --diagnostics-ms 200
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    set_tests_properties(ihub-app-diagnostics PROPERTIES
+        PASS_REGULAR_EXPRESSION "Instrument Hub diagnostics"
+    )
+
+    add_test(
+        NAME ihub-app-selftest
+        COMMAND $<TARGET_FILE:instrument-hub> --selftest
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    set_tests_properties(ihub-app-selftest PROPERTIES
+        PASS_REGULAR_EXPRESSION "selftest: window on desktop at"
+        ENVIRONMENT "DISPLAY=:0"
+    )
+
+    add_test(
+        NAME ihub-app-serve
+        COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/app/serve-smoke.sh"
+                $<TARGET_FILE:instrument-hub>
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    set_tests_properties(ihub-app-serve PROPERTIES TIMEOUT 30)
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(ALSA REQUIRED)
 

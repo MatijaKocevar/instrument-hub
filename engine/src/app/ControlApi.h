@@ -1,0 +1,69 @@
+#pragma once
+
+#include <juce_core/juce_core.h>
+
+#include <functional>
+#include <memory>
+
+namespace Api
+{
+class MidiBridge;
+class Server;
+class StateStore;
+} // namespace Api
+
+namespace AudioEngine
+{
+class AudioSettingsBridge;
+} // namespace AudioEngine
+
+namespace ihub
+{
+class Session;
+} // namespace ihub
+
+namespace ihub::plugins
+{
+class PluginInventory;
+} // namespace ihub::plugins
+
+namespace ihub::app
+{
+
+/** Owns the HTTP + WebSocket control server and everything it publishes.
+
+    The server is part of the normal application and of `--serve`, and is also
+    started for the UI-only modes so a snapshot/ui-check run sees the same
+    state a user would. It is stopped in a fixed order: the mapping first, the
+    server, the MIDI bridge, the driver, then the session.
+*/
+class ControlApi
+{
+public:
+    ControlApi();
+    ~ControlApi();
+
+    /** Starts the control API. `required` is true for `--serve`, where a bind
+        failure must fail the process. */
+    bool start (const juce::String& commandLine,
+                ihub::Session* session,
+                bool required,
+                std::function<void()> midiRestore = {});
+
+    void stopServer();
+    void detachMidi();
+    void resetServer();
+    void resetAudio();
+
+    Api::StateStore* getState() noexcept { return apiState.get(); }
+    Api::MidiBridge* getMidiBridge() noexcept { return midiBridge.get(); }
+
+private:
+    std::unique_ptr<ihub::plugins::PluginInventory> pluginInventory;
+    std::unique_ptr<Api::StateStore> apiState;
+    std::unique_ptr<Api::Server> apiServer;
+    std::unique_ptr<Api::MidiBridge> midiBridge;
+    std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
+};
+
+} // namespace ihub::app
