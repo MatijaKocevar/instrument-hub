@@ -7,15 +7,6 @@
 namespace ihub::app
 {
 
-// --scan-plugins <dir>... (T021)
-//
-// Runs the out-of-process scanner over the given directories (or the VST3
-// default locations when none are given) and writes KnownPluginList.xml to the
-// user data directory. A crashing plugin is reported as a failure and the app
-// keeps running.
-//
-// --plugin-data-dir <dir> overrides where KnownPluginList.xml is written,
-// which keeps tests and CI out of the real user profile.
 int runPluginScan (const juce::String& commandLine)
 {
     const auto tokens = juce::StringArray::fromTokens (commandLine, true);
@@ -61,4 +52,4 @@ int runPluginScan (const juce::String& commandLine)
     return report.helperAvailable && report.wroteReport ? 0 : 1;
 }
 
-} // namespace ihub::app
+}

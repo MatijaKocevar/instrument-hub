@@ -5,8 +5,6 @@ namespace ihub::diag
 
 namespace
 {
-/** Adapts the core Logger to the ring. It runs on the thread that logged, so
-    it must obey the same allocation-free rules as LogRing::log(). */
 class RingLogger final : public juce::Logger
 {
 public:
@@ -19,7 +17,7 @@ public:
     }
 };
 
-} // namespace
+}
 
 void installJuceLoggerSink()
 {
@@ -31,9 +29,7 @@ void installJuceLoggerSink()
 
 void uninstallJuceLoggerSink()
 {
-    // Leave another component's logger alone. RtGuard restores its own
-    // previous logger when its strict-mode probe is removed.
     juce::Logger::setCurrentLogger (nullptr);
 }
 
-} // namespace ihub::diag
+}

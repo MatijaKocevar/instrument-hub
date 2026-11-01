@@ -9,14 +9,9 @@ namespace ihub::app::detail
 namespace
 {
 
-/** Keeps a deliberately injected allocation observable to the optimiser.
-
-    `void* volatile` is a volatile pointer, so assigning to it is an observable
-    side effect and the allocation cannot be elided at -O2.
-*/
 void* volatile allocationEscapeSink = nullptr;
 
-} // namespace
+}
 
 const char* toString (RtInjection injection) noexcept
 {
@@ -31,7 +26,6 @@ const char* toString (RtInjection injection) noexcept
     return "none";
 }
 
-//==============================================================================
 RtProbeSource::RtProbeSource (RtInjection injectionToUse)
     : injection (injectionToUse),
       logText ("rt-guard injected log message")
@@ -78,8 +72,6 @@ void RtProbeSource::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&
             auto* scratch = new float[8];
             scratch[0] = static_cast<float> (position);
 
-            // Publish the pointer through a volatile sink so the optimiser
-            // cannot reduce new/delete to a stack buffer at -O2.
             allocationEscapeSink = scratch;
             delete[] scratch;
             allocationEscapeSink = nullptr;
@@ -99,4 +91,4 @@ void RtProbeSource::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&
     }
 }
 
-} // namespace ihub::app::detail
+}

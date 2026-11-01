@@ -10,11 +10,6 @@
 namespace ihub::app
 {
 
-/** Renders the engine under RtGuard and reports whether it stayed clean.
-
-    In strict mode an injected allocation/lock/log aborts inside the first
-    block, which is exactly what the acceptance check expects.
-*/
 int runRtStrictCheck (const juce::String& commandLine)
 {
     if (! AudioEngine::RtGuard::isCompiledIn())
@@ -48,14 +43,11 @@ int runRtStrictCheck (const juce::String& commandLine)
     engine.getSlot (0).setSource (&source);
     engine.getSlot (0).activate();
 
-    // prepare() is a setup call: allocations here are expected and legal.
     engine.prepare (sampleRate, blockSize, 2);
 
     juce::AudioBuffer<float> output (2, blockSize);
     juce::MidiBuffer midi;
 
-    // Run the activation ramp with the injection disarmed, then measure from a
-    // clean slate. This also warms every lazily initialised path.
     for (int block = 0; block < 4; ++block)
         engine.processBlock (output, midi, blockSize);
 
@@ -72,7 +64,6 @@ int runRtStrictCheck (const juce::String& commandLine)
     for (int block = 0; block < measuredBlocks; ++block)
         engine.processBlock (output, midi, blockSize);
 
-    // Unreachable when an injection aborted in strict mode.
     const auto measuredCounters = AudioEngine::RtGuard::getCounters();
     const bool balanced = AudioEngine::RtGuard::assertNoOpenScopes();
     const int openScopes = AudioEngine::RtGuard::getOpenScopeCount();
@@ -96,4 +87,4 @@ int runRtStrictCheck (const juce::String& commandLine)
     return passed ? 0 : 1;
 }
 
-} // namespace ihub::app
+}

@@ -120,4 +120,4 @@ ChildArguments parseArguments (const juce::StringArray& commandLine)
     return arguments;
 }
 
-} // namespace ihub::plugins::sandbox_client
+}

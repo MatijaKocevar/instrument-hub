@@ -15,7 +15,7 @@ bool bindingsEqual (const PadBinding* left, const PadBinding* right) noexcept
     return *left == *right;
 }
 
-} // namespace
+}
 
 bool Mapping::applyText (const std::string& text,
                          bool hotReload,
@@ -88,8 +88,6 @@ bool Mapping::applyText (const std::string& text,
     if (listenersCopy.changed)
         listenersCopy.changed (newMapping, hotReload);
 
-    // Re-arming happens after the snapshot is published, so a listener that
-    // reads getMapping() sees the document it is being notified about.
     if (routeChanged && listenersCopy.armSlot)
         listenersCopy.armSlot (armTarget);
 
@@ -119,4 +117,4 @@ void Mapping::reportError (const MappingError& error, std::uint64_t contentHash,
         listenersCopy.error (error);
 }
 
-} // namespace Controller
+}

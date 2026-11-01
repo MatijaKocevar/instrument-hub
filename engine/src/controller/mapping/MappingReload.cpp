@@ -115,4 +115,4 @@ bool Mapping::poll()
     return applyText (contents, hot, hash, false, nullptr);
 }
 
-} // namespace Controller
+}

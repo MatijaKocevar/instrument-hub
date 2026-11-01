@@ -9,13 +9,6 @@
 namespace ihub::app
 {
 
-// --session-smoke (T114)
-//
-// Composes the default session, renders it offline to measure the armed slot's
-// RMS and the discontinuity across a slot switch, then opens the real ALSA
-// Loopback and streams the same graph for a short bounded time. The offline
-// pass is deterministic (no wall-clock timing); the device pass only proves
-// that the callback is running and that the graph really reaches hardware.
 int runSessionSmoke (const juce::String& commandLine)
 {
     constexpr double switchLimitDbfs = -60.0;
@@ -28,9 +21,6 @@ int runSessionSmoke (const juce::String& commandLine)
     config.device.numInputChannels = 2;
     config.device.preferLoopback = true;
 
-    // The shipping set is deliberately silent until a patch is assigned. This
-    // diagnostic needs a deterministic audible source, so it asks for the
-    // engine's initialisation tone explicitly.
     config.slots = ihub::Session::makeDefaultSet();
 
     for (auto& slot : config.slots)
@@ -128,4 +118,4 @@ int runSessionSmoke (const juce::String& commandLine)
     return passed ? 0 : 1;
 }
 
-} // namespace ihub::app
+}

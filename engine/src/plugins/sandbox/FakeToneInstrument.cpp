@@ -16,7 +16,7 @@ void FakeToneInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBu
     juce::ignoreUnused (midi);
 
     if (abortAfterBlocks >= 0 && blocksRendered >= abortAfterBlocks)
-        std::abort(); // deliberate: the sandbox must die, not the host
+        std::abort();
 
     const auto numSamples = buffer.getNumSamples();
     const auto amplitude = 0.25f;
@@ -37,4 +37,4 @@ void FakeToneInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBu
     ++blocksRendered;
 }
 
-} // namespace ihub::plugins::sandbox_client
+}

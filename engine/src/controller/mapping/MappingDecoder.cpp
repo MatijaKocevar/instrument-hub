@@ -45,4 +45,4 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
            && decodeScenes (root, out, error);
 }
 
-} // namespace Controller::MappingDetail
+}

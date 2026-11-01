@@ -16,7 +16,6 @@ bool SysExFrame::isValid() const noexcept
     if (! std::equal (sysExHeader.begin(), sysExHeader.end(), bytes.begin()))
         return false;
 
-    // Everything between the header and F7 must be 7-bit.
     return std::all_of (bytes.begin() + static_cast<std::ptrdiff_t> (sysExHeader.size()),
                         bytes.end() - 1,
                         [] (std::uint8_t byte) { return byte <= 0x7F; });
@@ -90,4 +89,4 @@ bool isProgrammerModeFrame (std::span<const std::uint8_t> bytes)
            && bytes[sysExHeader.size() + 1] <= 1;
 }
 
-} // namespace Launchpad
+}

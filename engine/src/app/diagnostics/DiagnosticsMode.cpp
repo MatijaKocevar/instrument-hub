@@ -16,13 +16,6 @@
 namespace ihub::app
 {
 
-// --diagnostics (T111)
-//
-// Opens the ALSA Loopback through the real device path, renders silence
-// through the fixed graph for a short, bounded time, then prints one report
-// covering the device, buffer, latency, xruns, loaded plugins and the newest
-// structured log records. The same report can be written to a file with
-// --diagnostics-out <path>.
 int runDiagnostics (const juce::String& commandLine)
 {
     using namespace ihub::diag;
@@ -104,8 +97,6 @@ int runDiagnostics (const juce::String& commandLine)
                           + juce::String (devices.getCurrentBufferSize()).toStdString()
                           + " frames");
 
-            // The engine is the device callback: prepare() runs from
-            // audioDeviceAboutToStart() and every block feeds TimingMonitor.
             devices.setAudioCallback (&engine);
 
             juce::Thread::sleep (durationMs);
@@ -140,4 +131,4 @@ int runDiagnostics (const juce::String& commandLine)
     return snapshot.device.open ? 0 : 1;
 }
 
-} // namespace ihub::app
+}

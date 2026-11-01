@@ -5,10 +5,6 @@
 namespace Controller
 {
 
-//==============================================================================
-// Scripted operation
-//==============================================================================
-
 void LaunchpadDriver::setMessageSink (MessageSink sink)
 {
     const std::lock_guard<std::mutex> lock (sinkMutex);
@@ -19,10 +15,6 @@ void LaunchpadDriver::injectMidiMessage (const juce::MidiMessage& message)
 {
     handleIncomingMidiMessage (nullptr, message);
 }
-
-//==============================================================================
-// Incoming MIDI
-//==============================================================================
 
 void LaunchpadDriver::handleIncomingMidiMessage (juce::MidiInput*,
                                                  const juce::MidiMessage& message)
@@ -88,4 +80,4 @@ void LaunchpadDriver::dispatchButton (int cc, bool pressed)
         copy.buttonEvent (cc, pressed);
 }
 
-} // namespace Controller
+}

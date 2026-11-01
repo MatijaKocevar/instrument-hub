@@ -2,7 +2,6 @@
 
 namespace ihub::plugins
 {
-//==============================================================================
 juce::MemoryBlock PluginInstrument::getStateInformation() const
 {
     juce::MemoryBlock state;
@@ -33,4 +32,4 @@ bool PluginInstrument::setStateInformation (const juce::MemoryBlock& block)
     return setStateInformation (block.getData(), static_cast<int> (block.getSize()));
 }
 
-} // namespace ihub::plugins
+}

@@ -5,7 +5,6 @@
 
 namespace ihub::plugins
 {
-//==============================================================================
 void SandboxHost::prepare (double sampleRate, int maximumBlockSize)
 {
     preparedBlockSize.store (juce::jmax (1, maximumBlockSize), std::memory_order_relaxed);
@@ -21,7 +20,6 @@ void SandboxHost::prepare (double sampleRate, int maximumBlockSize)
     }
 }
 
-//==============================================================================
 void SandboxHost::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     const auto numSamples = buffer.getNumSamples();
@@ -43,7 +41,6 @@ void SandboxHost::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& m
     if (blockSamples <= 0)
         return;
 
-    // --- Request: this block's size and MIDI --------------------------------
     const auto published = sandbox::loadAcquire (shared->requestPublished);
     const auto consumed = sandbox::loadAcquire (shared->requestConsumed);
 
@@ -116,11 +113,8 @@ void SandboxHost::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& m
         droppedRequests.fetch_add (1, std::memory_order_relaxed);
     }
 
-    // --- Reply: the oldest block the sandbox has finished -------------------
     auto repliesAvailable = sandbox::loadAcquire (shared->replyPublished);
 
-    // If the audio callback stalled long enough for the child to wrap the
-    // reply ring, skip the overwritten blocks instead of replaying stale ones.
     if (repliesAvailable > repliesPlayed
         && repliesAvailable - repliesPlayed > static_cast<std::uint64_t> (sandbox::replyRingSize))
     {
@@ -169,8 +163,6 @@ int SandboxHost::latencySamples() const noexcept
     if (! isRunning())
         return plugin;
 
-    // The host pipelines one engine block: the block requested now is heard on
-    // the next callback.
     const auto block = preparedBlockSize.load (std::memory_order_relaxed);
     return plugin + (block > 0 ? block : options.maxBlockSize);
 }
@@ -200,4 +192,4 @@ std::int64_t SandboxHost::getPlayedBlockCount() const noexcept
     return playedBlocks.load (std::memory_order_relaxed);
 }
 
-} // namespace ihub::plugins
+}

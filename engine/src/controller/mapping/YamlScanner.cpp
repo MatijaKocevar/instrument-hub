@@ -23,7 +23,6 @@ std::string trim (std::string_view text)
 namespace
 {
 
-/** Drops a trailing `# comment`, respecting quoted scalars. */
 std::string stripComment (const std::string& line)
 {
     bool inSingle = false;
@@ -57,7 +56,7 @@ std::string stripComment (const std::string& line)
             if (c == '\'')
             {
                 if (i + 1 < line.size() && line[i + 1] == '\'')
-                    ++i; // doubled quote inside a single-quoted scalar
+                    ++i;
                 else
                     inSingle = false;
             }
@@ -76,14 +75,13 @@ std::string stripComment (const std::string& line)
     return line;
 }
 
-} // namespace
+}
 
 bool isSequenceEntry (const std::string& text)
 {
     return text == "-" || (text.size() > 1 && text[0] == '-' && text[1] == ' ');
 }
 
-/** Splits `key: value` at the first unquoted colon that ends a key. */
 bool splitKeyValue (const std::string& text, std::string& key, std::string& value)
 {
     bool inSingle = false;
@@ -192,4 +190,4 @@ bool tokenize (const std::string& yaml, std::vector<SourceLine>& lines, MappingE
     return true;
 }
 
-} // namespace Controller::MappingDetail
+}

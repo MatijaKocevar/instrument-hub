@@ -59,9 +59,6 @@ void Mapping::stopWatching()
         return;
     }
 
-    // A listener invoked by the watcher thread must not join itself; the
-    // watcher exits its loop after this callback and a later stop/join cleans
-    // the thread up.
     if (watcher.get_id() == std::this_thread::get_id())
         return;
 
@@ -74,4 +71,4 @@ bool Mapping::isWatching() const noexcept
     return watching.load (std::memory_order_acquire);
 }
 
-} // namespace Controller
+}

@@ -84,4 +84,4 @@ bool Mapping::handleEncoder (int encoder, int value)
     return true;
 }
 
-} // namespace Controller
+}

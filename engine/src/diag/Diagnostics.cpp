@@ -45,9 +45,8 @@ bool samePlugin (const PluginDiagnostics& a, const PluginDiagnostics& b)
 {
     return a.name == b.name && a.file == b.file && a.format == b.format;
 }
-} // namespace
+}
 
-//==============================================================================
 std::vector<PluginDiagnostics> loadKnownPlugins (const juce::File& file)
 {
     std::vector<PluginDiagnostics> result;
@@ -81,7 +80,6 @@ std::vector<PluginDiagnostics> loadKnownPlugins (const juce::File& file)
     return result;
 }
 
-//==============================================================================
 DiagnosticsSnapshot collectDiagnostics (const AudioEngine::DeviceManager& device,
                                         const AudioEngine::TimingSnapshot& timing,
                                         const std::vector<PluginDiagnostics>& loadedPlugins,
@@ -132,8 +130,6 @@ DiagnosticsSnapshot collectDiagnostics (const AudioEngine::DeviceManager& device
 
     snapshot.timing = timing;
 
-    // Loaded instances first, then everything the scanner knows but that is
-    // not currently in a slot. De-duplicate on identity.
     snapshot.plugins = loadedPlugins;
 
     snapshot.knownPluginListFile = options.knownPluginListFile;
@@ -172,7 +168,6 @@ DiagnosticsSnapshot collectDiagnostics (const AudioEngine::DeviceManager& device
     return snapshot;
 }
 
-//==============================================================================
 std::string formatDiagnostics (const DiagnosticsSnapshot& snapshot)
 {
     std::ostringstream out;
@@ -295,4 +290,4 @@ bool writeDiagnostics (const DiagnosticsSnapshot& snapshot, const juce::File& fi
     return file.replaceWithText (juce::String (formatDiagnostics (snapshot)));
 }
 
-} // namespace ihub::diag
+}

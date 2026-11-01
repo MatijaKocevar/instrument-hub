@@ -156,15 +156,6 @@ void UiModeController::checkUi()
         });
 }
 
-//==============================================================================
-// --snapshot <path> (T054)
-//
-// Waits until the web view has actually rendered the React tree (not just
-// fired a load callback), then writes a 1200x800 PNG from inside the
-// process. A snapshot is only accepted when it is the right size and has
-// real image content, so a blank/fallback frame cannot masquerade as
-// success.
-
 void UiModeController::failSnapshot (const juce::String& reason)
 {
     std::cerr << "snapshot: FAILED, " << reason
@@ -218,8 +209,6 @@ void UiModeController::checkSnapshot()
                     snapshotCaptureAt = juce::Time::getMillisecondCounterHiRes()
                                         + kSnapshotSettleMs;
 
-                    // Give the compositor a chance to present the frame
-                    // before it is read back from the X server.
                     window.toFront (true);
                 }
             });
@@ -234,9 +223,6 @@ void UiModeController::checkSnapshot()
     const auto colours = countDistinctColours (image);
     const auto bright = countBrightPixels (image);
 
-    // The page paints its background immediately but the React tree lands
-    // a frame or two later. Keep sampling until the frame really contains
-    // the UI instead of trusting a single fixed delay.
     if (image.isNull()
         || image.getWidth() != kSnapshotWidth
         || image.getHeight() != kSnapshotHeight
@@ -279,4 +265,4 @@ void UiModeController::checkSnapshot()
     finish (0);
 }
 
-} // namespace ihub::app
+}

@@ -52,9 +52,6 @@ ScanReport Scanner::scan (const juce::StringArray& directories)
     {
         const juce::File file (path);
 
-        // Cache lookup first: an unchanged bundle must never launch the
-        // helper. That is what makes the second scan of a directory fast and,
-        // for a crashing plugin, safe.
         if (options.useCache)
         {
             const auto cached = cache.lookup (file);
@@ -132,10 +129,6 @@ ScanReport Scanner::scan (const juce::StringArray& directories)
             failure.helperOutput = result.output;
             report.failures.push_back (failure);
 
-            // A helper that was never launched says nothing about the plugin
-            // (missing binary, scratch directory failure), so it must not
-            // poison the cache. A helper that ran and crashed or timed out is
-            // exactly what the dead-man's-pedal list is for.
             if (options.useCache && result.launched)
                 cache.recordFailure (file, result.error, result.crashed, result.timedOut);
 
@@ -177,4 +170,4 @@ ScanReport Scanner::scan (const juce::StringArray& directories)
     return report;
 }
 
-} // namespace ihub::plugins
+}

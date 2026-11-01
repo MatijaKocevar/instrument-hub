@@ -5,7 +5,6 @@
 namespace Controller
 {
 
-/** One pad's feedback state, shared by every supported controller. */
 enum class PadState : std::uint8_t
 {
     idle = 0,
@@ -27,4 +26,4 @@ inline const char* toString (PadState state) noexcept
     return "idle";
 }
 
-} // namespace Controller
+}

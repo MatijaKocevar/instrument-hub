@@ -31,8 +31,6 @@ std::optional<juce::WebBrowserComponent::Resource> provideResource (const juce::
 {
     auto path = requestedPath;
 
-    // WebKit appends a query string and/or fragment for some navigations;
-    // neither is part of the embedded file name.
     if (const auto separator = path.indexOfAnyOf ("?#"); separator >= 0)
         path = path.substring (0, separator);
 
@@ -57,8 +55,6 @@ std::optional<juce::WebBrowserComponent::Resource> provideResource (const juce::
                              BinaryData::index_cssSize,
                              "text/css");
 
-    // Never serve the HTML shell for a missing script, stylesheet or icon:
-    // that would surface as a confusing MIME error instead of a missing asset.
     if (path.startsWith ("/assets/"))
         return std::nullopt;
 
@@ -67,7 +63,6 @@ std::optional<juce::WebBrowserComponent::Resource> provideResource (const juce::
     if (lastSegment.containsChar ('.'))
         return std::nullopt;
 
-    // Client-side routes all render the same index.html.
     return provideIndex();
 }
 #endif
@@ -77,8 +72,6 @@ juce::WebBrowserComponent::Options makeOptions()
     auto options = juce::WebBrowserComponent::Options{}
                        .withBackend (juce::WebBrowserComponent::Options::Backend::defaultBackend)
                        .withKeepPageLoadedWhenBrowserIsHidden()
-                       // On Linux the resource-provider URI scheme is installed as part
-                       // of the native integration. We only ever load our own UI.
                        .withNativeIntegrationEnabled();
 
 #if ! JUCE_DEBUG && JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
@@ -90,7 +83,7 @@ juce::WebBrowserComponent::Options makeOptions()
 
     return options;
 }
-} // namespace
+}
 
 WebView::WebView (PageLoadedCallback onPageLoaded)
     : juce::WebBrowserComponent (makeOptions()),
@@ -131,6 +124,5 @@ bool WebView::pageLoadHadNetworkError (const juce::String& errorInfo)
 {
     std::cerr << "webview: failed to load " << initialUrl() << ": " << errorInfo << std::endl;
 
-    // Let the platform show its built-in error page rather than a blank view.
     return true;
 }

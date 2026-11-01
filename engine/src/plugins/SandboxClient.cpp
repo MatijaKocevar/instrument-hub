@@ -46,16 +46,14 @@ bool hostIsAlive (const sandbox::SharedMemory& shared) noexcept
 
     const auto parent = getppid();
 
-    // Reparented to init/subreaper: the engine that owns this mapping is gone.
     return parent != 1 && static_cast<std::int32_t> (parent) == shared.parentProcessId;
    #else
     juce::ignoreUnused (shared);
     return true;
    #endif
 }
-} // namespace
+}
 
-//==============================================================================
 int SandboxClient::run (const juce::StringArray& commandLine)
 {
     const auto arguments = sandbox_client::parseArguments (commandLine);
@@ -152,8 +150,6 @@ int SandboxClient::run (const juce::StringArray& commandLine)
     sandbox::storeRelaxed (shared.latencySamples, static_cast<std::int32_t> (reportedLatency));
     setState (shared, sandbox::ProcessState::ready);
 
-    // Every audio buffer the render loop uses is allocated here, before the
-    // first request is answered.
     juce::AudioBuffer<float> renderBuffer (numChannels, maximumBlockSize);
     juce::AudioBuffer<float> view;
     juce::MidiBuffer midi;
@@ -181,8 +177,6 @@ int SandboxClient::run (const juce::StringArray& commandLine)
 
         if (published <= nextRequest)
         {
-            // Nothing to render yet. Sleeping keeps the helper off a core while
-            // the host's slot is idle; one millisecond is far below a block.
             juce::Thread::sleep (1);
             continue;
         }
@@ -244,7 +238,6 @@ int SandboxClient::run (const juce::StringArray& commandLine)
                                                view.getReadPointer (channel),
                                                numSamples);
 
-        // Publish the reply, then free the request slot for reuse.
         sandbox::storeRelease (shared.replyPublished, nextRequest + 1);
         sandbox::storeRelease (shared.requestConsumed, nextRequest + 1);
 
@@ -257,4 +250,4 @@ int SandboxClient::run (const juce::StringArray& commandLine)
     return 0;
 }
 
-} // namespace ihub::plugins
+}

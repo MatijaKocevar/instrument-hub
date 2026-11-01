@@ -9,13 +9,6 @@
 namespace ihub::app
 {
 
-/** The timer-driven state machine behind `--snapshot`, `--ui-check` and
-    `--selftest`.
-
-    The application owns the window and its timer; this class owns the
-    deadlines, the DOM probe and the pixel checks, and reports the final
-    process return value through `FinishCallback`.
-*/
 class UiModeController
 {
 public:
@@ -28,16 +21,12 @@ public:
                       juce::File snapshotFile,
                       FinishCallback onFinish);
 
-    /** Records the deadline, or prints the selftest banner. */
     void start();
 
-    /** Timer interval the application should use. */
     int getTimerIntervalMs() const noexcept;
 
-    /** Web view page-load notification. */
     void pageLoaded (const juce::String& url);
 
-    /** One timer tick. */
     void tick();
 
 private:
@@ -66,4 +55,4 @@ private:
     juce::String lastHeading;
 };
 
-} // namespace ihub::app
+}

@@ -17,4 +17,4 @@ bool splitKeyValue (const std::string& text, std::string& key, std::string& valu
 
 bool tokenize (const std::string& yaml, std::vector<SourceLine>& lines, MappingError& error);
 
-} // namespace Controller::MappingDetail
+}

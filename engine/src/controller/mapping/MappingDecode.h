@@ -21,4 +21,4 @@ bool decodeBanks (const YamlValue& root, SetMapping& out, MappingError& error);
 
 bool decodeScenes (const YamlValue& root, SetMapping& out, MappingError& error);
 
-} // namespace Controller::MappingDetail
+}

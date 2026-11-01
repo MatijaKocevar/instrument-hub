@@ -47,9 +47,8 @@ bool equalsIgnoreCase (std::string_view text, const char* literal) noexcept
     return true;
 }
 
-} // namespace
+}
 
-//==============================================================================
 const char* toString (LogLevel level) noexcept
 {
     switch (level)
@@ -139,7 +138,6 @@ bool parseLogSource (std::string_view text, LogSource& source) noexcept
     return false;
 }
 
-//==============================================================================
 LogRing::LogRing (std::size_t capacityToUse)
     : slots (new Slot[std::max<std::size_t> (1, capacityToUse)]),
       capacity (std::max<std::size_t> (1, capacityToUse))
@@ -155,9 +153,6 @@ std::uint64_t LogRing::log (LogLevel level,
 
     auto& slot = slots[sequence % capacity];
 
-    // Mark the slot as being written before touching the payload. A reader
-    // that sees the odd marker skips this generation instead of copying a
-    // half-written message.
     slot.sequence.store (sequence * 2 + 1, std::memory_order_release);
 
     auto& record = slot.record;
@@ -181,8 +176,6 @@ std::size_t LogRing::copyLatest (LogRecord* destination, std::size_t maxRecords)
     const auto end = tail.load (std::memory_order_acquire);
     auto start = end > capacity ? end - capacity : std::uint64_t { 0 };
 
-    // Keep the newest records when the caller's buffer is smaller than the
-    // number of valid entries.
     if (end - start > maxRecords)
         start = end - static_cast<std::uint64_t> (maxRecords);
 
@@ -193,14 +186,11 @@ std::size_t LogRing::copyLatest (LogRecord* destination, std::size_t maxRecords)
         auto& slot = slots[sequence % capacity];
         const auto marker = slot.sequence.load (std::memory_order_acquire);
 
-        // Stable and still the generation this sequence number names.
         if (marker != sequence * 2 + 2)
             continue;
 
         LogRecord copy = slot.record;
 
-        // A writer that started after the first load would have flipped the
-        // marker to the odd state before overwriting the payload.
         if (slot.sequence.load (std::memory_order_acquire) != marker)
             continue;
 
@@ -233,7 +223,6 @@ void LogRing::clear() noexcept
     tail.store (0, std::memory_order_release);
 }
 
-//==============================================================================
 LogRing& defaultLog() noexcept
 {
     static LogRing ring;
@@ -248,4 +237,4 @@ std::uint64_t log (LogLevel level,
     return defaultLog().log (level, source, code, message);
 }
 
-} // namespace ihub::diag
+}

@@ -10,7 +10,6 @@ namespace Controller::MappingDetail
 
 bool decodeMacros (const YamlValue& root, SetMapping& out, MappingError& error)
 {
-    // --- macros ----------------------------------------------------------
     const auto* macros = root.find ("macros");
 
     if (macros == nullptr)
@@ -76,7 +75,6 @@ bool decodeMacros (const YamlValue& root, SetMapping& out, MappingError& error)
 
 bool decodeBanks (const YamlValue& root, SetMapping& out, MappingError& error)
 {
-    // --- macro banks (top row) -------------------------------------------
     if (const auto* banks = root.find ("banks"))
     {
         if (banks->kind != YamlKind::sequence)
@@ -140,4 +138,4 @@ bool decodeBanks (const YamlValue& root, SetMapping& out, MappingError& error)
     return true;
 }
 
-} // namespace Controller::MappingDetail
+}

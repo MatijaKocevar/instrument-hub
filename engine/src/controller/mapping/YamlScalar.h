@@ -9,4 +9,4 @@ namespace Controller::MappingDetail
 
 bool decodeScalar (const std::string& raw, YamlValue& out, MappingError& error, int line);
 
-} // namespace Controller::MappingDetail
+}

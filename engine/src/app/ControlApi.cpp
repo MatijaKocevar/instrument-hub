@@ -62,9 +62,6 @@ bool ControlApi::start (const juce::String& commandLine,
                   << std::endl;
     }
 
-    // MIDI enumeration and the Launchpad pad test. The driver itself is
-    // attached by ControllerSurface::start(); until then the page reports the
-    // devices and that the controller is not attached.
     midiBridge = std::make_unique<Api::MidiBridge>();
     midiBridge->setRestoreHandler (std::move (midiRestore));
 
@@ -84,10 +81,6 @@ bool ControlApi::start (const juce::String& commandLine,
 
     audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
 
-    // The session is the single owner of the audio device. Wire the API to
-    // it: arm requests reach SlotSwitcher, transport commands drive the
-    // session transport, /state reports the live slot states and /meters
-    // reads the real slot and master peaks.
     if (session != nullptr)
     {
         Api::attachSession (*apiState, *apiServer, *session);
@@ -174,4 +167,4 @@ void ControlApi::resetAudio()
     apiState.reset();
 }
 
-} // namespace ihub::app
+}

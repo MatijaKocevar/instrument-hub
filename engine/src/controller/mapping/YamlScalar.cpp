@@ -65,7 +65,7 @@ bool decodeQuotedScalar (const std::string& raw, std::string& out, MappingError&
     return true;
 }
 
-} // namespace
+}
 
 bool decodeScalar (const std::string& raw, YamlValue& out, MappingError& error, int line)
 {
@@ -89,8 +89,6 @@ bool decodeScalar (const std::string& raw, YamlValue& out, MappingError& error, 
         return true;
     }
 
-    // Empty flow collections are the one flow-style form the schema needs:
-    // they are how a document says "no pads" or "no macros".
     if (raw == "[]")
     {
         out.kind = YamlKind::sequence;
@@ -107,4 +105,4 @@ bool decodeScalar (const std::string& raw, YamlValue& out, MappingError& error, 
     return true;
 }
 
-} // namespace Controller::MappingDetail
+}

@@ -6,16 +6,13 @@ namespace
 {
 juce::String parameterIdentifier (juce::AudioProcessorParameter& parameter)
 {
-    // VST3 exposes numeric IDs; that is the only stable identifier the format
-    // preserves. APVTS plugins still have readable names, checked as well.
     if (auto* hosted = dynamic_cast<juce::HostedAudioProcessorParameter*> (&parameter))
         return hosted->getParameterID();
 
     return {};
 }
-} // namespace
+}
 
-//==============================================================================
 int PluginInstrument::getNumParameters() const
 {
     return plugin != nullptr ? plugin->getParameters().size() : 0;
@@ -69,4 +66,4 @@ juce::String PluginInstrument::getParameterText (const juce::String& idOrName) c
     return {};
 }
 
-} // namespace ihub::plugins
+}

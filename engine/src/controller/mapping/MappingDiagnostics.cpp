@@ -122,4 +122,4 @@ bool readColourIndex (const YamlValue& value, int& out, MappingError& error,
     return true;
 }
 
-} // namespace Controller::MappingDetail
+}

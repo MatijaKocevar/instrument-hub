@@ -15,9 +15,8 @@ juce::uint8 channelStatus (juce::uint8 baseStatus, int channel) noexcept
     const auto clamped = juce::jlimit (minimumMidiChannel, maximumMidiChannel, channel);
     return static_cast<juce::uint8> (baseStatus | (clamped - 1));
 }
-} // namespace
+}
 
-//==============================================================================
 void SandboxHost::noteOn (int ch, int note, float vel)
 {
     if (vel <= 0.0f)
@@ -77,4 +76,4 @@ bool SandboxHost::pushEvent (const std::uint8_t* bytes, int numBytes) noexcept
     return true;
 }
 
-} // namespace ihub::plugins
+}

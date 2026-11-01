@@ -9,19 +9,6 @@
 namespace ihub::plugins
 {
 
-/**
-    Caps an absurdly high soft `RLIMIT_NOFILE`.
-
-    yabridge builds a `posix_spawn` file-actions list containing a close() for
-    every descriptor below `getdtablesize()`. Some distributions ship a soft
-    limit near 2^30, which turns that loop into minutes of `mremap` growth and
-    makes a bridged plugin look hung. Lowering a soft limit never needs
-    privilege, and the hard limit is left untouched.
-
-    Call this once before the first plugin is loaded (the app and the
-    out-of-process scanner both do). It is a no-op when the limit is already
-    sane or when the platform is not Linux.
-*/
 inline void capFileDescriptorLimit (std::size_t maximum = 65536) noexcept
 {
    #if defined(__linux__)
@@ -46,4 +33,4 @@ inline void capFileDescriptorLimit (std::size_t maximum = 65536) noexcept
    #endif
 }
 
-} // namespace ihub::plugins
+}

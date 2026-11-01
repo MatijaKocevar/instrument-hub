@@ -37,4 +37,4 @@ PatchLed launchpadLedForPatch (int colorIndex,
              Launchpad::LedMode::Static };
 }
 
-} // namespace Controller
+}

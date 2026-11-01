@@ -3,10 +3,6 @@
 namespace Controller
 {
 
-//==============================================================================
-// Low-level output
-//==============================================================================
-
 bool LaunchpadDriver::sendBytes (const std::uint8_t* bytes, int size)
 {
     if (bytes == nullptr || size <= 0)
@@ -47,4 +43,4 @@ void LaunchpadDriver::clearError()
     lastError.clear();
 }
 
-} // namespace Controller
+}

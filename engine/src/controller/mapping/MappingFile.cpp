@@ -36,4 +36,4 @@ std::uint64_t hashContents (const std::string& contents)
 }
 
 
-} // namespace Controller::MappingDetail
+}

@@ -8,7 +8,6 @@ bool SandboxHost::isRunning() const noexcept
         && ! failed.load (std::memory_order_relaxed);
 }
 
-//==============================================================================
 SandboxHost::Status SandboxHost::getStatus() const noexcept
 {
     return status.load (std::memory_order_relaxed);
@@ -33,7 +32,6 @@ void SandboxHost::setStatusCallback (std::function<void (Status, const juce::Str
 
 void SandboxHost::markFailed (const juce::String& reason)
 {
-    // The first failure wins; a later message must not overwrite the cause.
     bool expected = false;
 
     if (! failed.compare_exchange_strong (expected, true, std::memory_order_relaxed))
@@ -53,4 +51,4 @@ void SandboxHost::markFailed (const juce::String& reason)
         callback (Status::failed, reason);
 }
 
-} // namespace ihub::plugins
+}

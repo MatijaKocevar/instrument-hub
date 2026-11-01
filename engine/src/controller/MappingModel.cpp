@@ -144,4 +144,4 @@ std::vector<const InstrumentSpec*> SetMapping::allInstruments() const
     return result;
 }
 
-} // namespace Controller
+}

@@ -7,7 +7,6 @@
 namespace ihub::app
 {
 
-// --list-devices: prints the audio device inventory.
 int runListDevices()
 {
     AudioEngine::DeviceManager deviceManager;
@@ -15,4 +14,4 @@ int runListDevices()
     return 0;
 }
 
-} // namespace ihub::app
+}

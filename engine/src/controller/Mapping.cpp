@@ -120,4 +120,4 @@ int Mapping::getArmedSlot() const noexcept
     return -1;
 }
 
-} // namespace Controller
+}

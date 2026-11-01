@@ -17,12 +17,6 @@ enum class RtInjection
 
 const char* toString (RtInjection injection) noexcept;
 
-/** A readable source that can deliberately break the audio-thread contract.
-
-    The sine keeps the engine on the real processing path; the injection is
-    performed at the end of `process()`, exactly where a buggy instrument or
-    effect would do it.
-*/
 class RtProbeSource final : public AudioEngine::SlotSource
 {
 public:
@@ -44,4 +38,4 @@ private:
     bool armed = false;
 };
 
-} // namespace ihub::app::detail
+}
