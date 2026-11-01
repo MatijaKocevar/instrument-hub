@@ -139,9 +139,7 @@ target_sources(instrument-hub
         src/audio/TapTempo.cpp
         src/audio/Transport.cpp
         src/audio/WarmPool.cpp
-        src/controller/LaunchkeyDriver.cpp
         src/controller/LaunchpadDriver.cpp
-        src/controller/LaunchkeyProtocol.cpp
         src/controller/LaunchpadProtocol.cpp
         src/controller/Mapping.cpp
         src/controller/MappingModel.cpp
@@ -165,7 +163,6 @@ target_sources(instrument-hub
         src/plugins/Scanner.cpp
         src/plugins/ScannerProcess.cpp
         src/project/Migrations.cpp
-        src/project/PluginStateStore.cpp
         src/project/SetFile.cpp
         src/project/Serializer.cpp
         src/Session.cpp

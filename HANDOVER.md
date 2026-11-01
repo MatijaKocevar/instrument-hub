@@ -176,8 +176,7 @@ Runs on `127.0.0.1:8080` by default; `--serve` runs it headless.
   stream, hot reload, the pad → session end-to-end path, and the T127
   click/pad/LED acceptance.
 
-Full reference: `docs/launchpad-mini-mk3.md`. The old Launchkey document is
-kept only as a superseded historical note.
+Full reference: `docs/launchpad-mini-mk3.md`.
 
 ### 1.7 Project, diagnostics and packaging
 
@@ -194,7 +193,7 @@ kept only as a superseded historical note.
 
 ### 1.8 Test suite
 
-`ctest --test-dir build --output-on-failure` runs 58 tests. They cover audio
+`ctest --test-dir build --output-on-failure` runs 65 tests. They cover audio
 smoke and loopback latency, device hot-swap, graph mixing, RT guard, switch
 continuity, warm pool, EQ/compressor/delay/reverb, transport/clock/tap, plugin
 scan/cache/instance/editor/FX/sandbox, Launchpad protocol/mapping/driver,
@@ -233,7 +232,7 @@ figures, `armed_led_velocity=5` (red, static) and `idle_led_velocity=13`
 (colour index 2), so the armed pad and the patch colour are both recorded.
 `ihub-ui-pages` runs the server-rendered UI harness and writes the Grid,
 Instrument, Plugins and Audio snapshots to `tests/artifacts/` plus
-`ihub-ui-pages-record.txt`. All 58 tests passed on this host at the T127
+`ihub-ui-pages-record.txt`. All 65 tests passed on this host at the T138
 checkpoint.
 
 ---
@@ -458,9 +457,6 @@ Non-hardware open items from `BLOCKERS.md`:
   Chinese public holidays as normal weekdays; add dates to `HOLIDAYS` in
   `autopilot.py` if a run lands on one. Does not affect the product.
 
-B002 is retained in `BLOCKERS.md` as history: it describes the superseded
-Launchkey surface and must not be used as the controller checklist.
-
 ---
 
 ## 5. Open items copied from `plan/BLOCKERS.md`
@@ -473,9 +469,6 @@ handover and must be closed by a human:
   may disagree on programmer-mode entry, LED colours or port behaviour.
   `status: open`, `severity: soft`. Human: connect the Launchpad and run the
   checklist in section 4.
-- **B002 · Launchkey Mini MK3 physical verification** — historical, superseded
-  by B009. `status: open`, `severity: soft`. Do not action this entry; the app
-  does not start the Launchkey driver.
 - **B003 · Analog Lab Pro and EZdrummer 3 validation** — third-party plugins are
   not installed/licensed on this machine. `status: open`, `severity: soft`.
   Human: on the Windows music PC, confirm editor, presets, state save/reload and
@@ -585,12 +578,11 @@ engine/src/
                         pairing, mDNS
   audio/                engine, slots, bus, device manager, transport, clocks,
                         latency probe, timing monitor, RT guard
-  controller/           Launchpad protocol/driver, set.yaml mapping; historical
-                        Launchkey protocol/driver for its old tests
+  controller/           Launchpad protocol/driver and set.yaml mapping
   dsp/                  EQ, compressor, delay, reverb
   instruments/          Instrument interface, audio input, plugin FX
   plugins/              scanner, cache, plugin instance/window, sandbox
-  project/              .ihub set format, serializer, migrations, plugin state
+  project/              .ihub set format, serializer and migrations
   sampler/              sample loader, kit format, polyphonic sampler
   diag/                 log ring, crash dump, diagnostics report
   Bridge/               web view and embedded-asset provider

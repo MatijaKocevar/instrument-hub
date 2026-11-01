@@ -33,7 +33,7 @@ namespace AudioEngine
     Threading:
 
     - `tapAt()`, `tap()` and `reset()` may be called from any control thread:
-      a Launchkey button callback runs on JUCE's MIDI thread while an API
+      a controller button callback runs on JUCE's MIDI thread while an API
       request runs on an HTTP thread, and both may tap the same estimator.
       The tap history is guarded by a short spin lock; only the occasional tap
       takes it, so there is no contention worth a mutex.

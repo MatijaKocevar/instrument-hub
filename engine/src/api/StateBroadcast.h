@@ -51,8 +51,8 @@ struct StateBroadcastOptions
     */
     int clientPollIntervalUs = 5000;
 
-    /** Maximum number of pads mirrored. The Launchkey Mini MK3 has 16. */
-    static constexpr int maxPads = 16;
+    /** Maximum number of pads mirrored. The Launchpad Mini MK3 has 64. */
+    static constexpr int maxPads = 64;
 };
 
 /**

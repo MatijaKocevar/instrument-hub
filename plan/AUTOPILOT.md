@@ -150,7 +150,7 @@ A successful end state:
 - Audio runs through the ALSA loopback with measured latency and zero xruns
 - Plugins host, save, and reload
 - Slots switch without clicks (proven by the discontinuity test)
-- The controller driver passes against the virtual Launchkey
+- The Launchpad driver passes its scripted protocol, mapping and LED tests
 - The React UI runs, is embedded, and is screenshotted
 - `HANDOVER.md` lists the hardware checks a human still has to do
 

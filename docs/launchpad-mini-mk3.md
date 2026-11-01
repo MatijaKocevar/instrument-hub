@@ -10,10 +10,7 @@ Nothing here runs on the audio thread. The driver has no audio knowledge; a
 pad press becomes a slot number through the mapping, and the slot number is
 published to the session with a lock-free arm request.
 
-This is the shipped controller. The older Launchkey Mini MK3 module
-(`LaunchkeyProtocol`/`LaunchkeyDriver`) is still compiled for its historical
-integration tests, but it is **not** the target surface and the app does not
-start it. See `docs/launchkey-mini-mk3.md`.
+This is the only controller stack in the tree; there is no second device path.
 
 ## Sources
 
@@ -178,5 +175,4 @@ the full pad → mapping → LED path are covered by:
   the armed-red / patch-colour LED stream.
 
 Physical verification (programmer-mode entry, real LED colours, font/brightness,
-firmware quirks) is tracked in `plan/BLOCKERS.md` as **B009**, which supersedes
-the Launchkey-era B002.
+firmware quirks) is tracked in `plan/BLOCKERS.md` as **B009**.

@@ -177,7 +177,7 @@ jobs:
           Type=Application
           Name=Instrument Hub
           GenericName=Audio Workbench
-          Comment=Modular audio engine for the Novation Launchkey Mini MK3
+          Comment=Modular audio engine for the Novation Launchpad Mini MK3
           Exec=instrument-hub %U
           Icon=instrument-hub
           Terminal=false
@@ -364,7 +364,7 @@ jobs:
                 <Component Id="ApplicationShortcut" Guid="*">
                   <Shortcut Id="StartMenuShortcut"
                             Name="Instrument Hub"
-                            Description="Modular audio engine for the Novation Launchkey Mini MK3"
+                            Description="Modular audio engine for the Novation Launchpad Mini MK3"
                             Target="[INSTALLFOLDER]instrument-hub.exe"
                             WorkingDirectory="INSTALLFOLDER"/>
                   <RemoveFolder Id="RemoveShortcutFolder" On="uninstall"/>

@@ -123,7 +123,7 @@ echo "audio and midi"
 if [[ -e /dev/snd/seq ]]; then
     ok "ALSA sequencer /dev/snd/seq"
 else
-    miss "ALSA sequencer missing (needed by the virtual Launchkey)"
+    miss "ALSA sequencer missing (needed by controller and MIDI tests)"
 fi
 if aplay -l 2>/dev/null | grep -qi loopback; then
     ok "ALSA loopback card"
