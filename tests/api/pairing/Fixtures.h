@@ -46,4 +46,4 @@ struct Fixture
     httplib::Client& http() noexcept { return *client; }
 };
 
-} // namespace ApiTest::Pairing
+}

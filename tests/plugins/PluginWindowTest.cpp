@@ -1,25 +1,3 @@
-// ihub-plugin-window-test: acceptance check for T023.
-//
-// Proves that a hosted plugin's native editor can be shown in an app-owned
-// window and closed cleanly:
-//
-//   1. TestPlugin is loaded through PluginInstrument and its editor is opened
-//      in a PluginWindow (a juce::DocumentWindow owned by the controller)
-//   2. the editor is on the desktop and still open after two seconds of real
-//      message-loop time, and its JUCE snapshot is non-blank
-//   3. close() destroys the window and the editor, leaving the processor
-//      without an active editor
-//   4. reopening and then calling PluginInstrument::unload() closes the editor
-//      before the processor dies (the "close cleanly on unload" contract)
-//   5. destroying the controller before the instrument is safe, no window
-//      survives, and the live-object counters return to zero
-//
-// Run it under DISPLAY=:0. In a Debug build every JUCE object is guarded by
-// LeakedObjectDetector, so a clean exit with status 0 is the leak report.
-//
-// The bundle path is injected by CMake (IHUB_TESTPLUGIN_VST3); an explicit
-// path may also be passed as the first command-line argument.
-
 #include "plugins/PluginWindow.h"
 #include "plugins/PluginInstrument.h"
 
@@ -43,7 +21,6 @@ void check (bool condition, const std::string& what)
         ++failures;
 }
 
-/** Pumps the real message loop, exactly as the application does. */
 void pumpMessages (int milliseconds)
 {
     auto* messageManager = juce::MessageManager::getInstance();
@@ -54,7 +31,6 @@ void pumpMessages (int milliseconds)
         messageManager->runDispatchLoopUntil (10);
 }
 
-/** Number of distinct colours in a coarse grid of the snapshot. */
 int countDistinctColours (const juce::Image& image)
 {
     std::set<juce::uint32> colours;
@@ -69,12 +45,6 @@ int countDistinctColours (const juce::Image& image)
     return static_cast<int> (colours.size());
 }
 
-/** Finds the native X11 host JUCE uses to embed a VST3 editor.
-
-    A hosted VST3 editor is a foreign X11 window, so its pixels live outside
-    this process's component tree and `createComponentSnapshot()` can only see
-    the host component. The embedded host window existing and being visible is
-    what proves the native editor is actually on screen. */
 juce::XEmbedComponent* findEmbeddedEditorHost (juce::Component& component)
 {
     if (auto* embedded = dynamic_cast<juce::XEmbedComponent*> (&component))
@@ -103,7 +73,7 @@ juce::PluginDescription* findTestPlugin (juce::AudioPluginFormatManager& manager
 
     return nullptr;
 }
-} // namespace
+}
 
 int main (int argc, char** argv)
 {
@@ -154,7 +124,6 @@ int main (int argc, char** argv)
 
     check (instrument.getPlugin()->hasEditor(), "TestPlugin reports a native editor");
 
-    // --- 1./2. Open, stay up for two seconds, prove it rendered ------------
     {
         ihub::plugins::PluginWindow window;
 
@@ -189,16 +158,12 @@ int main (int argc, char** argv)
         check (editor != nullptr && editor->isShowing(),
                "the editor is still showing after 2 s");
 
-        // Snapshots come from inside JUCE, never from a desktop screenshot tool.
         if (editor != nullptr && editor->getWidth() > 0 && editor->getHeight() > 0)
         {
             const auto snapshot = editor->createComponentSnapshot (editor->getLocalBounds());
 
             const auto colours = countDistinctColours (snapshot);
 
-            // A hosted VST3 editor is a foreign X11 window: JUCE's snapshot
-            // only sees the (grey) host component. Keep the image as a
-            // diagnostic but prove rendering through the native embed below.
             std::cout << "snapshot: " << snapshot.getWidth() << "x"
                       << snapshot.getHeight() << ", " << colours
                       << " distinct colours (native X11 editor content is not in"
@@ -226,7 +191,6 @@ int main (int argc, char** argv)
                    "the native editor host is showing");
         }
 
-        // --- 3. Explicit close --------------------------------------------
         window.close();
 
         check (! window.isOpen(), "close() closed the window");
@@ -236,7 +200,6 @@ int main (int argc, char** argv)
         check (instrument.getPlugin()->getActiveEditor() == nullptr,
                "the processor no longer has an active editor");
 
-        // --- 4. Close on unload -------------------------------------------
         check (window.open (instrument, "TestPlugin Editor"),
                "the window can be reopened after close()");
 
@@ -253,7 +216,6 @@ int main (int argc, char** argv)
                "no plugin window survives unload()");
     }
 
-    // --- 5. Controller destroyed before the instrument ---------------------
     check (ihub::plugins::PluginWindow::getLiveInstanceCount() == 0,
            "the PluginWindow controller was destroyed");
 
@@ -268,8 +230,6 @@ int main (int argc, char** argv)
                "the editor opens on the second instance");
         check (ihub::plugins::PluginWindow::getOpenWindowCount() == 1,
                "the reopened window is on screen");
-        // window goes out of scope before the instrument below: the instrument
-        // still holds a weak callback and must not touch the freed controller.
     }
 
     check (ihub::plugins::PluginWindow::getOpenWindowCount() == 0,

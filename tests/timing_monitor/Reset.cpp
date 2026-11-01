@@ -33,4 +33,4 @@ void runReset()
     check (monitor.getDeadlineMs() > 0.0, "the configured deadline survives reset");
 }
 
-} // namespace TimingMonitorTest
+}

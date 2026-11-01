@@ -13,7 +13,6 @@ void runStartStop()
     transport.prepare (48000.0, 128);
     transport.setBpm (120.0);
 
-    // A stopped transport does not advance, even when frames are processed.
     advance (transport, 48000, 128);
     check (transport.getPpq() == 0.0 && transport.getPositionSamples() == 0,
            "a stopped transport processes frames without moving");
@@ -42,4 +41,4 @@ void runStartStop()
     check (! transport.isPlaying(), "setPlaying(false) stops the transport");
 }
 
-} // namespace AudioTest::Transport
+}

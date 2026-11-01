@@ -20,4 +20,4 @@ struct RunResult
 
 RunResult renderRun (float fadeMilliseconds);
 
-} // namespace AudioTest::SwitchContinuity
+}

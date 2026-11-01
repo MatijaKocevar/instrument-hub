@@ -19,4 +19,4 @@ void checkPitch (const ihub::sampler::SampleData& sample, double expected,
                             + SamplerTest::number (expected, 1) + " Hz)");
 }
 
-} // namespace SampleTest
+}

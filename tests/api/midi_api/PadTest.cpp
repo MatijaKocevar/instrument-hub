@@ -103,4 +103,4 @@ void runPadTestStream()
     check (! error.empty(), "the refusal explains why");
 }
 
-} // namespace ApiTest::MidiApi
+}

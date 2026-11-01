@@ -11,10 +11,10 @@ void runJitter()
 
     Fixture fixture;
     Simulator simulator (kSampleRate, 120.0);
-    simulator.setJitter (0.003, 0x5EED1234u);   // +/- 3 ms on a 20.8 ms tick
+    simulator.setJitter (0.003, 0x5EED1234u);
     simulator.start();
 
-    simulator.run (fixture.transport, 144000, kBlockSize);   // 3 s
+    simulator.run (fixture.transport, 144000, kBlockSize);
 
     std::cout << "jittered estimate: " << simulator.clockIn.getBpm()
               << " BPM, ticks " << simulator.clockIn.getTickCount() << std::endl;
@@ -29,4 +29,4 @@ void runJitter()
            "the jittered position stays within two ticks of 3 s of music");
 }
 
-} // namespace AudioTest::ClockIn
+}

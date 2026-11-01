@@ -12,13 +12,13 @@ void runTempoChange()
     Fixture fixture;
     Simulator simulator (kSampleRate, 120.0);
     simulator.start();
-    simulator.run (fixture.transport, 96000, kBlockSize);   // 2 s at 120
+    simulator.run (fixture.transport, 96000, kBlockSize);
 
     check (nearlyEqual (simulator.clockIn.getBpm(), 120.0, 0.05),
            "the first tempo is locked at 120 BPM");
 
     simulator.setTempo (90.0);
-    simulator.run (fixture.transport, 96000, kBlockSize);   // 2 s at 90
+    simulator.run (fixture.transport, 96000, kBlockSize);
 
     std::cout << "after 120 -> 90 BPM: estimate " << simulator.clockIn.getBpm()
               << ", transport " << fixture.transport.getBpm() << std::endl;
@@ -31,4 +31,4 @@ void runTempoChange()
            "the transport follows the new tempo");
 }
 
-} // namespace AudioTest::ClockIn
+}

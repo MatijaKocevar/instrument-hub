@@ -71,4 +71,4 @@ void runRouteRegistration (Rig& rig)
     }
 }
 
-} // namespace ApiTest::CoreApi
+}

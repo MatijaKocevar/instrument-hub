@@ -25,4 +25,4 @@ std::string stringProperty (const juce::var& object, const char* name);
 
 juce::var patchForSlot (const juce::var& state, int slot);
 
-} // namespace ApiTest
+}

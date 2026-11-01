@@ -16,9 +16,8 @@ struct AudioProbe
 
 double toDbfs (double linear);
 
-/** Renders a held note on the armed patch and returns the mono (left) signal. */
 AudioProbe renderNote (ihub::Session& session, int slot);
 
 double relativeDifference (const AudioProbe& first, const AudioProbe& second);
 
-} // namespace AnalogLab
+}

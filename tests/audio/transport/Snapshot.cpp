@@ -28,4 +28,4 @@ void runSnapshot()
            "snapshot reports the sync source");
 }
 
-} // namespace AudioTest::Transport
+}

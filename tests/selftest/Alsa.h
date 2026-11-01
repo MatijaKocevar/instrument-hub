@@ -27,4 +27,4 @@ void captureLoop (snd_pcm_t* pcm,
                   std::atomic<unsigned int>& xruns,
                   std::atomic<bool>& failed);
 
-} // namespace SelfTest
+}

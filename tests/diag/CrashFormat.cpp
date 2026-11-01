@@ -59,4 +59,4 @@ void runCrashDumpFormat()
 #endif
 }
 
-} // namespace DiagTest
+}

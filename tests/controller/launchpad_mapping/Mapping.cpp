@@ -127,4 +127,4 @@ void runMappingChecks()
     check (! mapping.handleButton (99, true), "an unknown CC is ignored");
 }
 
-} // namespace LaunchpadMappingTest
+}

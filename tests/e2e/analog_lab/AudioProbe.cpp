@@ -90,4 +90,4 @@ double relativeDifference (const AudioProbe& first, const AudioProbe& second)
     return reference > 0.0 ? differenceRms / reference : 0.0;
 }
 
-} // namespace AnalogLab
+}

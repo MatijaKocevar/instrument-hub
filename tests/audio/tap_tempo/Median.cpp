@@ -11,7 +11,6 @@ void runMedian()
 
     AudioEngine::TapTempo tempo;
 
-    // Eight steady intervals.
     for (int index = 0; index <= 8; ++index)
         tempo.tapAt (0.5 * index);
 
@@ -20,14 +19,11 @@ void runMedian()
     check (tempo.getIntervalCount() == AudioEngine::TapTempo::defaultHistorySize,
            "the interval window fills to N");
 
-    // One late tap creates a 520 ms interval and the following tap a 480 ms
-    // interval. With eight slots, neither displaces the median.
     check (nearlyEqual (tempo.tapAt (4.52), 120.0, 1.0e-12),
            "one late tap does not move a settled 120 BPM tempo");
     check (nearlyEqual (tempo.tapAt (5.00), 120.0, 1.0e-12),
            "a late tap followed by an early one still reads 120 BPM");
 
-    // A smaller window genuinely forgets older intervals.
     AudioEngine::TapTempo shortMemory (3);
 
     shortMemory.tapAt (0.0);
@@ -57,4 +53,4 @@ void runMedian()
            "an oversized history is clamped to the fixed storage");
 }
 
-} // namespace AudioTest::TapTempo
+}

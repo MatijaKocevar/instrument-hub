@@ -21,4 +21,4 @@ bool Rig::start()
     return true;
 }
 
-} // namespace ApiTest::CoreApi
+}

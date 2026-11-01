@@ -32,4 +32,4 @@ void runResolveChecks (ihub::sampler::LoadedKit& kit)
     (void) sink;
 }
 
-} // namespace KitTest
+}

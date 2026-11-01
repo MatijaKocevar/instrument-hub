@@ -52,4 +52,4 @@ void runNoAllocations()
     check (after == before, "process() allocates nothing across three switches");
 }
 
-} // namespace SlotSwitcherTest
+}

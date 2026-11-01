@@ -24,8 +24,6 @@ void runRealtime()
     check (std::abs (before - beforeTarget) <= kToleranceDb,
            "initial bell response matches the target");
 
-    // Message-thread parameter change. Publishing is allocation-free by
-    // design, but only the audio-thread cost is part of this measurement.
     bands[1].gainDb = 9.0f;
     eq.setBand (1, bands[1]);
 
@@ -59,4 +57,4 @@ void runRealtime()
            "the update is audible (about 13 dB higher at the bell centre)");
 }
 
-} // namespace DspTest::Eq
+}

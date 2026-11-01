@@ -26,4 +26,4 @@ std::string number (double value)
     return text.toStdString();
 }
 
-} // namespace DspTest
+}

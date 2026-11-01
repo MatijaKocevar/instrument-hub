@@ -18,4 +18,4 @@ std::string patchSourceJson (const juce::String& path, const std::string& name);
 
 juce::File findAnalogLabBundle();
 
-} // namespace ApiTest::PluginEditorApi
+}

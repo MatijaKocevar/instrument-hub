@@ -8,4 +8,4 @@ namespace PluginFxTest
 void runEditor (juce::AudioPluginFormatManager& manager,
                 const juce::PluginDescription& description);
 
-} // namespace PluginFxTest
+}

@@ -43,4 +43,4 @@ void runDisarm()
            "the slot is idle after the fade completes");
 }
 
-} // namespace SlotSwitcherTest
+}

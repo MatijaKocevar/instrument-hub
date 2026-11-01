@@ -104,4 +104,4 @@ void FakeBackend::attach (Api::Server& server)
         });
 }
 
-} // namespace ApiTest::MidiApi
+}

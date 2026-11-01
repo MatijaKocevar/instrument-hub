@@ -17,7 +17,7 @@ float normaliseFrequency (double hz)
     return static_cast<float> ((hz - 20.0) / (20000.0 - 20.0));
 }
 
-} // namespace
+}
 
 juce::File makeTempRoot()
 {
@@ -138,4 +138,4 @@ bool approximately (double value, double expected, double tolerance)
     return std::abs (value - expected) <= tolerance;
 }
 
-} // namespace ApiTest::PatchStateCaptureApi
+}

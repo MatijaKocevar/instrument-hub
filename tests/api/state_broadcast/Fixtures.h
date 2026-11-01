@@ -69,4 +69,4 @@ struct Rig
     void stop();
 };
 
-} // namespace ApiTest::StateBroadcast
+}

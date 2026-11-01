@@ -62,7 +62,6 @@ void runTempo()
         check (worst < 96.0, "180 BPM at 96 kHz stays within 1 ms");
     }
 
-    // A tempo change between blocks preserves tick continuity.
     {
         AudioEngine::Transport transport;
         transport.prepare (48000.0, 128);
@@ -96,4 +95,4 @@ void runTempo()
     }
 }
 
-} // namespace AudioTest::ClockOut
+}

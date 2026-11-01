@@ -7,4 +7,4 @@ namespace VoiceTest
 
 bool runSetupChecks (Rig& rig);
 
-} // namespace VoiceTest
+}

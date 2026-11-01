@@ -57,4 +57,4 @@ bool runRestart (const juce::File& stateDirectory, const juce::String& bundlePat
     return true;
 }
 
-} // namespace ApiTest::PatchStateCaptureApi
+}

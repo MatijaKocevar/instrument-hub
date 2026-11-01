@@ -27,4 +27,4 @@ void expectInvalid (const std::string& label,
                            label + " leaves the previous document untouched");
 }
 
-} // namespace MappingTest
+}

@@ -15,7 +15,6 @@ void runSequenceReset()
     tempo.tapAt (0.5);
     check (tempo.getBpm() > 0.0, "a 120 BPM sequence has an estimate");
 
-    // 3.5 s exceeds 60 / 20 = 3 s.
     check (tempo.tapAt (4.0) == 0.0, "a gap longer than 3 s starts a new sequence");
     check (tempo.getTapCount() == 1, "the new sequence has one tap");
     check (tempo.getIntervalCount() == 0, "the new sequence has no intervals");
@@ -30,13 +29,11 @@ void runSequenceReset()
     check (nearlyEqual (tempo.tapAt (4.5), 120.0, 1.0e-12),
            "the backwards tap left a clean one-tap sequence");
 
-    // Intervals shorter than 200 ms cannot be a supported tempo.
     AudioEngine::TapTempo fast;
     fast.tapAt (10.0);
     check (fast.tapAt (10.1) == 0.0,
            "an interval below 200 ms starts a new sequence");
 
-    // Non-finite input leaves the state alone.
     AudioEngine::TapTempo robust;
     robust.tapAt (20.0);
     robust.tapAt (20.5);
@@ -52,4 +49,4 @@ void runSequenceReset()
            "non-finite timestamps do not record a tap");
 }
 
-} // namespace AudioTest::TapTempo
+}

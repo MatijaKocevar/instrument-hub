@@ -7,4 +7,4 @@ namespace ApiTest::PatchFxApi
 
 void runValidation (SessionRig& rig);
 
-} // namespace ApiTest::PatchFxApi
+}

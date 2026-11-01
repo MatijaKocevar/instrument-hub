@@ -50,4 +50,4 @@ void runParseChecks()
            "velocity lookup covers both layers");
 }
 
-} // namespace KitTest
+}

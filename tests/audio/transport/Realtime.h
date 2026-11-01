@@ -5,4 +5,4 @@ namespace AudioTest::Transport
 
 void runRealtime();
 
-} // namespace AudioTest::Transport
+}

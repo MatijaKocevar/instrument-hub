@@ -28,4 +28,4 @@ void runTransport (Rig& rig)
     check (response && response->status == 400, "POST /transport rejects an out-of-range bpm");
 }
 
-} // namespace ApiTest::CoreApi
+}

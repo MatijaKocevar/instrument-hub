@@ -50,4 +50,4 @@ void runScopeBookkeeping()
            "thread is no longer realtime");
 }
 
-} // namespace RtGuardTest
+}

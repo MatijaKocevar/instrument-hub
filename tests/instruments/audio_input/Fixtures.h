@@ -23,14 +23,6 @@ constexpr double kFrequency = 440.0;
 constexpr double kAmplitude = 0.5;
 constexpr int kFadeBlocks = 8;
 
-/** A deterministic stereo effect used as the slot's heavy chain.
-
-    It scales by `gain` and reports (without actually inserting) `latency`
-    samples, so the test can prove both that the signal went through the chain
-    and that direct monitoring removed the chain's latency. Every processBlock
-    call is counted: a bypassed chain must not run at all, even if its output
-    would otherwise look unchanged.
-*/
 class GainFxProcessor final : public juce::AudioProcessor
 {
 public:
@@ -86,4 +78,4 @@ private:
     std::atomic<int> processCalls { 0 };
 };
 
-} // namespace AudioInputTest
+}

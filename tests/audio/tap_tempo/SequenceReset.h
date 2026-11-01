@@ -5,4 +5,4 @@ namespace AudioTest::TapTempo
 
 void runSequenceReset();
 
-} // namespace AudioTest::TapTempo
+}

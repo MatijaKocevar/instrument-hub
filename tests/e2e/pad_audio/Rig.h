@@ -10,7 +10,6 @@
 namespace PadAudio
 {
 
-/** The controller stack exactly as Main.cpp wires it: driver -> mapping -> arm. */
 struct PadRig
 {
     Controller::Mapping mapping;
@@ -26,4 +25,4 @@ struct PadRig
     void press (int pad);
 };
 
-} // namespace PadAudio
+}

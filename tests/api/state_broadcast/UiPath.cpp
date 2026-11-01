@@ -74,4 +74,4 @@ void runUiPath (Rig& rig)
            "the UI arm event reached the tablet socket within the budget");
 }
 
-} // namespace ApiTest::StateBroadcast
+}

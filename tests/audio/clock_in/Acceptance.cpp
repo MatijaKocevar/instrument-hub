@@ -45,8 +45,6 @@ void runAcceptance()
     check (nearlyEqual (fixture.transport.getBpm(), 120.0, 0.01),
            "the transport tempo is 120 BPM");
 
-    // 2 s at 120 BPM is exactly 4 quarter notes. The last tick before the
-    // 2 s boundary is tick 95, so one tick of lead is expected.
     check (nearlyEqual (fixture.transport.getPpq(), 4.0, tick),
            "the transport position is 4 quarter notes +/- one tick");
     check (std::abs (clockIn.getTickCount() - 95) <= 1,
@@ -56,4 +54,4 @@ void runAcceptance()
            "no clock event was dropped");
 }
 
-} // namespace AudioTest::ClockIn
+}

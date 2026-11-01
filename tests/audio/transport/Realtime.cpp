@@ -33,4 +33,4 @@ void runRealtime()
            "the rendered position is exact after 10000 blocks");
 }
 
-} // namespace AudioTest::Transport
+}

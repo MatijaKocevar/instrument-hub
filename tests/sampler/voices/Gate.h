@@ -7,4 +7,4 @@ namespace VoiceTest
 
 void runGateChecks (Rig& rig);
 
-} // namespace VoiceTest
+}

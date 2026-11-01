@@ -5,4 +5,4 @@ namespace TimingMonitorTest
 
 void runMeasured();
 
-} // namespace TimingMonitorTest
+}

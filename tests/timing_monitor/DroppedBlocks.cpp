@@ -28,4 +28,4 @@ void runDroppedBlocks()
            "a 3x callback drops two more blocks (three total)");
 }
 
-} // namespace TimingMonitorTest
+}

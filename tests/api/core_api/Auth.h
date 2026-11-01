@@ -7,4 +7,4 @@ namespace ApiTest::CoreApi
 
 void runAuth (Rig& rig);
 
-} // namespace ApiTest::CoreApi
+}

@@ -22,7 +22,6 @@ void runRealtime()
     settings.releaseMs = 50.0f;
     compressor.setSettings (settings);
 
-    // Warm up on a tone 6 dB over the old threshold: 4.5 dB of reduction.
     juce::AudioBuffer<float> warmup (1, static_cast<int> (kSampleRate));
     fillTone (warmup, 0, -12.0, kToneFrequency, kSampleRate);
     processInBlocks (compressor, warmup, kBlockSize);
@@ -30,7 +29,6 @@ void runRealtime()
     check (std::abs (compressor.getGainReductionDb() - 4.5f) <= 1.0f,
            "warm-up reaches the old static curve");
 
-    // New threshold: the tone is now 18 dB over, so the target is 13.5 dB.
     compressor.setThresholdDb (-30.0f);
 
     juce::AudioBuffer<float> block (1, kBlockSize);
@@ -49,7 +47,6 @@ void runRealtime()
            "applying an update and processing a block allocates nothing (got "
                + std::to_string (allocations) + ")");
 
-    // Keep going for 0.5 s so the new target is fully reached.
     juce::AudioBuffer<float> settle (1, static_cast<int> (0.5 * kSampleRate));
     fillTone (settle, 0, -12.0, kToneFrequency, kSampleRate);
     processInBlocks (compressor, settle, kBlockSize);
@@ -62,4 +59,4 @@ void runRealtime()
            "the update is audible on the next block and reaches its static curve");
 }
 
-} // namespace DspTest::Compressor
+}

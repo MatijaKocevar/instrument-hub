@@ -42,4 +42,4 @@ void runDeadline()
            "a non-positive deadline disables overrun counting");
 }
 
-} // namespace TimingMonitorTest
+}

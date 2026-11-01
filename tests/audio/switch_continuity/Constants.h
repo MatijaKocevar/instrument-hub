@@ -32,4 +32,4 @@ constexpr int kSpectralFrameSize = 1024;
 constexpr double kSpectralThresholdDb = -35.0;
 constexpr double kEnergyFloor = 1.0e-30;
 
-} // namespace AudioTest::SwitchContinuity
+}

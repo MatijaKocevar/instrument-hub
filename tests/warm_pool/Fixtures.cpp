@@ -132,4 +132,4 @@ std::string join (const std::vector<int>& values)
     return text;
 }
 
-} // namespace WarmPoolTest
+}

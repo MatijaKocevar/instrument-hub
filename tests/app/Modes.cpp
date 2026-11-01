@@ -33,4 +33,4 @@ void runModes()
            "session-smoke has a stable name");
 }
 
-} // namespace AppModesTest
+}

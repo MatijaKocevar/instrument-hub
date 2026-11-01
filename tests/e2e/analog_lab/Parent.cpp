@@ -105,4 +105,4 @@ int runParent()
     return E2E::failures == 0 ? 0 : 1;
 }
 
-} // namespace AnalogLab
+}

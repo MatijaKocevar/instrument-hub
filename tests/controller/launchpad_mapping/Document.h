@@ -5,4 +5,4 @@ namespace LaunchpadMappingTest
 
 bool runDocumentChecks();
 
-} // namespace LaunchpadMappingTest
+}

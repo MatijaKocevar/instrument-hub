@@ -192,4 +192,4 @@ void runLoopbackThroughMasterBus()
     }
 }
 
-} // namespace AudioInputTest
+}

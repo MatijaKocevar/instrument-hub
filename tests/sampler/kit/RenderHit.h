@@ -9,4 +9,4 @@ namespace KitTest
 
 juce::AudioBuffer<float> renderHit (const ihub::sampler::ResolvedHit& hit);
 
-} // namespace KitTest
+}

@@ -95,4 +95,4 @@ void runDirectMonitorBypassesFxChain()
            "latency returns to input plus chain");
 }
 
-} // namespace AudioInputTest
+}

@@ -62,4 +62,4 @@ double meanOfMiddle (const juce::AudioBuffer<float>& buffer, int channel)
     return sum / (double) (end - start);
 }
 
-} // namespace SamplerTest
+}

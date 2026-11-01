@@ -30,4 +30,4 @@ void runLevelAndSourceNames()
            "sources have stable text");
 }
 
-} // namespace DiagTest
+}

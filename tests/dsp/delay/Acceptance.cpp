@@ -50,4 +50,4 @@ void runAcceptance()
            "a delay reports zero latency (the dry signal is not delayed)");
 }
 
-} // namespace DspTest::Delay
+}

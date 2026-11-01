@@ -50,4 +50,4 @@ void runRange()
            "a non-positive interval has no tempo");
 }
 
-} // namespace AudioTest::TapTempo
+}

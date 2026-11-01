@@ -85,4 +85,4 @@ void runMixer (SessionRig& rig)
     check (response && response->status == 400, "an out-of-range fader value is rejected");
 }
 
-} // namespace ApiTest::InstrumentPageApi
+}

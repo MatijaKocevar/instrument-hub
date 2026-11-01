@@ -18,19 +18,16 @@ void runTransport()
 
     AudioEngine::ClockOut clock;
 
-    // Start at zero: exactly one start, no clock in the first 128 frames.
     transport.start();
     auto first = render (clock, transport, 128, blockSize);
 
     check (first.size() == 1 && first.front().type == AudioEngine::ClockOut::Type::start,
            "starting at zero emits start and no premature clock");
 
-    // The rest of one second: 48 clocks at 120 BPM.
     auto firstSecond = render (clock, transport, 48000 - 128, blockSize);
     check (countClocks (firstSecond) == 48,
            "the first second emits 48 clocks (24 PPQN, 120 BPM)");
 
-    // Stop: one stop message at the current position, and none on later blocks.
     transport.stop();
     auto stopped = render (clock, transport, blockSize, blockSize);
     check (stopped.size() == 1 && stopped.front().type == AudioEngine::ClockOut::Type::stop,
@@ -41,7 +38,6 @@ void runTransport()
     auto stillStopped = render (clock, transport, blockSize * 4, blockSize);
     check (stillStopped.empty(), "a stopped transport emits nothing further");
 
-    // Continue: playback resumes at PPQ 2, so the message is continue.
     transport.start();
     auto resumed = render (clock, transport, 128, blockSize);
     check (resumed.size() == 1
@@ -75,9 +71,8 @@ void runTransport()
     check (ticksAfterContinue && expected == 97,
            "continue resumes on tick 49 and ends on tick 96");
 
-    // Rewind to zero and start again: start, not continue.
     transport.stop();
-    render (clock, transport, blockSize, blockSize);   // stop message
+    render (clock, transport, blockSize, blockSize);
     transport.rewind();
     transport.start();
     auto afterRewind = render (clock, transport, blockSize, blockSize);
@@ -86,4 +81,4 @@ void runTransport()
            "starting from zero after a rewind emits start");
 }
 
-} // namespace AudioTest::ClockOut
+}

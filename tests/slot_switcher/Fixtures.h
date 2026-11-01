@@ -28,7 +28,6 @@ constexpr int kRecordedSamples = kRecordedBlocks * kBlockSize;
 
 void check (bool condition, const std::string& what);
 
-/** A phase-continuous sine on every channel. */
 class SineSource final : public AudioEngine::SlotSource
 {
 public:
@@ -49,4 +48,4 @@ private:
     double increment = 0.0;
 };
 
-} // namespace SlotSwitcherTest
+}

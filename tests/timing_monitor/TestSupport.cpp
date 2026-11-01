@@ -21,4 +21,4 @@ bool nearlyEqual (double a, double b, double tolerance)
     return std::abs (a - b) <= tolerance;
 }
 
-} // namespace TimingMonitorTest
+}

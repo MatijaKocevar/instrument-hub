@@ -105,4 +105,4 @@ ihub::dsp::ReverbSettings makeSettings (float roomSize, float damping,
     return settings;
 }
 
-} // namespace DspTest::Reverb
+}

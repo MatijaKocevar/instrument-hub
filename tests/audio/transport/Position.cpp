@@ -39,4 +39,4 @@ void runPosition()
            "a negative sample position is clamped to zero");
 }
 
-} // namespace AudioTest::Transport
+}

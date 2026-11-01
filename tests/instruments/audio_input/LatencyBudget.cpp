@@ -36,4 +36,4 @@ void runLatencyBudget()
            "a negative budget clears the check");
 }
 
-} // namespace AudioInputTest
+}

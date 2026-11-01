@@ -7,4 +7,4 @@ namespace SampleTest
 
 void runDecodeChecks (const juce::File& directory);
 
-} // namespace SampleTest
+}

@@ -7,4 +7,4 @@ namespace ApiTest::PluginEditorApi
 
 void runAnalogLab (ihub::Session& session, httplib::Client& client);
 
-} // namespace ApiTest::PluginEditorApi
+}

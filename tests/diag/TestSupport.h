@@ -13,4 +13,4 @@ void check (bool condition, const std::string& what);
 bool contains (const std::string& text, const std::string& needle);
 juce::File tempFile (const juce::String& suffix);
 
-} // namespace DiagTest
+}

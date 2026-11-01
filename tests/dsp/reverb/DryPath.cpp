@@ -52,4 +52,4 @@ void runDryPath()
     check (reverb.getTailLengthSeconds() > 0.0, "the reverb reports a tail length");
 }
 
-} // namespace DspTest::Reverb
+}

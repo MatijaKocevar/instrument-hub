@@ -5,4 +5,4 @@ namespace LatencyProbeTest
 
 void runLoopbackLatency();
 
-} // namespace LatencyProbeTest
+}

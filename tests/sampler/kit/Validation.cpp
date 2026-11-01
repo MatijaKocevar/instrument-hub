@@ -33,7 +33,7 @@ bool parseFails (const std::string& json, const std::string& expectedFragment,
     return ! parsed && carriedFragment;
 }
 
-} // namespace
+}
 
 void runValidationChecks (const juce::File& directory, LoadedKit& kit)
 {
@@ -145,4 +145,4 @@ void runValidationChecks (const juce::File& directory, LoadedKit& kit)
     kit = std::move (survivor);
 }
 
-} // namespace KitTest
+}

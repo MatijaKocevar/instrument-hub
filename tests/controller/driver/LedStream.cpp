@@ -74,4 +74,4 @@ void runLedStreamChecks (Rig& rig)
            "right-column button 0 active is green (B0 59 15)");
 }
 
-} // namespace DriverTest
+}

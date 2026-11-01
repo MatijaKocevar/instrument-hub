@@ -12,4 +12,4 @@ void expectInvalid (const std::string& label,
 void runStructureChecks();
 void runValueChecks();
 
-} // namespace MappingTest
+}

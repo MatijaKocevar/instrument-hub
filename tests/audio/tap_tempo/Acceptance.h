@@ -5,4 +5,4 @@ namespace AudioTest::TapTempo
 
 void runAcceptance();
 
-} // namespace AudioTest::TapTempo
+}

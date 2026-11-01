@@ -42,4 +42,4 @@ void runFeedback()
            "successive repeats decay with feedback");
 }
 
-} // namespace DspTest::Delay
+}

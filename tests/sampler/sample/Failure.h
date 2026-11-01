@@ -7,4 +7,4 @@ namespace SampleTest
 
 void runFailureChecks (const juce::File& directory);
 
-} // namespace SampleTest
+}

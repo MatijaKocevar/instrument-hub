@@ -46,4 +46,4 @@ void runState (Rig& rig)
     }
 }
 
-} // namespace ApiTest::CoreApi
+}

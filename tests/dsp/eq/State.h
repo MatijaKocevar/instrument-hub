@@ -5,4 +5,4 @@ namespace DspTest::Eq
 
 void runState();
 
-} // namespace DspTest::Eq
+}

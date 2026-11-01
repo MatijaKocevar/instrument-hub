@@ -25,8 +25,6 @@ struct PagesResult
     bool samePatch = false;
 };
 
-/** T127: a Grid click (POST /arm) and a Launchpad pad arm the same patch,
-    that patch renders non-silent audio, and the LED mirror matches. */
 PagesResult runPagesScenario();
 
-} // namespace PadAudio
+}

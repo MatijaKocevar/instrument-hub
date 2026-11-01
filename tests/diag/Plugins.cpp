@@ -73,4 +73,4 @@ void runPluginMerge()
     xmlFile.deleteFile();
 }
 
-} // namespace DiagTest
+}

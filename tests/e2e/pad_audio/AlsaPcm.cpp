@@ -232,4 +232,4 @@ bool AlsaPcm::write (const std::int16_t* source, int frames)
 }
 #endif
 
-} // namespace PadAudio
+}

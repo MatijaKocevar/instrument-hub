@@ -5,4 +5,4 @@ namespace DiagTest
 
 void runStructuredRecords();
 
-} // namespace DiagTest
+}

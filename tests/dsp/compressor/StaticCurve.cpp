@@ -50,8 +50,6 @@ void runStaticCurve()
                "the reported gain reduction matches the static curve within 1 dB");
     }
 
-    // The literal acceptance sentence: 6 dB over threshold with the default
-    // 4:1 ratio means 4.5 dB of gain reduction.
     ihub::dsp::Compressor compressor;
     compressor.prepareToPlay (kSampleRate, kBlockSize);
 
@@ -64,14 +62,12 @@ void runStaticCurve()
     check (std::abs (measuredGr - 4.5) <= 1.0,
            "6 dB over threshold yields 4.5 dB of gain reduction within 1 dB");
 
-    // Below threshold: unity gain, no gain reduction.
     const auto belowGainDb = measureSteadyGainDb (compressor, thresholdDb - 6.0);
     check (std::abs (belowGainDb) <= 0.01,
            "a signal below threshold passes at unity gain");
     check (std::abs (compressor.getGainReductionDb()) <= 0.01,
            "the reported gain reduction is 0 below threshold");
 
-    // Ratio 1:1 is a no-op.
     ihub::dsp::CompressorSettings unity;
     unity.ratio = 1.0f;
     compressor.setSettings (unity);
@@ -81,4 +77,4 @@ void runStaticCurve()
            "ratio 1:1 applies no gain reduction");
 }
 
-} // namespace DspTest::Compressor
+}

@@ -83,4 +83,4 @@ void runEmptyChainThroughSlot()
            "an empty chain adds no latency to the slot total");
 }
 
-} // namespace FxChainTest
+}

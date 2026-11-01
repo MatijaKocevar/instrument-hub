@@ -1,16 +1,3 @@
-// ihub-session-plugin-state-test: acceptance check for T130.
-//
-// Two plugin patches host the in-repo TestPlugin. Each is given a different
-// preset (frequency/state marker), they are switched back and forth so the
-// session captures each patch on the way out, the session is destroyed and a
-// fresh one is built from the same sidecar directory. The patches must restore
-// their own state: different parameters and a different rendered pitch.
-//
-// The editor-follow half of T130 (closing non-armed editors when the armed
-// patch changes) needs a display and lives in `ihub-plugin-editor-api-test`.
-//
-// The bundle path is injected by CMake (IHUB_TESTPLUGIN_VST3).
-
 #include "Session.h"
 #include "plugins/PluginInstrument.h"
 
@@ -80,7 +67,6 @@ bool armAndWait (ihub::Session& session, int slot, int timeoutMs = 5000)
     return session.waitForSlotActive (slot, timeoutMs);
 }
 
-/** Normalised TestPlugin frequency parameter for a Hz value. */
 float normaliseFrequency (double hz)
 {
     return static_cast<float> ((hz - 20.0) / (20000.0 - 20.0));
@@ -104,23 +90,17 @@ void applyPreset (ihub::Session& session,
         return;
     }
 
-    // TestPlugin as a generator: no input bus, so `gain` multiplies silence
-    // and the sine level is the only source.
     (void) instrument->setParameterValue ("Sine Level", 1.0f);
     (void) instrument->setParameterValue ("Gain", 0.0f);
     (void) instrument->setParameterValue ("Frequency", normaliseFrequency (frequency));
     (void) instrument->setParameterValue ("State Marker", stateMarker);
 }
 
-/** Renders the armed slot for a while and estimates the fundamental from the
-    positive-going zero crossings. This is the audible half of the acceptance:
-    the two patches must not merely carry different metadata. */
 double measurePitch (ihub::Session& session)
 {
     juce::AudioBuffer<float> buffer (2, kBlockSize);
     juce::MidiBuffer midi;
 
-    // Let the 3 ms equal-power crossfade finish before measuring.
     for (int block = 0; block < 48; ++block)
     {
         buffer.clear();
@@ -165,7 +145,7 @@ ihub::SessionConfig makeConfig (const juce::String& bundlePath)
     config.device.bufferSize = kBlockSize;
     config.device.numOutputChannels = 2;
     config.device.numInputChannels = 2;
-    config.neighbourCount = 1; // limit 2: both plugin patches stay resident
+    config.neighbourCount = 1;
     config.initialSlot = kPluginSlotA;
     config.slots = ihub::Session::makeDefaultSet (ihub::SessionSlotKind::empty);
     config.slots.resize (kSlots);
@@ -192,7 +172,7 @@ float stateMarker (ihub::Session& session, int slot)
     return instrument != nullptr ? instrument->getParameterValue ("State Marker") : -1.0f;
 }
 
-} // namespace
+}
 
 int main()
 {
@@ -217,9 +197,6 @@ int main()
     (void) tempRoot.createDirectory();
 
     const auto config = makeConfig (bundlePath);
-
-    //--------------------------------------------------------------------------
-    // First run: two patches, two presets, switched back and forth.
 
     {
         ihub::Session session;
@@ -250,7 +227,6 @@ int main()
         check (approximately (measurePitch (session), kFrequencyB, 40.0),
                "patch B renders its own pitch before the restart");
 
-        // Switching away captures patch B and restores/plays patch A.
         check (armAndWait (session, kPluginSlotA),
                "switching back to patch A arms it");
 
@@ -279,9 +255,6 @@ int main()
 
         check (session.savePluginStates(), "an explicit save writes the sidecar");
     }
-
-    //--------------------------------------------------------------------------
-    // Restart: a fresh session reads the sidecar before warming anything.
 
     {
         ihub::Session session;

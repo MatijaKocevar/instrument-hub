@@ -42,4 +42,4 @@ void SineSource::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
     }
 }
 
-} // namespace SlotSwitcherTest
+}

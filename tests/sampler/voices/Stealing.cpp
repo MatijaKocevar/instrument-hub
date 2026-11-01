@@ -35,4 +35,4 @@ void runStealingChecks (Rig& rig)
            "every hit was started, either in a free or a stolen voice");
 }
 
-} // namespace VoiceTest
+}

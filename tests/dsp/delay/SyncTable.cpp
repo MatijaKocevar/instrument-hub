@@ -48,8 +48,6 @@ void runSyncTable()
                    + " samples (got " + std::to_string (measured) + ")");
     }
 
-    // The same numbers must come out of a rendered impulse, not just the
-    // pure function.
     ihub::dsp::Delay delay;
     delay.prepareToPlay (44100.0, kBlockSize);
     configure (delay, D::quarter, 120.0);
@@ -60,4 +58,4 @@ void runSyncTable()
     check (echo == 11025, "a rendered echo at 44.1 kHz is 11025 samples away");
 }
 
-} // namespace DspTest::Delay
+}

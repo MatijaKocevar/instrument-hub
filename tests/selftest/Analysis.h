@@ -23,4 +23,4 @@ double rms (const std::int16_t* samples, std::size_t count);
 Report analyse (const std::vector<std::int16_t>& source,
                 const std::vector<std::int16_t>& capture);
 
-} // namespace SelfTest
+}

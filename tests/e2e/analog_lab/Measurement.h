@@ -22,4 +22,4 @@ bool measurePass (ihub::Session& session,
                   const std::string& phase,
                   Measurement& measurement);
 
-} // namespace AnalogLab
+}

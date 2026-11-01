@@ -71,4 +71,4 @@ void runUnityGainIntoBus()
            "master bus output is bit-identical to the input at unity gain");
 }
 
-} // namespace AudioInputTest
+}

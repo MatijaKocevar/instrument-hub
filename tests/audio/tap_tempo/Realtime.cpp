@@ -25,4 +25,4 @@ void runRealtime()
            "1000 taps allocate nothing");
 }
 
-} // namespace AudioTest::TapTempo
+}

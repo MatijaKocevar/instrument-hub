@@ -7,4 +7,4 @@ namespace ApiTest::StateBroadcast
 
 void runInitialState (Rig& rig);
 
-} // namespace ApiTest::StateBroadcast
+}

@@ -64,4 +64,4 @@ double worstJitterSamples (const std::vector<AudioEngine::ClockOut::Event>& even
     return worst;
 }
 
-} // namespace AudioTest::ClockOut
+}

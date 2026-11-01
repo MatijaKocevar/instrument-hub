@@ -78,4 +78,4 @@ void saveFloatWav (const juce::File& file,
     check (ok, label + ": " + file.getFileName().toStdString());
 }
 
-} // namespace SamplerTest
+}

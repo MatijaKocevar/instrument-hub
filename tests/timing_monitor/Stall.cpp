@@ -65,4 +65,4 @@ void runStall()
            "snapshot exposes the same overrun count");
 }
 
-} // namespace TimingMonitorTest
+}

@@ -23,10 +23,9 @@ void runReset()
     check (nearlyEqual (tempo.tapAt (10.0 + 0.5), 0.0, 1.0e-12),
            "the tap after reset starts a new sequence");
 
-    // The wall-clock overload is a thin wrapper around tapAt().
     AudioEngine::TapTempo wallClock;
     check (wallClock.tap() == 0.0, "tap() needs two calls for an estimate");
     check (wallClock.getTapCount() == 1, "tap() records the first tap");
 }
 
-} // namespace AudioTest::TapTempo
+}

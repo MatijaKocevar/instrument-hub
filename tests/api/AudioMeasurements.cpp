@@ -124,4 +124,4 @@ double captureFrequency (ihub::Session& session,
            / static_cast<double> (captured.size());
 }
 
-} // namespace ApiTest
+}

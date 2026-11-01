@@ -14,4 +14,4 @@ struct DeltaReport
 
 DeltaReport analyseDelta (const std::vector<float>& signal);
 
-} // namespace AudioTest::SwitchContinuity
+}

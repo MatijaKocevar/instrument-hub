@@ -35,4 +35,4 @@ void checkMode (const juce::String& commandLine, ihub::app::AppMode expected)
                + " (got " + ihub::app::toString (actual) + ")");
 }
 
-} // namespace AppModesTest
+}

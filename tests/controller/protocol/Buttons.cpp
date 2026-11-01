@@ -32,4 +32,4 @@ void testButtons()
     check (Launchpad::logoCC == 99, "the logo LED is CC 99");
 }
 
-} // namespace ProtocolTest
+}

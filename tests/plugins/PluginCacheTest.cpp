@@ -1,25 +1,3 @@
-// Acceptance check for T024: plugin cache management.
-//
-// The task's acceptance criterion is:
-//
-//     the second scan of the same directory completes in under 100 ms using
-//     the cache
-//
-// The test therefore scans a directory containing TestPlugin.vst3 twice,
-// measures only Scanner::scan(), and requires the second scan to be a pure
-// cache hit (no helper launch) under the 100 ms budget. It also verifies:
-//
-//   - the cache file round-trips through PluginCache::load()/save()
-//   - a cache-only data directory (no KnownPluginList.xml) still produces the
-//     merged plugin list
-//   - a crashing bundle lands on the dead-man's-pedal list and is skipped on
-//     the next scan without launching the helper again
-//   - changing a bundle invalidates its cache entry automatically
-//   - a corrupt / future-version cache is ignored rather than trusted
-//
-// Paths are injected by CMake and may be overridden by argv:
-//   argv[1] TestPlugin.vst3, argv[2] CrashingPlugin.vst3, argv[3] ihub-scanner
-
 #include "plugins/PluginCache.h"
 #include "plugins/Scanner.h"
 
@@ -89,7 +67,7 @@ juce::File firstFileBelow (const juce::File& directory)
 
     return {};
 }
-} // namespace
+}
 
 int main (int argc, char** argv)
 {
@@ -145,7 +123,6 @@ int main (int argc, char** argv)
         std::cout << "log: " << line << std::endl;
     };
 
-    // --- Cold scan: fills the cache ---------------------------------------
     ihub::plugins::Scanner coldScanner (options);
     const auto coldReport = coldScanner.scan (directories);
 
@@ -180,7 +157,6 @@ int main (int argc, char** argv)
                "the TestPlugin entry stores one plugin description");
     }
 
-    // --- Acceptance: second scan is served entirely from the cache --------
     ihub::plugins::Scanner warmScanner (options);
     const auto warm = timeScan (warmScanner, directories);
 
@@ -196,7 +172,6 @@ int main (int argc, char** argv)
            "second scan of the same directory completes in under 100 ms (actual "
                + std::to_string (warm.elapsedMs) + " ms)");
 
-    // --- Cache-only data directory: load and merge without a scan ---------
     const auto cacheOnlyDirectory = workspace.getChildFile ("cache-only-data");
     cacheOnlyDirectory.createDirectory();
     check (cacheFile.copyFileTo (cacheOnlyDirectory.getChildFile ("PluginCache.xml")),
@@ -216,7 +191,6 @@ int main (int argc, char** argv)
     check (hasTypeNamed (cacheOnlyScanner.getKnownPlugins(), "TestPlugin"),
            "cache load + merge works without a previous KnownPluginList.xml");
 
-    // --- Dead-man's-pedal list --------------------------------------------
     check (crashingBundle.copyDirectoryTo (scanDirectory.getChildFile ("CrashingPlugin.vst3")),
            "copied CrashingPlugin.vst3 into the scan directory");
 
@@ -262,7 +236,6 @@ int main (int argc, char** argv)
     check (anyLineContains (logLines, "dead-man's-pedal", "CrashingPlugin"),
            "the crash scan logged the dead-man's-pedal skip");
 
-    // Opting into a retry launches the helper and re-records the crash.
     ihub::plugins::Scanner::Options retryOptions = options;
     retryOptions.retryCrashedPlugins = true;
 
@@ -273,7 +246,6 @@ int main (int argc, char** argv)
            "only the good plugin is a cache hit when crash retries are enabled");
     check (retryReport.failed == 1, "retrying the crashing plugin fails again");
 
-    // A UI "release the pedal" operation clears the blocked entries.
     {
         ihub::plugins::PluginCache loaded (cacheFile);
 
@@ -285,7 +257,6 @@ int main (int argc, char** argv)
         check (loaded.save(), "the cleared cache saves");
     }
 
-    // --- Fingerprint invalidation -----------------------------------------
     const auto testPluginBundle = scanDirectory.getChildFile ("TestPlugin.vst3");
     const auto innerFile = firstFileBelow (testPluginBundle);
 
@@ -308,7 +279,6 @@ int main (int argc, char** argv)
                "touching a file inside the bundle invalidates the cache entry");
     }
 
-    // --- Corrupt and future-version caches are ignored --------------------
     const auto corruptFile = workspace.getChildFile ("corrupt-cache.xml");
     corruptFile.replaceWithText ("<PLUGINCACHE version=\"1\"><FILE path=");
     {

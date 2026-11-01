@@ -5,4 +5,4 @@ namespace RtGuardTest
 
 void runStrictAbortsOnInjection();
 
-} // namespace RtGuardTest
+}

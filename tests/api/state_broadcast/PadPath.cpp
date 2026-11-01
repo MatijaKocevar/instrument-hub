@@ -108,4 +108,4 @@ void runPadPath (Rig& rig)
            "the broadcaster counted every published frame");
 }
 
-} // namespace ApiTest::StateBroadcast
+}

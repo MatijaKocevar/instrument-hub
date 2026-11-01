@@ -44,9 +44,6 @@ int runFirstPhase (const juce::File& stateDirectory, const juce::File& hashFile)
         if (! waitForAllWarm (session, kSlots))
             return 1;
 
-        //----------------------------------------------------------------------
-        // Two distinct, captured Analog Lab states.
-
         if (! armAndWait (session, 0))
             return 1;
 
@@ -119,4 +116,4 @@ int runFirstPhase (const juce::File& stateDirectory, const juce::File& hashFile)
     return E2E::failures == 0 ? 0 : 1;
 }
 
-} // namespace AnalogLab
+}

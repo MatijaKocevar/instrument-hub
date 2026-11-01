@@ -9,4 +9,4 @@ constexpr int kSlots = 4;
 constexpr int kSettleBlocks = 16;
 constexpr int kMeasureBlocks = 64;
 
-} // namespace ApiTest::InstrumentPageApi
+}

@@ -7,4 +7,4 @@ namespace ApiTest::SessionApi
 
 void runPatchMix (SessionRig& rig);
 
-} // namespace ApiTest::SessionApi
+}

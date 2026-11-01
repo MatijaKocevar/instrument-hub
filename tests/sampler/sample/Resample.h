@@ -7,4 +7,4 @@ namespace SampleTest
 
 void runResampleChecks (const juce::File& directory);
 
-} // namespace SampleTest
+}

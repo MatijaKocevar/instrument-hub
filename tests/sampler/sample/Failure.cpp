@@ -45,4 +45,4 @@ void runFailureChecks (const juce::File& directory)
     check (loader.poll() == nullptr, "failed background request publishes nothing");
 }
 
-} // namespace SampleTest
+}

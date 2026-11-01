@@ -79,8 +79,6 @@ PadScenarioResult runPadScenario()
                    + std::to_string (kMaximumSwitchDelta));
     }
 
-    // The standard session switch measurement: rendered RMS and the residual
-    // against the ideal 3 ms equal-power crossfade.
     {
         ihub::Session session;
         juce::String error;
@@ -111,8 +109,6 @@ PadScenarioResult runPadScenario()
         }
     }
 
-    // Negative control: the same pad sequence with the ramp disabled must
-    // produce a measurable step, so the click check can fail.
     {
         const auto hard = runPadRender (0.0f);
         result.switchMaxDelta = normal.switchMaxDelta;
@@ -128,4 +124,4 @@ PadScenarioResult runPadScenario()
     return result;
 }
 
-} // namespace PadAudio
+}

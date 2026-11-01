@@ -20,7 +20,7 @@ void runClockLoss()
     check (fixture.transport.isPlaying(), "the transport is playing before the loss");
 
     simulator.disappear();
-    simulator.run (fixture.transport, 36000, kBlockSize);   // 0.75 s of silence
+    simulator.run (fixture.transport, 36000, kBlockSize);
 
     std::cout << "after " << (simulator.frameIndex() / kSampleRate - lastClockTime)
               << " s without clock: locked " << simulator.clockIn.isLocked()
@@ -35,7 +35,6 @@ void runClockLoss()
     check (! fixture.transport.isExternalClockLocked(),
            "the transport reports the external clock as lost");
 
-    // A slave rolls on until it has missed the timeout; it must not run away.
     const double stoppedPpq = fixture.transport.getPpq();
     check (stoppedPpq >= heldPpq && stoppedPpq <= heldPpq + 1.1,
            "the transport rolled only through the detection window");
@@ -45,7 +44,6 @@ void runClockLoss()
     check (fixture.transport.getPpq() == stoppedPpq,
            "after the loss is detected the position no longer advances");
 
-    // Coming back requires a continue (or start) and a fresh lock.
     simulator.resume();
     simulator.run (fixture.transport, 36000, kBlockSize);
 
@@ -54,15 +52,13 @@ void runClockLoss()
     check (fixture.transport.isPlaying(),
            "the transport resumes after the clock returns");
 
-    // The stop timeout must not fire while the clock keeps arriving, even at
-    // the slowest supported tempo. 20 BPM is one tick every 125 ms.
     Fixture slow;
     Simulator slowSimulator (kSampleRate, 20.0);
     slowSimulator.start();
-    slowSimulator.run (slow.transport, 192000, kBlockSize);   // 4 s
+    slowSimulator.run (slow.transport, 192000, kBlockSize);
 
     check (slowSimulator.clockIn.isClockPresent(),
            "a 20 BPM clock never trips the loss timeout");
 }
 
-} // namespace AudioTest::ClockIn
+}

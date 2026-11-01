@@ -84,4 +84,4 @@ double referenceSample (const std::vector<std::unique_ptr<SineSource>>& sources,
     return sum;
 }
 
-} // namespace AudioEngineTest
+}

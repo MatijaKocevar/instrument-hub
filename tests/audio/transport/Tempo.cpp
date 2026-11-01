@@ -14,12 +14,12 @@ void runTempo()
     transport.setBpm (60.0);
     transport.start();
 
-    advance (transport, 240000, 128);       // 5 s at 60 BPM -> 5 quarter notes
+    advance (transport, 240000, 128);
     check (nearlyEqual (transport.getPpq(), 5.0, 1.0e-12),
            "5 s at 60 BPM advances 5 quarter notes");
 
     transport.setBpm (120.0);
-    advance (transport, 240000, 128);       // 5 s at 120 BPM -> 10 quarter notes
+    advance (transport, 240000, 128);
     check (nearlyEqual (transport.getPpq(), 15.0, 1.0e-12),
            "a tempo change applies at the next block and keeps the position");
     check (nearlyEqual (transport.getSamplesPerQuarterNote(), 24000.0, 1.0e-9),
@@ -47,4 +47,4 @@ void runTempo()
            "one quarter note is 48000 frames at 120 BPM / 96 kHz");
 }
 
-} // namespace AudioTest::Transport
+}

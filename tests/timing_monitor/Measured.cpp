@@ -42,4 +42,4 @@ void runMeasured()
            "endCallback records the processed sample count");
 }
 
-} // namespace TimingMonitorTest
+}

@@ -29,4 +29,4 @@ DeltaReport analyseDelta (const std::vector<float>& signal)
     return report;
 }
 
-} // namespace AudioTest::SwitchContinuity
+}

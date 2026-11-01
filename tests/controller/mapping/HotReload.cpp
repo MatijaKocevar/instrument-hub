@@ -223,4 +223,4 @@ void runHotReloadChecks()
     std::filesystem::remove (setFile, ec);
 }
 
-} // namespace MappingTest
+}

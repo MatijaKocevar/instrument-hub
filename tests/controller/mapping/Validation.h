@@ -5,4 +5,4 @@ namespace MappingTest
 
 void runValidationChecks();
 
-} // namespace MappingTest
+}

@@ -5,4 +5,4 @@ namespace TimingMonitorTest
 
 void runStall();
 
-} // namespace TimingMonitorTest
+}

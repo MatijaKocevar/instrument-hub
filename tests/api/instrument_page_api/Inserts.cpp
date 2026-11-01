@@ -71,4 +71,4 @@ void runInserts (SessionRig& rig)
     check (response && response->status == 400, "an unknown insert type is rejected");
 }
 
-} // namespace ApiTest::InstrumentPageApi
+}

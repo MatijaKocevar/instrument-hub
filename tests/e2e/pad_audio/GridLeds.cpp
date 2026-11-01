@@ -53,4 +53,4 @@ std::map<int, LedHit> captureGridLeds (const Api::StateSnapshot& snapshot,
     return hits;
 }
 
-} // namespace PadAudio
+}

@@ -39,4 +39,4 @@ void runWindow()
            "all-time worst callback is not forgotten");
 }
 
-} // namespace TimingMonitorTest
+}

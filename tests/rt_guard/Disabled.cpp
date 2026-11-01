@@ -29,4 +29,4 @@ void runDisabledGuardIgnoresViolations()
            "no violation is recorded while the guard is disabled");
 }
 
-} // namespace RtGuardTest
+}

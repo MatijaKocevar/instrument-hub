@@ -51,4 +51,4 @@ juce::AudioBuffer<float> renderHit (const ihub::sampler::ResolvedHit& hit)
     return output;
 }
 
-} // namespace KitTest
+}

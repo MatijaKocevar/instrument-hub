@@ -54,4 +54,4 @@ void runGridChecks (Rig& rig)
            "the driver produced the armed slot sequence 0..63");
 }
 
-} // namespace DriverTest
+}

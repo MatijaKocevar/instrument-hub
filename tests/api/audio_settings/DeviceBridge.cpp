@@ -111,4 +111,4 @@ void runDeviceBridge()
     bridge.close();
 }
 
-} // namespace ApiTest::AudioSettings
+}

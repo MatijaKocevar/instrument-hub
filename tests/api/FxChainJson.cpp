@@ -26,4 +26,4 @@ int chainLatency (const juce::var& chain)
     return intProperty (chain, "latencySamples");
 }
 
-} // namespace ApiTest
+}

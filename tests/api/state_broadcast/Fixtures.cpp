@@ -80,4 +80,4 @@ void Rig::stop()
     server.stop();
 }
 
-} // namespace ApiTest::StateBroadcast
+}

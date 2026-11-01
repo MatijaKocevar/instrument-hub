@@ -7,4 +7,4 @@ namespace ApiTest::PatchStateCaptureApi
 
 bool runRestart (const juce::File& stateDirectory, const juce::String& bundlePath);
 
-} // namespace ApiTest::PatchStateCaptureApi
+}

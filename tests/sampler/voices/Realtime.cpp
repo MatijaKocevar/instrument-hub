@@ -44,4 +44,4 @@ void runRealtimeChecks (Rig& rig)
                + " allocations)");
 }
 
-} // namespace VoiceTest
+}

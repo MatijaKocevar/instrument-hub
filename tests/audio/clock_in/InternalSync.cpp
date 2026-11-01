@@ -27,4 +27,4 @@ void runInternalSync()
            "clock updates do not move an internal position");
 }
 
-} // namespace AudioTest::ClockIn
+}

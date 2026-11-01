@@ -223,4 +223,4 @@ void runLoopbackThroughFxChainAndDirectMonitor()
     }
 }
 
-} // namespace AudioInputTest
+}

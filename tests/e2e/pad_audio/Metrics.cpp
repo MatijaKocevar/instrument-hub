@@ -76,4 +76,4 @@ double toneMagnitude (const std::vector<float>& samples,
     return std::sqrt (real * real + imaginary * imaginary) / static_cast<double> (count);
 }
 
-} // namespace PadAudio
+}

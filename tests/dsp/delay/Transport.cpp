@@ -13,8 +13,6 @@ void runTransport()
     delay.prepareToPlay (48000.0, kBlockSize);
     configure (delay, ihub::dsp::DelayDivision::quarter, 120.0);
 
-    // Let the delay run for a while, then change the tempo. The change is
-    // adopted at the next block and the read tap crossfades to the new time.
     juce::AudioBuffer<float> warmUp (1, 2000);
     warmUp.clear();
     processInBlocks (delay, warmUp);
@@ -37,8 +35,6 @@ void runTransport()
               << " samples away" << std::endl;
     check (echo == 24000, "the impulse after the change repeats at 24000 samples");
 
-    // The transport's PPQ position is accepted and used for the reported
-    // musical position of the next repeat.
     transport.ppq = 3.0;
     delay.setTransport (transport);
 
@@ -50,4 +46,4 @@ void runTransport()
            "the next repeat lands at PPQ 3.5 from PPQ 3.0");
 }
 
-} // namespace DspTest::Delay
+}

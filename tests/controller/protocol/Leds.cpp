@@ -46,4 +46,4 @@ void testLeds()
            "an out-of-range pad produces no LED message");
 }
 
-} // namespace ProtocolTest
+}

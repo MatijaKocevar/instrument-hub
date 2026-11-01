@@ -28,8 +28,6 @@ void runAcceptance()
     check (nearlyEqual (transport.getSamplesPerQuarterNote(), 24000.0, 1.0e-9),
            "one quarter note is 24000 frames at 120 BPM / 48 kHz");
 
-    // A render with a different block size must give the same answer: the
-    // position depends on frames, not on how they were grouped.
     AudioEngine::Transport blocked;
     blocked.prepare (48000.0, 512);
     blocked.setBpm (120.0);
@@ -41,4 +39,4 @@ void runAcceptance()
            "512-frame blocks land on the same PPQ as 128-frame blocks");
 }
 
-} // namespace AudioTest::Transport
+}

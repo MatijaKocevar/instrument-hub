@@ -39,4 +39,4 @@ double denormaliseFrequency (float normalised);
 
 bool approximately (double value, double expected, double tolerance);
 
-} // namespace ApiTest::PatchStateCaptureApi
+}

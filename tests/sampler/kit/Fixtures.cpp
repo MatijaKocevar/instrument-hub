@@ -43,4 +43,4 @@ std::string twoLayerJson()
     return baseKitWithLayers (softLayer, hardLayer);
 }
 
-} // namespace KitTest
+}

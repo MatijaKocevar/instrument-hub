@@ -47,4 +47,4 @@ void runReplace (SessionRig& rig, const Context& context)
            "the cleared chain reports zero latency");
 }
 
-} // namespace ApiTest::PatchFxApi
+}

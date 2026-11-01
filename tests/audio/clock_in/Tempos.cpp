@@ -15,7 +15,6 @@ void runTempos()
         Simulator simulator (kSampleRate, bpm);
         simulator.start();
 
-        // 2.5 s is enough for 24 ticks even at 60 BPM (1 s).
         simulator.run (fixture.transport, 120000, kBlockSize);
 
         const double expectedTicks = 2.5 * bpm / 60.0 * 24.0;
@@ -37,4 +36,4 @@ void runTempos()
     }
 }
 
-} // namespace AudioTest::ClockIn
+}

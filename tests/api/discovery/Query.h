@@ -12,4 +12,4 @@ bool findAdvertisement (int fd, const std::string& instance, int expectedPort,
 
 #endif
 
-} // namespace ApiTest::Discovery
+}

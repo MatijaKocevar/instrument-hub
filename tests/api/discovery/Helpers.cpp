@@ -20,4 +20,4 @@ void runPureHelpers()
            "the default host label starts with instrument-hub");
 }
 
-} // namespace ApiTest::Discovery
+}

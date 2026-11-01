@@ -16,7 +16,6 @@ extern int failures;
 void check (bool condition, const std::string& what);
 double dbfs (double linear);
 
-/** A deterministic sine source with a known closed form. */
 class SineSource final : public AudioEngine::SlotSource
 {
 public:
@@ -25,7 +24,6 @@ public:
     void prepare (double newSampleRate, int) override;
     void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override;
 
-    /** The same sample the renderer would have produced at an absolute index. */
     double referenceAt (std::int64_t index) const;
 
     int latencySamples() const noexcept override { return latency; }
@@ -43,9 +41,8 @@ private:
     std::int64_t position = 0;
 };
 
-/** Mixes the sources by hand, exactly as the bus is supposed to. */
 double referenceSample (const std::vector<std::unique_ptr<SineSource>>& sources,
                         const std::vector<float>& gains,
                         std::int64_t index);
 
-} // namespace AudioEngineTest
+}

@@ -27,7 +27,6 @@ void check (bool condition, const std::string& what);
 bool buffersBitEqual (const juce::AudioBuffer<float>& a,
                       const juce::AudioBuffer<float>& b);
 
-/** A deterministic source whose pattern is identical on every block. */
 class PatternSource final : public AudioEngine::SlotSource
 {
 public:
@@ -48,4 +47,4 @@ juce::PluginDescription* findTestPlugin (juce::AudioPluginFormatManager& manager
 
 void fillPattern (juce::AudioBuffer<float>& buffer);
 
-} // namespace FxChainTest
+}

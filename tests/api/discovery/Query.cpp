@@ -25,7 +25,7 @@ namespace
 constexpr const char* multicastAddress = "224.0.0.251";
 constexpr std::uint16_t multicastPort = 5353;
 
-} // namespace
+}
 
 bool findAdvertisement (int fd, const std::string& instance, int expectedPort,
                         std::string& detail)
@@ -163,4 +163,4 @@ bool findAdvertisement (int fd, const std::string& instance, int expectedPort,
 
 #endif
 
-} // namespace ApiTest::Discovery
+}

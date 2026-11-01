@@ -15,4 +15,4 @@ struct Options
 void printUsage (const char* argv0);
 bool parseOptions (int argc, char** argv, Options& options);
 
-} // namespace SelfTest
+}

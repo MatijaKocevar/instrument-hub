@@ -45,7 +45,6 @@ void runDecay()
     check (tailSeconds < ihub::dsp::Reverb::maxTailSeconds,
            "the tail fits inside the reported tail length");
 
-    // Every sample must be finite.
     bool finite = true;
 
     for (int channel = 0; channel < 2; ++channel)
@@ -56,4 +55,4 @@ void runDecay()
     check (finite, "the impulse response contains only finite samples");
 }
 
-} // namespace DspTest::Reverb
+}

@@ -11,7 +11,6 @@ typedef struct _snd_pcm snd_pcm_t;
 namespace PadAudio
 {
 
-/** One ALSA Loopback playback/capture pair in S16 mono. */
 struct AlsaPcm
 {
     snd_pcm_t* playback = nullptr;
@@ -43,4 +42,4 @@ private:
                            int& bufferSize);
 };
 
-} // namespace PadAudio
+}

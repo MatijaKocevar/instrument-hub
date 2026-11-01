@@ -57,4 +57,4 @@ float peakLevel (const juce::AudioBuffer<float>& buffer, int start, int count)
     return peak;
 }
 
-} // namespace VoiceTest
+}

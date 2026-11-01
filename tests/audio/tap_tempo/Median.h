@@ -5,4 +5,4 @@ namespace AudioTest::TapTempo
 
 void runMedian();
 
-} // namespace AudioTest::TapTempo
+}

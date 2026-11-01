@@ -1,18 +1,3 @@
-// T122 acceptance test: the plugin inventory API.
-//
-// Copies the in-repo TestPlugin VST3 into an isolated VST3 directory, attaches
-// a real plugins::PluginInventory to the HTTP control server and exercises:
-//
-//   - GET /plugins before any scan (empty, but 200),
-//   - POST /plugins/rescan -> the background scanner finds TestPlugin,
-//   - GET /plugins carries every metadata field the Plugins page needs,
-//   - search filters by name and vendor, case-insensitively,
-//   - deleting the bundle and rescanning removes it,
-//   - putting it back and rescanning finds it again.
-//
-// The scanner helper and the plugin bundle are injected by CMake; nothing in
-// the test depends on a third-party VST3 or a sound card.
-
 #include "api/PluginBridge.h"
 #include "api/Server.h"
 #include "plugins/PluginInventory.h"
@@ -96,7 +81,6 @@ juce::var getJson (httplib::Client& client, const std::string& path)
     return parseJson (response->body);
 }
 
-/** Runs one API-triggered rescan and waits for the background worker. */
 bool rescan (httplib::Client& client, ihub::plugins::PluginInventory& inventory)
 {
     const auto response = client.Post ("/plugins/rescan");
@@ -112,7 +96,7 @@ bool rescan (httplib::Client& client, ihub::plugins::PluginInventory& inventory)
 
     return true;
 }
-} // namespace
+}
 
 int main()
 {
@@ -179,16 +163,12 @@ int main()
     client.set_connection_timeout (2, 0);
     client.set_read_timeout (40, 0);
 
-    // --- Before the first scan ---------------------------------------------
-
     auto body = getJson (client, "/plugins");
 
     check (body.isObject(), "GET /plugins returns a JSON object before a scan");
     check (intProperty (body, "count") == 0, "the initial inventory is empty");
     check (! static_cast<bool> (property (body, "scanning")),
            "the initial inventory is not scanning");
-
-    // --- A rescan finds TestPlugin -----------------------------------------
 
     check (rescan (client, inventory), "POST /plugins/rescan completes");
 
@@ -224,8 +204,6 @@ int main()
     check (! textProperty (testPlugin, "id").empty(),
            "TestPlugin carries a stable id");
 
-    // --- Search -------------------------------------------------------------
-
     auto filtered = getJson (client, "/plugins?search=testplugin");
 
     check (intProperty (filtered, "count") == 1,
@@ -243,8 +221,6 @@ int main()
     check (intProperty (filtered, "count") == 0
                && intProperty (filtered, "total") >= 1,
            "search can return an empty filtered list");
-
-    // --- Rescan picks up removal and reinstall -----------------------------
 
     check (installedBundle.deleteRecursively(), "removed TestPlugin.vst3 from the scan directory");
     check (rescan (client, inventory), "rescan after removing the bundle completes");

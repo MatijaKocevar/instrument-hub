@@ -26,4 +26,4 @@ void runProjection()
            "projecting does not advance the transport");
 }
 
-} // namespace AudioTest::Transport
+}

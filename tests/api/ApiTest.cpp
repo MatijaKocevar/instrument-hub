@@ -1,5 +1,3 @@
-// T050 acceptance test: HTTP routes, token auth and the WebSocket meter rate.
-
 #include "TestSupport.h"
 #include "core_api/Arm.h"
 #include "core_api/Auth.h"

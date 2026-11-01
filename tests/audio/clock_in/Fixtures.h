@@ -39,9 +39,6 @@ public:
         nextTickFrame = static_cast<double> (frame) + tickFrames();
     }
 
-    /** Sends stop. A real master keeps sending clock after stop, so this
-        leaves the tick stream running unless `disappear()` is used.
-    */
     void stop()
     {
         clockIn.pushRealtime (static_cast<std::uint8_t> (AudioEngine::ClockIn::Type::stop),
@@ -56,14 +53,12 @@ public:
         nextTickFrame = static_cast<double> (frame) + tickFrames();
     }
 
-    /** Changes the tempo from the next tick on. */
     void setTempo (double tempo)
     {
         bpmValue = tempo;
         nextTickFrame = static_cast<double> (frame) + tickFrames();
     }
 
-    /** Stops sending clock bytes without sending a stop message. */
     void disappear() { running = false; }
 
     void setJitter (double amplitudeSeconds, std::uint32_t seed)
@@ -95,7 +90,6 @@ public:
         frame = end;
     }
 
-    /** Advances whole blocks until `frames` have been processed. */
     void run (AudioEngine::Transport& transport, std::int64_t frames, int block)
     {
         while (frames > 0)
@@ -151,4 +145,4 @@ struct Fixture
     }
 };
 
-} // namespace AudioTest::ClockIn
+}

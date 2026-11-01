@@ -80,4 +80,4 @@ double measureSteadyGainDb (ihub::dsp::Compressor& compressor,
     return outputDb - inputDb;
 }
 
-} // namespace DspTest::Compressor
+}

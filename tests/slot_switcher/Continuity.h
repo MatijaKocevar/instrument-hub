@@ -5,4 +5,4 @@ namespace SlotSwitcherTest
 
 void runContinuity();
 
-} // namespace SlotSwitcherTest
+}

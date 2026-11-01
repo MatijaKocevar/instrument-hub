@@ -65,4 +65,4 @@ void runBypass (SessionRig& rig, const Context& context)
     }
 }
 
-} // namespace ApiTest::PatchFxApi
+}

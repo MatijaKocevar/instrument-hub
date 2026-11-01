@@ -1,14 +1,3 @@
-// UI snapshot test (T054).
-//
-// Runs the real application with `--snapshot <path>`, then validates the PNG
-// from outside: it must be exactly 1200x800, it must decode, and it must not
-// be a blank/flat frame. In a non-Debug build the engine reports that it
-// served the embedded assets, which is the other half of this task.
-//
-// Run manually:
-//   ./build-release/tests/ihub-ui-snapshot-test
-//       ./build-release/engine/instrument-hub out.png
-
 #include <juce_events/juce_events.h>
 #include <juce_graphics/juce_graphics.h>
 
@@ -57,7 +46,7 @@ juce::File resolve (const juce::String& path, const juce::File& base)
     return juce::File::isAbsolutePath (path) ? juce::File (path)
                                              : base.getChildFile (path);
 }
-} // namespace
+}
 
 int main (int argc, char** argv)
 {

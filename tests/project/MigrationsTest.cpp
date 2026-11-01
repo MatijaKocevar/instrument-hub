@@ -1,15 +1,3 @@
-// ihub-migrations-test: acceptance check for T082 (set migration).
-//
-// The central case is the committed v1 fixture, `fixtures/set-v1.ihub`: a real
-// `.ihub` container whose `set.json` declares schemaVersion 1 and therefore
-// has no `notes` field and no per-slot `colour`. Loading it through
-// `Serializer::load()` must migrate it to a complete current-version document:
-// every v1 value preserved, and the v2/v3 defaults filled in.
-//
-// The chain itself is also exercised directly: migration is idempotent, a
-// newer schema is rejected instead of guessed at, and an explicit value is
-// never overwritten by a default.
-
 #include "project/Migrations.h"
 #include "project/SetFile.h"
 #include "project/Serializer.h"
@@ -84,7 +72,7 @@ const char* const legacyMapping =
     "schemaVersion: 1\n"
     "# Legacy mapping stored by the v1 set format.\n";
 
-} // namespace
+}
 
 int main()
 {
@@ -99,7 +87,6 @@ int main()
     if (! fixture.existsAsFile())
         return 1;
 
-    // --- The fixture really is a v1 document --------------------------------
     {
         juce::ZipFile zip (fixture);
         const auto manifest = readEntry (zip, "set.json");
@@ -119,7 +106,6 @@ int main()
                "the v1 fixture has no slot colour");
     }
 
-    // --- Load the v1 fixture through the serializer ------------------------
     SetFile loaded;
     juce::String error;
 
@@ -131,7 +117,6 @@ int main()
     check (loaded.validate (error),
            "the migrated set validates: " + error.toStdString());
 
-    // v1 values are preserved.
     check (loaded.name == "Legacy v1 Set", "the set name survives migration");
     check (loaded.notes.empty(), "v1 gets the empty notes default");
     check (nearlyEqual (static_cast<float> (loaded.transport.bpm), 98.0f),
@@ -194,7 +179,6 @@ int main()
 
     check (loaded.mappingYaml == legacyMapping, "mapping.yaml survives migration byte for byte");
 
-    // --- The migrated set is written back as a current document -----------
     const juce::File migratedPath =
         juce::File::getCurrentWorkingDirectory().getChildFile ("t082-migrated-v3.ihub");
     migratedPath.deleteFile();
@@ -254,7 +238,6 @@ int main()
 
     migratedPath.deleteFile();
 
-    // --- The chain itself ---------------------------------------------------
     check (migrationStepCount (1, 2) == 1, "the chain has one step from v1 to v2");
     check (migrationStepCount (2, 3) == 1, "the chain has one step from v2 to v3");
     check (migrationStepCount (1, 3) == 2, "the chain has two steps from v1 to v3");
@@ -273,7 +256,6 @@ int main()
     check (findMigrationStep (3) == nullptr, "there is no step beyond v3");
     check (findMigrationStep (0) == nullptr, "there is no step below v1");
 
-    // --- Migration fills missing defaults only ------------------------------
     {
         auto document = parseDocument (R"({
             "schemaVersion": 1,
@@ -321,7 +303,6 @@ int main()
         check (readVersion (document) == 3, "migrating twice is idempotent");
     }
 
-    // --- v2 -> v3 fills only the new patch fields ---------------------------
     {
         auto document = parseDocument (R"({
             "schemaVersion": 2,
@@ -360,7 +341,6 @@ int main()
         }
     }
 
-    // --- Rejections ---------------------------------------------------------
     {
         auto future = parseDocument (R"({ "schemaVersion": 999, "name": "Future" })");
         juce::String migrationError;

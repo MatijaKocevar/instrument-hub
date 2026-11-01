@@ -50,4 +50,4 @@ void runChannelSelectionAndMissingInput()
            "no input block renders silence (the hand-off is one block only)");
 }
 
-} // namespace AudioInputTest
+}

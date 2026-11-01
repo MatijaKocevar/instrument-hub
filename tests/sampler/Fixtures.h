@@ -25,4 +25,4 @@ void saveFloatWav (const juce::File& file,
                    double sampleRate,
                    const std::string& label = "fixture write");
 
-} // namespace SamplerTest
+}

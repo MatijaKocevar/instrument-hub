@@ -30,4 +30,4 @@ struct Rig
     httplib::Client& http() noexcept { return *client; }
 };
 
-} // namespace ApiTest::CoreApi
+}

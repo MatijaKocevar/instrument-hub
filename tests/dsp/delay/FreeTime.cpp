@@ -30,4 +30,4 @@ void runFreeTime()
     check (echo == 5760, "a 120 ms free delay renders at 5760 samples");
 }
 
-} // namespace DspTest::Delay
+}

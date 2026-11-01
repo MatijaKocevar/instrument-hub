@@ -8,4 +8,4 @@ namespace PluginFxTest
 int runGainAndLatency (juce::AudioPluginFormatManager& manager,
                        const juce::PluginDescription& description);
 
-} // namespace PluginFxTest
+}

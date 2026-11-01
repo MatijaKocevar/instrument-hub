@@ -1,20 +1,3 @@
-// ihub-plugin-instance-test: acceptance check for T022.
-//
-// Proves that PluginInstrument hosts a real VST3 end to end:
-//
-//   1. TestPlugin.vst3 is instantiated through juce::AudioPluginFormatManager
-//      and wrapped in PluginInstrument
-//   2. a non-default parameter (the DSP-irrelevant "State Marker") is set,
-//      the plugin state is saved to a MemoryBlock, a *second* instance is
-//      created and the blob is restored into it, and the parameter matches
-//   3. prepare() caches the plugin's artificial latency (10 ms = 480 samples)
-//      and process() renders the sine generator
-//   4. noteOn()/noteOff() reach the plugin through the lock-free queue
-//   5. unload() leaves the wrapper safe to call process() on
-//
-// The bundle path is injected by CMake (IHUB_TESTPLUGIN_VST3); an explicit
-// path may also be passed as the first command-line argument.
-
 #include "plugins/PluginInstrument.h"
 
 #include <juce_audio_processors_headless/juce_audio_processors_headless.h>
@@ -60,7 +43,7 @@ juce::PluginDescription* findTestPlugin (juce::AudioPluginFormatManager& manager
 
 constexpr float stateMarkerNormalised = 0.875f;
 constexpr float frequencyNormalised = (1000.0f - 20.0f) / (20000.0f - 20.0f);
-} // namespace
+}
 
 int main (int argc, char** argv)
 {
@@ -90,7 +73,6 @@ int main (int argc, char** argv)
 
     const juce::PluginDescription description = *type;
 
-    // --- 1. Load and set a non-default parameter ---------------------------
     ihub::plugins::PluginInstrument instrument;
     juce::String error;
 
@@ -128,7 +110,6 @@ int main (int argc, char** argv)
     std::cout << "state marker: " << instrument.getParameterValue ("State Marker")
               << " frequency: " << instrument.getParameterText ("Frequency") << std::endl;
 
-    // --- 2. Save state and reload into a new instance ----------------------
     juce::MemoryBlock state;
     instrument.getStateInformation (state);
 
@@ -167,7 +148,6 @@ int main (int argc, char** argv)
     check (nearlyEqual (frequencyAfterRestore, frequencyNormalised),
            "Frequency matches after the state round-trip");
 
-    // --- 3. Prepare, latency and the sine generator ------------------------
     instrument.prepare (48000.0, 512);
 
     const int expectedLatency = static_cast<int> (std::lround (10.0 * 0.001 * 48000.0));
@@ -180,7 +160,6 @@ int main (int argc, char** argv)
     check (asInstrument->latencySamples() == expectedLatency,
            "the Instrument interface reports the same latency");
 
-    // Remove the artificial delay so the whole block carries the sine.
     instrument.setParameterValue ("Latency", 0.0f);
 
     juce::AudioBuffer<float> block (2, 512);
@@ -193,7 +172,6 @@ int main (int argc, char** argv)
 
     check (rms > 0.3f, "process() renders the TestPlugin sine generator");
 
-    // --- 4. MIDI in through the lock-free queue ----------------------------
     check (instrument.getPendingMidiEventCount() == 0, "the note queue starts empty");
 
     instrument.noteOn (1, 60, 100.0f / 127.0f);
@@ -215,7 +193,6 @@ int main (int argc, char** argv)
            "both note events were handed to the plugin");
     check (instrument.getDroppedMidiEventCount() == 0, "no MIDI events were dropped");
 
-    // Overflow must drop rather than block or allocate.
     for (int i = 0; i < ihub::plugins::PluginInstrument::maxPendingMidiEvents * 2; ++i)
         instrument.noteOn (1, 60 + (i % 12), 1.0f);
 
@@ -227,7 +204,6 @@ int main (int argc, char** argv)
     instrument.process (block, midi);
     check (instrument.getPendingMidiEventCount() == 0, "the queue empties again after a full drain");
 
-    // --- 5. Unload ---------------------------------------------------------
     instrument.unload();
 
     check (! instrument.isLoaded(), "unload() reports the instance as unloaded");

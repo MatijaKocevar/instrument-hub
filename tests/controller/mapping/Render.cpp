@@ -69,4 +69,4 @@ void renderBlock (AudioEngine::SlotSwitcher& switcher,
     ++stats.blocks;
 }
 
-} // namespace MappingTest
+}

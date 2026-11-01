@@ -15,4 +15,4 @@ constexpr const char* kDefaultPlayback = "hw:Loopback,0,0";
 constexpr const char* kDefaultCapture  = "hw:Loopback,1,0";
 constexpr const char* kDefaultOutput   = "out.wav";
 
-} // namespace SelfTest
+}

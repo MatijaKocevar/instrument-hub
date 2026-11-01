@@ -52,4 +52,4 @@ void runBypass()
     delay.setEnabled (true);
 }
 
-} // namespace DspTest::Delay
+}

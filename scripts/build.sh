@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# Configure and build Instrument Hub.
-#
-# Usage:
-#   scripts/build.sh [preset]   # preset defaults to "default" (RelWithDebInfo)
-#
-# Presets live in CMakePresets.json: default, debug, release.
-#
-# Every non-Debug build embeds the React UI from ui/dist, so the UI is built
-# first. Debug builds load the Vite dev server instead (scripts/dev.sh).
 
 set -euo pipefail
 
@@ -26,8 +17,6 @@ build_ui() {
     if command -v pnpm >/dev/null 2>&1; then
         PNPM_CMD=(pnpm)
     elif command -v corepack >/dev/null 2>&1; then
-        # corepack ships with Node and fetches the version pinned by
-        # package.json "packageManager" on first use.
         PNPM_CMD=(corepack pnpm)
     else
         echo "error: pnpm (or corepack) is required to build the React UI" >&2
@@ -65,9 +54,6 @@ BUILD_PRESET="${BUILD_PRESET:-$PRESET}"
 cmake --preset "$BUILD_PRESET"
 
 if [[ "$BUILD_PRESET" == "debug" ]]; then
-    # Dev build: the GUI app only. Building every test target recompiles each
-    # JUCE module ~58 times and peaks around 13 GB, which a dev loop never
-    # needs. Build tests separately when you actually run them.
     JOBS="${IH_BUILD_JOBS:-$(( $(nproc) / 2 ))}"
     cmake --build --preset "$BUILD_PRESET" --parallel "$JOBS" --target instrument-hub
 else

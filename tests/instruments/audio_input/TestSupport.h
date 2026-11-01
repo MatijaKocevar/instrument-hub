@@ -13,4 +13,4 @@ void check (bool condition, const std::string& what);
 double dbfs (double linear);
 void fillSine (juce::AudioBuffer<float>& buffer, int channel);
 
-} // namespace AudioInputTest
+}

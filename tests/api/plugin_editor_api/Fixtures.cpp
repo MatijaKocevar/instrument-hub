@@ -64,4 +64,4 @@ juce::File findAnalogLabBundle()
     return {};
 }
 
-} // namespace ApiTest::PluginEditorApi
+}

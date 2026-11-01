@@ -148,4 +148,4 @@ encoders: []
 )", "families must not be empty");
 }
 
-} // namespace MappingTest
+}

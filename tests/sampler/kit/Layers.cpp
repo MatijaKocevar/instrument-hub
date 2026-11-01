@@ -33,7 +33,7 @@ std::string layerLabel (const VelocityLayer* layer)
     return std::to_string (layer->minVelocity) + ".." + std::to_string (layer->maxVelocity);
 }
 
-} // namespace
+}
 
 void runLayersChecks (const juce::File& directory, LoadedKit& kit)
 {
@@ -182,4 +182,4 @@ void runLayersChecks (const juce::File& directory, LoadedKit& kit)
     }
 }
 
-} // namespace KitTest
+}

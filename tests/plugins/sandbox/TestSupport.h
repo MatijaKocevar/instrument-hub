@@ -13,7 +13,6 @@ extern int failures;
 void expect (bool condition, const juce::String& description);
 float rmsOf (const juce::AudioBuffer<float>& buffer);
 
-/** A healthy slot that must survive the sandbox dying. */
 class SteadySineSource final : public AudioEngine::SlotSource
 {
 public:
@@ -27,4 +26,4 @@ private:
 
 ihub::plugins::SandboxHost::Options makeFakeOptions (bool abortOnPurpose);
 
-} // namespace SandboxTest
+}

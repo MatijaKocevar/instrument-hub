@@ -70,4 +70,4 @@ void runLoopbackLatency()
     check (spread <= tolerance, "five runs agree within one buffer");
 }
 
-} // namespace LatencyProbeTest
+}

@@ -1,11 +1,3 @@
-# e2e init-tone fixture
-#
-# The shipping shared/set.yaml leaves every patch unassigned (`kind: empty`),
-# so it is silent by design. The end-to-end pad-to-audio test needs a
-# deterministic audible source without a plugin bundle or sample library, so it
-# loads this copy instead: same families, patches, colours, mix and FX, but
-# every patch is the engine's built-in initialisation tone.
-
 schemaVersion: 1
 name: Starter Set (e2e init-tone fixture)
 
@@ -411,7 +403,6 @@ macros:
     max: 1.0
     default: 0.0
 
-# Top-row CC 91..98 select these macro pages, left to right.
 banks:
   - bank: 0
     name: Filter
@@ -453,9 +444,6 @@ banks:
     macros:
       - pan
 
-# Right-column CC 89..19 select these scenes, top to bottom. Scene 0 is the
-# top grid row (Vox) and scene 7 the bottom row (Keys), so the button lines up
-# with the row it names.
 scenes:
   - scene: 0
     name: Vox
@@ -489,8 +477,6 @@ scenes:
     name: Keys
     family: keys
 
-# Row 0 (pads 0..7) is Keys, row 1 Drums, ... row 7 Vox. Pad index is also the
-# audio slot the patch lives in.
 pads:
   - pad: 0
     family: keys
@@ -692,8 +678,6 @@ pads:
     family: vox
     instrument: choir
 
-# The Launchpad has no encoders. These eight bindings describe the macros the
-# UI exposes for the selected bank; the top row selects the page.
 encoders:
   - encoder: 0
     macro: cutoff

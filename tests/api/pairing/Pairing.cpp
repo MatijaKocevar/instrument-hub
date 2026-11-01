@@ -148,4 +148,4 @@ void runPairing (Fixture& fixture)
     fixture.server.stop();
 }
 
-} // namespace ApiTest::Pairing
+}

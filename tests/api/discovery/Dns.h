@@ -38,4 +38,4 @@ std::vector<std::uint8_t> makePtrQuery (const Labels& name, std::uint16_t id);
 
 #endif
 
-} // namespace ApiTest::Discovery
+}

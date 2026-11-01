@@ -7,4 +7,4 @@ namespace KitTest
 
 void writeFixtures (const juce::File& directory);
 
-} // namespace KitTest
+}

@@ -29,4 +29,4 @@ std::vector<std::string> expectedInstruments (const std::string& family)
     return {};
 }
 
-} // namespace LaunchpadMappingTest
+}

@@ -57,4 +57,4 @@ void runEngineFeedsDeviceInput()
            "the device callback path renders the instrument's gained input");
 }
 
-} // namespace AudioInputTest
+}

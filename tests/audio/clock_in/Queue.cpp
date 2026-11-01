@@ -19,7 +19,6 @@ void runQueue()
     check (clockIn.clearQueue() == 1, "clearQueue reports the pending event");
     check (clockIn.getPendingEventCount() == 0, "the queue is empty again");
 
-    // Fill the queue: one slot is always kept free for the SPSC invariant.
     const int capacity = AudioEngine::ClockIn::queueCapacity;
     int accepted = 0;
 
@@ -44,4 +43,4 @@ void runQueue()
            "process() drains the queue completely");
 }
 
-} // namespace AudioTest::ClockIn
+}

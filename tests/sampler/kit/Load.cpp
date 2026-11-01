@@ -56,4 +56,4 @@ void runLoadChecks (const juce::File& directory)
     check (fileError.isNotEmpty(), "missing kit file fills an error");
 }
 
-} // namespace KitTest
+}

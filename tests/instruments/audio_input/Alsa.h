@@ -22,4 +22,4 @@ void playbackLoop (snd_pcm_t* pcm,
                    std::atomic<bool>& failed,
                    std::atomic<std::size_t>& writtenFrames);
 
-} // namespace AudioInputTest
+}

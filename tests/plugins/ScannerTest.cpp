@@ -1,22 +1,3 @@
-// Acceptance check for T021: out-of-process plugin scanning.
-//
-// Sets up a temporary VST3 directory containing
-//
-//   TestPlugin.vst3     - the good in-repo plugin (has moduleinfo.json)
-//   CrashingPlugin.vst3 - a fake bundle whose .so segfaults inside dlopen()
-//
-// then runs plugins::Scanner over it. The expectations are exactly the task's:
-//
-//   1. the crashing plugin is logged as a failure (and classified as a crash)
-//   2. this process survives the scan
-//   3. TestPlugin is still listed afterwards, both in the in-memory
-//      KnownPluginList and in the KnownPluginList.xml written to the user
-//      data directory
-//   4. a second scan behaves the same (one bad plugin does not poison the list)
-//
-// Paths are injected by CMake and may be overridden by argv:
-//   argv[1] TestPlugin.vst3, argv[2] CrashingPlugin.vst3, argv[3] ihub-scanner
-
 #include "plugins/Scanner.h"
 
 #include <juce_audio_processors_headless/juce_audio_processors_headless.h>
@@ -56,7 +37,7 @@ bool hasTypeNamed (const juce::KnownPluginList& list, const juce::String& name)
 
     return false;
 }
-} // namespace
+}
 
 int main (int argc, char** argv)
 {
@@ -97,8 +78,6 @@ int main (int argc, char** argv)
     check (crashingBundle.copyDirectoryTo (scanDirectory.getChildFile ("CrashingPlugin.vst3")),
            "copied CrashingPlugin.vst3 into the scan directory");
 
-    // JUCE would use the moduleinfo fast path and never load the crashing
-    // binary if this file existed, which would make the test vacuous.
     check (! scanDirectory.getChildFile ("CrashingPlugin.vst3")
                 .getChildFile ("Contents/Resources/moduleinfo.json")
                 .existsAsFile(),
@@ -124,7 +103,6 @@ int main (int argc, char** argv)
 
     const auto report = scanner.scan (directories);
 
-    // --- 1 + 2. The crash is contained and reported ------------------------
     check (report.filesDiscovered == 2, "both bundles were discovered");
     check (report.failed == 1, "exactly one plugin failed to scan");
     check (report.succeeded == 1, "exactly one plugin scanned successfully");
@@ -151,7 +129,6 @@ int main (int argc, char** argv)
     std::cout << "survived: the scanner returned after the crashing fake was loaded"
               << std::endl;
 
-    // --- 3. The good plugin survives, in memory and on disk ----------------
     const auto goodBundlePath = scanDirectory.getChildFile ("TestPlugin.vst3").getFullPathName();
     const auto knownGood = scanner.getKnownPlugins().getTypeForFile (goodBundlePath);
 
@@ -196,7 +173,6 @@ int main (int argc, char** argv)
         check (false, "the written KnownPluginList.xml is parseable");
     }
 
-    // --- 4. Repeatability ---------------------------------------------------
     const auto secondReport = scanner.scan (directories);
 
     check (secondReport.failed == 1 && secondReport.succeeded == 1,

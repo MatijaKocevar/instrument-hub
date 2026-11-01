@@ -23,4 +23,4 @@ void writeFileAtomic (const std::filesystem::path& path, const std::string& cont
 std::string makeSetYaml (const std::string& padInstrument,
                          const std::string& encoderMacro = "cutoff");
 
-} // namespace MappingTest
+}

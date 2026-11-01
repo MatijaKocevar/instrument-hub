@@ -24,4 +24,4 @@ private:
     double increment = 0.0;
 };
 
-} // namespace AudioTest::SwitchContinuity
+}

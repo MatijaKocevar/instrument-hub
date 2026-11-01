@@ -4,19 +4,11 @@
 #include <cstdlib>
 #include <new>
 
-//==============================================================================
-// Counting allocator
-//
-// Every allocation in the binary goes through this TU's operator new, and on
-// Linux the link step additionally redirects malloc/calloc/realloc to the
-// __wrap_* below. Both bump the same counter while a measurement window is
-// open; outside the window the hook is a single relaxed atomic load.
-
 namespace allocCount
 {
 std::atomic<bool> enabled { false };
 std::atomic<long> total { 0 };
-} // namespace allocCount
+}
 
 void* operator new (std::size_t size)
 {

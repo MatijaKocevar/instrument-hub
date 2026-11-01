@@ -5,4 +5,4 @@ namespace AudioEngineTest
 
 void runOnlyActiveAndFadingSlotsProcess();
 
-} // namespace AudioEngineTest
+}

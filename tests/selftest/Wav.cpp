@@ -29,7 +29,7 @@ void appendFourCC (std::vector<std::uint8_t>& bytes, const char* text)
     bytes.insert (bytes.end(), text, text + 4);
 }
 
-} // namespace
+}
 
 void writeWav (const std::string& path, const std::vector<std::int16_t>& samples)
 {
@@ -70,4 +70,4 @@ void writeWav (const std::string& path, const std::vector<std::int16_t>& samples
         throw std::runtime_error ("failed while writing " + path);
 }
 
-} // namespace SelfTest
+}

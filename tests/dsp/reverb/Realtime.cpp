@@ -55,4 +55,4 @@ void runRealtime()
            "the parameter update was stored");
 }
 
-} // namespace DspTest::Reverb
+}

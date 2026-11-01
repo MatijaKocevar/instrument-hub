@@ -4,13 +4,6 @@
 
 #include <array>
 
-/**
-    A deliberately tiny VST3 instrument used by the T128 live-MIDI acceptance.
-
-    It has one job: render a fixed-amplitude sine only while at least one note
-    is held. That makes "the injected note reached the armed plugin" and "the
-    note-off silenced it" unambiguous without any parameter automation.
-*/
 class NoteTonePluginProcessor final : public juce::AudioProcessor
 {
 public:

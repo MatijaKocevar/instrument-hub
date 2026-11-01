@@ -42,4 +42,4 @@ void runCallbackBoundary()
            "processed samples are accumulated");
 }
 
-} // namespace TimingMonitorTest
+}

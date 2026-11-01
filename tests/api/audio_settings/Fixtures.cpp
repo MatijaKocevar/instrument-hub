@@ -116,4 +116,4 @@ void FakeBackend::attach (Api::Server& server)
         [this] { return measure(); });
 }
 
-} // namespace ApiTest::AudioSettings
+}

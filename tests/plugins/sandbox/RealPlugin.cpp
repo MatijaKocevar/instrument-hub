@@ -56,4 +56,4 @@ void runRealPlugin()
     host.stop();
 }
 
-} // namespace SandboxTest
+}

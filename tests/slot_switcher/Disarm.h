@@ -5,4 +5,4 @@ namespace SlotSwitcherTest
 
 void runDisarm();
 
-} // namespace SlotSwitcherTest
+}

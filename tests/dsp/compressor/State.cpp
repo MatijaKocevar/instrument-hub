@@ -37,4 +37,4 @@ void runState()
            "the lookahead setting survives a round-trip");
 }
 
-} // namespace DspTest::Compressor
+}

@@ -26,4 +26,4 @@ void runState()
     check (! restored.isEnabled(), "bypass round-trips");
 }
 
-} // namespace DspTest::Reverb
+}

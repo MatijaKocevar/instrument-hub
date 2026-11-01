@@ -20,7 +20,7 @@ namespace
 constexpr const char* multicastAddress = "224.0.0.251";
 constexpr std::uint16_t multicastPort = 5353;
 
-} // namespace
+}
 
 std::string localAddress()
 {
@@ -98,4 +98,4 @@ void closeQuerySocket (int fd)
 
 #endif
 
-} // namespace ApiTest::Discovery
+}
