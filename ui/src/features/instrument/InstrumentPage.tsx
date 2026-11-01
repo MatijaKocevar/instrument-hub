@@ -81,7 +81,6 @@ export interface InstrumentPageProps
     readonly onToggleBypass?: (slot: number, index: number, bypassed: boolean) => void;
     readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
     readonly onRetryChain?: (slot: number) => void;
-    readonly onBack?: () => void;
 }
 
 function latencyReadout (samples: number, milliseconds: number): string
@@ -670,7 +669,6 @@ export function InstrumentPage ({
     onToggleBypass,
     onMoveInsert,
     onRetryChain,
-    onBack,
 }: InstrumentPageProps): ReactElement
 {
     if (patch === null)
@@ -694,12 +692,6 @@ export function InstrumentPage ({
                             : "Arm a patch on the Grid page, or press a pad on the Launchpad, to open its instrument."}
                     </p>
                 </header>
-
-                {onBack !== undefined
-                    ? <button className="instrument__button" type="button" onClick={onBack}>
-                          Back to the grid
-                      </button>
-                    : null}
             </section>
         );
     }
@@ -805,12 +797,6 @@ export function InstrumentPage ({
                 {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
                 {...(onRetryChain !== undefined ? { onRetryChain } : {})}
             />
-
-            {onBack !== undefined
-                ? <button className="instrument__button" type="button" onClick={onBack}>
-                      Back to the grid
-                  </button>
-                : null}
         </section>
     );
 }

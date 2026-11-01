@@ -18,7 +18,9 @@ export default defineConfig({
     proxy: {
       "/state": "http://127.0.0.1:8080",
       "/arm": "http://127.0.0.1:8080",
-      "/settings": "http://127.0.0.1:8080",
+      // `/settings` is a client route now. The engine still exposes the
+      // resource at `GET /settings`, but the UI reads settings through
+      // `/state`; proxying the path would shadow the page on a dev reload.
       "/transport": "http://127.0.0.1:8080",
       "/audio": "http://127.0.0.1:8080",
       "/meters": { target: "ws://127.0.0.1:8080", ws: true },
