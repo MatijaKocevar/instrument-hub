@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 /** Every page the shell can show. `/remote` is handled by the same bundle. */
-export const SHELL_ROUTES = ["grid", "instrument", "plugins", "audio", "remote"] as const;
+export const SHELL_ROUTES = ["grid", "instrument", "plugins", "audio", "settings", "remote"] as const;
 
 export type ShellRoute = (typeof SHELL_ROUTES)[number];
 

@@ -1722,11 +1722,14 @@ function writeArtifact (name: string, html: string): void
     console.log (`snapshot: wrote ${String (html.length)} bytes to ${artifactPath (name)}`);
 }
 
-function renderApp (store: AppStore, initialPath?: string): string
+function renderApp (store: AppStore, initialPath?: string, viewportWidth?: number): string
 {
     return renderToStaticMarkup (
         <AppStoreProvider store={store}>
-            <App {...(initialPath === undefined ? {} : { initialPath })} />
+            <App
+                {...(initialPath === undefined ? {} : { initialPath })}
+                {...(viewportWidth === undefined ? {} : { viewportWidth })}
+            />
         </AppStoreProvider>);
 }
 
@@ -1848,7 +1851,7 @@ async function pairingTest (): Promise<void>
                "the desktop reads LAN mode off from GET /pairing");
         check (store.token === null, "a fresh desktop has no pairing token");
 
-        const before = renderApp (store, "/audio");
+        const before = renderApp (store, "/settings");
 
         check (before.includes ('data-testid="pairing" data-lan="false"'),
                "pairing card renders with LAN mode off");
@@ -1868,7 +1871,7 @@ async function pairingTest (): Promise<void>
         check (loadPairingToken (storage) === "fixture-pairing-token",
                "the pairing token is stored client-side");
 
-        const after = renderApp (store, "/audio");
+        const after = renderApp (store, "/settings");
 
         check (after.includes ('data-testid="pairing" data-lan="true"'),
                "pairing card reports LAN mode on");
@@ -1887,6 +1890,11 @@ async function pairingTest (): Promise<void>
                "the panel counts the paired desktop");
         check (after.includes ('data-testid="pairing-token-state" data-paired="true"'),
                "the desktop reports itself as paired");
+        check (after.includes ('data-testid="settings-token-state" data-paired="true"'),
+               "the account card reports this browser's stored token");
+        check (after.includes ('data-testid="settings-revoke-token"')
+                   && ! /data-testid="settings-revoke-token"[^>]*disabled/.test (after),
+               "token revocation is available while LAN mode is on");
 
         // --- The acceptance flow, through a brand-new client --------------
         const anonymous = createControlApi ({ baseUrl: server.baseUrl });
@@ -1950,7 +1958,7 @@ async function pairingTest (): Promise<void>
         check (store.token === null, "turning LAN mode off drops the local token");
         check (loadPairingToken (storage) === null, "the stored token is removed");
 
-        const off = renderApp (store, "/audio");
+        const off = renderApp (store, "/settings");
 
         check (off.includes ('data-testid="pairing" data-lan="false"'),
                "the card returns to the LAN-off state");
@@ -2015,6 +2023,7 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     const audioHtml = renderApp (store, "/audio");
     const instrumentHtml = renderApp (store, "/instrument?slot=3");
     const pluginsHtml = renderApp (store, "/plugins");
+    const settingsHtml = renderApp (store, "/settings");
 
     const suffix = fromFixture ? "snapshot" : "live";
 
@@ -2022,6 +2031,7 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     writeArtifact (`ui-audio-${suffix}.html`, audioHtml);
     writeArtifact (`ui-instrument-${suffix}.html`, instrumentHtml);
     writeArtifact (`ui-plugins-${suffix}.html`, pluginsHtml);
+    writeArtifact (`ui-settings-${suffix}.html`, settingsHtml);
 
     check (html.length > 2000, "snapshot is non-blank");
     check (countOf (html, 'data-testid="family"') === 8, "snapshot shows 8 families");
@@ -2044,9 +2054,21 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
     check (html.includes ('data-testid="connection-status"'), "snapshot shows the connection widget");
     check (html.includes ('data-testid="transport-bpm"'), "snapshot shows the transport widget");
     check (html.includes ('data-testid="instrument-grid"'), "snapshot shows the instrument grid");
-    check (html.includes ('data-testid="app-nav"'), "snapshot shows the page navigation");
+    check (html.includes ('data-testid="app-sidebar"'), "snapshot shows the persistent sidebar");
+    check (html.includes ('data-testid="app-nav"'), "snapshot shows the workspace navigation");
+    check (countOf (html, 'data-workspace-item="true"') === 4,
+           "the sidebar lists four workspace items");
+    check (html.includes (">Grid<") && html.includes (">Instrument<")
+               && html.includes (">Plugins<") && html.includes ("Audio &amp; MIDI"),
+           "the workspace items are Grid, Instrument, Plugins and Audio & MIDI");
+    check (html.includes ('data-testid="settings-group"'), "the sidebar has a Settings & Account group");
+    check (html.includes ("Settings &amp; Account"), "the bottom group is labelled Settings & Account");
+    check (html.includes ('href="/settings" data-testid="nav-settings"'),
+           "the Settings & Account item routes to /settings");
     check (html.includes ('data-testid="nav-grid" data-active="true"'),
            "the Grid tab is active on /grid");
+    check (countOf (html, 'data-testid="nav-grid"') === 1,
+           "the shell renders one Grid route button");
 
     check (audioHtml.includes ('data-testid="audio-page"'), "the /audio route resolves to its page");
     check (audioHtml.includes ('data-testid="audio-settings"'), "audio page shows the audio settings panel");
@@ -2087,15 +2109,30 @@ async function renderSnapshot (baseUrl: string, fromFixture: boolean): Promise<v
         check (audioHtml.includes ('data-testid="pad-test-result" data-active="false" data-lit="0"'),
                "the pad test has not run yet");
     }
-    check (audioHtml.includes ('data-testid="pairing"'), "desktop shows the tablet pairing card");
-    check (audioHtml.includes ('data-testid="pairing" data-lan="false"'),
+    check (settingsHtml.includes ('data-testid="settings-page"'), "the /settings route resolves");
+    check (settingsHtml.includes ('data-testid="pairing"'), "settings shows the tablet pairing card");
+    check (settingsHtml.includes ('data-testid="pairing" data-lan="false"'),
            "LAN mode is off by default");
-    check (audioHtml.includes ('data-testid="lan-toggle" aria-pressed="false"'),
+    check (settingsHtml.includes ('data-testid="lan-toggle" aria-pressed="false"'),
            "the LAN toggle starts off");
-    check (! audioHtml.includes ('data-testid="pairing-qr"'),
+    check (! settingsHtml.includes ('data-testid="pairing-qr"'),
            "no QR code is rendered while LAN mode is off");
-    check (audioHtml.includes ('data-testid="pairing-token-state" data-paired="false"'),
+    check (settingsHtml.includes ('data-testid="pairing-token-state" data-paired="false"'),
            "an unpaired desktop reports no token");
+    check (settingsHtml.includes ('data-testid="settings-account"'),
+           "settings exposes the account section");
+    check (settingsHtml.includes ('data-testid="settings-revoke-token"'),
+           "settings exposes token revocation");
+    check (settingsHtml.includes ('data-testid="settings-about"'),
+           "settings exposes an About section");
+    check (settingsHtml.includes ('data-testid="settings-version">v0.1.0<'),
+           "the About section shows the engine version");
+    check (! audioHtml.includes ('data-testid="pairing"'),
+           "pairing no longer lives on the Audio & MIDI page");
+    check (audioHtml.includes ('data-testid="nav-audio" data-active="true"'),
+           "the Audio & MIDI item is active on /audio");
+    check (settingsHtml.includes ('data-testid="nav-settings" data-active="true"'),
+           "the Settings & Account item is active on /settings");
     check (countOf (audioHtml, 'data-testid="output-channel"')
                === (store.getSnapshot ().audio?.outputChannels.length ?? 0),
            "panel maps every output channel the engine reports");
@@ -2265,7 +2302,7 @@ function routeTest (): void
 {
     check (SHELL_ROUTES.includes ("grid") && SHELL_ROUTES.includes ("instrument")
                && SHELL_ROUTES.includes ("plugins") && SHELL_ROUTES.includes ("audio")
-               && SHELL_ROUTES.includes ("remote"),
+               && SHELL_ROUTES.includes ("settings") && SHELL_ROUTES.includes ("remote"),
            "the shell declares every page route");
 
     for (const route of SHELL_ROUTES)
@@ -2292,6 +2329,134 @@ function routeTest (): void
 
     check (actions.join ("|") === "arm:5|nav:/instrument?slot=5",
            "one click arms the patch and routes to its instrument page");
+}
+
+/**
+    The shell's navigation contract.
+
+    `react-dom/server` cannot dispatch a click, so each sidebar destination is
+    rendered at the href it publishes: that is the same state a click produces
+    through the router. The wide snapshot uses the acceptance viewport, the
+    narrow one proves the collapsed navigation.
+*/
+async function shellTest (): Promise<void>
+{
+    const server = await startFixtureServer ();
+
+    try
+    {
+        const store = new AppStore (
+            createControlApi ({ baseUrl: server.baseUrl }),
+            { pollIntervalMs: 60_000 });
+
+        await store.refresh ();
+
+        const wide = renderApp (store, "/grid", 1200);
+
+        writeArtifact ("ui-shell-1200x800.html", wide);
+
+        check (wide.includes ('data-layout="wide"'), "a 1200 px viewport uses the wide shell");
+        check (wide.includes ('data-viewport-width="1200"'),
+               "the snapshot records the 1200 px viewport");
+        check (wide.includes ('data-testid="app-sidebar"'),
+               "the wide shell has a persistent left sidebar");
+        check (! wide.includes ('data-testid="app-bottom-tabs"'),
+               "the wide shell has no bottom tabs");
+        check (countOf (wide, 'data-testid="app-nav"') === 1,
+               "exactly one workspace navigation is rendered");
+        check (countOf (wide, 'data-workspace-item="true"') === 4,
+               "the sidebar lists exactly four workspace items");
+        check (wide.includes ('data-testid="settings-group"'),
+               "the sidebar bottom group holds Settings & Account");
+        check (wide.includes ("Settings &amp; Account"),
+               "the bottom group is named in the sidebar");
+        check (wide.includes ('data-testid="nav-grid" data-active="true"'),
+               "the active route is highlighted on /grid");
+        check (wide.includes (">Audio &amp; MIDI<"),
+               "the fourth workspace item is named Audio & MIDI");
+        check (! wide.includes ("app__nav-link"),
+               "no in-page route pill replaces the sidebar");
+        check (! wide.includes ("Back to the grid"),
+               "page bodies carry no route back-buttons");
+
+        const destinations = [
+            { path: "/grid", route: "grid", marker: 'data-testid="instrument-grid"' },
+            { path: "/instrument", route: "instrument", marker: 'data-testid="instrument-page"' },
+            { path: "/plugins", route: "plugins", marker: 'data-testid="plugins-page"' },
+            { path: "/audio", route: "audio", marker: 'data-testid="audio-page"' },
+            { path: "/settings", route: "settings", marker: 'data-testid="settings-page"' },
+        ] as const;
+
+        for (const destination of destinations)
+        {
+            const page = renderApp (store, destination.path, 1200);
+
+            check (page.includes (destination.marker),
+                   `the ${destination.route} destination renders its page`);
+            check (page.includes (`data-testid="nav-${destination.route}" data-active="true"`),
+                   `the ${destination.route} destination highlights its sidebar item`);
+            check (countOf (page, 'data-testid="nav-grid"') === 1,
+                   `the ${destination.route} page has no duplicate Grid route button`);
+        }
+
+        const settings = renderApp (store, "/settings", 1200);
+
+        check (settings.includes ('data-testid="pairing"'),
+               "settings exposes the pairing code card");
+        check (settings.includes ('data-testid="lan-toggle"'),
+               "settings exposes LAN mode enable/disable");
+        check (settings.includes ('data-testid="settings-revoke-token"'),
+               "settings exposes token revocation");
+        check (settings.includes ('data-testid="settings-account"'),
+               "settings exposes the account section");
+        check (settings.includes ('data-testid="settings-about"'),
+               "settings exposes the About/version section");
+        check (settings.includes ('data-testid="settings-version"'),
+               "the About section carries the version");
+
+        const narrow = renderApp (store, "/plugins", 420);
+
+        writeArtifact ("ui-shell-narrow.html", narrow);
+
+        check (narrow.includes ('data-layout="narrow"'),
+               "a 420 px viewport collapses the shell");
+        check (narrow.includes ('data-testid="app-bottom-tabs"'),
+               "the narrow shell uses bottom tabs");
+        check (! narrow.includes ('data-testid="app-sidebar"'),
+               "the narrow shell drops the full sidebar");
+        check (countOf (narrow, 'data-workspace-item="true"') === 4,
+               "the bottom tabs keep four workspace destinations");
+        check (narrow.includes ('data-testid="nav-settings"'),
+               "the bottom tabs keep Settings & Account");
+        check (narrow.includes ('data-testid="nav-plugins" data-active="true"'),
+               "the active tab is highlighted on /plugins");
+
+        for (const route of ["grid", "instrument", "plugins", "audio", "settings"])
+            check (countOf (narrow, `data-testid="nav-${route}"`) === 1,
+                   `the narrow shell has one ${route} tab`);
+
+        const remote = renderApp (store, "/remote", 1200);
+
+        check (remote.includes ('data-testid="remote"'),
+               "the /remote route renders the full-screen remote");
+        check (! remote.includes ('data-testid="app-sidebar"')
+                   && ! remote.includes ('data-testid="app-bottom-tabs"'),
+               "the remote has no desktop shell navigation");
+
+        const css = readFileSync (
+            fileURLToPath (new URL ("../src/styles.css", import.meta.url)), "utf8");
+
+        check (/@media \(max-width: 900px\)/.test (css),
+               "the shell has a narrow-width breakpoint");
+        check (/\.shell__tabs\s*\{/.test (css),
+               "the collapsed shell styles bottom tabs");
+        check (/\.shell__sidebar\s*\{[^}]*position:\s*sticky/s.test (css),
+               "the sidebar stays visible while a page scrolls");
+    }
+    finally
+    {
+        await server.close ();
+    }
 }
 
 async function clickArmsAndRoutesTest (): Promise<void>
@@ -4006,6 +4171,7 @@ async function main (): Promise<void>
     await gridSnapshotTest ();
     await armTest ();
     routeTest ();
+    await shellTest ();
     await clickArmsAndRoutesTest ();
     await colourEditTest ();
     meterTest ();
