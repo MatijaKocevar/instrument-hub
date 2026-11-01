@@ -61,14 +61,35 @@ the wrong thing. Optimise for comprehension, not for fewer files.
 
 ---
 
+## Comments
+
+Code must explain itself. Do not add comments that restate what the code
+does, narrate history, or hide design rationale in source. Keep only:
+
+- directives required by a tool or language: `// NOLINT`,
+  `// clang-format off/on`, `// eslint-disable*`, `// @ts-expect-error`,
+  `// prettier-ignore`, `# noqa`, generated-file markers and shebangs;
+- annotations a framework or platform API requires to change generated
+  code, build behaviour or runtime wiring.
+
+Everything else is removed. Rationale belongs in `docs/` or
+`plan/DECISIONS.md`. Do not add `TODO`/`FIXME` comments; write a task or a
+bug instead.
+
+This applies to first-party source under `engine/`, `ui/src/`, `tests/`,
+`scripts/` and build files. `third_party/`, generated code, `docs/` and
+`plan/` are exempt. The cleanup queue is `plan/ROADMAP.md` T175–T181.
+
+---
+
 ## Current phase: bug fixing
 
 The feature roadmap is complete (`T000–T139`) and the app is playable: the
 Launchpad selects patches, the Keystation plays the armed patch, and
 per-patch Analog Lab state persists across switches and restarts. From now
-on the work is **bug fixing plus the explicitly requested refactors queued
-in `plan/ROADMAP.md` (T140–T174); `plan/REFACTOR.md` holds the rationale
-and target structure**.
+on the work is **bug fixing plus the explicitly requested refactors
+(T140–T174) and comment cleanup (T175–T181) queued in `plan/ROADMAP.md`**.
+`plan/REFACTOR.md` holds the refactor rationale and target structure.
 
 - Fix reported bugs. Do not start new features, refactors or cleanup
   tasks unless the human explicitly asks.

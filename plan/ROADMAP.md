@@ -859,3 +859,61 @@ changes. See `plan/REFACTOR.md` for the rationale and target structure.
 - goal: Apply the one-sentence test to the remaining test files, splitting by scenario and moving fixtures into their own files.
 - files: `tests/`
 - accept: every touched file has one reason to change; `scripts/test.sh` is green.
+
+---
+
+## Comment cleanup phase (human-requested, 2026-11-01)
+
+First-party code must explain itself. Remove every comment that is not a
+directive required by a tool, language, framework or platform. Rationale
+belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
+`third_party/`, generated code, `docs/` and `plan/`.
+
+## T175 · Inventory and classify comments
+- depends: T174
+- size: S
+- goal: Research the whole first-party tree (`engine/`, `ui/src/`, `tests/`, `scripts/`, build files). Count comments per area, list every directive pattern that must survive (NOLINT, clang-format, eslint, ts-expect-error, prettier-ignore, noqa, generated markers, shebangs), and flag risky cases such as `//` inside strings, URLs and regexes. Write the inventory and removal rules to `plan/COMMENTS.md`. Make no source edits.
+- files: `plan/COMMENTS.md`
+- accept: the report covers every first-party source directory, lists the surviving directive patterns with examples, and gives a per-area comment count; no source file is modified.
+
+## T176 · Remove comments from the UI
+- depends: T175
+- size: M
+- goal: Remove all non-directive comments from `ui/src/`. Keep only the directives listed in `plan/COMMENTS.md`; do not change code, strings, URLs or regexes.
+- files: `ui/src/`
+- accept: `pnpm typecheck` and `pnpm test:snapshot` pass; only directive comments remain in `ui/src/`; no behaviour or markup change.
+
+## T177 · Remove comments from the engine API and session
+- depends: T175
+- size: M
+- goal: Remove all non-directive comments from `engine/src/api/`, `engine/src/session/` and `engine/src/project/`. Keep only tool/framework directives.
+- files: `engine/src/api/`, `engine/src/session/`, `engine/src/project/`
+- accept: `scripts/test.sh` passes; only directive comments remain in those directories; no behaviour or API change.
+
+## T178 · Remove comments from engine audio, DSP and instruments
+- depends: T175
+- size: M
+- goal: Remove all non-directive comments from `engine/src/audio/`, `engine/src/dsp/`, `engine/src/instruments/` and `engine/src/sampler/`. Keep only directives.
+- files: `engine/src/audio/`, `engine/src/dsp/`, `engine/src/instruments/`, `engine/src/sampler/`
+- accept: `scripts/test.sh` passes; only directive comments remain in those directories; the audio-thread contract is unchanged.
+
+## T179 · Remove comments from the rest of the engine
+- depends: T175
+- size: M
+- goal: Remove all non-directive comments from `engine/src/controller/`, `engine/src/plugins/`, `engine/src/app/`, `engine/src/Bridge/` and the remaining engine sources and headers. Keep only directives.
+- files: `engine/src/`
+- accept: `scripts/test.sh` passes; only directive comments remain under `engine/src/`; no behaviour change.
+
+## T180 · Remove comments from tests, scripts and build files
+- depends: T175
+- size: M
+- goal: Remove all non-directive comments from `tests/`, `scripts/` and the first-party CMake files. Keep only tool directives and shebangs.
+- files: `tests/`, `scripts/`, `CMakeLists.txt`, `CMakePresets.json`, `engine/CMakeLists.txt`, `tests/CMakeLists.txt`
+- accept: `scripts/test.sh` passes; only directive comments and shebangs remain; no build or test behaviour change.
+
+## T181 · Final comment audit
+- depends: T176, T177, T178, T179, T180
+- size: S
+- goal: Walk the whole first-party tree and remove any non-directive comment that survived. Verify that strings, URLs, regexes and generated markers were not damaged. Record the final counts and every exemption in `plan/COMMENTS.md`.
+- files: `engine/`, `ui/src/`, `tests/`, `scripts/`, build files, `plan/COMMENTS.md`
+- accept: a search of the first-party tree finds only the directives listed in `plan/COMMENTS.md`; `pnpm typecheck`, `pnpm test:snapshot` and `scripts/test.sh` pass; no source behaviour changed.
