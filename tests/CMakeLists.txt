@@ -29,6 +29,30 @@ set(IHUB_MAPPING_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingYaml.cpp"
 )
 
+# The composed session is a façade over the warm pool, plugin state, editor
+# host, meter bridge, transport, FX chain, device and MIDI collaborators.
+# Tests that build a Session compile the whole set.
+set(IHUB_SESSION_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/DeviceController.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/EditorHost.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/FxChainController.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MeterBridge.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MidiBridge.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateStore.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionBuild.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionControl.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionDevice.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionFx.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionMeasure.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginState.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionRender.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionWarm.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SlotSources.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/TransportControl.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/WarmPoolController.cpp"
+)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(ALSA REQUIRED)
 
@@ -850,7 +874,7 @@ juce_add_console_app(ihub-session-smoke-test
 target_sources(ihub-session-smoke-test
     PRIVATE
         audio/SessionSmoke.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
@@ -972,7 +996,7 @@ juce_add_console_app(ihub-session-api-test
 target_sources(ihub-session-api-test
     PRIVATE
         api/SessionApiTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
@@ -1062,7 +1086,7 @@ juce_add_console_app(ihub-patch-fx-api-test
 target_sources(ihub-patch-fx-api-test
     PRIVATE
         api/PatchFxApiTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
@@ -1154,7 +1178,7 @@ juce_add_console_app(ihub-instrument-page-api-test
 target_sources(ihub-instrument-page-api-test
     PRIVATE
         api/InstrumentPageApiTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
@@ -1244,7 +1268,7 @@ juce_add_console_app(ihub-patch-state-capture-api-test
 target_sources(ihub-patch-state-capture-api-test
     PRIVATE
         api/PatchStateCaptureApiTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
@@ -1336,7 +1360,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-plugin-editor-api-test
         PRIVATE
             api/PluginEditorApiTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
@@ -1438,7 +1462,7 @@ juce_add_console_app(ihub-session-warm-test
 target_sources(ihub-session-warm-test
     PRIVATE
         session_warm/SessionWarmPoolTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
@@ -3204,7 +3228,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-session-midi-test
         PRIVATE
             session_midi/SessionMidiTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
@@ -3295,7 +3319,7 @@ juce_add_console_app(ihub-session-plugin-state-test
 target_sources(ihub-session-plugin-state-test
     PRIVATE
         plugin_state/SessionPluginStateTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+        ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
@@ -3377,7 +3401,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-session-editor-follow-test
         PRIVATE
             plugin_state/SessionEditorFollowTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
@@ -3476,7 +3500,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-e2e-test
         PRIVATE
             e2e/PadToAudio.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
@@ -3574,7 +3598,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-per-patch-state-test
         PRIVATE
             e2e/PerPatchStateTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
@@ -3662,7 +3686,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-analog-lab-state-test
         PRIVATE
             e2e/AnalogLabStateTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
+            ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"

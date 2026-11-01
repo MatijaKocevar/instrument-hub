@@ -160,6 +160,23 @@ target_sources(instrument-hub
         src/project/SetFile.cpp
         src/project/Serializer.cpp
         src/Session.cpp
+        src/session/DeviceController.cpp
+        src/session/EditorHost.cpp
+        src/session/FxChainController.cpp
+        src/session/MeterBridge.cpp
+        src/session/MidiBridge.cpp
+        src/session/PluginStateStore.cpp
+        src/session/SessionBuild.cpp
+        src/session/SessionControl.cpp
+        src/session/SessionDevice.cpp
+        src/session/SessionFx.cpp
+        src/session/SessionMeasure.cpp
+        src/session/SessionPluginState.cpp
+        src/session/SessionRender.cpp
+        src/session/SessionWarm.cpp
+        src/session/SlotSources.cpp
+        src/session/TransportControl.cpp
+        src/session/WarmPoolController.cpp
         src/sampler/Kit.cpp
         src/sampler/KitLoader.cpp
         src/sampler/SampleLoader.cpp
