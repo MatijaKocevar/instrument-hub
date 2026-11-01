@@ -38,7 +38,7 @@ Read in this order. It is deliberately small: roughly one focused morning.
 | 6 | [engine/src/audio/WarmPool.h](../engine/src/audio/WarmPool.h) | The instance cache, its thread, its limit and its lifetime rules. |
 | 7 | [engine/src/api/StateStore.h](../engine/src/api/StateStore.h) (`StateStore`), then [engine/src/api/SessionBridge.cpp](../engine/src/api/SessionBridge.cpp) | How HTTP reaches the session without the route code knowing what a `Session` is. |
 | 8 | [engine/src/controller/LaunchpadProtocol.h](../engine/src/controller/LaunchpadProtocol.h), then [LaunchpadDriver.h](../engine/src/controller/LaunchpadDriver.h), then [Mapping.h](../engine/src/controller/Mapping.h) | The pad path, from a raw note to a slot number. |
-| 9 | [engine/src/Session.cpp](../engine/src/Session.cpp): `capturePluginState()`, `writePluginStateFile()` in the anonymous namespace, `applyStoredPluginState()` | Per-patch sound persistence, including the explicit save action. |
+| 9 | [engine/src/session/SessionPluginState.cpp](../engine/src/session/SessionPluginState.cpp) and [engine/src/session/PluginStateFile.cpp](../engine/src/session/PluginStateFile.cpp): `capturePluginState()`, `writePluginStateFile()`, `applyStoredPluginState()` | Per-patch sound persistence, including the explicit save action. |
 | 10 | [tests/e2e/PadToAudio.cpp](../tests/e2e/PadToAudio.cpp), [tests/session_warm/SessionWarmPoolTest.cpp](../tests/session_warm/SessionWarmPoolTest.cpp), [tests/api/SessionApiTest.cpp](../tests/api/SessionApiTest.cpp) | The executable version of this document. |
 
 Useful references while reading:
@@ -132,17 +132,24 @@ is followed by the types worth knowing.
   `SlotSwitcher`, the `WarmPool`, the per-slot `FxRack`s, the `DeviceManager`,
   the `Transport`, the editor windows and the per-patch plugin-state sidecar.
   Implements `juce::AudioIODeviceCallback`. The header's class comment is the
-  threading contract; read it before changing anything here.
+  threading contract; read it before changing anything here. The slot/source
+  configuration model lives in
+  [SessionConfig.h](../engine/src/SessionConfig.h) and the offline switch
+  measurement in [SessionSwitchReport.h](../engine/src/SessionSwitchReport.h),
+  so the class header only declares the session facade.
 
 ### 3.2 `engine/src/api/`
 
 The control surface. It is a facade over `StateStore`; only `SessionBridge`
 knows what a `Session` is.
 
-- [StateStore.h](../engine/src/api/StateStore.h) /
-  [StateStore.cpp](../engine/src/api/StateStore.cpp) — `StateStore` (the
-  UI-facing mirror: armed slot, settings, transport, family tree, per-slot
-  mix, latency, editor flags) and the plain structs it projects.
+- [StateStore.h](../engine/src/api/StateStore.h) and
+  [state/](../engine/src/api/state/) — `StateStore` (the UI-facing mirror:
+  armed slot, settings, transport, family tree, per-slot mix, latency, editor
+  flags). The plain DTOs it projects live one domain per header under
+  `state/`; the implementation is split there into the store core, settings
+  and transport, patch mix, patch source/editor/capture, FX and the snapshot
+  projection.
 - [Server.h](../engine/src/api/Server.h) / [Server.cpp](../engine/src/api/Server.cpp)
   — `Server` (cpp-httplib listener lifecycle, LAN rebind, CORS, pairing and
   discovery ownership). Authentication, meter sampling and the WebSocket
@@ -175,13 +182,17 @@ knows what a `Session` is.
   inventory and rescan handlers behind `/plugins`.
 - [MidiBridge.h](../engine/src/api/MidiBridge.h) /
   [MidiBridge.cpp](../engine/src/api/MidiBridge.cpp) — MIDI input enumeration,
-  input enable/disable, the Launchpad 64-pad test, and the `MidiSink` that
-  feeds `Session::pushMidi()`.
+  input enable/disable and the `MidiSink` that feeds `Session::pushMidi()`.
+  The Launchpad 64-pad test animation is a separate translation unit in
+  [midi/MidiPadTest.cpp](../engine/src/api/midi/MidiPadTest.cpp).
 - [Pairing.h](../engine/src/api/Pairing.h) / [Pairing.cpp](../engine/src/api/Pairing.cpp)
   — 6-digit pairing codes, token storage/revocation and LAN-mode state.
 - [Discovery.h](../engine/src/api/Discovery.h) / [Discovery.cpp](../engine/src/api/Discovery.cpp)
   — a self-contained mDNS/DNS-SD responder for `_instrumenthub._tcp`; POSIX
-  only, started with LAN mode.
+  only, started with LAN mode. The DNS wire format and record set live in
+  [discovery/DnsPacket.cpp](../engine/src/api/discovery/DnsPacket.cpp), the
+  multicast socket plumbing in
+  [discovery/MdnsSocket.cpp](../engine/src/api/discovery/MdnsSocket.cpp).
 - [StateBroadcast.h](../engine/src/api/StateBroadcast.h) /
   [StateBroadcast.cpp](../engine/src/api/StateBroadcast.cpp) — coalesced
   state frames for `/events`; every connected client sees the newest frame,
@@ -215,9 +226,15 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   `FxChain` after an edit. The insert wrapper, factory, parameter mapping,
   editing, ordering, latency and snapshot code live in
   [audio/fx/](../engine/src/audio/fx/), so the rack file keeps only chain
-  wiring and transport forwarding.
+  wiring and transport forwarding. `InsertEffect` and the insert data model
+  are declared in [InsertEffect.h](../engine/src/audio/fx/InsertEffect.h) and
+  [FxInsertTypes.h](../engine/src/audio/fx/FxInsertTypes.h), not in the rack
+  header.
 - [Bus.h](../engine/src/audio/Bus.h) / [Bus.cpp](../engine/src/audio/Bus.cpp)
-  — master summing buffer and zero-latency peak limiter. Unity below threshold.
+  — master summing buffer. The zero-latency peak limiter is its own component
+  in [MasterLimiter.h](../engine/src/audio/MasterLimiter.h) /
+  [MasterLimiter.cpp](../engine/src/audio/MasterLimiter.cpp); unity below
+  threshold.
 - [WarmPool.h](../engine/src/audio/WarmPool.h) /
   [WarmPool.cpp](../engine/src/audio/WarmPool.cpp) — background instrument
   cache: protected set (active + K neighbours), hard `1 + K` live-instance
@@ -255,8 +272,9 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   impulse capture and the pure correlation live in
   [audio/latency/](../engine/src/audio/latency/).
 - [RtGuard.h](../engine/src/audio/RtGuard.h) / [RtGuard.cpp](../engine/src/audio/RtGuard.cpp)
-  — allocation/lock/log detector and `operator new` interposition for
-  `--rt-strict`.
+  — allocation/lock/log detector and counters for `--rt-strict`. The
+  `operator new`/malloc interposition and the pthread wrappers are separate
+  units under [audio/rtguard/](../engine/src/audio/rtguard/).
 - [Instrument.h](../engine/src/audio/Instrument.h) — compatibility shim only;
   the canonical interface is `instruments/Instrument.h`.
 
@@ -314,6 +332,8 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
 - [Diagnostics.h](../engine/src/diag/Diagnostics.h) /
   [Diagnostics.cpp](../engine/src/diag/Diagnostics.cpp) — the `--diagnostics`
   report: build identity, device, timing/xruns, plugin inventory, log tail.
+  [LogSink.cpp](../engine/src/diag/LogSink.cpp) installs the JUCE logger
+  adapter that feeds the ring.
 
 ### 3.7 `engine/src/dsp/`
 
@@ -413,7 +433,9 @@ engine and is currently exercised by tests, not by the app (see §8).
   (1 → 2 and 2 → 3); never rewrites a document in an old format.
 
 The live per-patch plugin-state cache is `session/PluginStateStore`, not a
-second binder in this directory.
+second binder in this directory. Its sidecar file format is
+`session/PluginStateFile`; the store keeps the in-memory blobs and the live
+instrument registry.
 
 ### 3.11 `engine/src/sampler/`
 
@@ -602,7 +624,7 @@ mirror, and `Session` is the single writer of the audio graph.
 
 **Step 4 — store → session (`SessionBridge` arm handler).**
 
-`StateStore::setArmedSlot()` ([StateStore.cpp](../engine/src/api/StateStore.cpp))
+`StateStore::setArmedSlot()` ([state/StateStore.cpp](../engine/src/api/state/StateStore.cpp))
 validates the slot, updates `armedSlot` under the store mutex, copies the
 handlers, then calls the arm handler outside the lock. The handler was
 installed by `Api::attachSession()` in
@@ -1049,11 +1071,9 @@ then call it. That pattern appears in `StateStore`, `Mapping`,
 
 ## 7. Oversized files and target decomposition
 
-The threshold used here is **~800 lines**. At T133 the following files exceed
-it, except `Session.h`, which is included because it is the paired facade
-header for `Session.cpp` and must split with it. The target splits are the ones
-already scheduled in [plan/ROADMAP.md](../plan/ROADMAP.md) (T134–T138 and the
-engine splits T162–T168).
+The threshold used here is **~800 lines**. This table is the T133 baseline:
+T134–T169 completed the splits listed below. `Session.h` is included because it
+is the paired facade header for `Session.cpp` and had to split with it.
 
 | File | Lines | What makes it big | Target decomposition |
 |---|---:|---|---|
@@ -1064,10 +1084,10 @@ engine splits T162–T168).
 | [api/Server.h](../engine/src/api/Server.h) | 1037 | All state DTOs, `StateStore` and `Server` in one header. | Same as above: DTOs and `StateStore` move to their own header; `Server.h` keeps the server surface. |
 | [Session.h](../engine/src/Session.h) | 776 | Public surface for all of the above. | Follows `Session.cpp`: the facade header keeps build/device/render/arm/inspection; collaborators get their own headers in `session/`. |
 
-Two smaller files are worth watching but are **not** on the split list yet:
-`sampler/KitLoader.cpp` (734), `api/Discovery.cpp` (725) and
-`sampler/SamplerInstrument.cpp` (610). They are cohesive; splitting them now
-would add files without reducing coupling.
+The remaining large translation units are cohesive and stay together:
+`sampler/KitLoader.cpp` (734) and `sampler/SamplerInstrument.cpp` (610). The
+`api/Discovery.cpp` responder was later split into the DNS codec, the
+multicast socket and the responder lifecycle.
 
 The intended end state after T134–T138 is: no translation unit above ~800
 lines, one route module per resource, `Session` a facade, `Main` a shell, and

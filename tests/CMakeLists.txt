@@ -24,13 +24,49 @@ set(IHUB_API_ROUTES_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/TransportRoutes.cpp"
 )
 
+# mDNS discovery is the responder lifecycle over the DNS packet codec and the
+# multicast socket plumbing.
+set(IHUB_DISCOVERY_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/discovery/DnsPacket.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/discovery/MdnsSocket.cpp"
+)
+
+# The MIDI bridge owns input enumeration and monitoring; the pad test
+# animation is a separate feature over the same Launchpad driver.
+set(IHUB_MIDI_BRIDGE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiPadTest.cpp"
+)
+
+# The master bus owns the summing buffer; the peak limiter is a separate
+# realtime-safe component.
+set(IHUB_BUS_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/MasterLimiter.cpp"
+)
+
+# The RT guard API and counters are separate from the allocator and lock
+# interposition it enables at link time.
+set(IHUB_RT_GUARD_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/rtguard/AllocatorInterposition.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/rtguard/LockInterposition.cpp"
+)
+
 # The API server is transport/auth plus the state store it projects. Tests
 # that exercise the HTTP or WebSocket surface compile the whole set.
 set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/AuthGuard.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MeterSampler.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateStore.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStore.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreFx.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePatchSource.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePatches.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSettings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTransport.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSnapshot.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
 )
 
@@ -247,6 +283,7 @@ set(IHUB_SESSION_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/FxChainController.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MeterBridge.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MidiBridge.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateFile.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateStore.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionBuild.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionControl.cpp"
@@ -463,7 +500,7 @@ target_sources(ihub-audio-engine-test
     PRIVATE
         audio_engine/AudioEngineTest.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -539,7 +576,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            ${IHUB_BUS_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_LATENCY_PROBE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -640,6 +677,7 @@ target_sources(ihub-diagnostics-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/CrashDump.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/Diagnostics.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/LogRing.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/LogSink.cpp"
         ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
@@ -737,10 +775,10 @@ if(IHUB_ENABLE_RT_GUARD)
         PRIVATE
             rt_guard/RtGuardTest.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            ${IHUB_BUS_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            ${IHUB_RT_GUARD_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
     )
@@ -822,7 +860,7 @@ juce_add_console_app(ihub-fx-chain-test
 target_sources(ihub-fx-chain-test
     PRIVATE
         fx_chain/FxChainTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
@@ -1068,7 +1106,7 @@ juce_add_console_app(ihub-switch-continuity-test
 target_sources(ihub-switch-continuity-test
     PRIVATE
         audio/SwitchContinuity.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
@@ -1121,7 +1159,7 @@ target_sources(ihub-session-smoke-test
         audio/SessionSmoke.cpp
         ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
@@ -1130,7 +1168,7 @@ target_sources(ihub-session-smoke-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
         ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        ${IHUB_RT_GUARD_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -1239,14 +1277,14 @@ target_sources(ihub-session-api-test
     PRIVATE
         api/SessionApiTest.cpp
         ${IHUB_SESSION_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
@@ -1255,7 +1293,7 @@ target_sources(ihub-session-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
         ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        ${IHUB_RT_GUARD_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -1326,19 +1364,19 @@ target_sources(ihub-patch-fx-api-test
     PRIVATE
         api/PatchFxApiTest.cpp
         ${IHUB_SESSION_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
         ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        ${IHUB_RT_GUARD_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -1415,19 +1453,19 @@ target_sources(ihub-instrument-page-api-test
     PRIVATE
         api/InstrumentPageApiTest.cpp
         ${IHUB_SESSION_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
         ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        ${IHUB_RT_GUARD_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -1502,19 +1540,19 @@ target_sources(ihub-patch-state-capture-api-test
     PRIVATE
         api/PatchStateCaptureApiTest.cpp
         ${IHUB_SESSION_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
         ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        ${IHUB_RT_GUARD_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -1591,19 +1629,19 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             api/PluginEditorApiTest.cpp
             ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+            ${IHUB_DISCOVERY_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
             ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            ${IHUB_BUS_SOURCES}
             ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
             ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            ${IHUB_RT_GUARD_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -1690,14 +1728,14 @@ target_sources(ihub-session-warm-test
     PRIVATE
         session_warm/SessionWarmPoolTest.cpp
         ${IHUB_SESSION_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
@@ -1706,7 +1744,7 @@ target_sources(ihub-session-warm-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
         ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        ${IHUB_RT_GUARD_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -1965,7 +2003,7 @@ juce_add_console_app(ihub-api-test
 target_sources(ihub-api-test
     PRIVATE
         api/ApiTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
@@ -2014,7 +2052,7 @@ juce_add_console_app(ihub-pairing-test
 target_sources(ihub-pairing-test
     PRIVATE
         api/PairingTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
@@ -2066,7 +2104,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-state-broadcast-test
         PRIVATE
             api/StateBroadcastTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+            ${IHUB_DISCOVERY_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
             ${IHUB_API_SERVER_SOURCES}
@@ -2122,7 +2160,7 @@ juce_add_console_app(ihub-audio-settings-test
 target_sources(ihub-audio-settings-test
     PRIVATE
         api/AudioSettingsTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
@@ -2183,8 +2221,8 @@ juce_add_console_app(ihub-midi-api-test
 target_sources(ihub-midi-api-test
     PRIVATE
         api/MidiApiTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
+        ${IHUB_MIDI_BRIDGE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
@@ -2241,7 +2279,7 @@ juce_add_console_app(ihub-discovery-test
 target_sources(ihub-discovery-test
     PRIVATE
         api/DiscoveryTest.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
 )
 
 target_include_directories(ihub-discovery-test
@@ -2719,7 +2757,7 @@ target_sources(ihub-set-file-test
         project/SetFileTest.cpp
         ${IHUB_PROJECT_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -2778,7 +2816,7 @@ target_sources(ihub-migrations-test
         project/MigrationsTest.cpp
         ${IHUB_PROJECT_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -2837,7 +2875,7 @@ target_sources(ihub-patch-persistence-test
         ${IHUB_MAPPING_SOURCES}
         ${IHUB_PROJECT_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
@@ -3199,9 +3237,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             session_midi/SessionMidiTest.cpp
             ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
+            ${IHUB_MIDI_BRIDGE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            ${IHUB_BUS_SOURCES}
             ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
@@ -3210,7 +3248,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
             ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            ${IHUB_RT_GUARD_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -3287,7 +3325,7 @@ target_sources(ihub-session-plugin-state-test
         plugin_state/SessionPluginStateTest.cpp
         ${IHUB_SESSION_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+        ${IHUB_BUS_SOURCES}
         ${IHUB_DEVICE_MANAGER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
         ${IHUB_FX_RACK_SOURCES}
@@ -3296,7 +3334,7 @@ target_sources(ihub-session-plugin-state-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
         ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+        ${IHUB_RT_GUARD_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -3366,7 +3404,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             plugin_state/SessionEditorFollowTest.cpp
             ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            ${IHUB_BUS_SOURCES}
             ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
@@ -3375,7 +3413,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
             ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            ${IHUB_RT_GUARD_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -3461,14 +3499,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             e2e/PadToAudio.cpp
             ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
+            ${IHUB_DISCOVERY_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
             ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            ${IHUB_BUS_SOURCES}
             ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
@@ -3556,7 +3594,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             e2e/PerPatchStateTest.cpp
             ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            ${IHUB_BUS_SOURCES}
             ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
@@ -3565,7 +3603,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
             ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            ${IHUB_RT_GUARD_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
@@ -3641,7 +3679,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             e2e/AnalogLabStateTest.cpp
             ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
+            ${IHUB_BUS_SOURCES}
             ${IHUB_DEVICE_MANAGER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
             ${IHUB_FX_RACK_SOURCES}
@@ -3650,7 +3688,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
             ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
+            ${IHUB_RT_GUARD_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"

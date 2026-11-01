@@ -95,7 +95,10 @@ target_sources(instrument-hub
     PRIVATE
         src/Main.cpp
         src/api/Discovery.cpp
+        src/api/discovery/DnsPacket.cpp
+        src/api/discovery/MdnsSocket.cpp
         src/api/MidiBridge.cpp
+        src/api/midi/MidiPadTest.cpp
         src/api/Pairing.cpp
         src/api/PluginBridge.cpp
         src/api/AuthGuard.cpp
@@ -117,7 +120,13 @@ target_sources(instrument-hub
         src/api/routes/StateSerialization.cpp
         src/api/routes/TransportRoutes.cpp
         src/api/Server.cpp
-        src/api/StateStore.cpp
+        src/api/state/StateStore.cpp
+        src/api/state/StateStoreFx.cpp
+        src/api/state/StateStorePatchSource.cpp
+        src/api/state/StateStorePatches.cpp
+        src/api/state/StateStoreSettings.cpp
+        src/api/state/StateStoreTransport.cpp
+        src/api/state/StateStoreSnapshot.cpp
         src/api/SessionBridge.cpp
         src/api/StateBroadcast.cpp
         src/api/WebSocketRoutes.cpp
@@ -140,6 +149,7 @@ target_sources(instrument-hub
         src/audio/AudioEngine.cpp
         src/audio/AudioSettings.cpp
         src/audio/Bus.cpp
+        src/audio/MasterLimiter.cpp
         src/audio/ClockIn.cpp
         src/audio/ClockOut.cpp
         src/audio/DeviceManager.cpp
@@ -165,6 +175,8 @@ target_sources(instrument-hub
         src/audio/latency/LatencyCorrelation.cpp
         src/audio/LatencyProbe.cpp
         src/audio/RtGuard.cpp
+        src/audio/rtguard/AllocatorInterposition.cpp
+        src/audio/rtguard/LockInterposition.cpp
         src/audio/settings/AudioSettingsApply.cpp
         src/audio/settings/AudioSettingsChannels.cpp
         src/audio/settings/AudioSettingsMeasure.cpp
@@ -215,6 +227,7 @@ target_sources(instrument-hub
         src/diag/CrashDump.cpp
         src/diag/Diagnostics.cpp
         src/diag/LogRing.cpp
+        src/diag/LogSink.cpp
         src/instruments/Instrument.cpp
         src/instruments/AudioInputInstrument.cpp
         src/instruments/PluginFx.cpp
@@ -259,6 +272,7 @@ target_sources(instrument-hub
         src/session/FxChainController.cpp
         src/session/MeterBridge.cpp
         src/session/MidiBridge.cpp
+        src/session/PluginStateFile.cpp
         src/session/PluginStateStore.cpp
         src/session/SessionBuild.cpp
         src/session/SessionControl.cpp
