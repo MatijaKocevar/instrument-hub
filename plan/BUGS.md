@@ -50,3 +50,14 @@ reported by the human or reproduced on this machine.
 - actual: automated coverage is 8 TestPlugin patches plus 2 real Analog Lab patches; loading 64 Analog Lab instances in one process stack-overflows the Wine bridge
 - evidence: `ihub-analog-lab-state-test` (2 patches) passes; `ihub-per-patch-state-test` (8 patches) passes
 - fix: pending; candidate is one isolated child process per batch, or manual verification
+
+### BUG-004 · App does not exit after the window is closed; hangs in shutdown
+- status: open
+- area: engine
+- steps:
+  1. start `build-release/engine/instrument-hub` in GUI mode and play with Analog Lab patches (log `/tmp/opencode/run-launchpad.log`)
+  2. close the window a few minutes later
+- expected: the window disappears and the process exits within a second, reaping the vstbridge host
+- actual: window stays mapped but never repaints; the process keeps running; `127.0.0.1:8080` is no longer listening, so `shutdown()` already reached `controlApi.stopServer()`; the main thread sits in `futex_wait_queue`; one thread burns ~100% CPU; `WM_DELETE_WINDOW` is ignored; only `SIGTERM` ends it
+- evidence: launched 2026-11-01 17:08, found stuck at 17:21 (PID 61425, 14 min elapsed, 8 threads, `/proc/61425/task/61425/wchan` = `futex_wait_queue`, thread 61428 at 99.9%); `ss -ltnp` shows no 8080 listener; `xwininfo` reports the window `IsViewable` at 3840+24; a hand-sent `WM_DELETE_WINDOW` (`/tmp/opencode/xclose 0x560000c`) was ignored; `kill -TERM 61425` exited immediately; `/tmp/opencode/run-launchpad.log` stops at 17:11:00
+- fix: pending; `Server::stop()` already got past `controlThread.join()` and `stopListenerLocked()`, so the next candidates are `meterThread.join()`, `controller.shutdown()`, or `session->closeDevice()` joining the audio/Wine plugin thread
