@@ -1,10 +1,7 @@
-export function messageOf (error: unknown): string
-{
-    if (error instanceof Error && error.message.length > 0)
-        return error.message;
+export function messageOf(error: unknown): string {
+  if (error instanceof Error && error.message.length > 0) return error.message;
 
-    if (typeof error === "string" && error.length > 0)
-        return error;
+  if (typeof error === "string" && error.length > 0) return error;
 
-    return "the control API is unreachable";
+  return "the control API is unreachable";
 }

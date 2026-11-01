@@ -4,82 +4,103 @@ import type { RequestGuard } from "./client";
 import type { paths } from "./schema";
 import type { ControlPluginList } from "./types";
 
-export interface PluginEndpoints
-{
-    listPlugins (options?: { search?: string; signal?: AbortSignal }): Promise<ControlPluginList>;
+export interface PluginEndpoints {
+  listPlugins(options?: {
+    search?: string;
+    signal?: AbortSignal;
+  }): Promise<ControlPluginList>;
 
-    rescanPlugins (options?: { signal?: AbortSignal }): Promise<ControlPluginList>;
+  rescanPlugins(options?: { signal?: AbortSignal }): Promise<ControlPluginList>;
 }
 
-function isPluginList (value: unknown): value is ControlPluginList
-{
-    if (value === null || typeof value !== "object")
-        return false;
+function isPluginList(value: unknown): value is ControlPluginList {
+  if (value === null || typeof value !== "object") return false;
 
-    const candidate = value as Partial<ControlPluginList>;
+  const candidate = value as Partial<ControlPluginList>;
 
-    return Array.isArray (candidate.plugins)
-        && typeof candidate.count === "number"
-        && typeof candidate.total === "number"
-        && typeof candidate.search === "string"
-        && typeof candidate.scanning === "boolean"
-        && typeof candidate.scanned === "boolean"
-        && typeof candidate.lastScanMs === "number"
-        && typeof candidate.error === "string"
-        && candidate.plugins.every (plugin =>
-               plugin !== null
-               && typeof plugin === "object"
-               && typeof plugin.id === "string"
-               && typeof plugin.name === "string"
-               && typeof plugin.vendor === "string"
-               && typeof plugin.version === "string"
-               && typeof plugin.category === "string"
-               && typeof plugin.isInstrument === "boolean"
-               && typeof plugin.isEffect === "boolean"
-               && typeof plugin.format === "string"
-               && typeof plugin.path === "string");
+  return (
+    Array.isArray(candidate.plugins) &&
+    typeof candidate.count === "number" &&
+    typeof candidate.total === "number" &&
+    typeof candidate.search === "string" &&
+    typeof candidate.scanning === "boolean" &&
+    typeof candidate.scanned === "boolean" &&
+    typeof candidate.lastScanMs === "number" &&
+    typeof candidate.error === "string" &&
+    candidate.plugins.every(
+      (plugin) =>
+        plugin !== null &&
+        typeof plugin === "object" &&
+        typeof plugin.id === "string" &&
+        typeof plugin.name === "string" &&
+        typeof plugin.vendor === "string" &&
+        typeof plugin.version === "string" &&
+        typeof plugin.category === "string" &&
+        typeof plugin.isInstrument === "boolean" &&
+        typeof plugin.isEffect === "boolean" &&
+        typeof plugin.format === "string" &&
+        typeof plugin.path === "string",
+    )
+  );
 }
 
-function requirePluginList (guard: RequestGuard,
-                             data: ControlPluginList | undefined,
-                             error: unknown,
-                             status: number,
-                             what: string): ControlPluginList
-{
-    if (data !== undefined)
-    {
-        if (! isPluginList (data))
-            return guard.reject (`${what} returned an unsupported payload`, status);
+function requirePluginList(
+  guard: RequestGuard,
+  data: ControlPluginList | undefined,
+  error: unknown,
+  status: number,
+  what: string,
+): ControlPluginList {
+  if (data !== undefined) {
+    if (!isPluginList(data))
+      return guard.reject(`${what} returned an unsupported payload`, status);
 
-        return data;
-    }
+    return data;
+  }
 
-    return guard.fail (error, status, what);
+  return guard.fail(error, status, what);
 }
 
-export function createPluginEndpoints (client: Client<paths>,
-                                       guard: RequestGuard): PluginEndpoints
-{
-    return {
-        async listPlugins (requestOptions)
-        {
-            const search = requestOptions?.search;
+export function createPluginEndpoints(
+  client: Client<paths>,
+  guard: RequestGuard,
+): PluginEndpoints {
+  return {
+    async listPlugins(requestOptions) {
+      const search = requestOptions?.search;
 
-            const { data, error, response } = await client.GET ("/plugins", {
-                ...(search !== undefined && search.length > 0 ? { params: { query: { search } } } : {}),
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
+      const { data, error, response } = await client.GET("/plugins", {
+        ...(search !== undefined && search.length > 0
+          ? { params: { query: { search } } }
+          : {}),
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
 
-            return requirePluginList (guard, data, error, response.status, "GET /plugins");
-        },
+      return requirePluginList(
+        guard,
+        data,
+        error,
+        response.status,
+        "GET /plugins",
+      );
+    },
 
-        async rescanPlugins (requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/plugins/rescan", {
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
+    async rescanPlugins(requestOptions) {
+      const { data, error, response } = await client.POST("/plugins/rescan", {
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
 
-            return requirePluginList (guard, data, error, response.status, "POST /plugins/rescan");
-        },
-    };
+      return requirePluginList(
+        guard,
+        data,
+        error,
+        response.status,
+        "POST /plugins/rescan",
+      );
+    },
+  };
 }

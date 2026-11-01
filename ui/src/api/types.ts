@@ -1,6 +1,5 @@
 import type { components } from "./schema";
 
-
 export type ControlState = components["schemas"]["State"];
 export type ControlSlot = components["schemas"]["Slot"];
 export type ControlSettings = components["schemas"]["Settings"];
@@ -15,8 +14,10 @@ export type ControlPairResponse = components["schemas"]["PairResponse"];
 export type ControlPatch = components["schemas"]["Patch"];
 export type ControlPatchUpdate = components["schemas"]["PatchUpdate"];
 export type ControlPatchEditor = components["schemas"]["PatchEditor"];
-export type ControlPatchStateCapture = components["schemas"]["PatchStateCapture"];
-export type ControlPatchSourceRequest = components["schemas"]["PatchSourceRequest"];
+export type ControlPatchStateCapture =
+  components["schemas"]["PatchStateCapture"];
+export type ControlPatchSourceRequest =
+  components["schemas"]["PatchSourceRequest"];
 export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
 export type ControlFxChain = components["schemas"]["FxChain"];
 export type ControlFxInsert = components["schemas"]["FxInsert"];

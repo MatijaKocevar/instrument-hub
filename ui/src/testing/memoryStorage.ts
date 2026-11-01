@@ -1,21 +1,17 @@
 import type { TokenStorage } from "../features/pairing";
 
-export class MemoryStorage implements TokenStorage
-{
-    private readonly values = new Map<string, string> ();
+export class MemoryStorage implements TokenStorage {
+  private readonly values = new Map<string, string>();
 
-    getItem (key: string): string | null
-    {
-        return this.values.get (key) ?? null;
-    }
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
 
-    setItem (key: string, value: string): void
-    {
-        this.values.set (key, value);
-    }
+  setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
 
-    removeItem (key: string): void
-    {
-        this.values.delete (key);
-    }
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
 }

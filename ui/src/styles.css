@@ -1,7 +1,6 @@
 :root {
   color-scheme: dark;
-  font-family:
-    Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background: #101014;
   color: #eceef4;
 }
@@ -20,10 +19,8 @@ body,
 body {
   background:
     radial-gradient(circle at 15% 0%, #26263a 0%, transparent 45%),
-    radial-gradient(circle at 90% 10%, #1a2a2e 0%, transparent 40%),
-    #101014;
+    radial-gradient(circle at 90% 10%, #1a2a2e 0%, transparent 40%), #101014;
 }
-
 
 .app-shell {
   display: grid;
@@ -451,7 +448,6 @@ body {
   color: #7e859a;
   font-size: 0.8rem;
 }
-
 
 .settings {
   gap: 1.25rem;

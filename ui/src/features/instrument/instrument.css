@@ -1,450 +1,461 @@
 .instrument {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
 }
 
 .instrument__head {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .instrument__eyebrow {
-    margin: 0;
-    font-size: 0.72rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #8b93a7;
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8b93a7;
 }
 
 .instrument__title {
-    margin: 0;
-    font-size: clamp(1.6rem, 3vw, 2.4rem);
-    line-height: 1.1;
-    color: #f4f6fb;
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  line-height: 1.1;
+  color: #f4f6fb;
 }
 
 .instrument__lede {
-    margin: 0;
-    color: #a7aec0;
-    font-size: 0.88rem;
+  margin: 0;
+  color: #a7aec0;
+  font-size: 0.88rem;
 }
 
 .instrument__badges {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
 }
 
 .instrument__badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.25rem 0.65rem;
-    border-radius: 999px;
-    border: 1px solid #2c3040;
-    background: #171922;
-    color: #d6dbea;
-    font-size: 0.78rem;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid #2c3040;
+  background: #171922;
+  color: #d6dbea;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .instrument__badge--warm[data-warm-state="active"] {
-    border-color: #22c55e;
-    color: #86efac;
+  border-color: #22c55e;
+  color: #86efac;
 }
 
 .instrument__badge--warm[data-warm-state="warming"] {
-    border-color: #facc15;
-    color: #fde68a;
+  border-color: #facc15;
+  color: #fde68a;
 }
 
 .instrument__badge--warm[data-warm-state="cold"] {
-    border-color: #64748b;
-    color: #cbd5e1;
+  border-color: #64748b;
+  color: #cbd5e1;
 }
 
 .instrument__badge--colour {
-    color: #10121a;
-    font-weight: 600;
-    border-color: transparent;
+  color: #10121a;
+  font-weight: 600;
+  border-color: transparent;
 }
 
 .instrument__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-    min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  min-width: 0;
 }
 
 .instrument__card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    min-width: 0;
-    padding: 1rem;
-    border: 1px solid #262a37;
-    border-radius: 14px;
-    background: linear-gradient(160deg, #191b25 0%, #12141b 90%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #262a37;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #191b25 0%, #12141b 90%);
 }
 
 .instrument__card-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .instrument__card-title {
-    margin: 0;
-    font-size: 0.95rem;
-    color: #eef1f8;
+  margin: 0;
+  font-size: 0.95rem;
+  color: #eef1f8;
 }
 
 .instrument__card-hint {
-    color: #8b93a7;
-    font-size: 0.75rem;
-    font-variant-numeric: tabular-nums;
+  color: #8b93a7;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .instrument__field {
-    display: grid;
-    grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem;
-    align-items: center;
-    gap: 0.6rem;
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .instrument__field-label {
-    color: #a7aec0;
-    font-size: 0.8rem;
+  color: #a7aec0;
+  font-size: 0.8rem;
 }
 
 .instrument__fader {
-    width: 100%;
-    accent-color: #38bdf8;
-    touch-action: manipulation;
+  width: 100%;
+  accent-color: #38bdf8;
+  touch-action: manipulation;
 }
 
 .instrument__fader--pan {
-    accent-color: #a78bfa;
+  accent-color: #a78bfa;
 }
 
 .instrument__value {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    color: #eef1f8;
-    font-size: 0.85rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #eef1f8;
+  font-size: 0.85rem;
 }
 
 .instrument__field-hint {
-    margin: 0;
-    color: #8b93a7;
-    font-size: 0.75rem;
+  margin: 0;
+  color: #8b93a7;
+  font-size: 0.75rem;
 }
 
 .instrument__toggles {
-    display: flex;
-    gap: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .instrument__toggle,
 .instrument__button,
 .instrument__icon-button {
-    min-height: 44px;
-    min-width: 44px;
-    padding: 0.5rem 0.9rem;
-    border-radius: 10px;
-    border: 1px solid #343a4d;
-    background: #1c1f2b;
-    color: #d6dbea;
-    font: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-    touch-action: manipulation;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid #343a4d;
+  background: #1c1f2b;
+  color: #d6dbea;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .instrument__toggle--on {
-    border-color: #f59e0b;
-    background: #3a2a0a;
-    color: #fcd34d;
+  border-color: #f59e0b;
+  background: #3a2a0a;
+  color: #fcd34d;
 }
 
 .instrument__toggle--small {
-    min-height: 36px;
-    min-width: 40px;
-    padding: 0.25rem 0.55rem;
-    font-size: 0.75rem;
+  min-height: 36px;
+  min-width: 40px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
 }
 
 .instrument__button:hover:not(:disabled),
 .instrument__toggle:hover:not(:disabled),
 .instrument__icon-button:hover:not(:disabled) {
-    border-color: #4b5468;
+  border-color: #4b5468;
 }
 
 .instrument__button:disabled,
 .instrument__icon-button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .instrument__button--small {
-    min-height: 36px;
-    padding: 0.3rem 0.7rem;
-    font-size: 0.78rem;
+  min-height: 36px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
 }
 
 .instrument__icon-button--remove {
-    color: #fda4af;
+  color: #fda4af;
 }
 
 .instrument__source {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem;
-    margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
 }
 
 .instrument__source-name {
-    font-size: 1.05rem;
-    color: #f4f6fb;
+  font-size: 1.05rem;
+  color: #f4f6fb;
 }
 
 .instrument__source-kind {
-    color: #8b93a7;
-    font-size: 0.78rem;
+  color: #8b93a7;
+  font-size: 0.78rem;
 }
 
 .instrument__meta {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.5rem 1rem;
-    margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 0;
 }
 
 .instrument__meta--row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .instrument__meta div {
-    min-width: 0;
+  min-width: 0;
 }
 
 .instrument__meta dt {
-    color: #8b93a7;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  color: #8b93a7;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .instrument__meta dd {
-    margin: 0.1rem 0 0;
-    color: #dfe4f1;
-    font-size: 0.82rem;
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
+  margin: 0.1rem 0 0;
+  color: #dfe4f1;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .instrument__details {
-    border-top: 1px solid #262a37;
-    padding-top: 0.6rem;
+  border-top: 1px solid #262a37;
+  padding-top: 0.6rem;
 }
 
 .instrument__summary {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    color: #93c5fd;
-    font-size: 0.85rem;
-    touch-action: manipulation;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #93c5fd;
+  font-size: 0.85rem;
+  touch-action: manipulation;
 }
 
 .instrument__editor,
 .instrument__picker {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    padding-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.5rem;
 }
 
 .instrument__editor-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .instrument__save {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.35rem;
-    border-top: 1px solid #262a37;
-    padding-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  border-top: 1px solid #262a37;
+  padding-top: 0.6rem;
 }
 
 .instrument__button--save {
-    border-color: #3b6ea5;
-    background: #132339;
-    color: #dbeafe;
+  border-color: #3b6ea5;
+  background: #132339;
+  color: #dbeafe;
 }
 
 .instrument__button--save:hover:not(:disabled) {
-    border-color: #60a5fa;
+  border-color: #60a5fa;
 }
 
 .instrument__save-status {
-    color: #86efac;
+  color: #86efac;
 }
 
 .instrument__select {
-    width: 100%;
-    min-height: 44px;
-    padding: 0.45rem 0.6rem;
-    border-radius: 10px;
-    border: 1px solid #343a4d;
-    background: #12141b;
-    color: #dfe4f1;
-    font: inherit;
-    font-size: 0.85rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid #343a4d;
+  background: #12141b;
+  color: #dfe4f1;
+  font: inherit;
+  font-size: 0.85rem;
 }
 
 .instrument__picker .instrument__field {
-    grid-template-columns: 8rem minmax(0, 1fr);
+  grid-template-columns: 8rem minmax(0, 1fr);
 }
 
 .instrument__inserts {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .instrument__insert {
-    display: grid;
-    grid-template-columns: 2.2rem minmax(0, 1fr) 5rem 4.5rem auto;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.6rem;
-    border: 1px solid #2c3040;
-    border-radius: 10px;
-    background: #14161f;
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr) 5rem 4.5rem auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #2c3040;
+  border-radius: 10px;
+  background: #14161f;
 }
 
 .instrument__insert--bypassed {
-    opacity: 0.62;
-    border-style: dashed;
+  opacity: 0.62;
+  border-style: dashed;
 }
 
 .instrument__insert-index {
-    font-variant-numeric: tabular-nums;
-    color: #8b93a7;
-    font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: #8b93a7;
+  font-size: 0.78rem;
 }
 
 .instrument__insert-name {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .instrument__insert-type {
-    color: #eef1f8;
-    font-size: 0.86rem;
+  color: #eef1f8;
+  font-size: 0.86rem;
 }
 
 .instrument__insert-id {
-    color: #8b93a7;
-    font-size: 0.72rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  color: #8b93a7;
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .instrument__insert-wet,
 .instrument__insert-latency {
-    color: #a7aec0;
-    font-size: 0.75rem;
-    font-variant-numeric: tabular-nums;
+  color: #a7aec0;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .instrument__insert-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .instrument__insert-actions .instrument__icon-button {
-    min-height: 36px;
-    min-width: 40px;
-    padding: 0.25rem;
+  min-height: 36px;
+  min-width: 40px;
+  padding: 0.25rem;
 }
 
 .instrument__add {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-    border-top: 1px solid #262a37;
-    padding-top: 0.7rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  border-top: 1px solid #262a37;
+  padding-top: 0.7rem;
 }
 
 .instrument__add .instrument__field {
-    flex: 1 1 16rem;
-    grid-template-columns: 6rem minmax(0, 1fr);
+  flex: 1 1 16rem;
+  grid-template-columns: 6rem minmax(0, 1fr);
 }
 
 .instrument__empty {
-    margin: 0;
-    padding: 0.9rem;
-    border: 1px dashed #2c3040;
-    border-radius: 10px;
-    color: #8b93a7;
-    font-size: 0.85rem;
+  margin: 0;
+  padding: 0.9rem;
+  border: 1px dashed #2c3040;
+  border-radius: 10px;
+  color: #8b93a7;
+  font-size: 0.85rem;
 }
 
 .instrument__error {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.6rem 0.75rem;
-    border: 1px solid #7f1d1d;
-    border-radius: 10px;
-    background: #2a1215;
-    color: #fecaca;
-    font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #7f1d1d;
+  border-radius: 10px;
+  background: #2a1215;
+  color: #fecaca;
+  font-size: 0.82rem;
 }
 
 @media (max-width: 720px) {
-    .instrument__field {
-        grid-template-columns: 4rem minmax(0, 1fr);
-    }
+  .instrument__field {
+    grid-template-columns: 4rem minmax(0, 1fr);
+  }
 
-    .instrument__value {
-        grid-column: 2;
-        text-align: left;
-    }
+  .instrument__value {
+    grid-column: 2;
+    text-align: left;
+  }
 
-    .instrument__insert {
-        grid-template-columns: 2rem minmax(0, 1fr) auto;
-        grid-template-areas:
-            "index name actions"
-            "index wet actions";
-    }
+  .instrument__insert {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    grid-template-areas:
+      "index name actions"
+      "index wet actions";
+  }
 
-    .instrument__insert-index { grid-area: index; }
-    .instrument__insert-name { grid-area: name; }
-    .instrument__insert-wet { grid-area: wet; }
-    .instrument__insert-latency { display: none; }
-    .instrument__insert-actions { grid-area: actions; flex-wrap: wrap; }
+  .instrument__insert-index {
+    grid-area: index;
+  }
+  .instrument__insert-name {
+    grid-area: name;
+  }
+  .instrument__insert-wet {
+    grid-area: wet;
+  }
+  .instrument__insert-latency {
+    display: none;
+  }
+  .instrument__insert-actions {
+    grid-area: actions;
+    flex-wrap: wrap;
+  }
 }

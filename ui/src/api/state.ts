@@ -3,238 +3,316 @@ import type { Client } from "openapi-fetch";
 import type { RequestGuard } from "./client";
 import type { paths } from "./schema";
 import type {
-    ControlPatchEditor,
-    ControlPatchSourceRequest,
-    ControlPatchStateCapture,
-    ControlPatchUpdate,
-    ControlState,
-    ControlTransport,
-    ControlTransportPatch,
+  ControlPatchEditor,
+  ControlPatchSourceRequest,
+  ControlPatchStateCapture,
+  ControlPatchUpdate,
+  ControlState,
+  ControlTransport,
+  ControlTransportPatch,
 } from "./types";
 
-export interface StateEndpoints
-{
-    getState (options?: { signal?: AbortSignal }): Promise<ControlState>;
+export interface StateEndpoints {
+  getState(options?: { signal?: AbortSignal }): Promise<ControlState>;
 
-    armSlot (slot: number | null, options?: { signal?: AbortSignal }): Promise<ControlState>;
+  armSlot(
+    slot: number | null,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
 
-    controlTransport (patch: ControlTransportPatch,
-                      options?: { signal?: AbortSignal }): Promise<ControlTransport>;
+  controlTransport(
+    patch: ControlTransportPatch,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlTransport>;
 
-    updatePatch (slot: number,
-                 patch: ControlPatchUpdate,
-                 options?: { signal?: AbortSignal }): Promise<ControlState>;
+  updatePatch(
+    slot: number,
+    patch: ControlPatchUpdate,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
 
-    changePatchSource (slot: number,
-                       source: ControlPatchSourceRequest,
-                       options?: { signal?: AbortSignal }): Promise<ControlState>;
+  changePatchSource(
+    slot: number,
+    source: ControlPatchSourceRequest,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
 
-    openPatchEditor (slot: number,
-                     options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
+  openPatchEditor(
+    slot: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlPatchEditor>;
 
-    closePatchEditor (slot: number,
-                      options?: { signal?: AbortSignal }): Promise<ControlPatchEditor>;
+  closePatchEditor(
+    slot: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlPatchEditor>;
 
-    capturePatchState (slot: number,
-                       options?: { signal?: AbortSignal }): Promise<ControlPatchStateCapture>;
+  capturePatchState(
+    slot: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlPatchStateCapture>;
 }
 
-function isControlState (value: unknown): value is ControlState
-{
-    if (value === null || typeof value !== "object")
-        return false;
+function isControlState(value: unknown): value is ControlState {
+  if (value === null || typeof value !== "object") return false;
 
-    const candidate = value as Partial<ControlState>;
+  const candidate = value as Partial<ControlState>;
 
-    return candidate.schemaVersion === 1
-        && typeof candidate.application?.name === "string"
-        && typeof candidate.application?.version === "string"
-        && typeof candidate.armedSlot === "number"
-        && Array.isArray (candidate.slots)
-        && candidate.slots.every (slot =>
-               slot !== null
-               && typeof slot === "object"
-               && typeof slot.index === "number"
-               && typeof slot.name === "string"
-               && typeof slot.armed === "boolean"
-               && typeof slot.latencySamples === "number"
-               && typeof slot.latencyMs === "number")
-        && Array.isArray (candidate.families)
-        && candidate.families.every (family =>
-               family !== null
-               && typeof family === "object"
-               && typeof family.id === "string"
-               && typeof family.name === "string"
-               && Array.isArray (family.patches)
-               && family.patches.every (patch =>
-                      patch !== null
-                      && typeof patch === "object"
-                      && typeof patch.slot === "number"
-                      && typeof patch.name === "string"
-                      && typeof patch.colorIndex === "number"))
-        && typeof candidate.settings?.masterGain === "number"
-        && typeof candidate.transport?.bpm === "number";
+  return (
+    candidate.schemaVersion === 1 &&
+    typeof candidate.application?.name === "string" &&
+    typeof candidate.application?.version === "string" &&
+    typeof candidate.armedSlot === "number" &&
+    Array.isArray(candidate.slots) &&
+    candidate.slots.every(
+      (slot) =>
+        slot !== null &&
+        typeof slot === "object" &&
+        typeof slot.index === "number" &&
+        typeof slot.name === "string" &&
+        typeof slot.armed === "boolean" &&
+        typeof slot.latencySamples === "number" &&
+        typeof slot.latencyMs === "number",
+    ) &&
+    Array.isArray(candidate.families) &&
+    candidate.families.every(
+      (family) =>
+        family !== null &&
+        typeof family === "object" &&
+        typeof family.id === "string" &&
+        typeof family.name === "string" &&
+        Array.isArray(family.patches) &&
+        family.patches.every(
+          (patch) =>
+            patch !== null &&
+            typeof patch === "object" &&
+            typeof patch.slot === "number" &&
+            typeof patch.name === "string" &&
+            typeof patch.colorIndex === "number",
+        ),
+    ) &&
+    typeof candidate.settings?.masterGain === "number" &&
+    typeof candidate.transport?.bpm === "number"
+  );
 }
 
-function isTransport (value: unknown): value is ControlTransport
-{
-    if (value === null || typeof value !== "object")
-        return false;
+function isTransport(value: unknown): value is ControlTransport {
+  if (value === null || typeof value !== "object") return false;
 
-    const candidate = value as Partial<ControlTransport>;
+  const candidate = value as Partial<ControlTransport>;
 
-    return typeof candidate.playing === "boolean"
-        && typeof candidate.bpm === "number"
-        && typeof candidate.ppq === "number"
-        && typeof candidate.positionSamples === "number";
+  return (
+    typeof candidate.playing === "boolean" &&
+    typeof candidate.bpm === "number" &&
+    typeof candidate.ppq === "number" &&
+    typeof candidate.positionSamples === "number"
+  );
 }
 
-function requireState (guard: RequestGuard,
-                       data: ControlState | undefined,
-                       error: unknown,
-                       status: number,
-                       what: string): ControlState
-{
-    if (data !== undefined)
-    {
-        if (! isControlState (data))
-            return guard.reject (`${what} returned an unsupported payload`, status);
+function requireState(
+  guard: RequestGuard,
+  data: ControlState | undefined,
+  error: unknown,
+  status: number,
+  what: string,
+): ControlState {
+  if (data !== undefined) {
+    if (!isControlState(data))
+      return guard.reject(`${what} returned an unsupported payload`, status);
 
-        return data;
-    }
+    return data;
+  }
 
-    return guard.fail (error, status, what);
+  return guard.fail(error, status, what);
 }
 
-function requireTransport (guard: RequestGuard,
-                           data: ControlTransport | undefined,
-                           error: unknown,
-                           status: number,
-                           what: string): ControlTransport
-{
-    if (data !== undefined && isTransport (data))
-        return data;
+function requireTransport(
+  guard: RequestGuard,
+  data: ControlTransport | undefined,
+  error: unknown,
+  status: number,
+  what: string,
+): ControlTransport {
+  if (data !== undefined && isTransport(data)) return data;
 
-    return guard.fail (error, status, what);
+  return guard.fail(error, status, what);
 }
 
-function requireEditor (guard: RequestGuard,
-                        data: ControlPatchEditor | undefined,
-                        error: unknown,
-                        status: number,
-                        what: string): ControlPatchEditor
-{
-    if (data !== undefined
-        && typeof data.slot === "number"
-        && typeof data.open === "boolean")
-        return data;
+function requireEditor(
+  guard: RequestGuard,
+  data: ControlPatchEditor | undefined,
+  error: unknown,
+  status: number,
+  what: string,
+): ControlPatchEditor {
+  if (
+    data !== undefined &&
+    typeof data.slot === "number" &&
+    typeof data.open === "boolean"
+  )
+    return data;
 
-    return guard.fail (error, status, what);
+  return guard.fail(error, status, what);
 }
 
-function requireStateCapture (guard: RequestGuard,
-                              data: ControlPatchStateCapture | undefined,
-                              error: unknown,
-                              status: number,
-                              what: string): ControlPatchStateCapture
-{
-    if (data !== undefined
-        && typeof data.slot === "number"
-        && typeof data.captured === "boolean"
-        && typeof data.sizeBytes === "number")
-        return data;
+function requireStateCapture(
+  guard: RequestGuard,
+  data: ControlPatchStateCapture | undefined,
+  error: unknown,
+  status: number,
+  what: string,
+): ControlPatchStateCapture {
+  if (
+    data !== undefined &&
+    typeof data.slot === "number" &&
+    typeof data.captured === "boolean" &&
+    typeof data.sizeBytes === "number"
+  )
+    return data;
 
-    return guard.fail (error, status, what);
+  return guard.fail(error, status, what);
 }
 
-export function createStateEndpoints (client: Client<paths>,
-                                      guard: RequestGuard): StateEndpoints
-{
-    return {
-        async getState (requestOptions)
+export function createStateEndpoints(
+  client: Client<paths>,
+  guard: RequestGuard,
+): StateEndpoints {
+  return {
+    async getState(requestOptions) {
+      const { data, error, response } = await client.GET("/state", {
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
+
+      return requireState(guard, data, error, response.status, "GET /state");
+    },
+
+    async armSlot(slot, requestOptions) {
+      const { data, error, response } = await client.POST("/arm", {
+        body: { slot },
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
+
+      return requireState(guard, data, error, response.status, "POST /arm");
+    },
+
+    async controlTransport(patch, requestOptions) {
+      const { data, error, response } = await client.POST("/transport", {
+        body: patch,
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
+
+      return requireTransport(
+        guard,
+        data,
+        error,
+        response.status,
+        "POST /transport",
+      );
+    },
+
+    async updatePatch(slot, patch, requestOptions) {
+      const { data, error, response } = await client.PATCH("/patches/{slot}", {
+        params: { path: { slot } },
+        body: patch,
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
+
+      return requireState(
+        guard,
+        data,
+        error,
+        response.status,
+        `PATCH /patches/${String(slot)}`,
+      );
+    },
+
+    async changePatchSource(slot, source, requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/patches/{slot}/source",
         {
-            const { data, error, response } = await client.GET ("/state", {
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireState (guard, data, error, response.status, "GET /state");
+          params: { path: { slot } },
+          body: source,
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
         },
+      );
 
-        async armSlot (slot, requestOptions)
+      return requireState(
+        guard,
+        data,
+        error,
+        response.status,
+        `POST /patches/${String(slot)}/source`,
+      );
+    },
+
+    async openPatchEditor(slot, requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/patches/{slot}/editor",
         {
-            const { data, error, response } = await client.POST ("/arm", {
-                body: { slot },
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireState (guard, data, error, response.status, "POST /arm");
+          params: { path: { slot } },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
         },
+      );
 
-        async controlTransport (patch, requestOptions)
+      return requireEditor(
+        guard,
+        data,
+        error,
+        response.status,
+        `POST /patches/${String(slot)}/editor`,
+      );
+    },
+
+    async closePatchEditor(slot, requestOptions) {
+      const { data, error, response } = await client.DELETE(
+        "/patches/{slot}/editor",
         {
-            const { data, error, response } = await client.POST ("/transport", {
-                body: patch,
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireTransport (guard, data, error, response.status, "POST /transport");
+          params: { path: { slot } },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
         },
+      );
 
-        async updatePatch (slot, patch, requestOptions)
+      return requireEditor(
+        guard,
+        data,
+        error,
+        response.status,
+        `DELETE /patches/${String(slot)}/editor`,
+      );
+    },
+
+    async capturePatchState(slot, requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/patches/{slot}/state/capture",
         {
-            const { data, error, response } = await client.PATCH ("/patches/{slot}", {
-                params: { path: { slot } },
-                body: patch,
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireState (guard, data, error, response.status,
-                                 `PATCH /patches/${String (slot)}`);
+          params: { path: { slot } },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
         },
+      );
 
-        async changePatchSource (slot, source, requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/patches/{slot}/source", {
-                params: { path: { slot } },
-                body: source,
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireState (guard, data, error, response.status,
-                                 `POST /patches/${String (slot)}/source`);
-        },
-
-        async openPatchEditor (slot, requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/patches/{slot}/editor", {
-                params: { path: { slot } },
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireEditor (guard, data, error, response.status,
-                                  `POST /patches/${String (slot)}/editor`);
-        },
-
-        async closePatchEditor (slot, requestOptions)
-        {
-            const { data, error, response } = await client.DELETE ("/patches/{slot}/editor", {
-                params: { path: { slot } },
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireEditor (guard, data, error, response.status,
-                                  `DELETE /patches/${String (slot)}/editor`);
-        },
-
-        async capturePatchState (slot, requestOptions)
-        {
-            const { data, error, response } = await client.POST ("/patches/{slot}/state/capture", {
-                params: { path: { slot } },
-                ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}),
-            });
-
-            return requireStateCapture (guard, data, error, response.status,
-                                        `POST /patches/${String (slot)}/state/capture`);
-        },
-    };
+      return requireStateCapture(
+        guard,
+        data,
+        error,
+        response.status,
+        `POST /patches/${String(slot)}/state/capture`,
+      );
+    },
+  };
 }

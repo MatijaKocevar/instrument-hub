@@ -1,4 +1,1 @@
-export {
-    SettingsPage,
-    type SettingsPageProps,
-} from "./SettingsPage";
+export { SettingsPage, type SettingsPageProps } from "./SettingsPage";

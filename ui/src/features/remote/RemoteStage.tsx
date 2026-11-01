@@ -5,88 +5,91 @@ import { useAppState, useAppStore } from "../../state/AppStoreContext";
 import { RemoteView } from "./RemoteView";
 import { remoteFromState, stepPatch } from "./model";
 import {
-    loadRemoteContrast,
-    nextContrast,
-    saveRemoteContrast,
-    type ContrastStorage,
-    type RemoteContrast,
+  loadRemoteContrast,
+  nextContrast,
+  saveRemoteContrast,
+  type ContrastStorage,
+  type RemoteContrast,
 } from "./theme";
 import { useRemoteLink } from "./useRemoteLink";
 import { useWakeLock } from "./useWakeLock";
 
-function contrastStorage (): ContrastStorage | null
-{
-    return typeof localStorage === "undefined" ? null : localStorage;
+function contrastStorage(): ContrastStorage | null {
+  return typeof localStorage === "undefined" ? null : localStorage;
 }
 
-export function RemoteStage (): ReactElement
-{
-    const app = useAppState ();
-    const store = useAppStore ();
-    const model = useMemo (() => remoteFromState (app.state), [app.state]);
+export function RemoteStage(): ReactElement {
+  const app = useAppState();
+  const store = useAppStore();
+  const model = useMemo(() => remoteFromState(app.state), [app.state]);
 
-    const metersUrl = useMemo (() => metersUrlFor (store.baseUrl), [store.baseUrl]);
-    const link = useRemoteLink (metersUrl);
-    const wakeLock = useWakeLock ();
+  const metersUrl = useMemo(() => metersUrlFor(store.baseUrl), [store.baseUrl]);
+  const link = useRemoteLink(metersUrl);
+  const wakeLock = useWakeLock();
 
-    const [contrast, setContrast] = useState<RemoteContrast> (
-        () => loadRemoteContrast (contrastStorage ()));
+  const [contrast, setContrast] = useState<RemoteContrast>(() =>
+    loadRemoteContrast(contrastStorage()),
+  );
 
-    useEffect (() =>
-    {
-        const onVisibilityChange = (): void =>
-        {
-            if (document.visibilityState === "visible")
-                void store.refresh ();
-        };
+  useEffect(() => {
+    const onVisibilityChange = (): void => {
+      if (document.visibilityState === "visible") void store.refresh();
+    };
 
-        document.addEventListener ("visibilitychange", onVisibilityChange);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
-        return () =>
-        {
-            document.removeEventListener ("visibilitychange", onVisibilityChange);
-        };
-    }, [store]);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [store]);
 
-    const toggleContrast = (): void =>
-    {
-        setContrast (current =>
-        {
-            const next = nextContrast (current);
-            saveRemoteContrast (contrastStorage (), next);
+  const toggleContrast = (): void => {
+    setContrast((current) => {
+      const next = nextContrast(current);
+      saveRemoteContrast(contrastStorage(), next);
 
-            return next;
+      return next;
+    });
+  };
+
+  const step = (direction: 1 | -1): void => {
+    const slot = stepPatch(model, direction);
+
+    if (slot !== null) void store.armSlot(slot);
+  };
+
+  return (
+    <RemoteView
+      model={model}
+      connection={app.phase}
+      loading={app.state === null}
+      error={app.error}
+      link={link}
+      contrast={contrast}
+      wakeLock={wakeLock}
+      onToggleContrast={toggleContrast}
+      onSelect={(slot) => {
+        void store.armSlot(slot);
+      }}
+      onPrevious={() => {
+        step(-1);
+      }}
+      onNext={() => {
+        step(1);
+      }}
+      onTogglePlay={() => {
+        void store.updateTransport({ playing: !model.transport.playing });
+      }}
+      onStop={() => {
+        void store.updateTransport({
+          playing: false,
+          ppq: 0,
+          positionSamples: 0,
         });
-    };
-
-    const step = (direction: 1 | -1): void =>
-    {
-        const slot = stepPatch (model, direction);
-
-        if (slot !== null)
-            void store.armSlot (slot);
-    };
-
-    return (
-        <RemoteView
-            model={model}
-            connection={app.phase}
-            loading={app.state === null}
-            error={app.error}
-            link={link}
-            contrast={contrast}
-            wakeLock={wakeLock}
-            onToggleContrast={toggleContrast}
-            onSelect={slot => { void store.armSlot (slot); }}
-            onPrevious={() => { step (-1); }}
-            onNext={() => { step (1); }}
-            onTogglePlay={() => {
-                void store.updateTransport ({ playing: ! model.transport.playing });
-            }}
-            onStop={() => {
-                void store.updateTransport ({ playing: false, ppq: 0, positionSamples: 0 });
-            }}
-            onPanic={() => { void store.panic (); }}
-        />
-    );
+      }}
+      onPanic={() => {
+        void store.panic();
+      }}
+    />
+  );
 }
