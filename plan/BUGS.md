@@ -71,6 +71,18 @@ reported by the human or reproduced on this machine.
 - evidence: launched 2026-11-01 17:08, found stuck at 17:21 (PID 61425, 14 min elapsed, 8 threads, `/proc/61425/task/61425/wchan` = `futex_wait_queue`, thread 61428 at 99.9%); `ss -ltnp` shows no 8080 listener; `xwininfo` reports the window `IsViewable` at 3840+24; a hand-sent `WM_DELETE_WINDOW` (`/tmp/opencode/xclose 0x560000c`) was ignored; `kill -TERM 61425` exited immediately; `/tmp/opencode/run-launchpad.log` stops at 17:11:00; `ihub-shutdown-test` now builds a session with a warm pooled patch and a live control API, stops both, and requires the whole teardown in < 2 s (15.4 ms); with the dispatch loop already stopped it starts a sandbox plugin load whose helper blocks in startup and requires shutdown in < 2 s (3.1 ms, slot reports `sandbox startup cancelled`); `scripts/test.sh` -> 67/67 passed
 - fix: T185 closes the shutdown path. `WarmPoolController::shutdown()` now cancels in-flight loads before draining, waits for the worker with a 1 s budget instead of `pumpMessages(2)` (which busy-spins once the quit message has been received), and abandons a worker that ignores the budget rather than joining it forever. `WarmPool::shutdown()` sets quit, joins only after the worker signals completion, and destroys the abandoned instances on the calling thread; the old destructor path could join a worker stuck in `SandboxHost::start()`. `SandboxHost` gained `shouldAbortStart`, polled every 2 ms, so a shutdown kills the helper instead of waiting out its 15 s startup timeout; `Session::beginShutdown()` sets that token and skips plugin-state capture while the session is tearing down. `Main::shutdown()` now calls it before `closeDevice()` and releases the audio bridge/server before the session. The original Analog Lab hang was not reproduced without the real plugin: the regression reproduces its shape (worker blocked in plugin startup, message loop already stopped) with a fake stalling sandbox helper. Remaining gap: an in-process editor mirror or a non-sandbox factory that blocks and ignores the token can still leave a worker behind; the controller abandons it instead of keeping the process alive, so any future blocking factory must honour the cancellation token before it can be considered shutdown-safe. The sandboxed audio path itself is unaffected.
 
+### BUG-006 · Audio device and mixer settings are lost on every restart
+- status: open
+- area: audio
+- steps:
+  1. start the app and select the UR22mkII direct hardware device in `/audio` at 48000/128
+  2. confirm `GET /audio` reports ~5 ms total latency
+  3. quit and start the app again
+- expected: the app reopens the UR22 directly and the latency readout stays low
+- actual: it reopens `PulseAudio Sound Server` through PipeWire at 18.7 ms; master gain, MIDI channel and enabled MIDI inputs reset too
+- evidence: 2026-11-03 running app reports `deviceName: PulseAudio Sound Server`, `totalMs: 18.67`; `~/.config/Instrument Hub/` holds only `KnownPluginList.xml` and `PluginCache.xml`, no settings file; `app/SessionSetup.cpp` falls back to the first ALSA output and `api/state/TransportState.h` is memory-only
+- fix: pending; design is `plan/SETTINGS.md`, implementation T188–T192
+
 ### BUG-005 · Engine aborts when the Wine plugin bridge dies
 - status: fixed
 - area: engine

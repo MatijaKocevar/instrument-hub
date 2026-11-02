@@ -13,8 +13,9 @@ file. If the check fails you are not done.
 >
 > The single-responsibility refactor queue **T140–T174** was added by an
 > explicit human request; see `plan/REFACTOR.md` for the rationale and
-> target structure. **T182** (Prettier for the UI) and **T187** (native
-> JACK device type) are likewise explicit human requests.
+> target structure. **T182** (Prettier for the UI), **T187** (native JACK
+> device type) and **T188–T192** (settings persistence, design in
+> `plan/SETTINGS.md`) are likewise explicit human requests.
 
 ---
 
@@ -964,3 +965,40 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - files: `engine/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/device_manager/`, `docs/architecture.md`
 - accept: `scripts/test.sh` passes; `ihub-device-manager-test` prints both device types; `--list-devices` still lists the Loopback; the app still opens ALSA at 48 kHz/128 by default; no audio-thread changes.
 - note: no `jackd` runs on this machine, so the live JACK open path cannot be exercised. Record the untested path (start `jackd`, select JACK under `/audio`) in the result and in `docs/architecture.md`; do not block on it. The ALSA `jack` PCM that ALSA enumeration already probes is not the native JACK type, so both may appear in the ALSA device list.
+
+## T188 · App settings store
+- depends: T187
+- size: M
+- goal: Add `engine/src/settings/SettingsStore` for the file described in `plan/SETTINGS.md`: `<userApplicationDataDirectory>/Instrument Hub/settings.json`, schema `version: 1`, load with defaults, save atomically (temp file + rename in the same directory), preserve unknown keys on rewrite, rename a corrupt file to `settings.json.bad` and continue with defaults. No wiring into the app yet; the store is exercised only by its own tests.
+- files: `engine/src/settings/`, `engine/CMakeLists.txt`, `tests/settings/`, `tests/CMakeLists.txt`
+- accept: a new `ihub-settings-store-test` covers round-trip, defaults for a missing file, corrupt-file recovery, unknown-key preservation, atomic replace (no partial file after a simulated failure) and a schema with a newer version being rejected without touching the file; `scripts/test.sh` passes.
+- note: use a temporary directory per test, never the real `~/.config/Instrument Hub`.
+
+## T189 · Restore the audio device on launch
+- depends: T188
+- size: M
+- goal: Wire the store into the audio path. `SessionSetup` restores the stored `(deviceType, deviceName, sampleRate, bufferSize)` when no `--audio-device`/`--audio-type` is given, and a successful `POST /audio` apply writes the effective values. A missing or unopenable device falls back to the device default, then the first ALSA output, without rewriting the stored preference, and `GET /audio` gains a `restore` object (`usedStoredDevice`, `fallback`, `reason`) so the UI can explain what happened.
+- files: `engine/src/app/SessionSetup.cpp`, `engine/src/audio/settings/`, `engine/src/audio/AudioSettings.cpp`, `engine/src/api/routes/AudioRoutes.cpp`, `tests/api/audio_settings/`, `tests/settings/`
+- accept: a regression opens a stored device, restarts the settings/session path against the same temp config dir and asserts the second open uses it; CLI flags beat the file; a stored device that no longer exists falls back and leaves the file byte-identical; a failed `POST /audio` writes nothing; `scripts/test.sh` passes.
+- note: `BUG-006` evidence is the manual check — select the UR22, restart the real app, confirm `GET /audio` still reports it.
+
+## T190 · Persist mixer settings
+- depends: T188
+- size: S
+- goal: Route `masterGain`, `inputGain`, `midiChannel` and `metronome` through the same store: load on startup, save when `POST /settings` accepts a change. Keep the API shape and ranges unchanged.
+- files: `engine/src/api/state/`, `engine/src/settings/`, `tests/api/`
+- accept: a regression changes each value, reconstructs the state store against the same temp config dir, and asserts the values return; invalid values are still rejected and not written; `scripts/test.sh` passes.
+
+## T191 · Persist enabled MIDI inputs by port name
+- depends: T188
+- size: M
+- goal: Remember which MIDI inputs the user enabled. Persist `(client name, port name)` pairs, never the numeric `ALSA:<client>:<port>` id, and re-apply them when the ports are enumerated; a port that is absent stays in the file so it re-enables when the device returns.
+- files: `engine/src/api/MidiBridge.cpp`, `engine/src/settings/`, `tests/api/midi/`, `tests/settings/`
+- accept: a regression enables two synthetic ports, reconstructs the bridge, and asserts only those two are enabled; a stored port missing from the enumeration is skipped without erasing it; the Launchpad/Keystation role tests are unchanged; `scripts/test.sh` passes.
+
+## T192 · Show restore fallback and offer to forget the device
+- depends: T189
+- size: S
+- goal: Surface `restore` in the Audio page: when the stored device was not used, show the chosen fallback and the reason, with a "Forget device" action that clears the stored audio entry and a "Use this device" action that re-applies the stored one. No changes to the engine API beyond what T189 added.
+- files: `ui/src/features/audio-settings/`, `ui/src/testing/`
+- accept: a snapshot scenario renders the fallback notice and both actions; `pnpm typecheck` and `pnpm test:snapshot` pass; formatting is Prettier-clean.
