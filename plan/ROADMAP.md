@@ -925,3 +925,34 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - goal: Make Prettier the single formatting authority for `ui/`: add `prettier` to `devDependencies`, add `ui/.prettierrc` and `ui/.prettierignore` (skip `dist/`, `dist-test/`, `node_modules/` and generated `src/api/schema.d.ts`), add `format` and `format:check` scripts, format the UI tree, and run `format:check` in CI. Use Prettier defaults (2-space indent, K&R braces); the current hand-written Allman style is intentionally replaced, and no brace-style plugin is added.
 - files: `ui/package.json`, `ui/pnpm-lock.yaml`, `ui/.prettierrc`, `ui/.prettierignore`, `ui/src/`, `ui/vite.config.ts`, `ui/vite.snapshot.config.ts`, `.github/workflows/`
 - accept: `pnpm format:check`, `pnpm typecheck` and `pnpm test:snapshot` pass; the diff is formatting only; no behaviour, markup or generated-file change.
+
+## T183 · BUG-001 `/audio` reports `open=false` while the session is streaming
+- depends: T182
+- size: S
+- goal: Make `/audio` report the session's live device. Root cause: `ControlApi` creates a second `AudioSettingsBridge` with its own `AudioEngine::DeviceManager`, while `Session` opens and streams through a different manager, so `snapshot().open` is false and the name comes from the unused bridge. Inject `session->getDevices()` into the bridge, keep the owned manager as the fallback for `--serve`/`--audio`, and keep the latency probe on its own manager so measuring does not close the live session device. Add a regression in `tests/api/audio_settings/DeviceBridge.cpp` that opens the Loopback on an external manager, injects it and asserts `open`, device name, rate and buffer follow that manager.
+- files: `engine/src/audio/AudioSettings.h`, `engine/src/audio/AudioSettings.cpp`, `engine/src/audio/settings/`, `engine/src/app/ControlApi.cpp`, `tests/api/audio_settings/`
+- accept: `scripts/test.sh` passes; the new test fails before the wiring and passes after; `plan/BUGS.md` BUG-001 gains the fix commit and evidence.
+
+## T184 · BUG-005 engine aborts when the Wine plugin bridge dies
+- depends: T182
+- size: L
+- goal: Make a dead `vstbridge-host` a failed plugin slot instead of an engine `SIGABRT`. `SessionBuild.cpp` still loads every plugin slot as an in-process `plugins::PluginInstrument`; `ihub-sandbox`/`SandboxHost` implement crash isolation but are used only by their own test. Route plugin slots through that isolation (or an equivalent boundary) while keeping editor, per-patch state, latency reporting and the audio-thread contract intact. Reproduce first with the BUG-005 steps: arm an Analog Lab patch, `kill -9` its host, and confirm the current abort; then add a regression that kills the host mid-render and asserts the host process survives and the slot reports an error.
+- files: `engine/src/session/SessionBuild.cpp`, `engine/src/plugins/`, `engine/src/session/EditorHost.cpp`, `tests/plugins/`, `tests/`
+- accept: `scripts/test.sh` passes; the new host-death regression proves the engine process does not abort; plugin state and editor tests stay green; no allocation, locks or logging on the audio thread.
+- note: if full sandbox routing is too large for one session, land the smallest isolation that removes the in-process abort and record the remaining gap in `plan/BUGS.md`; do not mark done on a smoke test.
+
+## T185 · BUG-004 app hangs after the window is closed
+- depends: T182
+- size: L
+- goal: Make shutdown complete within a second after the last window closes. BUG-004 evidence shows the main thread in `futex_wait`, one thread at 100% CPU, the control server already stopped and `WM_DELETE_WINDOW` ignored. Audit the shutdown order in `engine/src/Main.cpp`, `engine/src/api/Server.cpp`, `engine/src/app/ControllerSurface.cpp`, `Session::closeDevice`, `WarmPoolController::shutdown`, `MeterSampler::stop` and the plugin/editor threads; remove the join cycle or unbounded wait. Add a regression that constructs the session and control API, starts and stops them, and fails if shutdown takes longer than 2 s; use a hard test timeout so a regression cannot hang the suite.
+- files: `engine/src/app/`, `engine/src/api/`, `engine/src/session/`, `tests/`
+- accept: `scripts/test.sh` passes; the new shutdown regression completes in under 2 s; `ctest --timeout 120` stays green; no audio-thread changes.
+- note: the original hang involved Analog Lab; if it cannot be reproduced without the real plugin, prove the deadlock with the closest fake or TestPlugin harness and record what remains in `plan/BUGS.md`.
+
+## T186 · BUG-002 full 64-patch Analog Lab workflow is only partly automated
+- depends: T184, T182
+- size: L
+- goal: Make the 64-patch workflow survive the Wine bridge by isolating plugin state batches so 64 Analog Lab instances never accumulate in one bridge process. Use the child-process-per-batch candidate from BUG-002, reuse the T184 isolation boundary if it landed, and keep the existing 2-patch and 8-patch tests green. Add a 64-patch TestPlugin batch regression that proves every patch restores its own preset; real Analog Lab validation remains the human task B003.
+- files: `tests/e2e/analog_lab/`, `tests/`, `scripts/`
+- accept: `scripts/test.sh` passes; the 64-patch TestPlugin batch test passes; `plan/BUGS.md` BUG-002 records what is automated and what still needs Analog Lab; the engine changes stay within the T184 isolation.
+- note: if deterministic batches need the real plugin, write `STATUS: blocked` and point at B003 with the exact remaining step.
