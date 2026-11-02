@@ -14,8 +14,9 @@ file. If the check fails you are not done.
 > The single-responsibility refactor queue **T140–T174** was added by an
 > explicit human request; see `plan/REFACTOR.md` for the rationale and
 > target structure. **T182** (Prettier for the UI), **T187** (native JACK
-> device type) and **T188–T192** (settings persistence, design in
-> `plan/SETTINGS.md`) are likewise explicit human requests.
+> device type), **T188–T192** (settings persistence, design in
+> `plan/SETTINGS.md`) and **T193–T195** (device list, design in
+> `plan/DEVICES.md`) are likewise explicit human requests.
 
 ---
 
@@ -1002,3 +1003,25 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - goal: Surface `restore` in the Audio page: when the stored device was not used, show the chosen fallback and the reason, with a "Forget device" action that clears the stored audio entry and a "Use this device" action that re-applies the stored one. No changes to the engine API beyond what T189 added.
 - files: `ui/src/features/audio-settings/`, `ui/src/testing/`
 - accept: a snapshot scenario renders the fallback notice and both actions; `pnpm typecheck` and `pnpm test:snapshot` pass; formatting is Prettier-clean.
+
+## T193 · Card-based audio device list
+- depends: T189
+- size: L
+- goal: Replace the raw ALSA PCM enumeration with the card-based list described in `plan/DEVICES.md`: one entry per card (`Steinberg UR22mkII`, `HD-Audio Generic (analog)`, `HD-Audio Generic (HDMI)`) plus `System (PipeWire)`; each entry resolves to a PCM family (`hw`, then `plughw`/`front`, then the card default); candidates that cannot be opened with JUCE's format set are omitted, and a busy card is listed once as unavailable with `in use by another process`. Hide `VirMIDI`, `Loopback`, MIDI cards and ALSA plugin PCMs; keep the raw list behind `--raw-devices` and the Loopback behind `--show-test-devices`, which the test rig and `scripts/test.sh` pass.
+- files: `engine/src/audio/device/`, `engine/src/audio/AudioSettings.cpp`, `engine/src/app/SessionSetup.cpp`, `tests/device_manager/`, `tests/CMakeLists.txt`
+- accept: `GET /audio` on this machine returns the UR22, the two onboard outputs and `System (PipeWire)` and nothing else; `--list-devices --raw-devices` still prints every PCM; the Loopback appears only with `--show-test-devices`; `ihub-device-manager-test` and the audio-settings tests pass unchanged.
+- note: the UR22 exposes S32_LE only, so a float-only probe must fall through to S32 rather than reporting an empty device; this is the root cause of BUG-007's channel error.
+
+## T194 · Make a device switch succeed in one request
+- depends: T193
+- size: M
+- goal: Fix `AudioSettingsBridge::apply` for device-only patches: default output channels to the first two and inputs to all reported channels without requiring a probe, and only emit the channel error when the caller sent a channel list. Report `EBUSY` as "in use by another process (PipeWire)" and a missing card as "not connected". Switching to the UR22 must not require the UI to send channel masks.
+- files: `engine/src/audio/settings/`, `engine/src/audio/device/`, `tests/api/audio_settings/`
+- accept: `POST /audio` with only `deviceName` and `sampleRate`/`bufferSize` opens the device and returns the live latency; a busy device returns the busy message; the existing channel-selection tests are unchanged; `scripts/test.sh` passes.
+
+## T195 · Device picker UI
+- depends: T194
+- size: M
+- goal: Show the curated list in the Audio page with the card name and a short description, render unavailable devices disabled with their reason, add the Advanced toggle that reveals the raw PCM list, and surface the `restore` notice from T189 next to the picker.
+- files: `ui/src/features/audio-settings/`, `ui/src/testing/`
+- accept: a snapshot scenario shows four device entries and no duplicate card rows, an unavailable card renders disabled with its reason, the Advanced toggle reveals the raw list; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
