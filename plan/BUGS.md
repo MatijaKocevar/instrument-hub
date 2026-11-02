@@ -83,6 +83,17 @@ reported by the human or reproduced on this machine.
 - evidence: 2026-11-03 running app reports `deviceName: PulseAudio Sound Server`, `totalMs: 18.67`; `~/.config/Instrument Hub/` holds only `KnownPluginList.xml` and `PluginCache.xml`, no settings file; `app/SessionSetup.cpp` falls back to the first ALSA output and `api/state/TransportState.h` is memory-only
 - fix: pending; design is `plan/SETTINGS.md`, implementation T188–T192
 
+### BUG-007 · Device picker lists ~60 ALSA PCMs and switching to the real interface fails
+- status: open
+- area: audio
+- steps:
+  1. open `/audio` and the device picker
+  2. select `Steinberg UR22mkII, USB Audio; Direct hardware device without any conversions` and apply
+- expected: one entry for the UR22, one for the onboard analog output, and the switch opening the UR22
+- actual: 60 entries for two cards (dmix, dsnoop, surround, iec958, rate converters, Loopback, JACK, PipeWire); applying the UR22 returns `outputChannels must select at least one channel`; picking `HD-Audio Generic … Direct sample mixing device` opens a 66.7 ms device
+- evidence: 2026-11-03 `GET /audio` returns 60 devices for cards `UR22mkII` and `Generic`; `POST /audio` with only `deviceName` answers the channel error; while the app played through PipeWire its sink was `RUNNING` and the UR22 hw PCM was unavailable, after the app moved to the onboard dmix PCM the same `hw:CARD=UR22mkII,DEV=0` opens with `aplay` (S32_LE only, float rejected)
+- fix: pending; design is `plan/DEVICES.md`, implementation T193–T195
+
 ### BUG-005 · Engine aborts when the Wine plugin bridge dies
 - status: fixed
 - area: engine
