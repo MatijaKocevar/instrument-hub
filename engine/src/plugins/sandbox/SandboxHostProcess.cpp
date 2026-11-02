@@ -140,6 +140,9 @@ bool SandboxHost::start (juce::String& error)
         return false;
     };
 
+    if (options.shouldAbortStart && options.shouldAbortStart())
+        return fail ("sandbox startup cancelled");
+
     if (options.sampleRate <= 0.0)
         return fail ("sandbox sample rate must be positive");
 
@@ -217,6 +220,14 @@ bool SandboxHost::start (juce::String& error)
 
     for (;;)
     {
+        if (options.shouldAbortStart && options.shouldAbortStart())
+        {
+            if (childProcess != nullptr)
+                childProcess->kill();
+
+            return fail ("sandbox startup cancelled");
+        }
+
         const auto state = static_cast<sandbox::ProcessState> (
             sandbox::loadAcquire (shared->state));
 

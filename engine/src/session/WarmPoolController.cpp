@@ -4,10 +4,16 @@
 
 #include <algorithm>
 #include <any>
+#include <iostream>
 #include <utility>
 
 namespace ihub::session
 {
+
+namespace
+{
+constexpr int shutdownBudgetMs = 1000;
+}
 
 WarmPoolController::WarmPoolController() = default;
 
@@ -51,11 +57,13 @@ void WarmPoolController::createPool (int neighbourCount)
 void WarmPoolController::configure (SourceFactory factory,
                                     DestroyObserver destroy,
                                     BeforeArmHook beforeArm,
-                                    AudioEngine::SlotSwitcher* switcherToUse)
+                                    AudioEngine::SlotSwitcher* switcherToUse,
+                                    CancelLoads cancel)
 {
     sourceFactory = std::move (factory);
     destroyObserver = std::move (destroy);
     beforeArmHook = std::move (beforeArm);
+    cancelLoads = std::move (cancel);
     switcher = switcherToUse;
 
     if (warmPool == nullptr)
@@ -139,10 +147,21 @@ void WarmPoolController::shutdown() noexcept
     if (warmPool == nullptr)
         return;
 
+    if (cancelLoads)
+        cancelLoads();
+
     warmPool->setWarmCallback (nullptr);
-    warmPool->clear();
-    (void) waitForWarmIdle (2000);
-    warmPool.reset();
+
+    if (! warmPool->shutdown (shutdownBudgetMs))
+    {
+        std::cerr << "session: the warm pool did not stop; abandoning its worker"
+                  << std::endl;
+        (void) warmPool.release();
+    }
+    else
+    {
+        warmPool.reset();
+    }
 
     pinnedActiveSlot = -1;
     pinnedPreviousSlot = -1;

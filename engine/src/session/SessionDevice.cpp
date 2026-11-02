@@ -49,4 +49,18 @@ void Session::closeDevice()
     devices.close();
 }
 
+void Session::beginShutdown()
+{
+    shuttingDown.store (true, std::memory_order_release);
+    cancelPendingLoads();
+}
+
+void Session::cancelPendingLoads()
+{
+    const auto token = loadAbort;
+
+    if (token != nullptr)
+        token->store (true, std::memory_order_release);
+}
+
 }

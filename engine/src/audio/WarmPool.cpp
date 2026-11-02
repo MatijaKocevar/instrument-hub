@@ -13,42 +13,6 @@ WarmPool::WarmPool (int neighbourCountToUse)
 {
 }
 
-WarmPool::~WarmPool()
-{
-    std::vector<std::unique_ptr<Instance>> leftovers;
-    DestroyHook hook;
-
-    {
-        const std::lock_guard<std::mutex> lock (mutex);
-
-        quit = true;
-        warmQueue.clear();
-        hook = destroyHook;
-
-        for (auto& slot : slots)
-        {
-            if (slot.instance == nullptr)
-                continue;
-
-            leftovers.push_back (std::move (slot.instance));
-            slot.pins = 0;
-        }
-
-        for (auto& instance : pendingDestroy)
-            leftovers.push_back (std::move (instance));
-
-        pendingDestroy.clear();
-    }
-
-    condition.notify_all();
-
-    if (worker.joinable())
-        worker.join();
-
-    for (auto& instance : leftovers)
-        scheduleDestroy (std::move (instance), hook);
-}
-
 void WarmPool::setFactory (Factory newFactory)
 {
     const std::lock_guard<std::mutex> lock (mutex);

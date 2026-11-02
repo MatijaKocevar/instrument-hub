@@ -17,6 +17,7 @@
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -63,6 +64,8 @@ public:
     bool openDevice (juce::String* errorMessage = nullptr);
 
     void closeDevice();
+
+    void beginShutdown();
 
     bool isDeviceOpen() const noexcept { return devices.isOpen(); }
 
@@ -248,6 +251,7 @@ private:
     void releasePluginMirror (int slot);
     void releaseAllPluginMirrors();
     void syncPluginMirrorToSandbox (int slot);
+    void cancelPendingLoads();
 
     void registerSandboxSlot (int slot,
                               plugins::SandboxHost& host,
@@ -309,6 +313,8 @@ private:
     int maximumBlockSize = 0;
     int numChannels = 2;
     bool prepared = false;
+    std::atomic<bool> shuttingDown { false };
+    std::shared_ptr<std::atomic<bool>> loadAbort;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Session)
 };
