@@ -110,6 +110,12 @@ void SandboxHost::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& m
     }
     else
     {
+        for (const auto metadata : midi)
+        {
+            const auto message = metadata.getMessage();
+            (void) pushEvent (message.getRawData(), message.getRawDataSize());
+        }
+
         droppedRequests.fetch_add (1, std::memory_order_relaxed);
     }
 

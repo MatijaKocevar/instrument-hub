@@ -1,5 +1,6 @@
 #include "Session.h"
 
+#include "plugins/PluginInstrument.h"
 #include "session/EditorHost.h"
 
 #include <cmath>
@@ -55,6 +56,8 @@ const char* toString (SessionWarmState state) noexcept
 Session::Session()
 {
     config.slots = makeDefaultSet();
+    pluginMirrors.resize (defaultLogicalSlots);
+    slotErrors.resize (defaultLogicalSlots);
 
     editorHost = std::make_unique<session::EditorHost> (
         defaultLogicalSlots,
@@ -85,6 +88,7 @@ Session::~Session()
     if (editorHost != nullptr)
         editorHost->closeAll();
 
+    releaseAllPluginMirrors();
     warmPool.shutdown();
     switcher.reset();
     engine.reset();

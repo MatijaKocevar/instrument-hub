@@ -40,6 +40,13 @@ public:
 
     bool capture (int slot, const PluginStateIdentity& identity);
 
+    bool storeState (int slot,
+                     const PluginStateIdentity& identity,
+                     const juce::MemoryBlock& data);
+
+    juce::MemoryBlock readState (int slot,
+                                 const PluginStateIdentity& identity) const;
+
     void apply (int slot,
                 plugins::PluginInstrument& instrument,
                 const PluginStateIdentity& identity,

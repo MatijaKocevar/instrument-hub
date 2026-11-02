@@ -1,6 +1,7 @@
 #include "Session.h"
 
 #include "plugins/PluginInstrument.h"
+#include "plugins/SandboxHost.h"
 
 namespace ihub
 {
@@ -27,7 +28,20 @@ bool Session::capturePluginState (int slot)
     if (! pluginIdentityForSlot (slot, identity))
         return false;
 
-    return pluginState.capture (slot, identity);
+    if (pluginState.getInstrument (slot) != nullptr)
+        return pluginState.capture (slot, identity);
+
+    auto* sandbox = sandboxForSlot (slot);
+
+    if (sandbox == nullptr)
+        return false;
+
+    const auto state = sandbox->getStateInformation();
+
+    if (state.getSize() == 0)
+        return false;
+
+    return pluginState.storeState (slot, identity, state);
 }
 
 bool Session::hasPluginState (int slot) const noexcept
@@ -40,8 +54,16 @@ juce::int64 Session::getPluginStateSize (int slot) const noexcept
     return pluginState.getStateSize (slot);
 }
 
-plugins::PluginInstrument* Session::getPluginInstrument (int slot) const noexcept
+plugins::PluginInstrument* Session::getPluginInstrument (int slot)
 {
+    if (auto* instrument = pluginState.getInstrument (slot); instrument != nullptr)
+        return instrument;
+
+    std::string error;
+
+    if (! ensurePluginMirror (slot, error))
+        return nullptr;
+
     return pluginState.getInstrument (slot);
 }
 

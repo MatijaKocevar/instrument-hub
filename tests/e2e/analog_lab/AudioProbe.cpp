@@ -28,6 +28,7 @@ AudioProbe renderNote (ihub::Session& session, int slot)
         buffer.clear();
         emptyMidi.clear();
         session.render (buffer, emptyMidi, kBlockSize);
+        juce::Thread::sleep (3);
     }
 
     check (session.pushMidi (juce::MidiMessage::noteOn (1, 60, 0.9f)),
@@ -41,6 +42,7 @@ AudioProbe renderNote (ihub::Session& session, int slot)
         buffer.clear();
         emptyMidi.clear();
         session.render (buffer, emptyMidi, kBlockSize);
+        juce::Thread::sleep (3);
 
         for (int frame = 0; frame < kBlockSize; ++frame)
         {
@@ -64,6 +66,7 @@ AudioProbe renderNote (ihub::Session& session, int slot)
         buffer.clear();
         emptyMidi.clear();
         session.render (buffer, emptyMidi, kBlockSize);
+        juce::Thread::sleep (3);
     }
 
     return probe;

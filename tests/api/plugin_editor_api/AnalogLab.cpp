@@ -24,7 +24,7 @@ void runAnalogLab (ihub::Session& session, httplib::Client& client)
                                       patchSourceJson (analogLab.getFullPathName(),
                                                        "Analog Lab V"));
     check (response && response->status == 200,
-           "a yabridge/Arturia bundle is accepted as a source");
+           "an Arturia bridge bundle is accepted as a source");
 
     if (waitForWarm (session, 1, 20000))
     {

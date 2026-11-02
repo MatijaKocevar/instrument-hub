@@ -105,6 +105,7 @@ double measurePitch (ihub::Session& session)
     {
         buffer.clear();
         session.render (buffer, midi, kBlockSize);
+        juce::Thread::sleep (1);
     }
 
     int crossings = 0;
@@ -115,6 +116,7 @@ double measurePitch (ihub::Session& session)
     {
         buffer.clear();
         session.render (buffer, midi, kBlockSize);
+        juce::Thread::sleep (1);
 
         for (int frame = 0; frame < kBlockSize; ++frame)
         {

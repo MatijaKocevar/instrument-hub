@@ -32,6 +32,8 @@ bool Session::setSlotSource (int slot,
         (void) editorHost->close (slot, closeError);
     }
 
+    releasePluginMirror (slot);
+
     if (warmPool.getPool() == nullptr || switcher == nullptr)
     {
         error = "no audio session is attached";
@@ -106,6 +108,15 @@ bool Session::openEditor (int slot, std::string& error)
     {
         error = "no audio session is attached";
         return false;
+    }
+
+    if (pluginState.getInstrument (slot) == nullptr)
+    {
+        session::PluginStateIdentity identity;
+
+        if (pluginIdentityForSlot (slot, identity)
+            && ! ensurePluginMirror (slot, error))
+            return false;
     }
 
     return editorHost->open (slot, error);

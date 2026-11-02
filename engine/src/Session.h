@@ -32,6 +32,7 @@ class AudioPluginFormatManager;
 namespace ihub::plugins
 {
 class PluginInstrument;
+class SandboxHost;
 }
 
 namespace ihub::session
@@ -135,7 +136,15 @@ public:
 
     juce::int64 getPluginStateSize (int slot) const noexcept;
 
-    plugins::PluginInstrument* getPluginInstrument (int slot) const noexcept;
+    plugins::PluginInstrument* getPluginInstrument (int slot);
+
+    plugins::SandboxHost* getSandboxHost (int slot) const noexcept;
+
+    int getSandboxProcessId (int slot) const noexcept;
+
+    juce::String getSlotError (int slot) const;
+
+    bool isSlotPluginFailed (int slot) const noexcept;
 
     bool getSlotFxChain (int slot,
                          AudioEngine::FxChainSnapshot& snapshot,
@@ -234,6 +243,21 @@ private:
     void capturePluginStateForInstance (AudioEngine::SlotSource& instance);
     bool pluginIdentityForSlot (int slot, session::PluginStateIdentity& identity) const;
 
+    bool ensurePluginMirror (int slot, std::string& error);
+    bool ensurePluginMirrorNow (int slot, std::string& error);
+    void releasePluginMirror (int slot);
+    void releaseAllPluginMirrors();
+    void syncPluginMirrorToSandbox (int slot);
+
+    void registerSandboxSlot (int slot,
+                              plugins::SandboxHost& host,
+                              const session::PluginStateIdentity& identity);
+    void unregisterSandboxSlot (plugins::SandboxHost& host);
+    plugins::SandboxHost* sandboxForSlot (int slot) const noexcept;
+
+    void setSlotError (int slot, const juce::String& error);
+    void clearSlotError (int slot);
+
     bool isStreamActive() const noexcept
     {
         return devices.isOpen() && devices.hasCallback();
@@ -251,6 +275,22 @@ private:
     std::unique_ptr<session::EditorHost> editorHost;
 
     session::PluginStateStore pluginState { defaultLogicalSlots };
+
+    struct SandboxSlot
+    {
+        int slot = -1;
+        plugins::SandboxHost* host = nullptr;
+        session::PluginStateIdentity identity;
+    };
+
+    mutable std::mutex sandboxMutex;
+    std::vector<SandboxSlot> sandboxSlots;
+
+    mutable std::mutex mirrorMutex;
+    std::vector<std::unique_ptr<plugins::PluginInstrument>> pluginMirrors;
+
+    mutable std::mutex slotErrorMutex;
+    std::vector<juce::String> slotErrors;
 
     std::unique_ptr<juce::AudioPluginFormatManager> pluginFormats;
     session::WarmPoolController warmPool;

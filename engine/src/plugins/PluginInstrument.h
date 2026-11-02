@@ -48,6 +48,8 @@ public:
 
     void setBeforeUnloadCallback (std::function<void()> callback);
 
+    void setStateChangedCallback (std::function<void()> callback);
+
     bool isLoaded() const noexcept { return plugin != nullptr; }
 
     juce::AudioPluginInstance* getPlugin() const noexcept { return plugin.get(); }
@@ -111,6 +113,9 @@ private:
 
     bool pushEvent (const juce::uint8* bytes, int numBytes) noexcept;
     void drainPendingMidi (juce::MidiBuffer& destination) noexcept;
+    void notifyStateChanged();
+
+    class StateChangeForwarder;
 
     std::unique_ptr<juce::AudioPluginInstance> plugin;
     juce::PluginDescription description;
@@ -130,6 +135,8 @@ private:
     juce::MidiBuffer midiScratch;
 
     std::function<void()> beforeUnloadCallback;
+    std::function<void()> stateChangedCallback;
+    std::unique_ptr<StateChangeForwarder> stateChangeForwarder;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginInstrument)
 };

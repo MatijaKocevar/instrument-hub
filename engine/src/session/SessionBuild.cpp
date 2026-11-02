@@ -2,6 +2,7 @@
 
 #include "instruments/AudioInputInstrument.h"
 #include "plugins/PluginInstrument.h"
+#include "plugins/SandboxHost.h"
 #include "session/EditorHost.h"
 #include "session/SlotSources.h"
 
@@ -30,12 +31,19 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     if (editorHost != nullptr)
         editorHost->closeAll();
 
+    releaseAllPluginMirrors();
+
     warmPool.shutdown();
     switcher.reset();
     engine.reset();
     fxChain.reset();
     warmPool.clearVoices();
     pluginFormats.reset();
+
+    {
+        const std::lock_guard<std::mutex> lock (slotErrorMutex);
+        slotErrors.assign (defaultLogicalSlots, {});
+    }
 
     config = newConfig;
 
@@ -99,8 +107,13 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
         },
         [this] (AudioEngine::SlotSource& instance)
         {
-            if (auto* instrument = dynamic_cast<plugins::PluginInstrument*> (&instance);
-                instrument != nullptr)
+            if (auto* sandbox = dynamic_cast<plugins::SandboxHost*> (&instance);
+                sandbox != nullptr)
+            {
+                unregisterSandboxSlot (*sandbox);
+            }
+            else if (auto* instrument = dynamic_cast<plugins::PluginInstrument*> (&instance);
+                     instrument != nullptr)
             {
                 capturePluginStateForInstance (instance);
                 pluginState.unregisterInstrument (*instrument);
@@ -225,15 +238,27 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
                 return nullptr;
             }
 
-            auto instrument = std::make_unique<plugins::PluginInstrument>();
+            plugins::SandboxHost::Options options;
+            options.pluginBundle = juce::File (slotConfig.path);
+            options.sampleRate = config.device.sampleRate;
+            options.maxBlockSize = config.device.bufferSize;
+            options.numChannels = juce::jlimit (1, 2, config.device.numOutputChannels);
 
-            if (! instrument->loadFromFile (*pluginFormats,
-                                            juce::File (slotConfig.path),
-                                            config.device.sampleRate,
-                                            config.device.bufferSize,
-                                            error))
+            auto instrument = std::make_unique<plugins::SandboxHost> (options);
+
+            instrument->setStatusCallback (
+                [this, slotIndex] (plugins::SandboxHost::Status,
+                                   const juce::String& reason)
+                {
+                    setSlotError (slotIndex, reason);
+                    juce::Logger::writeToLog ("session: slot " + juce::String (slotIndex)
+                                              + " plugin failed: " + reason);
+                });
+
+            if (! instrument->start (error))
             {
                 error = "slot " + slotLabel + ": " + error;
+                setSlotError (slotIndex, error);
                 return nullptr;
             }
 
@@ -242,12 +267,18 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
                 juce::String (slotConfig.pluginId),
                 juce::String (slotConfig.pluginName)
             };
-            pluginState.apply (slotIndex, *instrument, identity, true);
 
-            if (editorHost != nullptr)
-                editorHost->registerInstrument (slotIndex, instrument.get());
+            const auto storedState = pluginState.readState (slotIndex, identity);
 
-            pluginState.registerInstrument (slotIndex, *instrument);
+            if (storedState.getSize() > 0
+                && ! instrument->setStateInformation (storedState))
+            {
+                juce::Logger::writeToLog ("session: slot " + juce::String (slotIndex)
+                                          + " rejected stored plugin state");
+            }
+
+            registerSandboxSlot (slotIndex, *instrument, identity);
+            clearSlotError (slotIndex);
 
             return instrument;
         }
