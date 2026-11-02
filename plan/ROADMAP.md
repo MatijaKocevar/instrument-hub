@@ -13,8 +13,8 @@ file. If the check fails you are not done.
 >
 > The single-responsibility refactor queue **T140–T174** was added by an
 > explicit human request; see `plan/REFACTOR.md` for the rationale and
-> target structure. **T182** (Prettier for the UI) is likewise an explicit
-> human request.
+> target structure. **T182** (Prettier for the UI) and **T187** (native
+> JACK device type) are likewise explicit human requests.
 
 ---
 
@@ -956,3 +956,11 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - files: `tests/e2e/analog_lab/`, `tests/`, `scripts/`
 - accept: `scripts/test.sh` passes; the 64-patch TestPlugin batch test passes; `plan/BUGS.md` BUG-002 records what is automated and what still needs Analog Lab; the engine changes stay within the T184 isolation.
 - note: if deterministic batches need the real plugin, write `STATUS: blocked` and point at B003 with the exact remaining step.
+
+## T187 · Native JACK audio device type
+- depends: T183
+- size: M
+- goal: Build JUCE with `JUCE_JACK=1` so a native JACK `AudioIODeviceType` is offered next to ALSA, and keep ALSA the default. JUCE needs the JACK headers at compile time but `dlopen`s `libjack.so.0` at runtime (`third_party/JUCE/modules/juce_audio_devices/native/juce_JackAudio.cpp`), so the build needs only the `jack` dev headers already listed in `docs/new-machine.md`, no linker flag. Set the define on `instrument-hub` and on the device-manager test target; console targets that never open an audio device do not need it. Do not change `AudioSettingsBridge::firstDeviceType()`: ALSA stays the default so the Loopback rig and every existing test are unaffected, while JACK appears in `deviceTypes`, in `GET /audio/devices` and on the Audio page and can be selected explicitly. A missing `jackd` must degrade to "JACK type present, no devices", not to a failure. Add a device-manager regression in `tests/device_manager/` that asserts `getDeviceTypeNames()` contains both `ALSA` and `JACK` and that JACK reports no output devices when no server is reachable; the existing audio-settings test keeps proving ALSA is still the default.
+- files: `engine/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/device_manager/`, `docs/architecture.md`
+- accept: `scripts/test.sh` passes; `ihub-device-manager-test` prints both device types; `--list-devices` still lists the Loopback; the app still opens ALSA at 48 kHz/128 by default; no audio-thread changes.
+- note: no `jackd` runs on this machine, so the live JACK open path cannot be exercised. Record the untested path (start `jackd`, select JACK under `/audio`) in the result and in `docs/architecture.md`; do not block on it. The ALSA `jack` PCM that ALSA enumeration already probes is not the native JACK type, so both may appear in the ALSA device list.
