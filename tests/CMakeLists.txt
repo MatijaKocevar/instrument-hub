@@ -184,6 +184,7 @@ set(IHUB_PLUGIN_INSTRUMENT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentBus.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentMidi.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentNotifications.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentParameters.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentProcess.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentState.cpp"
@@ -217,6 +218,7 @@ set(IHUB_SANDBOX_HOST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/SandboxHost.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostMidi.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostProcess.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostState.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostStatus.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostStop.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostTransport.cpp"
@@ -232,11 +234,14 @@ set(IHUB_SESSION_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MidiBridge.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateFile.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateStore.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateStoreData.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionBuild.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionControl.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionDevice.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionFx.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionMeasure.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginMirror.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginSandbox.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginState.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionRender.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionWarm.cpp"
@@ -246,6 +251,7 @@ set(IHUB_SESSION_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolArm.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolMeasurement.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolVoice.cpp"
+    ${IHUB_SANDBOX_HOST_SOURCES}
 )
 
 juce_add_console_app(ihub-app-modes-test
@@ -3233,6 +3239,85 @@ add_test(
     COMMAND ihub-session-plugin-state-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-session-sandbox-death-test
+        PRODUCT_NAME "ihub-session-sandbox-death-test"
+    )
+
+    target_sources(ihub-session-sandbox-death-test
+        PRIVATE
+            plugin_state/SessionSandboxDeathTest.cpp
+            ${IHUB_SESSION_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+            ${IHUB_BUS_SOURCES}
+            ${IHUB_DEVICE_MANAGER_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            ${IHUB_FX_RACK_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
+            ${IHUB_RT_GUARD_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
+            ${IHUB_SAMPLER_SOURCES}
+    )
+
+    target_include_directories(ihub-session-sandbox-death-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-session-sandbox-death-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+            "IHUB_SANDBOX_HELPER=\"$<TARGET_FILE:ihub-sandbox>\""
+    )
+
+    target_link_libraries(ihub-session-sandbox-death-test
+        PRIVATE
+            Threads::Threads
+            juce::juce_audio_devices
+            juce::juce_dsp
+            juce::juce_audio_formats
+            juce::juce_audio_processors_headless
+            juce::juce_core
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_dependencies(ihub-session-sandbox-death-test
+        ihub-sandbox
+        TestPlugin_VST3
+    )
+
+    set_target_properties(ihub-session-sandbox-death-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-session-sandbox-death
+        COMMAND ihub-session-sandbox-death-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     juce_add_console_app(ihub-session-editor-follow-test

@@ -18,6 +18,8 @@ void SandboxHost::closeSharedMemory() noexcept
 
 void SandboxHost::stop()
 {
+    const juce::ScopedLock lock (controlLock);
+
     if (watchdog != nullptr)
     {
         watchdog->signalThreadShouldExit();

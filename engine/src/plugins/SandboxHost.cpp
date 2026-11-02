@@ -49,8 +49,23 @@ juce::File SandboxHost::findHelperExecutable()
 
     const auto appDirectory = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
                                   .getParentDirectory();
+    const auto name = juce::String (sandbox::cli::helperName) + suffix;
+    const auto direct = appDirectory.getChildFile (name);
 
-    return appDirectory.getChildFile (juce::String (sandbox::cli::helperName) + suffix);
+    if (direct.existsAsFile())
+        return direct;
+
+    const juce::Array<juce::File> candidates {
+        appDirectory.getParentDirectory().getChildFile ("engine").getChildFile (name),
+        appDirectory.getParentDirectory().getParentDirectory()
+            .getChildFile ("engine").getChildFile (name)
+    };
+
+    for (const auto& candidate : candidates)
+        if (candidate.existsAsFile())
+            return candidate;
+
+    return direct;
 }
 
 const char* toString (SandboxHost::Status status) noexcept

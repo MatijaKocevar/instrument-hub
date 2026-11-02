@@ -2,13 +2,6 @@
 
 namespace ihub::plugins
 {
-PluginInstrument::PluginInstrument() = default;
-
-PluginInstrument::~PluginInstrument()
-{
-    unload();
-}
-
 bool PluginInstrument::load (juce::AudioPluginFormatManager& formatManager,
                              const juce::PluginDescription& newDescription,
                              double initialSampleRate,
@@ -94,22 +87,6 @@ std::unique_ptr<PluginInstrument> PluginInstrument::create (juce::AudioPluginFor
         return nullptr;
 
     return instrument;
-}
-
-void PluginInstrument::unload()
-{
-    if (beforeUnloadCallback != nullptr)
-    {
-        auto callback = std::move (beforeUnloadCallback);
-        beforeUnloadCallback = nullptr;
-        callback();
-    }
-
-    plugin.reset();
-    description = {};
-    cachedLatency.store (0, std::memory_order_relaxed);
-    clearPendingMidi();
-    midiScratch.clear();
 }
 
 void PluginInstrument::setBeforeUnloadCallback (std::function<void()> callback)

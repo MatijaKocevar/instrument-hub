@@ -98,51 +98,17 @@ bool PluginStateStore::saveAll()
 
 bool PluginStateStore::capture (int slot, const PluginStateIdentity& identity)
 {
-    if (slot < 0 || slot >= static_cast<int> (states.size()))
+    plugins::PluginInstrument* instrument = getInstrument (slot);
+
+    if (instrument == nullptr)
         return false;
 
-    bool changed = false;
-    bool captured = false;
-    juce::File currentDirectory;
+    const auto data = instrument->getStateInformation();
 
-    {
-        const std::lock_guard<std::mutex> lock (mutex);
-
-        currentDirectory = directory;
-
-        if (slot >= static_cast<int> (instruments.size())
-            || instruments[static_cast<std::size_t> (slot)] == nullptr)
-            return false;
-
-        auto& state = states[static_cast<std::size_t> (slot)];
-        auto data = instruments[static_cast<std::size_t> (slot)]->getStateInformation();
-
-        if (data.getSize() > 0)
-        {
-            captured = true;
-
-            if (state.data != data)
-            {
-                state.data = std::move (data);
-                ++state.revision;
-                changed = true;
-            }
-
-            state.pluginPath = identity.pluginPath;
-            state.pluginId = identity.pluginId;
-            state.pluginName = identity.pluginName;
-
-            state.appliedRevision = state.revision;
-        }
-    }
-
-    if (! captured)
+    if (data.getSize() == 0)
         return false;
 
-    if (changed && currentDirectory != juce::File())
-        return write (slot);
-
-    return true;
+    return storeState (slot, identity, data);
 }
 
 void PluginStateStore::apply (int slot,

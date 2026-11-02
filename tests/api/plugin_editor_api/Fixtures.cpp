@@ -53,6 +53,8 @@ juce::File findAnalogLabBundle()
         juce::File ("/usr/lib/vst3/Analog Lab V.vst3"),
         juce::File ("/usr/local/lib/vst3/Analog Lab V.vst3"),
         home.getChildFile (".vst3/Analog Lab V.vst3"),
+        juce::File ("/usr/lib/vst3/vstbridge/Analog Lab V.vst3"),
+        home.getChildFile (".vst3/vstbridge/Analog Lab V.vst3"),
         juce::File ("/usr/lib/vst3/yabridge/Analog Lab V.vst3"),
         home.getChildFile (".vst3/yabridge/Analog Lab V.vst3"),
     };

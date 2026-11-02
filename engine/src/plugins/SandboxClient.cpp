@@ -3,6 +3,7 @@
 #include "PluginInstrument.h"
 #include "sandbox/FakeToneInstrument.h"
 #include "sandbox/SandboxClientArguments.h"
+#include "sandbox/SandboxClientControl.h"
 
 #include <juce_audio_processors_headless/juce_audio_processors_headless.h>
 
@@ -85,6 +86,11 @@ int SandboxClient::run (const juce::StringArray& commandLine)
     if (sandbox::loadAcquire (shared.state) == static_cast<std::int32_t> (sandbox::ProcessState::stopping))
         return 0;
 
+   #if JUCE_LINUX || JUCE_MAC
+    sandbox::storeRelaxed (shared.childProcessId,
+                           static_cast<std::int32_t> (getpid()));
+   #endif
+
     setState (shared, sandbox::ProcessState::loading);
 
     const auto sampleRate = shared.sampleRate > 0.0 ? shared.sampleRate : 48000.0;
@@ -156,12 +162,15 @@ int SandboxClient::run (const juce::StringArray& commandLine)
 
     std::uint64_t nextRequest = 0;
     std::uint64_t heartbeat = 0;
+    std::uint32_t lastControlSequence = sandbox::loadAcquire (shared.control.sequence);
     double lastParentCheckMs = juce::Time::getMillisecondCounterHiRes();
 
     for (;;)
     {
         if (sandbox::loadAcquire (shared.state) == static_cast<std::int32_t> (sandbox::ProcessState::stopping))
             break;
+
+        sandbox_client::handleControl (shared, plugin.get(), lastControlSequence);
 
         const auto now = juce::Time::getMillisecondCounterHiRes();
 

@@ -23,6 +23,7 @@ bool PluginInstrument::setStateInformation (const void* data, int numBytes)
         return false;
 
     plugin->setStateInformation (data, numBytes);
+    notifyStateChanged();
 
     return true;
 }

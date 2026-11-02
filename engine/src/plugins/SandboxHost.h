@@ -61,6 +61,12 @@ public:
 
     void setStatusCallback (std::function<void (Status, const juce::String&)> callback);
 
+    bool setStateInformation (const void* data, int numBytes);
+    bool setStateInformation (const juce::MemoryBlock& block);
+    juce::MemoryBlock getStateInformation();
+
+    int getChildProcessId() const noexcept;
+
     void prepare (double sampleRate, int maximumBlockSize) override;
 
     void noteOn (int ch, int note, float vel) override;
@@ -102,6 +108,10 @@ private:
     void resetTransportState() noexcept;
     void closeSharedMemory() noexcept;
     juce::String readChildError() const;
+    bool runControlCommand (sandbox::ControlCommand command,
+                            const juce::MemoryBlock& input,
+                            juce::MemoryBlock& output,
+                            int timeoutMs);
     sandbox::SharedMemory* getShared() const noexcept { return shared; }
 
     Options options;
@@ -112,6 +122,9 @@ private:
 
     std::unique_ptr<juce::ChildProcess> childProcess;
     std::unique_ptr<SandboxWatchdog> watchdog;
+
+    juce::CriticalSection controlLock;
+    juce::File stateTransferFile;
 
     std::atomic<Status> status { Status::stopped };
     std::atomic<bool> failed { false };

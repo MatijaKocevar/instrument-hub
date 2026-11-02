@@ -217,6 +217,7 @@ target_sources(instrument-hub
         src/plugins/PluginInstrument.cpp
         src/plugins/host/PluginInstrumentBus.cpp
         src/plugins/host/PluginInstrumentMidi.cpp
+        src/plugins/host/PluginInstrumentNotifications.cpp
         src/plugins/host/PluginInstrumentParameters.cpp
         src/plugins/host/PluginInstrumentProcess.cpp
         src/plugins/host/PluginInstrumentState.cpp
@@ -233,6 +234,7 @@ target_sources(instrument-hub
         src/plugins/SandboxHost.cpp
         src/plugins/sandbox/SandboxHostMidi.cpp
         src/plugins/sandbox/SandboxHostProcess.cpp
+        src/plugins/sandbox/SandboxHostState.cpp
         src/plugins/sandbox/SandboxHostStatus.cpp
         src/plugins/sandbox/SandboxHostStop.cpp
         src/plugins/sandbox/SandboxHostTransport.cpp
@@ -257,11 +259,14 @@ target_sources(instrument-hub
         src/session/MidiBridge.cpp
         src/session/PluginStateFile.cpp
         src/session/PluginStateStore.cpp
+        src/session/PluginStateStoreData.cpp
         src/session/SessionBuild.cpp
         src/session/SessionControl.cpp
         src/session/SessionDevice.cpp
         src/session/SessionFx.cpp
         src/session/SessionMeasure.cpp
+        src/session/SessionPluginMirror.cpp
+        src/session/SessionPluginSandbox.cpp
         src/session/SessionPluginState.cpp
         src/session/SessionRender.cpp
         src/session/SessionWarm.cpp
@@ -416,9 +421,11 @@ target_sources(ihub-sandbox
         src/plugins/SandboxClient.cpp
         src/plugins/sandbox/FakeToneInstrument.cpp
         src/plugins/sandbox/SandboxClientArguments.cpp
+        src/plugins/sandbox/SandboxClientControl.cpp
         src/plugins/PluginInstrument.cpp
         src/plugins/host/PluginInstrumentBus.cpp
         src/plugins/host/PluginInstrumentMidi.cpp
+        src/plugins/host/PluginInstrumentNotifications.cpp
         src/plugins/host/PluginInstrumentParameters.cpp
         src/plugins/host/PluginInstrumentProcess.cpp
         src/plugins/host/PluginInstrumentState.cpp

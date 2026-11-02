@@ -46,6 +46,7 @@ bool PluginInstrument::setParameterValue (const juce::String& idOrName, float no
         return false;
 
     parameter->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, normalisedValue));
+    notifyStateChanged();
 
     return true;
 }

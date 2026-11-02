@@ -14,7 +14,7 @@ namespace sandbox
 {
 
 inline constexpr std::uint32_t sharedMemoryMagic = 0x49485553u;
-inline constexpr std::uint32_t sharedMemoryVersion = 1;
+inline constexpr std::uint32_t sharedMemoryVersion = 2;
 
 inline constexpr int requestRingSize = 8;
 inline constexpr int replyRingSize = 8;
@@ -23,6 +23,7 @@ inline constexpr int maximumBlockSize = 4096;
 inline constexpr int maximumChannels = 2;
 inline constexpr int maximumMidiEvents = 256;
 inline constexpr int errorTextSize = 256;
+inline constexpr int statePathSize = 512;
 
 enum class ProcessState : std::int32_t
 {
@@ -31,6 +32,21 @@ enum class ProcessState : std::int32_t
     ready = 2,
     stopping = 3,
     failed = 4
+};
+
+enum class ControlCommand : std::int32_t
+{
+    none = 0,
+    applyState = 1,
+    captureState = 2
+};
+
+enum class ControlStatus : std::int32_t
+{
+    idle = 0,
+    pending = 1,
+    done = 2,
+    failed = 3
 };
 
 struct SharedMidiEvent
@@ -57,6 +73,15 @@ struct SharedReply
     float audio[maximumChannels][maximumBlockSize];
 };
 
+struct SharedControl
+{
+    std::int32_t command;
+    std::int32_t status;
+    std::uint32_t sequence;
+    std::int32_t stateBytes;
+    char statePath[statePathSize];
+};
+
 struct SharedMemory
 {
     std::uint32_t magic;
@@ -68,6 +93,7 @@ struct SharedMemory
 
     std::int32_t state;
     std::int32_t parentProcessId;
+    std::int32_t childProcessId;
     std::int32_t latencySamples;
     std::uint32_t heartbeat;
 
@@ -77,6 +103,8 @@ struct SharedMemory
     std::uint64_t replyPublished;
 
     char error[errorTextSize];
+
+    SharedControl control;
 
     SharedRequest requests[requestRingSize];
     SharedReply replies[replyRingSize];
@@ -91,6 +119,12 @@ inline std::uint64_t loadAcquire (const std::uint64_t& value) noexcept
 inline std::int32_t loadAcquire (const std::int32_t& value) noexcept
 {
     return std::atomic_ref<std::int32_t> (const_cast<std::int32_t&> (value))
+        .load (std::memory_order_acquire);
+}
+
+inline std::uint32_t loadAcquire (const std::uint32_t& value) noexcept
+{
+    return std::atomic_ref<std::uint32_t> (const_cast<std::uint32_t&> (value))
         .load (std::memory_order_acquire);
 }
 
@@ -116,6 +150,11 @@ inline void storeRelease (std::int32_t& value, std::int32_t newValue) noexcept
     std::atomic_ref<std::int32_t> (value).store (newValue, std::memory_order_release);
 }
 
+inline void storeRelease (std::uint32_t& value, std::uint32_t newValue) noexcept
+{
+    std::atomic_ref<std::uint32_t> (value).store (newValue, std::memory_order_release);
+}
+
 inline void storeRelaxed (std::int32_t& value, std::int32_t newValue) noexcept
 {
     std::atomic_ref<std::int32_t> (value).store (newValue, std::memory_order_relaxed);
@@ -130,6 +169,8 @@ static_assert (std::atomic_ref<std::uint64_t>::is_always_lock_free,
                "the shared-memory counters must be lock-free for the audio thread");
 static_assert (std::atomic_ref<std::int32_t>::is_always_lock_free,
                "the shared-memory state must be lock-free");
+static_assert (std::atomic_ref<std::uint32_t>::is_always_lock_free,
+               "the shared-memory control sequence must be lock-free");
 static_assert (std::is_standard_layout_v<SharedMemory>,
                "the shared layout must be standard-layout");
 static_assert (offsetof (SharedMemory, requestPublished) % alignof (std::uint64_t) == 0);

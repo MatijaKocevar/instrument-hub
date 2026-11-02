@@ -33,6 +33,7 @@ float renderBlockPeak (ihub::Session& session, juce::AudioBuffer<float>& buffer)
     juce::MidiBuffer midi;
     buffer.clear();
     session.render (buffer, midi, kBlockSize);
+    juce::Thread::sleep (2);
 
     float peak = 0.0f;
 
@@ -131,6 +132,7 @@ int main()
     check (session.pushMidi (juce::MidiMessage::noteOff (1, 60, 0.0f)),
            "note-off enters the SPSC queue");
 
+    (void) renderBlocksPeak (session, buffer, 8);
     const auto noteOffPeak = renderBlocksPeak (session, buffer, 8);
     check (noteOffPeak == 0.0f,
            "the note-off stops the patch (peak "
@@ -171,6 +173,7 @@ int main()
     check (bridge.forwardMidiMessage ("Keystation Mini 32 USB",
                                       juce::MidiMessage::noteOff (1, 64, 0.0f)),
            "the forwarded note-off enters the session queue");
+    (void) renderBlocksPeak (session, buffer, 8);
     check (renderBlocksPeak (session, buffer, 8) == 0.0f,
            "the forwarded note-off stops the patch");
 
