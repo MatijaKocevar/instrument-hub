@@ -1,13 +1,16 @@
 # Manual acceptance: 64-pad Analog Lab V state pass
 
 This is the human half of T131. The automated tests prove per-patch state with
-the in-repo `TestPlugin` and with two Analog Lab V patches. Loading 64
-Wine-hosted Analog Lab instances automatically would be slow, brittle and
-outside the warm-pool budget, so the full 64-pad pass stays manual.
+64 in-repo `TestPlugin` patches, split into eight isolated batch processes, and
+with two Analog Lab V patches. Loading 64 Wine-hosted Analog Lab instances
+automatically would be slow, brittle and outside the warm-pool budget, so the
+full 64-pad pass with the real plugin stays manual.
 
 Do not automate this pass by spawning one process per patch. The application
 itself must keep the normal warm-pool bound: at most two live Analog Lab
-instances in the process at any time (the armed patch plus one neighbour).
+instances in the process at any time (the armed patch plus one neighbour). The
+`ihub-multipatch-batch` regression uses one child per family (eight patches),
+not one per pad.
 
 ---
 
@@ -20,8 +23,10 @@ instances in the process at any time (the armed patch plus one neighbour).
 - No editor stays bound to the previous patch.
 - The process never exceeds two live Analog Lab instances.
 
-The two-patch automated test (`ihub-analog-lab-state`) already covers the
-plugin-level half. This checklist covers the user-facing 64-pad half.
+The 64-patch `TestPlugin` regression (`ihub-multipatch-batch`) already covers
+the state half in eight isolated child processes, and
+`ihub-analog-lab-state` covers the real plugin-level half with two patches.
+This checklist covers the user-facing 64-pad half with Analog Lab V.
 
 ## 2. Preconditions
 
