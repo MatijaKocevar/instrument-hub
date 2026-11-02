@@ -6,6 +6,11 @@ One task = one session. Format is parsed by `autopilot.py`; keep the
 Rules for every task: implement, run the acceptance check, write the result
 file. If the check fails you are not done.
 
+Bugs are reproduced before they are fixed. Every bug task follows
+`plan/REPRO.md`: a Playwright run (UI) or a `curl` pair (engine/API) that
+captures the verbatim error, recorded in `plan/BUGS.md`, before any source
+edit.
+
 > **Phase (2026-11-01):** the feature roadmap is complete and the app is
 > playable on this machine. New work is **bug fixes only**, queued from
 > `plan/BUGS.md` after reproduction. Do not add speculative features or
