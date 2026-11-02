@@ -34,6 +34,7 @@ void AudioSettingsBridge::setDeviceManager (DeviceManager* manager)
 
 void AudioSettingsBridge::refreshDevices()
 {
+    deviceTypeNames = liveManager().getDeviceTypeNames();
     devices.clear();
 
     for (const auto& info : liveManager().getDevices())

@@ -387,12 +387,18 @@ juce_add_console_app(ihub-device-manager-test
 target_sources(ihub-device-manager-test
     PRIVATE
         device_manager/DeviceManagerTest.cpp
+        device_manager/DeviceTypes.cpp
         ${IHUB_DEVICE_MANAGER_SOURCES}
 )
 
 target_include_directories(ihub-device-manager-test
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-device-manager-test
+    PRIVATE
+        JUCE_JACK=1
 )
 
 target_link_libraries(ihub-device-manager-test

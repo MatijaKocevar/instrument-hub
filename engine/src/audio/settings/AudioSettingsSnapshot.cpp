@@ -29,6 +29,9 @@ Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
     Api::AudioStateSnapshot result;
     result.open = manager.isOpen();
 
+    for (const auto& type : deviceTypeNames)
+        result.deviceTypes.push_back (type.toStdString());
+
     for (const auto& device : devices)
     {
         Api::AudioDeviceState entry;

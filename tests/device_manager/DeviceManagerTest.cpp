@@ -1,3 +1,5 @@
+#include "DeviceTypes.h"
+
 #include "audio/DeviceManager.h"
 
 #include <juce_events/juce_events.h>
@@ -122,8 +124,7 @@ int main()
 
     AudioEngine::DeviceManager manager;
 
-    const auto typeNames = manager.getDeviceTypeNames();
-    std::cout << "device types: " << typeNames.joinIntoString (", ") << std::endl;
+    failures += DeviceManagerTest::checkDeviceTypes (manager);
 
     const auto devices = manager.getDevices();
     printDevices (devices);
