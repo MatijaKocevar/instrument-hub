@@ -16,11 +16,27 @@ AudioSettingsBridge::AudioSettingsBridge()
     pendingName = firstOutputDeviceOfType (pendingType);
 }
 
+void AudioSettingsBridge::setDeviceManager (DeviceManager* manager)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+
+    injectedManager = manager;
+    refreshDevices();
+    if (devices.empty())
+        return;
+
+    if (pendingName.isEmpty())
+    {
+        pendingType = firstDeviceType();
+        pendingName = firstOutputDeviceOfType (pendingType);
+    }
+}
+
 void AudioSettingsBridge::refreshDevices()
 {
     devices.clear();
 
-    for (const auto& info : manager.getDevices())
+    for (const auto& info : liveManager().getDevices())
     {
         CachedDevice cached;
         cached.type = info.typeName;

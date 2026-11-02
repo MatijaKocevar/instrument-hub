@@ -16,6 +16,8 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
 {
     const std::lock_guard<std::mutex> lock (mutex);
 
+    auto& manager = liveManager();
+
     if (devices.empty())
         refreshDevices();
 

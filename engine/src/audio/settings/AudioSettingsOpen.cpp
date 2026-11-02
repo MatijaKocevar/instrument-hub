@@ -19,6 +19,8 @@ bool AudioSettingsBridge::openCachedDevice (const CachedDevice& device,
     setup.outputChannels = DeviceSetup::channelMask (setup.numOutputChannels);
     setup.inputChannels = DeviceSetup::channelMask (setup.numInputChannels);
 
+    auto& manager = liveManager();
+
     if (! manager.open (setup, errorMessage))
         return false;
 
@@ -86,7 +88,7 @@ bool AudioSettingsBridge::openFirstOutput (juce::String* errorMessage)
 void AudioSettingsBridge::close()
 {
     const std::lock_guard<std::mutex> lock (mutex);
-    manager.close();
+    liveManager().close();
 }
 
 }

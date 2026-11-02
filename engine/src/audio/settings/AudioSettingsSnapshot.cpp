@@ -21,6 +21,8 @@ Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
 {
     const std::lock_guard<std::mutex> lock (mutex);
 
+    auto& manager = liveManager();
+
     if (devices.empty())
         refreshDevices();
 

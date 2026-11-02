@@ -109,6 +109,71 @@ void runDeviceBridge()
     }
 
     bridge.close();
+
+    AudioEngine::DeviceManager external;
+    const auto externalDevices = external.getDevices();
+    const AudioEngine::DeviceInfo* loopback = nullptr;
+
+    for (const auto& info : externalDevices)
+        if (info.hasOutput && info.name.containsIgnoreCase ("Loopback"))
+        {
+            loopback = &info;
+            break;
+        }
+
+    if (loopback == nullptr)
+    {
+        std::cout << "FAIL no Loopback output was enumerated" << std::endl;
+        ++failures;
+        return;
+    }
+
+    AudioEngine::DeviceSetup externalSetup;
+    externalSetup.deviceTypeName = loopback->typeName;
+    externalSetup.outputDeviceName = loopback->name;
+    externalSetup.sampleRate = 48000.0;
+    externalSetup.bufferSize = 256;
+    externalSetup.numOutputChannels = juce::jmin (2, loopback->outputChannelNames.size());
+    externalSetup.outputChannels = AudioEngine::DeviceSetup::channelMask (
+        externalSetup.numOutputChannels);
+
+    for (const auto rate : loopback->sampleRates)
+        if (std::abs (rate - 44100.0) < 0.5)
+        {
+            externalSetup.sampleRate = rate;
+            break;
+        }
+
+    juce::String externalError;
+
+    if (! external.open (externalSetup, &externalError))
+    {
+        std::cout << "FAIL could not open an external Loopback manager: "
+                  << externalError << std::endl;
+        ++failures;
+        return;
+    }
+
+    AudioEngine::AudioSettingsBridge injected;
+    const auto beforeInjection = injected.snapshot();
+    check (! beforeInjection.open,
+           "a bridge without the session manager reports the device closed");
+
+    injected.setDeviceManager (&external);
+    const auto followed = injected.snapshot();
+
+    check (followed.open, "the injected bridge reports the session device open");
+    check (followed.deviceName == external.getCurrentDeviceName().toStdString(),
+           "the injected bridge reports the session device name");
+    check (std::abs (followed.sampleRate - external.getCurrentSampleRate()) < 0.5,
+           "the injected bridge reports the session sample rate");
+    check (followed.bufferSize == external.getCurrentBufferSize(),
+           "the injected bridge reports the session buffer size");
+
+    injected.measure();
+    check (external.isOpen(), "measuring leaves the injected session device open");
+
+    external.close();
 }
 
 }

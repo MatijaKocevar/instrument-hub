@@ -34,13 +34,13 @@ reported by the human or reproduced on this machine.
 ## Open
 
 ### BUG-001 · `/audio` reports `open=false` while the session is streaming sound
-- status: reproduced
+- status: fixed
 - area: audio
 - steps: launch the app, read `GET /audio`
 - expected: `open: true` for the device the session opened
 - actual: `open: false`, `deviceName: PulseAudio Sound Server`; the session log says the device opened at 48 kHz/128
-- evidence: `session: opened PulseAudio Sound Server...` in the launch log, `/audio` returns `open=false`
-- fix: pending
+- evidence: `session: opened PulseAudio Sound Server...` in the launch log, `/audio` returns `open=false`; `ihub-audio-settings-test` now opens Loopback on an external manager, checks the un-injected bridge still reports closed, then injects the manager and asserts `open`, device name, rate and buffer follow it
+- fix: T183 injects `session->getDevices()` into `AudioSettingsBridge`; the owned manager remains the `--serve`/`--audio` fallback and the latency probe uses its own manager so measuring never closes the live session device. Regression failed 4/4 injected checks before the wiring and passes after; `scripts/test.sh` passes 65/65.
 
 ### BUG-002 · Full 64-patch Analog Lab workflow is only partly automated
 - status: open

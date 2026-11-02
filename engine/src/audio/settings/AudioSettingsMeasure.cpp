@@ -7,13 +7,16 @@ Api::AudioMeasurementState AudioSettingsBridge::measure()
 {
     const std::lock_guard<std::mutex> lock (mutex);
 
+    auto& live = liveManager();
+    const bool liveOpen = live.isOpen();
+
     Api::AudioMeasurementState result;
 
     LatencyProbeOptions options;
-    options.sampleRate = manager.isOpen() ? manager.getCurrentSampleRate()
-                                          : pendingSampleRate;
-    options.bufferSize = manager.isOpen() ? manager.getCurrentBufferSize()
-                                          : pendingBufferSize;
+    options.sampleRate = liveOpen ? live.getCurrentSampleRate()
+                                  : pendingSampleRate;
+    options.bufferSize = liveOpen ? live.getCurrentBufferSize()
+                                  : pendingBufferSize;
 
     if (! (options.sampleRate > 0.0))
         options.sampleRate = 48000.0;
@@ -23,9 +26,8 @@ Api::AudioMeasurementState AudioSettingsBridge::measure()
 
     LatencyProbe probe;
     LatencyResult measured;
-    const bool wasOpen = manager.isOpen();
 
-    if (wasOpen)
+    if (liveOpen)
     {
         for (int subdevice = 1; subdevice <= 3 && ! measured.valid; ++subdevice)
         {
@@ -36,10 +38,14 @@ Api::AudioMeasurementState AudioSettingsBridge::measure()
 
     if (! measured.valid)
     {
-        const auto savedSetup = wasOpen ? manager.getCurrentSetup() : DeviceSetup {};
+        auto& probeDevices = injectedManager != nullptr ? probeManager
+                                                        : ownedManager;
+        const bool probeWasOpen = probeDevices.isOpen();
+        const auto savedSetup = probeWasOpen ? probeDevices.getCurrentSetup()
+                                             : DeviceSetup {};
 
-        if (wasOpen)
-            manager.close();
+        if (probeWasOpen)
+            probeDevices.close();
 
         for (int subdevice = 0; subdevice < 4 && ! measured.valid; ++subdevice)
         {
@@ -47,11 +53,11 @@ Api::AudioMeasurementState AudioSettingsBridge::measure()
             measured = probe.measure (options);
         }
 
-        if (wasOpen)
+        if (probeWasOpen)
         {
             juce::String reopenError;
 
-            if (! manager.open (savedSetup, &reopenError) && measured.valid)
+            if (! probeDevices.open (savedSetup, &reopenError) && measured.valid)
             {
                 measured.error = measured.error.isNotEmpty()
                                      ? measured.error + "; could not reopen the device: "
