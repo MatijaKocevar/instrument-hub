@@ -83,6 +83,7 @@ bool ControlApi::start (const juce::String& commandLine,
 
     if (session != nullptr)
     {
+        audioSettings->setDeviceManager (&session->getDevices());
         Api::attachSession (*apiState, *apiServer, *session);
         audioSettings->setTimingMonitor (&session->getEngine().getTimingMonitor());
     }

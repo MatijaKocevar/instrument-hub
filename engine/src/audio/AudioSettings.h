@@ -22,6 +22,8 @@ public:
     AudioSettingsBridge();
     ~AudioSettingsBridge() = default;
 
+    void setDeviceManager (DeviceManager* manager);
+
     bool openLoopback (juce::String* errorMessage = nullptr);
 
     bool openFirstOutput (juce::String* errorMessage = nullptr);
@@ -51,6 +53,16 @@ private:
         juce::Array<int> bufferSizes;
     };
 
+    DeviceManager& liveManager() noexcept
+    {
+        return injectedManager != nullptr ? *injectedManager : ownedManager;
+    }
+
+    const DeviceManager& liveManager() const noexcept
+    {
+        return injectedManager != nullptr ? *injectedManager : ownedManager;
+    }
+
     void refreshDevices();
     const CachedDevice* findDevice (const juce::String& type,
                                     const juce::String& name) const;
@@ -62,7 +74,9 @@ private:
 
     mutable std::mutex mutex;
 
-    DeviceManager manager;
+    DeviceManager ownedManager;
+    DeviceManager probeManager;
+    DeviceManager* injectedManager = nullptr;
     std::vector<CachedDevice> devices;
 
     juce::String pendingType;
