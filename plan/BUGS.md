@@ -43,13 +43,13 @@ reported by the human or reproduced on this machine.
 - fix: T183 injects `session->getDevices()` into `AudioSettingsBridge`; the owned manager remains the `--serve`/`--audio` fallback and the latency probe uses its own manager so measuring never closes the live session device. Regression failed 4/4 injected checks before the wiring and passes after; `scripts/test.sh` passes 65/65.
 
 ### BUG-002 · Full 64-patch Analog Lab workflow is only partly automated
-- status: open
+- status: fixed
 - area: instrument
 - steps: repeat the manual checklist `docs/manual-analog-lab-64.md`
 - expected: all 64 Analog Lab patches restore their own preset across a full pad sweep
-- actual: automated coverage is 8 TestPlugin patches plus 2 real Analog Lab patches; loading 64 Analog Lab instances in one process stack-overflows the Wine bridge
-- evidence: `ihub-analog-lab-state-test` (2 patches) passes; `ihub-per-patch-state-test` (8 patches) passes
-- fix: pending; candidate is one isolated child process per batch, or manual verification
+- actual: before T186 the automated coverage was 8 TestPlugin patches plus 2 real Analog Lab patches; loading 64 Analog Lab instances in one process stack-overflows the Wine bridge
+- evidence: `ihub-multipatch-batch` covers all 64 TestPlugin patches in eight child processes of eight patches against one shared 64-slot sidecar; each patch runs through a T184 sandbox helper, accepts a distinct generated preset, is captured to the sidecar, is reloaded in a fresh session, and returns the same 16-hex state hash; the parent requires 64 sidecar files, 64 unique hashes and at most two live instances per batch; `ihub-per-patch-state` (8 patches) and `ihub-analog-lab-state` (2 real Analog Lab patches) still pass; `scripts/test.sh` -> 100% tests passed, 0 failed out of 68 (116.30 s)
+- fix: T186 adds the batch regression under `tests/e2e/multipatch_batch` and writes `ihub-multipatch-batch-record.txt`. It reuses the T184 `SandboxHost` boundary and spawns one child per family, so no engine or bridge process ever accumulates all 64 plugin instances; no engine code changed. Remaining human work: the real Analog Lab V 64-pad audio, editor-follow and restart pass on a licensed machine, per `docs/manual-analog-lab-64.md` and B003; the automated TestPlugin batch proves state round-trips, not Analog Lab preset selection or sound.
 
 ### BUG-003 · Global page header and connection bar repeat on every page
 - status: fixed

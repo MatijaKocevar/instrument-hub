@@ -3747,6 +3747,98 @@ else()
     message(STATUS "ihub-analog-lab-state-test: Linux VST3 bridge; skipping")
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-multipatch-batch-test
+        PRODUCT_NAME "ihub-multipatch-batch-test"
+    )
+
+    target_sources(ihub-multipatch-batch-test
+        PRIVATE
+            e2e/MultiPatchBatchTest.cpp
+            e2e/Check.cpp
+            e2e/multipatch_batch/BatchPhase.cpp
+            e2e/multipatch_batch/BatchRig.cpp
+            e2e/multipatch_batch/CapturePhase.cpp
+            e2e/multipatch_batch/ChildRunner.cpp
+            e2e/multipatch_batch/Parent.cpp
+            e2e/multipatch_batch/Patches.cpp
+            e2e/multipatch_batch/PresetState.cpp
+            e2e/multipatch_batch/Record.cpp
+            e2e/multipatch_batch/RestorePhase.cpp
+            e2e/multipatch_batch/Validation.cpp
+            ${IHUB_SESSION_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+            ${IHUB_BUS_SOURCES}
+            ${IHUB_DEVICE_MANAGER_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            ${IHUB_FX_RACK_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+            ${IHUB_LATENCY_PROBE_SOURCES}
+            ${IHUB_RT_GUARD_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
+            ${IHUB_SAMPLER_SOURCES}
+    )
+
+    target_include_directories(ihub-multipatch-batch-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+            "${CMAKE_CURRENT_SOURCE_DIR}/e2e"
+    )
+
+    target_compile_definitions(ihub-multipatch-batch-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+    )
+
+    target_link_libraries(ihub-multipatch-batch-test
+        PRIVATE
+            Threads::Threads
+            juce::juce_audio_devices
+            juce::juce_audio_formats
+            juce::juce_audio_processors_headless
+            juce::juce_core
+            juce::juce_dsp
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_dependencies(ihub-multipatch-batch-test
+        TestPlugin_VST3
+        ihub-sandbox
+    )
+
+    set_target_properties(ihub-multipatch-batch-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-multipatch-batch
+        COMMAND ihub-multipatch-batch-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-multipatch-batch-test: Linux VST3 hosting; skipping")
+endif()
+
 get_property(IHUB_ALL_TESTS DIRECTORY PROPERTY TESTS)
 if(IHUB_ALL_TESTS)
     set_tests_properties(${IHUB_ALL_TESTS} PROPERTIES TIMEOUT 120)
