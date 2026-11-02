@@ -78,6 +78,7 @@ private:
     DeviceManager probeManager;
     DeviceManager* injectedManager = nullptr;
     std::vector<CachedDevice> devices;
+    juce::StringArray deviceTypeNames;
 
     juce::String pendingType;
     juce::String pendingName;
