@@ -58,7 +58,7 @@ void WarmPool::run()
 
     for (;;)
     {
-        if (quit && pendingDestroy.empty())
+        if (quit)
             break;
 
         if (! pendingDestroy.empty())
@@ -79,9 +79,6 @@ void WarmPool::run()
             condition.notify_all();
             continue;
         }
-
-        if (quit)
-            break;
 
         if (retryDeferred)
         {
@@ -153,6 +150,15 @@ void WarmPool::run()
         warming = false;
         loadingSlot = -1;
 
+        if (quit)
+        {
+            if (created != nullptr)
+                pendingDestroy.push_back (std::move (created));
+
+            condition.notify_all();
+            break;
+        }
+
         auto& slot = slots[static_cast<size_t> (slotIndex)];
         const bool stillNeeded = needsWarmLocked (slotIndex);
         bool becameWarm = false;
@@ -204,6 +210,8 @@ void WarmPool::run()
         }
     }
 
+    workerDone = true;
+    workerDoneCondition.notify_all();
     condition.notify_all();
 }
 

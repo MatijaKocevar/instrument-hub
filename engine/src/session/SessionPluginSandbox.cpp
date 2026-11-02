@@ -55,6 +55,9 @@ void Session::unregisterSandboxSlot (plugins::SandboxHost& host)
         sandboxSlots.erase (found);
     }
 
+    if (shuttingDown.load (std::memory_order_acquire))
+        return;
+
     session::PluginStateIdentity current;
 
     if (! pluginIdentityForSlot (removed.slot, current)

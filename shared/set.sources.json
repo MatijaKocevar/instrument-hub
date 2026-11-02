@@ -23,6 +23,18 @@
       "pluginManufacturer": "Arturia",
       "pluginVersion": "5.12.6.6914",
       "samplePath": ""
+    },
+    "48": {
+      "kind": "plugin",
+      "path": "/home/mkocevar/.vst3/vstbridge/Analog Lab V.vst3",
+      "frequency": 419.61669921875,
+      "inputChannel": 0,
+      "pluginFormat": "VST3",
+      "pluginId": "VST3-Analog Lab V-c708e489-a7b9b8ab",
+      "pluginName": "Analog Lab V",
+      "pluginManufacturer": "Arturia",
+      "pluginVersion": "5.12.6.6914",
+      "samplePath": ""
     }
   }
 }

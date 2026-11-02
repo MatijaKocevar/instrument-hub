@@ -58,6 +58,7 @@ Session::Session()
     config.slots = makeDefaultSet();
     pluginMirrors.resize (defaultLogicalSlots);
     slotErrors.resize (defaultLogicalSlots);
+    loadAbort = std::make_shared<std::atomic<bool>> (false);
 
     editorHost = std::make_unique<session::EditorHost> (
         defaultLogicalSlots,
@@ -83,6 +84,7 @@ Session::Session()
 
 Session::~Session()
 {
+    beginShutdown();
     closeDevice();
 
     if (editorHost != nullptr)

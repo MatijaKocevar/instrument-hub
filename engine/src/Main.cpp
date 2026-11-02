@@ -236,14 +236,15 @@ public:
         controlApi.detachMidi();
         controller.shutdown();
         controlApi.resetServer();
+        controlApi.resetAudio();
 
         if (session != nullptr)
         {
+            session->beginShutdown();
             session->closeDevice();
             session.reset();
         }
 
-        controlApi.resetAudio();
         mainWindow.reset();
     }
 

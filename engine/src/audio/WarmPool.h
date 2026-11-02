@@ -116,6 +116,8 @@ public:
 
     void clear();
 
+    bool shutdown (int timeoutMs = 2000) noexcept;
+
 private:
     struct SlotState
     {
@@ -158,8 +160,11 @@ private:
 
     mutable std::mutex mutex;
     std::condition_variable condition;
+    std::condition_variable workerDoneCondition;
 
     bool quit = false;
+    bool workerDone = false;
+    bool shutdownComplete = false;
 
     Factory factory;
     DestroyHook destroyHook;

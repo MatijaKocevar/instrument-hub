@@ -42,6 +42,8 @@ public:
         int startupTimeoutMs = 15000;
 
         int hangTimeoutMs = 2500;
+
+        std::function<bool()> shouldAbortStart;
     };
 
     SandboxHost();

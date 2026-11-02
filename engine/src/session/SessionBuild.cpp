@@ -33,7 +33,10 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
 
     releaseAllPluginMirrors();
 
+    cancelPendingLoads();
     warmPool.shutdown();
+    shuttingDown.store (false, std::memory_order_release);
+    loadAbort = std::make_shared<std::atomic<bool>> (false);
     switcher.reset();
     engine.reset();
     fxChain.reset();
@@ -129,7 +132,8 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
             if (pluginIdentityForSlot (slot, identity))
                 pluginState.applyToRegistered (slot, identity);
         },
-        switcher.get());
+        switcher.get(),
+        [this] { cancelPendingLoads(); });
 
     bool anySolo = false;
 
@@ -243,6 +247,15 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
             options.sampleRate = config.device.sampleRate;
             options.maxBlockSize = config.device.bufferSize;
             options.numChannels = juce::jlimit (1, 2, config.device.numOutputChannels);
+
+            if (loadAbort != nullptr)
+            {
+                const auto abort = loadAbort;
+                options.shouldAbortStart = [abort]
+                {
+                    return abort->load (std::memory_order_relaxed);
+                };
+            }
 
             auto instrument = std::make_unique<plugins::SandboxHost> (options);
 

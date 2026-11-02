@@ -24,6 +24,7 @@ public:
         int slot, juce::String& error)>;
     using DestroyObserver = std::function<void (AudioEngine::SlotSource& instance)>;
     using BeforeArmHook = std::function<void (int slot)>;
+    using CancelLoads = std::function<void()>;
 
     WarmPoolController();
     ~WarmPoolController();
@@ -40,7 +41,8 @@ public:
     void configure (SourceFactory factory,
                     DestroyObserver destroyObserver,
                     BeforeArmHook beforeArm,
-                    AudioEngine::SlotSwitcher* switcherToUse);
+                    AudioEngine::SlotSwitcher* switcherToUse,
+                    CancelLoads cancelLoads);
 
     void setFormat (double sampleRate, int maximumBlockSize);
     void setNumSlots (int slotCount);
@@ -98,6 +100,7 @@ private:
     SourceFactory sourceFactory;
     DestroyObserver destroyObserver;
     BeforeArmHook beforeArmHook;
+    CancelLoads cancelLoads;
     AudioEngine::SlotSwitcher* switcher = nullptr;
 
     std::unique_ptr<AudioEngine::WarmPool> warmPool;
