@@ -38,6 +38,19 @@ the script only reports what is missing and refuses to build.
 
 `scripts/bootstrap.sh --check` is diagnostics only and changes nothing.
 
+## The app
+
+```bash
+scripts/build.sh                             # UI + engine into build/engine/instrument-hub
+scripts/install-desktop-entry.sh             # adds "Instrument Hub" to the app menu
+scripts/install-desktop-entry.sh --remove    # takes it back out
+```
+
+The built binary embeds `ui/dist`, so it runs without Vite. It reads
+`shared/set.yaml` relative to its working directory, so the desktop entry
+sets `Path=` to the repo root; `build-release` can be selected with
+`scripts/install-desktop-entry.sh build-release`.
+
 ## What the script sets up
 
 - toolchain: `git cmake ninja pkg-config node npm corepack python3 opencode`
