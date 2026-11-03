@@ -1,5 +1,7 @@
 #include "audio/DeviceManager.h"
 
+#include "audio/device/DeviceErrors.h"
+
 #include <cmath>
 
 namespace AudioEngine
@@ -45,7 +47,7 @@ bool DeviceManager::applyNativeSetup (const juce::AudioDeviceManager::AudioDevic
     if (errorMessage != nullptr)
     {
         if (error.isNotEmpty())
-            *errorMessage = error;
+            *errorMessage = detail::describeDeviceError (error);
         else if (! open)
             *errorMessage = "no audio device was opened";
     }

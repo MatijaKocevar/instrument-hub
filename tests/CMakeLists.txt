@@ -143,6 +143,7 @@ set(IHUB_DEVICE_MANAGER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceCards.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceDescription.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceEnumeration.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceErrors.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLatency.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLookup.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceOpen.cpp"
@@ -2286,7 +2287,9 @@ target_sources(ihub-audio-settings-test
         api/AudioSettingsTest.cpp
         api/JsonSupport.cpp
         api/TestSupport.cpp
+        api/audio_settings/Channels.cpp
         api/audio_settings/DeviceBridge.cpp
+        api/audio_settings/DeviceSwitch.cpp
         api/audio_settings/Fixtures.cpp
         api/audio_settings/Persistence.cpp
         api/audio_settings/Restore.cpp
