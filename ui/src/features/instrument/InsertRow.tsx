@@ -1,6 +1,10 @@
 import type { ReactElement } from "react";
 
-import type { ControlFxInsert, ControlPatch } from "../../api/client";
+import type {
+  ControlFxInsert,
+  ControlPatch,
+  ControlTrack,
+} from "../../api/client";
 import { wetPercent } from "./format";
 import { insertLabel } from "./inserts";
 
@@ -9,6 +13,7 @@ interface InsertRowProps {
   readonly insert: ControlFxInsert;
   readonly index: number;
   readonly count: number;
+  readonly track?: ControlTrack | null;
   readonly onRemoveInsert?: (slot: number, index: number) => void;
   readonly onToggleBypass?: (
     slot: number,
@@ -16,6 +21,11 @@ interface InsertRowProps {
     bypassed: boolean,
   ) => void;
   readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
+  readonly onAssignHotFx?: (
+    trackIndex: number,
+    hot: number,
+    insertId: string | null,
+  ) => void;
 }
 
 export function InsertRow({
@@ -23,10 +33,15 @@ export function InsertRow({
   insert,
   index,
   count,
+  track = null,
   onRemoveInsert,
   onToggleBypass,
   onMoveInsert,
+  onAssignHotFx,
 }: InsertRowProps): ReactElement {
+  const hotFor = (hot: number) =>
+    track?.hotFx.find((candidate) => candidate.index === hot) ?? null;
+
   return (
     <li
       className={`instrument__insert${insert.bypassed ? " instrument__insert--bypassed" : ""}`}
@@ -56,6 +71,42 @@ export function InsertRow({
       </span>
 
       <span className="instrument__insert-actions">
+        {track === null
+          ? null
+          : [0, 1].map((hot) => {
+              const assigned = hotFor(hot)?.id === insert.id;
+
+              return (
+                <button
+                  key={`hot-${String(hot)}`}
+                  className={`instrument__hot-button${assigned ? " instrument__hot-button--on" : ""}`}
+                  type="button"
+                  title={
+                    assigned
+                      ? `Clear hot FX ${String(hot + 1)} from ${insert.name}`
+                      : `Mark ${insert.name} as hot FX ${String(hot + 1)}`
+                  }
+                  aria-label={
+                    assigned
+                      ? `Clear hot FX ${String(hot + 1)}`
+                      : `Mark hot FX ${String(hot + 1)}`
+                  }
+                  aria-pressed={assigned}
+                  data-testid={`fx-hot-${String(hot + 1)}`}
+                  data-hot={hot}
+                  data-assigned={assigned ? "true" : "false"}
+                  onClick={() => {
+                    onAssignHotFx?.(
+                      track.index,
+                      hot,
+                      assigned ? null : insert.id,
+                    );
+                  }}
+                >
+                  H{String(hot + 1)}
+                </button>
+              );
+            })}
         <button
           className="instrument__icon-button"
           type="button"

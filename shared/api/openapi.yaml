@@ -163,6 +163,65 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /tracks/{index}/fx/{hot}/assign:
+    post:
+      tags: [state]
+      operationId: assignTrackFx
+      summary: Assign a track's hot FX insert
+      description: |
+        Assigns `insertId` to hot FX `hot` (`0` or `1`) for track `index`.
+        An empty string clears the slot. The insert must exist in the live
+        chain; assigning an insert already used by the other hot slot moves
+        it, so the two assignments stay distinct. Emits a `track` state event.
+      parameters:
+        - name: index
+          in: path
+          required: true
+          description: Track index, 0-7.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 7
+        - name: hot
+          in: path
+          required: true
+          description: Hot FX slot, 0 or 1.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackFxAssignRequest"
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The control state after the assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          description: The insert id is missing from the live chain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: The track or hot FX index is out of range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /tracks/{index}/volume:
     post:
       tags: [state]
@@ -2176,6 +2235,15 @@ components:
         bypassed:
           type: boolean
           description: The insert's current bypass state.
+
+    TrackFxAssignRequest:
+      type: object
+      required: [insertId]
+      additionalProperties: false
+      properties:
+        insertId:
+          type: string
+          description: Insert id from the live chain; an empty string clears the slot.
 
     TrackVolumeRequest:
       type: object

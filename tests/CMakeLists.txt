@@ -69,6 +69,7 @@ set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreProject.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTracks.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTrackFx.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTrackFxAssign.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTrackVolume.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
     ${IHUB_SETTINGS_STORE_SOURCES}

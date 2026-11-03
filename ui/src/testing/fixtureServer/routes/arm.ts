@@ -29,6 +29,12 @@ export const handleArm: FixtureRoute = (context, request, response) => {
         armed: candidate.index === target,
       }));
 
+      if (context.state.tracks !== undefined)
+        context.state.tracks = context.state.tracks.map((track) => ({
+          ...track,
+          selected: track.slot === target,
+        }));
+
       sendJson(response, 200, context.state);
     };
 

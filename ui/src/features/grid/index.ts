@@ -15,9 +15,36 @@ export {
   GRID_ROWS,
   patchForSlot,
   type GridFamily,
+  type GridLayout,
   type GridModel,
   type GridPatch,
 } from "./model";
+export {
+  createTrackGridModel,
+  TRACK_GRID_ROWS,
+  type GridHotFx,
+  type GridTrack,
+  type TrackGridRole,
+  type TrackGridRow,
+  type TrackGridTrackInput,
+} from "./trackModel";
+export {
+  clampTrackVolumeStep,
+  TRACK_DEFAULT_STEP,
+  TRACK_MAX_STEP,
+  TRACK_OVER_STEP,
+  TRACK_VOLUME_STEPS,
+  trackDbForStep,
+  trackGainForStep,
+  trackVolumeStep,
+  volumeStepForRow,
+  type TrackVolumeStep,
+} from "./trackVolume";
+export {
+  TrackGridTable,
+  type TrackGridActions,
+  type TrackGridTableProps,
+} from "./TrackGridTable";
 export { EMPTY_METERS, parseMeterFrame } from "./meterFrame";
 export type { MeterSnapshot, MeterSlotReading } from "./meterFrame";
 export { MeterStore } from "./MeterStore";

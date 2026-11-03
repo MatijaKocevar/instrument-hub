@@ -61,6 +61,45 @@ void runTrackFx (SessionRig& rig,
     response = client.Post ("/tracks/2/fx/2/toggle", "{}", "application/json");
     check (response && response->status == 404,
            "the hot FX command rejects an out-of-range hot index");
+
+    response = client.Post ("/tracks/2/fx/0/assign",
+                            R"({"insertId":"comp"})",
+                            "application/json");
+    state = response ? parseJson (response->body) : juce::var {};
+
+    check (response && response->status == 200,
+           "POST /tracks/2/fx/0/assign returns 200");
+    check (stringProperty (hotFxAt (trackAt (state, kTrack), 0), "name")
+               == "Compressor",
+           "the assignment publishes the new insert name");
+    check (stringProperty (hotFxAt (trackAt (state, kTrack), 1), "id").empty(),
+           "assigning the other insert clears its previous hot slot");
+
+    response = client.Get ("/state");
+    state = response ? parseJson (response->body) : juce::var {};
+    check (stringProperty (hotFxAt (trackAt (state, kTrack), 0), "id") == "comp",
+           "the hot FX assignment persists across GET /state");
+
+    response = client.Post ("/tracks/2/fx/0/assign",
+                            R"({"insertId":"missing"})",
+                            "application/json");
+    check (response && response->status == 400,
+           "an insert outside the chain is rejected");
+
+    response = client.Post ("/tracks/2/fx/0/assign",
+                            R"({"insertId":"eq"})",
+                            "application/json");
+    state = response ? parseJson (response->body) : juce::var {};
+    check (response && response->status == 200
+               && stringProperty (hotFxAt (trackAt (state, kTrack), 0), "id")
+                      == "eq",
+           "the hot FX assignment can move back to the first insert");
+
+    response = client.Post ("/tracks/2/fx/2/assign",
+                            R"({"insertId":"eq"})",
+                            "application/json");
+    check (response && response->status == 404,
+           "the assignment rejects an out-of-range hot index");
 }
 
 }

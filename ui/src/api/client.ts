@@ -39,6 +39,9 @@ export type {
   ControlSettings,
   ControlSlot,
   ControlState,
+  ControlTrack,
+  ControlTrackFxAssignRequest,
+  ControlTrackHotFx,
   ControlTransport,
   ControlTransportPatch,
 } from "./types";

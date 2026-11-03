@@ -39,3 +39,4 @@ export {
   sourceRequestForInitTone,
   sourceRequestForPlugin,
 } from "./source";
+export { hotFxName, patchForTrack, trackForSlot } from "./tracks";

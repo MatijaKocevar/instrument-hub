@@ -10,3 +10,4 @@ export { GRID_FAMILIES, GRID_METERS, GRID_MODEL } from "./grid";
 export { MIDI } from "./midi";
 export { PAIRING_OFF, PAIRING_ON } from "./pairing";
 export { PLUGIN_FIXTURE } from "./plugins";
+export { TRACK_FIXTURE } from "./tracks";

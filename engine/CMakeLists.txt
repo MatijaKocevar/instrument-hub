@@ -120,6 +120,7 @@ target_sources(instrument-hub
         src/api/state/StateStoreProject.cpp
         src/api/state/StateStoreTracks.cpp
         src/api/state/StateStoreTrackFx.cpp
+        src/api/state/StateStoreTrackFxAssign.cpp
         src/api/state/StateStoreTrackVolume.cpp
         src/api/SessionBridge.cpp
         src/api/StateBroadcast.cpp
