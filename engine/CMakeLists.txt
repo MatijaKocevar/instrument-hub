@@ -288,6 +288,10 @@ target_sources(instrument-hub
         src/session/warm/WarmPoolArm.cpp
         src/session/warm/WarmPoolMeasurement.cpp
         src/session/warm/WarmPoolVoice.cpp
+        src/settings/AtomicFileWrite.cpp
+        src/settings/SettingsJsonRead.cpp
+        src/settings/SettingsJsonWrite.cpp
+        src/settings/SettingsStore.cpp
         src/sampler/Kit.cpp
         src/sampler/KitLoader.cpp
         src/sampler/LoadedKit.cpp
