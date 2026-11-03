@@ -54,4 +54,14 @@ juce::String juceDeviceNameForPcm (const std::vector<PcmHint>& hints,
     return {};
 }
 
+juce::String pcmNameForJuceDescription (const std::vector<PcmHint>& hints,
+                                        const juce::String& juceName)
+{
+    for (const auto& hint : hints)
+        if (hint.description.replace ("\n", "; ") == juceName)
+            return hint.name;
+
+    return {};
+}
+
 } // namespace AudioEngine::detail

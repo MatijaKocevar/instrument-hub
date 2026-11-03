@@ -44,6 +44,7 @@ Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
         Api::AudioDeviceState entry;
         entry.type = toString (device.type);
         entry.name = toString (device.name);
+        entry.description = toString (device.description);
         entry.available = device.available;
         entry.reason = toString (device.unavailableReason);
         result.devices.push_back (std::move (entry));
@@ -55,6 +56,16 @@ Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
         {
             result.deviceTypes.push_back (type);
         }
+    }
+
+    for (const auto& device : manager.getRawPcmDevices())
+    {
+        Api::AudioDeviceState entry;
+        entry.type = toString (device.typeName);
+        entry.name = toString (device.name);
+        entry.description = toString (device.description);
+        entry.available = true;
+        result.rawDevices.push_back (std::move (entry));
     }
 
     const auto currentType = result.open ? manager.getCurrentDeviceTypeName()

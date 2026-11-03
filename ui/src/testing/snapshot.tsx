@@ -1,6 +1,10 @@
 import { failureCount } from "./harness";
 import { audioSettingsTest } from "./scenarios/audio";
 import {
+  audioPickerModelTest,
+  audioPickerRenderTest,
+} from "./scenarios/audioPicker";
+import {
   audioRestoreActionTest,
   audioRestoreModelTest,
 } from "./scenarios/audioRestore";
@@ -49,6 +53,8 @@ async function main(): Promise<void> {
   meterTest();
   loadingTest();
   await audioSettingsTest();
+  audioPickerModelTest();
+  audioPickerRenderTest();
   audioRestoreModelTest();
   await audioRestoreActionTest();
   midiModelTest();

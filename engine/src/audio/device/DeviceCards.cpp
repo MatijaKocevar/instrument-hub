@@ -101,6 +101,17 @@ juce::String friendlyCardName (const AlsaCard& card)
     return name;
 }
 
+juce::String cardDescription (const AlsaCard& card)
+{
+    if (card.pcmName.containsIgnoreCase ("analog"))
+        return "Onboard analog output";
+
+    if (card.pcmName.containsIgnoreCase ("hdmi"))
+        return "Onboard HDMI output";
+
+    return "USB audio interface";
+}
+
 std::vector<juce::String> cardPcmCandidates (const AlsaCard& card)
 {
     const auto device = juce::String (card.device);

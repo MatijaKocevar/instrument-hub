@@ -52,6 +52,23 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     }
 
     const CachedDevice* info = findDevice (targetType, targetName);
+    CachedDevice rawDevice;
+
+    if (info == nullptr && patch.deviceName.has_value())
+    {
+        for (const auto& raw : manager.getRawPcmDevices())
+        {
+            if (raw.typeName != targetType || raw.name != targetName)
+                continue;
+
+            rawDevice.type = raw.typeName;
+            rawDevice.name = raw.name;
+            rawDevice.available = true;
+            rawDevice.hasOutput = true;
+            info = &rawDevice;
+            break;
+        }
+    }
 
     if (info != nullptr && ! info->available)
     {

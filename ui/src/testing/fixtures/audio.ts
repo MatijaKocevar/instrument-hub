@@ -3,11 +3,72 @@ import type { ControlAudioState } from "../../api/client";
 export const AUDIO: ControlAudioState = {
   open: true,
   deviceType: "ALSA",
-  deviceName: "Loopback",
+  deviceName: "Steinberg UR22mkII",
   deviceTypes: ["ALSA"],
   devices: [
-    { type: "ALSA", name: "Loopback" },
-    { type: "ALSA", name: "UR22mkII" },
+    {
+      type: "ALSA",
+      name: "Steinberg UR22mkII",
+      description: "USB audio interface",
+      available: true,
+    },
+    {
+      type: "ALSA",
+      name: "HD-Audio Generic (analog)",
+      description: "Onboard analog output",
+      available: true,
+    },
+    {
+      type: "ALSA",
+      name: "HD-Audio Generic (HDMI)",
+      description: "Onboard HDMI output",
+      available: false,
+      reason: "in use by another process",
+    },
+    {
+      type: "ALSA",
+      name: "System (PipeWire)",
+      description: "System mixer",
+      available: true,
+    },
+    {
+      type: "ALSA",
+      name: "Steinberg UR22mkII",
+      description: "USB audio interface",
+      available: true,
+    },
+  ],
+  rawDevices: [
+    {
+      type: "ALSA",
+      name: "Steinberg UR22mkII, USB Audio; Direct hardware device without any conversions",
+      description: "hw:CARD=UR22mkII,DEV=0",
+      available: true,
+    },
+    {
+      type: "ALSA",
+      name: "Steinberg UR22mkII, USB Audio; Direct sample mixing device",
+      description: "dmix:CARD=UR22mkII,DEV=0",
+      available: true,
+    },
+    {
+      type: "ALSA",
+      name: "HD-Audio Generic, ALC887-VD Analog; Direct hardware device without any conversions",
+      description: "hw:CARD=Generic,DEV=0",
+      available: true,
+    },
+    {
+      type: "ALSA",
+      name: "HD-Audio Generic, HDMI 0; Direct hardware device without any conversions",
+      description: "hw:CARD=Generic,DEV=3",
+      available: true,
+    },
+    {
+      type: "ALSA",
+      name: "PulseAudio Sound Server",
+      description: "pulse",
+      available: true,
+    },
   ],
   sampleRate: 48000,
   bufferSize: 128,
@@ -41,9 +102,10 @@ export const AUDIO: ControlAudioState = {
 
 export const AUDIO_FALLBACK: ControlAudioState = {
   ...AUDIO,
+  deviceName: "Loopback",
   restore: {
     usedStoredDevice: false,
     fallback: true,
-    reason: 'stored device "UR22mkII" is not available',
+    reason: 'stored device "Steinberg UR22mkII" is not available',
   },
 };

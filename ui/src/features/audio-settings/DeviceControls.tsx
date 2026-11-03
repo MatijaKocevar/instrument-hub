@@ -22,11 +22,6 @@ export function DeviceControls({
   busy,
   onChange,
 }: DeviceControlsProps): ReactElement {
-  const devicesOfType = audio.devices.filter(
-    (device) => device.type === audio.deviceType,
-  );
-  const deviceOptions =
-    devicesOfType.length > 0 ? devicesOfType : audio.devices;
   const sampleRates = uniqueSorted(audio.sampleRates, audio.sampleRate);
   const bufferSizes = uniqueSorted(audio.bufferSizes, audio.bufferSize);
   const disabled = busy || onChange === undefined;
@@ -46,24 +41,6 @@ export function DeviceControls({
           {audio.deviceTypes.map((type) => (
             <option value={type} key={type}>
               {type}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="audio-settings__control">
-        <span>Device</span>
-        <select
-          data-testid="device-select"
-          value={audio.deviceName}
-          disabled={disabled}
-          onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-            onChange?.({ deviceName: event.target.value });
-          }}
-        >
-          {deviceOptions.map((device) => (
-            <option value={device.name} key={`${device.type}-${device.name}`}>
-              {device.name}
             </option>
           ))}
         </select>

@@ -1948,6 +1948,9 @@ components:
         name:
           type: string
           example: Steinberg UR22mkII
+        description:
+          type: string
+          description: A short human-readable description of the device.
         available:
           type: boolean
           description: Whether the device could be opened during enumeration.
@@ -2014,6 +2017,11 @@ components:
             type: string
         devices:
           type: array
+          items:
+            $ref: "#/components/schemas/AudioDevice"
+        rawDevices:
+          type: array
+          description: Every raw ALSA PCM behind the Advanced toggle.
           items:
             $ref: "#/components/schemas/AudioDevice"
         sampleRate:

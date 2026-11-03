@@ -47,12 +47,30 @@ juce::var audioStateToVar (const AudioStateSnapshot& audio)
         auto item = Routes::makeObject();
         item.getDynamicObject()->setProperty ("type", juce::String (device.type));
         item.getDynamicObject()->setProperty ("name", juce::String (device.name));
+        item.getDynamicObject()->setProperty ("description",
+                                              juce::String (device.description));
         item.getDynamicObject()->setProperty ("available", device.available);
         item.getDynamicObject()->setProperty ("reason", juce::String (device.reason));
         devices.add (item);
     }
 
     object->setProperty ("devices", juce::var (devices));
+
+    juce::Array<juce::var> rawDevices;
+
+    for (const auto& device : audio.rawDevices)
+    {
+        auto item = Routes::makeObject();
+        item.getDynamicObject()->setProperty ("type", juce::String (device.type));
+        item.getDynamicObject()->setProperty ("name", juce::String (device.name));
+        item.getDynamicObject()->setProperty ("description",
+                                              juce::String (device.description));
+        item.getDynamicObject()->setProperty ("available", device.available);
+        item.getDynamicObject()->setProperty ("reason", juce::String (device.reason));
+        rawDevices.add (item);
+    }
+
+    object->setProperty ("rawDevices", juce::var (rawDevices));
 
     object->setProperty ("sampleRate", audio.sampleRate);
     object->setProperty ("bufferSize", audio.bufferSize);

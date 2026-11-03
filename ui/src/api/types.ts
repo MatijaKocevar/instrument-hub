@@ -6,6 +6,7 @@ export type ControlSettings = components["schemas"]["Settings"];
 export type ControlTransport = components["schemas"]["Transport"];
 export type ControlTransportPatch = components["schemas"]["TransportPatch"];
 export type ControlAudioState = components["schemas"]["AudioState"];
+export type ControlAudioDevice = components["schemas"]["AudioDevice"];
 export type ControlAudioMeasurement = components["schemas"]["AudioMeasurement"];
 export type ControlAudioPatch = components["schemas"]["AudioPatch"];
 export type ControlAudioChannel = components["schemas"]["AudioChannel"];

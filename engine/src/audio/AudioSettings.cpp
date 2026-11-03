@@ -53,6 +53,7 @@ void AudioSettingsBridge::refreshDevices()
         CachedDevice cached;
         cached.type = info.typeName;
         cached.name = info.name;
+        cached.description = info.description;
         cached.available = info.available;
         cached.unavailableReason = info.unavailableReason;
         cached.hasInput = info.hasInput;

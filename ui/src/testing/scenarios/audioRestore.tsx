@@ -15,7 +15,7 @@ export function audioRestoreModelTest(): void {
   const stored = storedDevicePatch(AUDIO_FALLBACK);
 
   check(
-    stored?.deviceType === "ALSA" && stored.deviceName === "UR22mkII",
+    stored?.deviceType === "ALSA" && stored.deviceName === "Steinberg UR22mkII",
     "the fallback reason names the stored device",
   );
 
@@ -51,7 +51,7 @@ export function audioRestoreModelTest(): void {
   );
   check(
     fallbackHtml.includes(
-      'data-testid="audio-restore-reason">stored device &quot;UR22mkII&quot; is not available',
+      'data-testid="audio-restore-reason">stored device &quot;Steinberg UR22mkII&quot; is not available',
     ),
     "the notice shows the restore reason",
   );
@@ -91,6 +91,7 @@ export async function audioRestoreActionTest(): Promise<void> {
     });
 
     await store.refresh();
+    server.audio.deviceName = "Loopback";
     server.audio.restore = { ...AUDIO_FALLBACK.restore };
     await store.refresh();
 
@@ -119,7 +120,7 @@ export async function audioRestoreActionTest(): Promise<void> {
       "Use this device re-applies the stored device",
     );
     check(
-      server.audioRequests.at(-1)?.deviceName === "UR22mkII",
+      server.audioRequests.at(-1)?.deviceName === "Steinberg UR22mkII",
       "Use this device posts the stored device name",
     );
   } finally {

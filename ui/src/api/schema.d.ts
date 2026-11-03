@@ -1003,6 +1003,8 @@ export interface components {
             type: string;
             /** @example Steinberg UR22mkII */
             name: string;
+            /** @description A short human-readable description of the device. */
+            description?: string;
             /** @description Whether the device could be opened during enumeration. */
             available?: boolean;
             /** @description Why an unavailable device cannot be opened. */
@@ -1033,6 +1035,8 @@ export interface components {
             deviceName: string;
             deviceTypes: string[];
             devices: components["schemas"]["AudioDevice"][];
+            /** @description Every raw ALSA PCM behind the Advanced toggle. */
+            rawDevices?: components["schemas"]["AudioDevice"][];
             sampleRate: number;
             bufferSize: number;
             sampleRates: number[];

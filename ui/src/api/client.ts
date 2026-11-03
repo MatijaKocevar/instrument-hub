@@ -10,6 +10,7 @@ import { createStateEndpoints, type StateEndpoints } from "./state";
 
 export type {
   ControlAudioChannel,
+  ControlAudioDevice,
   ControlAudioMeasurement,
   ControlAudioPatch,
   ControlAudioState,

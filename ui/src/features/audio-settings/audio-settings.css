@@ -146,6 +146,131 @@
   opacity: 0.55;
 }
 
+.audio-settings__picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.audio-settings__picker-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.audio-settings__picker-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.audio-settings__advanced-toggle {
+  min-height: 40px;
+  border: 1px solid #4a4f63;
+  border-radius: 10px;
+  padding: 0 0.9rem;
+  background: #1c1e27;
+  color: #d9dde8;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.audio-settings__advanced-toggle[aria-expanded="true"] {
+  border-color: rgba(110, 231, 200, 0.5);
+  background: rgba(110, 231, 200, 0.1);
+  color: #b8fff0;
+}
+
+.audio-settings__device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.6rem;
+}
+
+.audio-settings__device-card {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 76px;
+  border: 1px solid #333849;
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  background: #101116;
+  color: #eceef4;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.audio-settings__device-card:not(:disabled):hover {
+  border-color: #5b6176;
+}
+
+.audio-settings__device-card[aria-checked="true"] {
+  border-color: rgba(110, 231, 200, 0.65);
+  background: rgba(110, 231, 200, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(110, 231, 200, 0.25);
+}
+
+.audio-settings__device-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.audio-settings__device-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.audio-settings__device-description {
+  color: #8b93a7;
+  font-size: 0.78rem;
+}
+
+.audio-settings__device-badge {
+  justify-self: start;
+  margin-top: 0.25rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  background: rgba(110, 231, 200, 0.16);
+  color: #6ee7c8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.audio-settings__device-reason {
+  margin-top: 0.25rem;
+  color: #ffc46e;
+  font-size: 0.75rem;
+}
+
+.audio-settings__advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px dashed #333849;
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: rgba(16, 17, 22, 0.6);
+}
+
+.audio-settings__advanced[hidden] {
+  display: none;
+}
+
+.audio-settings__advanced-note {
+  margin: 0;
+  color: #8b93a7;
+  font-size: 0.75rem;
+}
+
 .audio-settings__controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
