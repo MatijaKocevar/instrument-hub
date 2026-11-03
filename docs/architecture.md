@@ -256,8 +256,12 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   `scripts/run.sh`, which wraps the binary in `pw-jack` when available so
   `libjack.so.0` resolves to PipeWire; start or restart the app so the types
   are rescanned, then select the JACK client under `/audio`. A real `jackd`
-  works the same way when it is running. An ALSA `jack` PCM is a different
-  device and may also appear in the ALSA device list.
+  works the same way when it is running. The requested buffer size is applied
+  as PipeWire's `clock.force-quantum` while the JACK device is open, and the
+  previous value is restored when the device closes, so the desktop keeps its
+  default; changing the buffer size while JACK is open needs an app restart.
+  An ALSA `jack` PCM is a different device and may also appear in the ALSA
+  device list.
 - [AudioSettings.h](../engine/src/audio/AudioSettings.h) /
   [AudioSettings.cpp](../engine/src/audio/AudioSettings.cpp) — the Audio page's
   device and latency bridge. Device selection, the `/audio` snapshot, patch

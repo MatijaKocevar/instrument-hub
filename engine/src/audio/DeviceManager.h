@@ -2,6 +2,8 @@
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
+#include "audio/device/PipeWireQuantum.h"
+
 #include <vector>
 
 namespace AudioEngine
@@ -153,6 +155,7 @@ private:
     bool initialised = false;
 
     DeviceListOptions listOptions;
+    detail::PipeWireQuantum jackQuantum;
     std::vector<DeviceInfo> cardCache;
     bool cardCacheValid = false;
     juce::String currentDisplayName;

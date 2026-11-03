@@ -154,6 +154,7 @@ set(IHUB_DEVICE_MANAGER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceRawList.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceState.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceTypeCards.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/PipeWireQuantum.cpp"
 )
 
 set(IHUB_LATENCY_PROBE_SOURCES
