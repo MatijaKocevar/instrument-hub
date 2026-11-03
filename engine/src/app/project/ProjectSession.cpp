@@ -104,28 +104,59 @@ bool loadProjectSession (const juce::File& projectFile,
         return false;
     }
 
-    config.slots.assign (maximumProjectSlots, SessionSlotConfig {});
+    config.layout = document.layout == Controller::MappingLayout::tracks
+                        ? SessionLayout::tracks
+                        : SessionLayout::families;
+    config.warmSlots.clear();
 
-    for (int pad = 0; pad < Controller::SetMapping::maximumPads; ++pad)
+    if (config.layout == SessionLayout::tracks)
     {
-        const auto* binding = document.padBinding (pad);
+        config.slots.assign (Controller::SetMapping::maximumTracks,
+                             SessionSlotConfig {});
 
-        if (binding == nullptr)
-            continue;
+        for (const auto& track : document.tracks)
+        {
+            if (track.slot < 0
+                || track.slot >= Controller::SetMapping::maximumTracks)
+                continue;
 
-        const auto* instrument = document.instrumentFor (*binding);
+            auto& slot = config.slots[static_cast<std::size_t> (track.slot)];
+            slot = SessionSlotConfig {};
+            slot.name = track.name;
+            slot.family = track.id;
+            slot.familyName = track.name;
+            slot.patch = track.id;
+            slot.patchName = track.name;
+            slot.colorIndex = 14;
 
-        if (instrument == nullptr)
-            continue;
+            config.warmSlots.push_back (track.slot);
+        }
+    }
+    else
+    {
+        config.slots.assign (maximumProjectSlots, SessionSlotConfig {});
 
-        const int slotIndex = instrument->slot >= 0 ? instrument->slot : binding->slot;
+        for (int pad = 0; pad < Controller::SetMapping::maximumPads; ++pad)
+        {
+            const auto* binding = document.padBinding (pad);
 
-        if (slotIndex < 0 || slotIndex >= maximumProjectSlots)
-            continue;
+            if (binding == nullptr)
+                continue;
 
-        auto& slot = config.slots[static_cast<std::size_t> (slotIndex)];
-        slot = SessionSlotConfig {};
-        importMappingSlot (*instrument, *binding, document, slot);
+            const auto* instrument = document.instrumentFor (*binding);
+
+            if (instrument == nullptr)
+                continue;
+
+            const int slotIndex = instrument->slot >= 0 ? instrument->slot : binding->slot;
+
+            if (slotIndex < 0 || slotIndex >= maximumProjectSlots)
+                continue;
+
+            auto& slot = config.slots[static_cast<std::size_t> (slotIndex)];
+            slot = SessionSlotConfig {};
+            importMappingSlot (*instrument, *binding, document, slot);
+        }
     }
 
     for (const auto& source : set.slots)

@@ -118,7 +118,8 @@ SessionStartup startSession (const juce::String& commandLine,
         else
         {
             std::cout << "project: loaded " << projectFile.getFullPathName()
-                      << " (" << config.slots.size() << " slots)" << std::endl;
+                      << " (" << config.slots.size() << " slots, "
+                      << ihub::toString (config.layout) << " layout)" << std::endl;
         }
     }
 

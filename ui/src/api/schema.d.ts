@@ -484,7 +484,7 @@ export interface paths {
          *         { "index": 0, "pressed": false, "updatedMs": 0.0 },
          *         { "index": 3, "pressed": true, "updatedMs": 1400.5 }
          *       ],
-         *       "state": { "schemaVersion": 1, "revision": 8, "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
+         *       "state": { "schemaVersion": 1, "revision": 8, "layout": "families", "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
          *     }
          *     ```
          */
@@ -992,6 +992,11 @@ export interface components {
              */
             revision: number;
             application: components["schemas"]["Application"];
+            /**
+             * @description The session layout; legacy projects use families, new projects use tracks.
+             * @enum {string}
+             */
+            layout?: "families" | "tracks";
             /** @description Armed slot index, or -1 when disarmed. */
             armedSlot: number;
             /** @description Milliseconds since the API state was created. */

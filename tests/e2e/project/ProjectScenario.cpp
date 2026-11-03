@@ -4,11 +4,12 @@
 
 #include "Session.h"
 #include "SessionConfig.h"
-#include "app/ProjectSetup.h"
+#include "app/project/ProjectImport.h"
+#include "app/project/ProjectSession.h"
+#include "project/Serializer.h"
 
 #include <juce_core/juce_core.h>
 
-#include <cstdlib>
 #include <string>
 
 #ifndef IHUB_SHARED_SET_YAML
@@ -25,21 +26,21 @@ void runProjectScenario()
     directory.createDirectory();
 
     const auto projectFile = directory.getChildFile ("Live.ihub");
-
-    setenv ("INSTRUMENT_HUB_SET", IHUB_SHARED_SET_YAML, 1);
+    const auto mappingFile = juce::File (IHUB_SHARED_SET_YAML);
 
     juce::String error;
-    bool created = false;
+    ihub::project::SetFile starter;
 
-    E2E::check (ihub::app::ensureProjectFile (projectFile, error, &created),
-                "the project starts from the bundled set: " + error.toStdString());
-
-    if (! created)
-    {
-        E2E::check (false, "the project scenario imports a fresh container");
-        directory.deleteRecursively();
-        return;
-    }
+    E2E::check (ihub::app::importBundledSet (
+                    mappingFile,
+                    mappingFile.getSiblingFile ("set.plugin-state"),
+                    mappingFile.getSiblingFile ("set.sources.json"),
+                    starter,
+                    error),
+                "the starter set imports for the legacy project: "
+                    + error.toStdString());
+    E2E::check (ihub::project::Serializer::save (starter, projectFile, error),
+                "the legacy starter project saves: " + error.toStdString());
 
     ihub::SessionConfig config;
 
@@ -60,8 +61,8 @@ void runProjectScenario()
     const auto& slots = session.getSlotConfigs();
 
     E2E::check (! slots.empty() && slots[0].family == "keys"
-                    && slots[0].patch == "piano" && slots[0].colorIndex == 1,
-                "slot 0 stays keys/piano on colour 1");
+                    && slots[0].patch == "piano" && slots[0].colorIndex == 0,
+                "slot 0 stays keys/piano on colour 0");
 
     int pluginStates = 0;
 

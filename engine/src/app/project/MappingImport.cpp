@@ -63,6 +63,29 @@ void importInstrument (const Controller::InstrumentSpec& instrument,
 void importMappingPatches (const Controller::SetMapping& document,
                            std::map<int, project::SlotConfig>& slots)
 {
+    if (document.layout == Controller::MappingLayout::tracks)
+    {
+        for (const auto& track : document.tracks)
+        {
+            if (track.slot < 0 || track.slot >= maximumProjectSlots)
+                continue;
+
+            auto& slot = slots[track.slot];
+            slot = project::SlotConfig {};
+            slot.index = track.slot;
+            slot.active = track.slot == 0;
+            slot.name = track.name;
+            slot.colorIndex = 14;
+            slot.colour = colourForIndex (14);
+            slot.instrument.kind = project::SourceKind::empty;
+            slot.instrument.id = track.id;
+            slot.instrument.name.clear();
+            slot.instrument.gain = slot.gain;
+        }
+
+        return;
+    }
+
     for (int pad = 0; pad < Controller::SetMapping::maximumPads; ++pad)
     {
         const auto* binding = document.padBinding (pad);

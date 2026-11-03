@@ -57,6 +57,10 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     if (config.slots.empty())
         config.slots = makeDefaultSet();
 
+    if (config.layout == SessionLayout::tracks && config.warmSlots.empty())
+        for (int slot = 0; slot < static_cast<int> (config.slots.size()); ++slot)
+            config.warmSlots.push_back (slot);
+
     if (config.device.sampleRate <= 0.0)
         config.device.sampleRate = 48000.0;
 

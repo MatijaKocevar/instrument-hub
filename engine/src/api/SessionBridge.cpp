@@ -140,6 +140,9 @@ bool toFxInsertConfig (const FxInsertRequest& request,
 
 void attachSession (StateStore& state, Server& server, ihub::Session& session)
 {
+    state.setNumSlots (session.getNumSlots());
+    state.setLayout (ihub::toString (session.getLayout()));
+
     const auto& slotConfigs = session.getSlotConfigs();
     const double sampleRate = session.getEngine().getSampleRate();
 

@@ -103,6 +103,7 @@ public:
     float getMasterMeterPeak() const noexcept;
 
     const SessionConfig& getConfig() const noexcept { return config; }
+    SessionLayout getLayout() const noexcept { return config.layout; }
     const std::vector<SessionSlotConfig>& getSlotConfigs() const noexcept
     {
         return config.slots;

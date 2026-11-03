@@ -215,13 +215,13 @@ int main()
 
     if (piano != nullptr && pianoBinding != nullptr)
     {
-        check (piano->colorIndex == 1,
-               "keys/piano carries a patch colour override");
+        check (piano->colorIndex == -1,
+               "keys/piano inherits the family colour");
         check (document.families.at ("keys").colorIndex == 0,
                "the keys family declares the default colour");
-        check (piano->resolvedColorIndex == 1,
-               "the patch override wins over the family default");
-        check (document.colorIndexFor (*pianoBinding) == 1,
+        check (piano->resolvedColorIndex == 0,
+               "the family default resolves for keys/piano");
+        check (document.colorIndexFor (*pianoBinding) == 0,
                "the mapping reports the resolved patch colour");
         check (nearlyEqual (piano->volumeDb, -2.5f),
                "keys/piano persists its volume");
@@ -315,8 +315,8 @@ int main()
                 const auto* second = slots->getReference (1).getDynamicObject();
 
                 check (first != nullptr
-                           && static_cast<int> (first->getProperty ("colorIndex")) == 1,
-                       "the patch colour override is in set.json");
+                           && static_cast<int> (first->getProperty ("colorIndex")) == 0,
+                       "the resolved patch colour is in set.json");
                 check (first != nullptr
                            && nearlyEqual (static_cast<float> (first->getProperty ("pan")),
                                           -0.15f),
@@ -372,7 +372,7 @@ int main()
            "the loaded patch keeps its volume");
     check (nearlyEqual (loaded.slots[0].pan, -0.15f),
            "the loaded patch keeps its pan");
-    check (loaded.slots[0].colorIndex == 1,
+    check (loaded.slots[0].colorIndex == 0,
            "the loaded patch keeps its resolved colour");
 
     AudioEngine::AudioEngine engine (64);

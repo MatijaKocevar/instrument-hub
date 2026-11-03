@@ -111,6 +111,7 @@ target_sources(instrument-hub
         src/api/state/StateStoreFx.cpp
         src/api/state/StateStorePatchSource.cpp
         src/api/state/StateStorePatches.cpp
+        src/api/state/StateStoreSession.cpp
         src/api/state/StateStoreSettings.cpp
         src/api/state/StateStoreSettingsPersistence.cpp
         src/api/state/StateStoreTransport.cpp

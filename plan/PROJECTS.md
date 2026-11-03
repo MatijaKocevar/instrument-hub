@@ -28,7 +28,7 @@ calls them.
 
 - `--project <path>` wins; otherwise the last opened project from app
   settings; otherwise `~/Music/Instrument Hub/Untitled.ihub`, created from
-  the blank template `shared/blank-set.yaml` on first launch.
+  the blank eight-track template `shared/tracks-set.yaml` on first launch.
 - `shared/set.yaml` plus `shared/set.plugin-state/` are the optional Starter
   Set: **import-only**, converted into one `.ihub` when opened, and the app
   never writes YAML again.

@@ -54,6 +54,17 @@ const char* toString (SessionWarmState state) noexcept
     return "cold";
 }
 
+const char* toString (SessionLayout layout) noexcept
+{
+    switch (layout)
+    {
+        case SessionLayout::families: return "families";
+        case SessionLayout::tracks:   return "tracks";
+    }
+
+    return "families";
+}
+
 Session::Session()
 {
     config.slots = makeDefaultSet();

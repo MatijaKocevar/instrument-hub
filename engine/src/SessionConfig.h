@@ -38,6 +38,14 @@ enum class SessionWarmState
 
 const char* toString (SessionWarmState state) noexcept;
 
+enum class SessionLayout
+{
+    families,
+    tracks
+};
+
+const char* toString (SessionLayout layout) noexcept;
+
 struct SessionSlotConfig
 {
     std::string name;
@@ -95,6 +103,8 @@ struct SessionConfig
 {
     SessionDeviceConfig device;
     std::vector<SessionSlotConfig> slots;
+
+    SessionLayout layout = SessionLayout::families;
 
     float fadeMilliseconds = 3.0f;
 

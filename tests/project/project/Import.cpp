@@ -58,16 +58,23 @@ void runImportChecks()
     check (ihub::project::Serializer::load (projectFile, set, error),
            "the imported project loads: " + error.toStdString());
 
-    const auto blankFile = bundledMappingFile().getSiblingFile ("blank-set.yaml");
-    check (blankFile.existsAsFile(), "the blank mapping template exists");
+    const auto tracksFile = bundledTracksSetFile();
+    check (tracksFile.existsAsFile(), "the track mapping template exists");
 
-    check (set.slots.size() == 64,
-           "the blank project carries 64 patches (got "
+    check (set.slots.size() == 8,
+           "the blank project carries eight tracks (got "
                + std::to_string (set.slots.size()) + ")");
     check (! set.mappingYaml.empty(), "the project keeps the raw mapping YAML");
-    check (set.mappingYaml == blankFile.loadFileAsString().toStdString(),
-           "mapping.yaml is the blank template byte for byte");
+    check (set.mappingYaml == tracksFile.loadFileAsString().toStdString(),
+           "mapping.yaml is the track template byte for byte");
     check (set.pluginStates.empty(), "a blank project carries no plugin state");
+
+    for (int index = 0; index < 8; ++index)
+    {
+        check (index < static_cast<int> (set.slots.size())
+                   && set.slots[static_cast<std::size_t> (index)].index == index,
+               "the blank project keeps track slot " + std::to_string (index));
+    }
 
     if (! set.slots.empty())
     {
@@ -75,6 +82,10 @@ void runImportChecks()
                "slot 0 starts with no source");
         check (set.slots[0].instrument.name.empty(),
                "slot 0 starts without a patch name");
+        check (set.slots[0].name == "Track 1",
+               "slot 0 starts with its track name");
+        check (set.slots[0].fxChain.empty(),
+               "slot 0 starts without FX");
     }
 
     ihub::project::SetFile bundled;
