@@ -13,12 +13,13 @@ export interface RefreshDeps {
 export async function refreshSnapshot(deps: RefreshDeps): Promise<boolean> {
   if (deps.getSnapshot().state === null) deps.patch({ phase: "connecting" });
 
-  const [stateResult, audioResult, pairingResult, midiResult] =
+  const [stateResult, audioResult, pairingResult, midiResult, projectResult] =
     await Promise.allSettled([
       deps.api.getState(),
       deps.api.getAudio(),
       deps.api.getPairing(),
       deps.api.getMidi(),
+      deps.api.getProject(),
     ]);
 
   if (stateResult.status === "rejected") {
@@ -59,6 +60,9 @@ export async function refreshSnapshot(deps: RefreshDeps): Promise<boolean> {
     ...(midiResult.status === "fulfilled"
       ? { midi: midiResult.value, midiError: null }
       : { midiError: messageOf(midiResult.reason) }),
+    ...(projectResult.status === "fulfilled"
+      ? { project: projectResult.value, projectError: null }
+      : { projectError: messageOf(projectResult.reason) }),
     error: null,
     unauthorized: false,
     failedAttempts: 0,

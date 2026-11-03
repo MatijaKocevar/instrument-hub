@@ -70,6 +70,58 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /project:
+    get:
+      tags: [state]
+      operationId: getProject
+      summary: Read the project lifecycle
+      description: |
+        Returns the running `.ihub` project's path, name and dirty state plus
+        the recent project list from app settings.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Current project and recent projects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectOverview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [state]
+      operationId: updateProject
+      summary: New, open, save, save-as or close a project
+      description: |
+        Every action writes through the project autosave path. `new` and
+        `open` rebuild the session, so the grid, instruments and mixer follow
+        the selected project. `close` flushes pending edits and detaches the
+        autosave target without stopping audio.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectCommand"
+      responses:
+        "200":
+          description: The project lifecycle after the command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectOverview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /arm:
     post:
       tags: [control]
@@ -1920,6 +1972,62 @@ components:
         error:
           type: string
           description: The last save error, empty when the last write succeeded.
+
+    ProjectEntry:
+      type: object
+      required: [path, name]
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+          description: Absolute path of a recent `.ihub` project.
+        name:
+          type: string
+          description: Project name derived from the file name.
+
+    ProjectOverview:
+      type: object
+      required: [path, name, dirty, saved, error, recent]
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+          description: Absolute path of the open `.ihub` project, empty when closed.
+        name:
+          type: string
+          description: Project name, derived from the file name.
+        dirty:
+          type: boolean
+          description: An accepted edit is waiting for the debounced write.
+        saved:
+          type: boolean
+          description: The last project write succeeded.
+        error:
+          type: string
+          description: The last save or lifecycle error, empty on success.
+        recent:
+          type: array
+          description: Recently opened projects, newest first.
+          items:
+            $ref: "#/components/schemas/ProjectEntry"
+
+    ProjectCommand:
+      type: object
+      required: [action]
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          enum: [new, open, save, save-as, close]
+          description: The lifecycle action to perform.
+        path:
+          type: string
+          description: |
+            Absolute path for `open` and `save-as`; optional for `new`,
+            which chooses the next untitled path when omitted.
+        name:
+          type: string
+          description: Optional display name for `new`.
 
     AudioChannel:
       type: object

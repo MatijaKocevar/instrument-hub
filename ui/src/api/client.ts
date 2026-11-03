@@ -5,6 +5,7 @@ import { createFxEndpoints, type FxEndpoints } from "./fx";
 import { createMidiEndpoints, type MidiEndpoints } from "./midi";
 import { createPairingEndpoints, type PairingEndpoints } from "./pairing";
 import { createPluginEndpoints, type PluginEndpoints } from "./plugins";
+import { createProjectEndpoints, type ProjectEndpoints } from "./project";
 import type { paths } from "./schema";
 import { createStateEndpoints, type StateEndpoints } from "./state";
 
@@ -33,6 +34,8 @@ export type {
   ControlPatchUpdate,
   ControlPlugin,
   ControlPluginList,
+  ControlProjectCommand,
+  ControlProjectOverview,
   ControlSettings,
   ControlSlot,
   ControlState,
@@ -68,7 +71,8 @@ export interface ControlApi
     PluginEndpoints,
     MidiEndpoints,
     AudioEndpoints,
-    PairingEndpoints {
+    PairingEndpoints,
+    ProjectEndpoints {
   readonly baseUrl: string;
 
   readonly token: string | null;
@@ -136,5 +140,6 @@ export function createControlApi(options: ControlApiOptions): ControlApi {
     ...createMidiEndpoints(client, guard),
     ...createAudioEndpoints(client, guard),
     ...createPairingEndpoints(client, guard),
+    ...createProjectEndpoints(client, guard),
   };
 }

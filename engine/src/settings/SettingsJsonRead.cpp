@@ -1,5 +1,8 @@
 #include "settings/SettingsJson.h"
 
+#include "settings/ProjectHistory.h"
+
+#include <algorithm>
 #include <cmath>
 #include <utility>
 
@@ -105,6 +108,60 @@ void readInputs (const juce::var& value, MidiSettings& midi)
     }
 }
 
+void readRecentProjects (const juce::var& value, ProjectSettings& project)
+{
+    const auto* array = value.getArray();
+
+    if (array == nullptr)
+        return;
+
+    for (const auto& item : *array)
+    {
+        const auto* object = item.getDynamicObject();
+
+        if (object == nullptr)
+            continue;
+
+        juce::String path;
+        juce::String name;
+
+        if (! readString (object->getProperty ("path"), path) || path.isEmpty())
+            continue;
+
+        readString (object->getProperty ("name"), name);
+
+        const bool duplicate = std::any_of (project.recent.begin(),
+                                            project.recent.end(),
+                                            [&path] (const RecentProject& entry)
+                                            {
+                                                return entry.path == path;
+                                            });
+
+        if (duplicate)
+            continue;
+
+        project.recent.push_back ({ path, name.isNotEmpty() ? name
+                                                            : projectNameForPath (path) });
+
+        if (project.recent.size() >= maximumRecentProjects)
+            break;
+    }
+}
+
+void readProject (const juce::var& value, ProjectSettings& project)
+{
+    const auto* object = value.getDynamicObject();
+
+    if (object == nullptr)
+        return;
+
+    readString (object->getProperty ("lastPath"), project.lastPath);
+    readRecentProjects (object->getProperty ("recent"), project);
+
+    if (project.lastPath.isEmpty() && ! project.recent.empty())
+        project.lastPath = project.recent.front().path;
+}
+
 void readAccount (const juce::var& value, AccountSettings& account)
 {
     const auto* object = value.getDynamicObject();
@@ -138,6 +195,7 @@ void applyDocument (const juce::var& document, Settings& settings)
         readInputs (midiObject->getProperty ("enabledInputs"), settings.midi);
 
     readAccount (root->getProperty ("account"), settings.account);
+    readProject (root->getProperty ("project"), settings.project);
 }
 
 }

@@ -23,6 +23,7 @@ import {
 import { midiModelTest, midiPageTest } from "./scenarios/midi";
 import { pairingTest, qrTest } from "./scenarios/pairing";
 import { pluginsModelTest, pluginsPageTest } from "./scenarios/plugins";
+import { projectTest } from "./scenarios/project";
 import {
   remoteBannerTest,
   remoteContrastTest,
@@ -78,6 +79,7 @@ async function main(): Promise<void> {
   instrumentPluginEditorTest();
   pluginsModelTest();
   await pluginsPageTest();
+  await projectTest();
 
   const failures = failureCount();
 

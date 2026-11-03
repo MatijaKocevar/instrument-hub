@@ -77,7 +77,13 @@ deletes it. The pairing code itself is ephemeral.
   },
   "mixer": { "masterGain": 0.8, "inputGain": 1.0, "midiChannel": 1, "metronome": false },
   "midi": { "enabledInputs": [ { "client": "Keystation Mini 32 MK3", "port": "Keystation Mini 32 MK3 MIDI 1" } ] },
-  "account": { "lanEnabled": false, "pairingToken": "…" }
+  "account": { "lanEnabled": false, "pairingToken": "…" },
+  "project": {
+    "lastPath": "/home/you/Music/Instrument Hub/Untitled.ihub",
+    "recent": [
+      { "path": "/home/you/Music/Instrument Hub/Untitled.ihub", "name": "Untitled" }
+    ]
+  }
 }
 ```
 

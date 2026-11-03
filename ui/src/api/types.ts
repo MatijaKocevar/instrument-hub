@@ -19,6 +19,8 @@ export type ControlPatchStateCapture =
   components["schemas"]["PatchStateCapture"];
 export type ControlPatchSourceRequest =
   components["schemas"]["PatchSourceRequest"];
+export type ControlProjectOverview = components["schemas"]["ProjectOverview"];
+export type ControlProjectCommand = components["schemas"]["ProjectCommand"];
 export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
 export type ControlFxChain = components["schemas"]["FxChain"];
 export type ControlFxInsert = components["schemas"]["FxInsert"];

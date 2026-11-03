@@ -405,6 +405,121 @@ body {
   gap: 0.85rem;
 }
 
+.app__project {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.app__project-name {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cfd5e6;
+  font-weight: 600;
+}
+
+.app__project-dirty {
+  width: 0.75rem;
+  color: #f2b84b;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.app__project-action {
+  min-height: 30px;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid #2f3141;
+  border-radius: 0.45rem;
+  background: #181a23;
+  color: #cfd5e6;
+  font: inherit;
+  cursor: pointer;
+  list-style: none;
+}
+
+.app__project-action:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.app__project-open {
+  position: relative;
+}
+
+.app__project-open > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app__project-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.45rem);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 22rem;
+  padding: 0.75rem;
+  border: 1px solid #2f3141;
+  border-radius: 0.65rem;
+  background: #12141c;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 45%);
+}
+
+.app__project-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app__project-recent-item {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: #cfd5e6;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app__project-recent-item:hover {
+  background: #1e2130;
+}
+
+.app__project-empty {
+  margin: 0;
+  color: #7e859a;
+}
+
+.app__project-path {
+  min-height: 32px;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid #2f3141;
+  border-radius: 0.45rem;
+  background: #0e1016;
+  color: #e7eaf3;
+  font: inherit;
+}
+
+.app__project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.app__project-error {
+  margin: 0;
+  color: #f28b82;
+}
+
 .shell__link--footer {
   min-height: 32px;
   padding: 0.3rem 0.55rem;

@@ -28,62 +28,7 @@ void ControllerSurface::start (Api::StateStore* state,
     midiBridge = bridge;
 
     if (projectFile.existsAsFile())
-    {
-        mapping = std::make_unique<Controller::Mapping>();
-
-        Controller::Mapping::Listeners mappingListeners;
-
-        mappingListeners.armSlot = [this] (int slot)
-        {
-            if (slot >= 0 && apiState != nullptr)
-            {
-                (void) apiState->setArmedSlot (slot);
-                refreshLeds();
-            }
-        };
-
-        mappingListeners.padEvent = [this] (int,
-                                            const Controller::PadBinding*,
-                                            bool)
-        {
-            refreshLeds();
-        };
-
-        mappingListeners.bankEvent = [this] (int bank,
-                                             const Controller::MacroBankSpec*)
-        {
-            if (launchpad == nullptr)
-                return;
-
-            for (int index = 0; index < Launchpad::topRowCount; ++index)
-                launchpad->setButtonState (
-                    Launchpad::topRowCCForIndex (index),
-                    index == bank ? Controller::PadState::active
-                                  : Controller::PadState::idle);
-        };
-
-        mappingListeners.sceneEvent = [this] (int scene,
-                                              const Controller::SceneSpec*)
-        {
-            if (launchpad == nullptr)
-                return;
-
-            for (int index = 0; index < Launchpad::rightColumnCount; ++index)
-                launchpad->setButtonState (
-                    Launchpad::rightColumnCCForIndex (index),
-                    index == scene ? Controller::PadState::active
-                                   : Controller::PadState::idle);
-        };
-
-        mapping->setListeners (std::move (mappingListeners));
-
-        Controller::MappingError error;
-
-        if (! mapping->loadProject (projectFile.getFullPathName().toStdString(), &error))
-            std::cerr << "mapping: " << error.message << std::endl;
-        else
-            mapping->startWatching();
-    }
+        loadProjectFile (projectFile);
 
     launchpad = std::make_unique<Controller::LaunchpadDriver>();
 
@@ -110,6 +55,77 @@ void ControllerSurface::start (Api::StateStore* state,
         std::cerr << "controller: " << launchpad->getLastError() << std::endl;
     else
         refreshLeds();
+}
+
+void ControllerSurface::loadProjectFile (const juce::File& projectFile)
+{
+    createMapping();
+
+    mapping->stopWatching();
+
+    Controller::MappingError error;
+
+    if (! mapping->loadProject (projectFile.getFullPathName().toStdString(), &error))
+    {
+        std::cerr << "mapping: " << error.message << std::endl;
+        return;
+    }
+
+    mapping->startWatching();
+}
+
+void ControllerSurface::createMapping()
+{
+    if (mapping != nullptr)
+        return;
+
+    mapping = std::make_unique<Controller::Mapping>();
+
+    Controller::Mapping::Listeners mappingListeners;
+
+    mappingListeners.armSlot = [this] (int slot)
+    {
+        if (slot >= 0 && apiState != nullptr)
+        {
+            (void) apiState->setArmedSlot (slot);
+            refreshLeds();
+        }
+    };
+
+    mappingListeners.padEvent = [this] (int,
+                                        const Controller::PadBinding*,
+                                        bool)
+    {
+        refreshLeds();
+    };
+
+    mappingListeners.bankEvent = [this] (int bank,
+                                         const Controller::MacroBankSpec*)
+    {
+        if (launchpad == nullptr)
+            return;
+
+        for (int index = 0; index < Launchpad::topRowCount; ++index)
+            launchpad->setButtonState (
+                Launchpad::topRowCCForIndex (index),
+                index == bank ? Controller::PadState::active
+                              : Controller::PadState::idle);
+    };
+
+    mappingListeners.sceneEvent = [this] (int scene,
+                                          const Controller::SceneSpec*)
+    {
+        if (launchpad == nullptr)
+            return;
+
+        for (int index = 0; index < Launchpad::rightColumnCount; ++index)
+            launchpad->setButtonState (
+                Launchpad::rightColumnCCForIndex (index),
+                index == scene ? Controller::PadState::active
+                               : Controller::PadState::idle);
+    };
+
+    mapping->setListeners (std::move (mappingListeners));
 }
 
 void ControllerSurface::refreshLeds()

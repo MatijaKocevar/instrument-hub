@@ -11,6 +11,8 @@ set(IHUB_API_ROUTES_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PairingSerialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PatchRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PluginRoutes.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/ProjectRoutes.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/ProjectSerialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/RouteHelpers.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/StateRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/StateSerialization.cpp"
@@ -44,6 +46,7 @@ set(IHUB_RT_GUARD_SOURCES
 set(IHUB_SETTINGS_STORE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/MidiInputNames.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/ProjectHistory.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
@@ -4088,6 +4091,108 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
 else()
     message(STATUS "ihub-multipatch-batch-test: Linux VST3 hosting; skipping")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    juce_add_console_app(ihub-project-lifecycle-api-test
+        PRODUCT_NAME "ihub-project-lifecycle-api-test"
+    )
+
+    target_sources(ihub-project-lifecycle-api-test
+        PRIVATE
+            api/ProjectLifecycleTest.cpp
+            api/JsonSupport.cpp
+            api/SessionRig.cpp
+            api/TestSupport.cpp
+            api/project/ProjectFixtures.cpp
+            api/project/History.cpp
+            api/project/ProjectLifecycle.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectAutosave.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectCapture.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectImport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectLifecycle.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectLifecycleOpen.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectLifecycleSave.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectPaths.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SourceImport.cpp"
+            ${IHUB_PROJECT_SOURCES}
+            ${IHUB_MAPPING_SOURCES}
+            ${IHUB_SESSION_SOURCES}
+            ${IHUB_DISCOVERY_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+            ${IHUB_API_ROUTES_SOURCES}
+            ${IHUB_API_SERVER_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+            ${IHUB_BUS_SOURCES}
+            ${IHUB_DEVICE_MANAGER_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+            ${IHUB_FX_RACK_SOURCES}
+            ${IHUB_LATENCY_PROBE_SOURCES}
+            ${IHUB_RT_GUARD_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+            ${IHUB_WARM_POOL_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
+            ${IHUB_SAMPLER_SOURCES}
+    )
+
+    target_include_directories(ihub-project-lifecycle-api-test
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+    )
+
+    target_compile_definitions(ihub-project-lifecycle-api-test
+        PRIVATE
+            JUCE_PLUGINHOST_VST3=1
+            JUCE_MODAL_LOOPS_PERMITTED=1
+            "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+    )
+
+    target_link_libraries(ihub-project-lifecycle-api-test
+        PRIVATE
+            Threads::Threads
+            ihub-httplib
+            juce::juce_audio_devices
+            juce::juce_audio_formats
+            juce::juce_audio_processors_headless
+            juce::juce_core
+            juce::juce_dsp
+            juce::juce_events
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    set_target_properties(ihub-project-lifecycle-api-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_test(
+        NAME ihub-project-lifecycle-api
+        COMMAND ihub-project-lifecycle-api-test
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+else()
+    message(STATUS "ihub-project-lifecycle-api-test: needs the Linux VST3 host; skipping")
 endif()
 
 get_property(IHUB_ALL_TESTS DIRECTORY PROPERTY TESTS)

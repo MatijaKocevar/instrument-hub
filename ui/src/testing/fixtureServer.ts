@@ -74,6 +74,12 @@ export async function startFixtureServer(
     get midi() {
       return context.midi;
     },
+    get project() {
+      return context.project;
+    },
+    get projectRequests() {
+      return context.projectRequests;
+    },
     get chain() {
       return context.chainFor(3);
     },

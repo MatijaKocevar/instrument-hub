@@ -41,6 +41,10 @@ public:
 
     bool saveNow (juce::String* error = nullptr, bool force = false);
 
+    void suspend();
+    void resume();
+    void shutdown();
+
     Api::ProjectSaveState getState() const;
 
     int getSaveCount() const noexcept;
@@ -52,12 +56,15 @@ private:
     void notifyStateChanged();
 
     mutable std::mutex mutex;
+    mutable std::mutex operationMutex;
     const juce::File file;
     const int debounceMs;
 
     CaptureHandler capture;
     StateChangedHandler stateChanged;
 
+    bool active = true;
+    bool suspended = false;
     bool dirty = false;
     bool saved = false;
     std::string error;

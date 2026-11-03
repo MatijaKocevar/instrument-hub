@@ -1,8 +1,7 @@
 #include "ControlApi.h"
 
 #include "CommandLine.h"
-#include "project/ProjectAutosave.h"
-#include "project/ProjectCapture.h"
+#include "project/ProjectLifecycle.h"
 
 #include "Session.h"
 #include "api/MidiBridge.h"
@@ -11,12 +10,10 @@
 #include "api/SessionBridge.h"
 #include "audio/AudioSettings.h"
 #include "plugins/PluginInventory.h"
-#include "project/Serializer.h"
 #include "settings/SettingsStore.h"
 
 #include <iostream>
 #include <utility>
-#include <vector>
 
 namespace ihub::app
 {
@@ -37,7 +34,9 @@ bool ControlApi::start (const juce::String& commandLine,
                         const juce::File& projectFile,
                         std::function<void()> midiRestore,
                         ihub::settings::SettingsStore* settings,
-                        const Api::AudioRestoreState& audioRestore)
+                        const Api::AudioRestoreState& audioRestore,
+                        bool persistProjectPath,
+                        std::function<void (const juce::File&)> projectOpened)
 {
     Api::Server::Options options;
 
@@ -101,64 +100,23 @@ bool ControlApi::start (const juce::String& commandLine,
         Api::attachSession (*apiState, *apiServer, *session);
         audioSettings->setTimingMonitor (&session->getEngine().getTimingMonitor());
 
+        projectLifecycle = std::make_unique<ProjectLifecycle> (*session,
+                                                               *apiState,
+                                                               *apiServer,
+                                                               settings);
+        projectLifecycle->setOpenedHandler (std::move (projectOpened));
+
         if (projectFile != juce::File())
         {
-            auto base = std::make_shared<ihub::project::SetFile>();
             juce::String projectError;
 
-            if (ihub::project::Serializer::load (projectFile, *base, projectError))
-            {
-                projectAutosave = std::make_unique<ProjectAutosave> (projectFile);
-
-                auto* autosave = projectAutosave.get();
-                auto* state = apiState.get();
-
-                projectAutosave->setCaptureHandler (
-                    [session, state, base] (ihub::project::SetFile& set,
-                                            const std::vector<int>& touchedSlots,
-                                            juce::String& error)
-                    {
-                        return captureProject (*session, *state, *base, touchedSlots,
-                                               set, error);
-                    });
-
-                projectAutosave->setStateChangedHandler ([state]
-                {
-                    state->notifyProjectStateChanged();
-                });
-
-                state->setEditHandler ([autosave] (const char* kind, int slot)
-                {
-                    autosave->noteEdit (kind, slot);
-                });
-
-                state->setProjectStateProvider ([autosave]
-                {
-                    return autosave->getState();
-                });
-
+            if (projectLifecycle->attach (projectFile, persistProjectPath,
+                                          projectError))
                 std::cout << "project: autosave targets "
                           << projectFile.getFullPathName() << std::endl;
-            }
             else
-            {
-                std::cerr << "project: autosave is off: "
-                          << projectError << std::endl;
-
-                const auto path = projectFile.getFullPathName().toStdString();
-                const auto name = projectFile.getFileNameWithoutExtension().toStdString();
-                const auto message = projectError.toStdString();
-
-                apiState->setProjectStateProvider ([path, name, message]
-                {
-                    Api::ProjectSaveState state;
-                    state.path = path;
-                    state.name = name;
-                    state.saved = false;
-                    state.error = message;
-                    return state;
-                });
-            }
+                std::cerr << "project: autosave is off: " << projectError
+                          << std::endl;
         }
     }
 
@@ -195,17 +153,10 @@ bool ControlApi::start (const juce::String& commandLine,
         std::cerr << "api: FAILED to bind " << options.address << ":" << options.port
                   << (apiServer->hasAuthToken() ? " (auth enabled)" : "")
                   << std::endl;
+        resetProject();
         apiServer.reset();
         midiBridge.reset();
         audioSettings.reset();
-
-        if (projectAutosave != nullptr)
-        {
-            projectAutosave.reset();
-            apiState->setEditHandler ({});
-            apiState->setProjectStateProvider ({});
-        }
-
         apiState.reset();
 
         if (! required)
@@ -241,35 +192,38 @@ void ControlApi::detachMidi()
 
 void ControlApi::resetServer()
 {
+    resetProject();
     apiServer.reset();
 }
 
 void ControlApi::resetAudio()
 {
-    if (projectAutosave != nullptr)
-    {
-        projectAutosave.reset();
-
-        if (apiState != nullptr)
-        {
-            apiState->setEditHandler ({});
-            apiState->setProjectStateProvider ({});
-        }
-    }
-
+    resetProject();
     audioSettings.reset();
     apiState.reset();
 }
 
+void ControlApi::resetProject()
+{
+    if (projectLifecycle != nullptr)
+    {
+        projectLifecycle->shutdown();
+        projectLifecycle.reset();
+    }
+
+    if (apiState != nullptr)
+    {
+        apiState->setEditHandler ({});
+        apiState->setProjectStateProvider ({});
+    }
+}
+
 void ControlApi::flushProject()
 {
-    if (projectAutosave == nullptr)
+    if (projectLifecycle == nullptr)
         return;
 
-    juce::String error;
-
-    if (! projectAutosave->saveNow (&error) && error.isNotEmpty())
-        std::cerr << "project: could not save: " << error << std::endl;
+    projectLifecycle->flush();
 }
 
 }

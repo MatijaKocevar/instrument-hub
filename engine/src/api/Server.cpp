@@ -125,7 +125,7 @@ struct Server::Impl
         });
 
         RouteContext context { state, {}, {}, {}, {}, &pairing,
-                               {}, {}, {}, {}, {}, {} };
+                               {}, {}, {}, {}, {}, {}, {}, {} };
 
         {
             const std::lock_guard<std::mutex> lock (configMutex);
@@ -137,6 +137,8 @@ struct Server::Impl
             context.midiProvider = midiProvider;
             context.midiEnableInput = midiEnableInput;
             context.midiPadTest = midiPadTest;
+            context.projectProvider = projectProvider;
+            context.projectCommand = projectCommand;
         }
 
         context.setLanMode = [this] (bool enabled) { return applyLanMode (enabled); };
@@ -288,6 +290,8 @@ struct Server::Impl
     MidiStateProvider midiProvider;
     MidiInputHandler midiEnableInput;
     MidiPadTestHandler midiPadTest;
+    ProjectOverviewProvider projectProvider;
+    ProjectCommandHandler projectCommand;
 
     PairingManager pairing;
     Discovery discovery;
@@ -439,6 +443,14 @@ void Server::setMidiHandlers (MidiStateProvider provider,
     impl->midiProvider = std::move (provider);
     impl->midiEnableInput = std::move (enableInput);
     impl->midiPadTest = std::move (padTest);
+}
+
+void Server::setProjectHandlers (ProjectOverviewProvider provider,
+                                 ProjectCommandHandler command)
+{
+    const std::lock_guard<std::mutex> lock (impl->configMutex);
+    impl->projectProvider = std::move (provider);
+    impl->projectCommand = std::move (command);
 }
 
 void Server::setAuthToken (std::string token)

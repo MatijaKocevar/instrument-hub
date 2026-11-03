@@ -59,6 +59,8 @@ juce::var audioMeasurementToVar (const AudioMeasurementState& measurement);
 
 juce::var pairingToVar (const PairingSnapshot& pairing);
 
+juce::var projectOverviewToVar (const ProjectOverview& overview);
+
 juce::var midiStateToVar (const MidiStateSnapshot& midi);
 
 struct RouteContext
@@ -81,6 +83,9 @@ struct RouteContext
     MidiStateProvider midiProvider;
     MidiInputHandler midiEnableInput;
     MidiPadTestHandler midiPadTest;
+
+    ProjectOverviewProvider projectProvider;
+    ProjectCommandHandler projectCommand;
 };
 
 void registerRoutes (httplib::Server& server, RouteContext context);

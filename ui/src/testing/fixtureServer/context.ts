@@ -77,6 +77,20 @@ export function createFixtureContext(
     audio: cloneAudio(AUDIO),
     midi: cloneMidi(MIDI),
     chains,
+    project: {
+      path: "/home/demo/Music/Instrument Hub/Demo.ihub",
+      name: "Demo",
+      dirty: false,
+      saved: true,
+      error: "",
+      recent: [
+        { path: "/home/demo/Music/Instrument Hub/Demo.ihub", name: "Demo" },
+        {
+          path: "/home/demo/Music/Instrument Hub/Rehearsal.ihub",
+          name: "Rehearsal",
+        },
+      ],
+    },
     pairing: { ...PAIRING_OFF },
     pairingToken: null,
     pluginPlugins: PLUGIN_FIXTURE.plugins.map((plugin) => ({ ...plugin })),
@@ -97,6 +111,7 @@ export function createFixtureContext(
     stateCaptureRequests: [],
     pluginRequests: [],
     midiRequests: [],
+    projectRequests: [],
     chainFor,
   };
 }

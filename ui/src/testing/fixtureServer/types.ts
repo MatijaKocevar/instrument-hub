@@ -7,6 +7,7 @@ import type {
   ControlMidiState,
   ControlPairingState,
   ControlPlugin,
+  ControlProjectOverview,
   ControlState,
   ControlTransportPatch,
 } from "../../api/client";
@@ -43,6 +44,8 @@ export interface FixtureServer {
   readonly padTestRequests: number;
   readonly midi: ControlMidiState;
   readonly chain: ControlFxChain;
+  readonly project: ControlProjectOverview;
+  readonly projectRequests: readonly { action: string; path: string }[];
   close: () => Promise<void>;
 }
 
@@ -59,6 +62,7 @@ export interface FixtureContext {
   readonly midi: ControlMidiState;
   readonly chains: Map<number, ControlFxChain>;
 
+  project: ControlProjectOverview;
   pairing: ControlPairingState;
   pairingToken: string | null;
   pluginPlugins: ControlPlugin[];
@@ -86,6 +90,8 @@ export interface FixtureContext {
   readonly stateCaptureRequests: { slot: number }[];
   readonly pluginRequests: string[];
   readonly midiRequests: { id: string; enabled: boolean }[];
+
+  readonly projectRequests: { action: string; path: string }[];
 
   chainFor(slot: number): ControlFxChain;
 }

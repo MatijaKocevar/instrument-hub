@@ -44,12 +44,25 @@ struct AccountSettings
     juce::String pairingToken;
 };
 
+struct RecentProject
+{
+    juce::String path;
+    juce::String name;
+};
+
+struct ProjectSettings
+{
+    juce::String lastPath;
+    std::vector<RecentProject> recent;
+};
+
 struct Settings
 {
     AudioSettings audio;
     MixerSettings mixer;
     MidiSettings midi;
     AccountSettings account;
+    ProjectSettings project;
 };
 
 enum class LoadStatus

@@ -56,6 +56,16 @@ export const handlePatchUpdate: FixtureRoute = (context, request, response) => {
     if (parsed.solo !== undefined && typeof parsed.solo === "boolean")
       target.solo = parsed.solo;
 
+    context.project.dirty = true;
+    context.project.saved = false;
+    context.state.project = {
+      path: context.project.path,
+      name: context.project.name,
+      dirty: true,
+      saved: false,
+      error: "",
+    };
+
     sendJson(response, 200, context.state);
   });
 

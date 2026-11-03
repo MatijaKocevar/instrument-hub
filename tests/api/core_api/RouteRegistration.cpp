@@ -33,6 +33,8 @@ void runRouteRegistration (Rig& rig)
         { "POST", "/patches/0/fx/reorder", "{}" },
         { "GET", "/settings", nullptr },
         { "POST", "/settings", "{}" },
+        { "GET", "/project", nullptr },
+        { "POST", "/project", "{}" },
         { "GET", "/transport", nullptr },
         { "GET", "/audio", nullptr },
         { "POST", "/audio", "{}" },

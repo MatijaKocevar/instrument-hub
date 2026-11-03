@@ -237,4 +237,11 @@ export const FIXTURE: ControlState = {
     metronome: true,
   },
   transport: { playing: true, bpm: 128, ppq: 16.5, positionSamples: 384_512 },
+  project: {
+    path: "/home/demo/Music/Instrument Hub/Demo.ihub",
+    name: "Demo",
+    dirty: false,
+    saved: true,
+    error: "",
+  },
 };
