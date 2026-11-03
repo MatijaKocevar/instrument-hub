@@ -22,6 +22,10 @@ export type ControlPatchSourceRequest =
 export type ControlProjectOverview = components["schemas"]["ProjectOverview"];
 export type ControlProjectCommand = components["schemas"]["ProjectCommand"];
 export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
+export type ControlTrack = components["schemas"]["Track"];
+export type ControlTrackHotFx = components["schemas"]["TrackHotFx"];
+export type ControlTrackFxAssignRequest =
+  components["schemas"]["TrackFxAssignRequest"];
 export type ControlFxChain = components["schemas"]["FxChain"];
 export type ControlFxInsert = components["schemas"]["FxInsert"];
 export type ControlFxInsertRequest = components["schemas"]["FxInsertRequest"];

@@ -20,6 +20,30 @@ export interface StateEndpoints {
     options?: { signal?: AbortSignal },
   ): Promise<ControlState>;
 
+  selectTrack(
+    index: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
+
+  toggleTrackFx(
+    index: number,
+    hot: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
+
+  assignTrackFx(
+    index: number,
+    hot: number,
+    insertId: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
+
+  setTrackVolume(
+    index: number,
+    step: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
+
   controlTransport(
     patch: ControlTransportPatch,
     options?: { signal?: AbortSignal },
@@ -198,6 +222,88 @@ export function createStateEndpoints(
       });
 
       return requireState(guard, data, error, response.status, "POST /arm");
+    },
+
+    async selectTrack(index, requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/tracks/{index}/select",
+        {
+          params: { path: { index } },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
+        },
+      );
+
+      return requireState(
+        guard,
+        data,
+        error,
+        response.status,
+        `POST /tracks/${String(index)}/select`,
+      );
+    },
+
+    async toggleTrackFx(index, hot, requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/tracks/{index}/fx/{hot}/toggle",
+        {
+          params: { path: { index, hot } },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
+        },
+      );
+
+      return requireState(
+        guard,
+        data,
+        error,
+        response.status,
+        `POST /tracks/${String(index)}/fx/${String(hot)}/toggle`,
+      );
+    },
+
+    async assignTrackFx(index, hot, insertId, requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/tracks/{index}/fx/{hot}/assign",
+        {
+          params: { path: { index, hot } },
+          body: { insertId },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
+        },
+      );
+
+      return requireState(
+        guard,
+        data,
+        error,
+        response.status,
+        `POST /tracks/${String(index)}/fx/${String(hot)}/assign`,
+      );
+    },
+
+    async setTrackVolume(index, step, requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/tracks/{index}/volume",
+        {
+          params: { path: { index } },
+          body: { step },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
+        },
+      );
+
+      return requireState(
+        guard,
+        data,
+        error,
+        response.status,
+        `POST /tracks/${String(index)}/volume`,
+      );
     },
 
     async controlTransport(patch, requestOptions) {

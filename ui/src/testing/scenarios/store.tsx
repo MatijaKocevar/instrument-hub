@@ -55,6 +55,18 @@ export async function backoffTest(): Promise<void> {
     armSlot: async (): Promise<ControlState> => {
       throw new Error("connection refused");
     },
+    selectTrack: async (): Promise<ControlState> => {
+      throw new Error("connection refused");
+    },
+    toggleTrackFx: async (): Promise<ControlState> => {
+      throw new Error("connection refused");
+    },
+    assignTrackFx: async (): Promise<ControlState> => {
+      throw new Error("connection refused");
+    },
+    setTrackVolume: async (): Promise<ControlState> => {
+      throw new Error("connection refused");
+    },
     updatePatch: async (): Promise<ControlState> => {
       throw new Error("connection refused");
     },

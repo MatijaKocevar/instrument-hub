@@ -41,11 +41,17 @@ import {
 } from "./scenarios/shell";
 import { snapshotTest } from "./scenarios/snapshot";
 import { statePushTest, pollFallbackTest } from "./scenarios/statePush";
+import {
+  trackGridInteractionTest,
+  trackGridModelTest,
+} from "./scenarios/trackGrid";
 import { backoffTest, reconnectTest } from "./scenarios/store";
 
 async function main(): Promise<void> {
   await snapshotTest();
   await gridSnapshotTest();
+  trackGridModelTest();
+  await trackGridInteractionTest();
   await armTest();
   routeTest();
   await shellTest();

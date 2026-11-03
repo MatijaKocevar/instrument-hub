@@ -1,7 +1,12 @@
 import { useEffect, useMemo } from "react";
 
 import { gridFromState, metersUrlFor, useMeters } from "../grid";
-import { instrumentSlotForRoute, patchForInstrumentSlot } from "../instrument";
+import {
+  instrumentSlotForRoute,
+  patchForInstrumentSlot,
+  patchForTrack,
+  trackForSlot,
+} from "../instrument";
 import { pluginAssignmentsFromState } from "../plugins";
 import { useAppState, useAppStore } from "../../state/AppStoreContext";
 import { slotFromSearch, type RouterState } from "../../state/router";
@@ -24,10 +29,17 @@ export function useShellData(router: RouterState) {
     requestedSlot,
     armedSlot,
   );
-  const instrumentPatch = patchForInstrumentSlot(
-    state?.families.flatMap((family) => family.patches) ?? [],
-    instrumentSlot,
-  );
+  const track =
+    state?.layout === "tracks"
+      ? trackForSlot(state.tracks, instrumentSlot)
+      : null;
+  const instrumentPatch =
+    state !== null && track !== null
+      ? patchForTrack(state, track)
+      : patchForInstrumentSlot(
+          state?.families.flatMap((family) => family.patches) ?? [],
+          instrumentSlot,
+        );
 
   useEffect(() => {
     if (router.route !== "instrument" && router.route !== "plugins") return;
@@ -55,6 +67,7 @@ export function useShellData(router: RouterState) {
     armedSlot,
     instrumentSlot,
     instrumentPatch,
+    track,
     version: state?.application.version ?? "0.1.0",
   };
 }

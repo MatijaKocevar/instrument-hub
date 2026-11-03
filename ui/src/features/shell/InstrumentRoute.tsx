@@ -8,8 +8,15 @@ export function InstrumentRoute({
 }: {
   readonly shell: ShellData;
 }): ReactElement {
-  const { app, store, state, armedSlot, instrumentSlot, instrumentPatch } =
-    shell;
+  const {
+    app,
+    store,
+    state,
+    armedSlot,
+    instrumentSlot,
+    instrumentPatch,
+    track,
+  } = shell;
 
   const changeColour = (slot: number, colorIndex: number): void => {
     void store.updatePatch(slot, { colorIndex });
@@ -34,6 +41,7 @@ export function InstrumentRoute({
       }
       plugins={app.plugins?.plugins ?? null}
       pluginError={app.pluginError}
+      track={track}
       loading={state === null}
       onColourChange={changeColour}
       onVolumeChange={(slot, volumeDb) => {
@@ -74,6 +82,9 @@ export function InstrumentRoute({
       }}
       onRetryChain={(slot) => {
         void store.loadFxChain(slot, { force: true });
+      }}
+      onAssignHotFx={(trackIndex, hot, insertId) => {
+        void store.assignTrackHotFx(trackIndex, hot, insertId);
       }}
     />
   );

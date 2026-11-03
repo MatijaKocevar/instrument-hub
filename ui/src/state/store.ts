@@ -30,6 +30,7 @@ import { refreshSnapshot } from "./refresh";
 import type { AppSnapshot } from "./snapshot";
 import { StateSync } from "./stateSync";
 import { StoreCore } from "./storeCore";
+import { TrackActions } from "./track";
 import { TransportActions } from "./transport";
 
 export type { AppStoreOptions } from "./options";
@@ -53,6 +54,7 @@ export class AppStore {
   private readonly transport: TransportActions;
   private readonly pairing: PairingActions;
   private readonly project: ProjectActions;
+  private readonly track: TrackActions;
 
   constructor(api: ControlApi, options: AppStoreOptions = {}) {
     this.api = api;
@@ -85,6 +87,7 @@ export class AppStore {
       refresh: () => this.refresh(),
     });
     this.project = new ProjectActions(context);
+    this.track = new TrackActions(context);
 
     this.polling = new PollLoop(
       this.options,
@@ -148,6 +151,21 @@ export class AppStore {
 
   armSlot = (slot: number | null): Promise<boolean> =>
     this.patchArm.armSlot(slot);
+
+  selectTrack = (index: number): Promise<boolean> =>
+    this.track.selectTrack(index);
+
+  toggleTrackFx = (index: number, hot: number): Promise<boolean> =>
+    this.track.toggleTrackFx(index, hot);
+
+  setTrackVolume = (index: number, step: number): Promise<boolean> =>
+    this.track.setTrackVolume(index, step);
+
+  assignTrackHotFx = (
+    index: number,
+    hot: number,
+    insertId: string | null,
+  ): Promise<boolean> => this.track.assignTrackHotFx(index, hot, insertId);
 
   updatePatch = (slot: number, patch: ControlPatchUpdate): Promise<boolean> =>
     this.patchUpdate.updatePatch(slot, patch);
@@ -256,6 +274,7 @@ export class AppStore {
   private withPendingState(state: ControlState): ControlState {
     let merged = this.patchArm.preservePending(state);
 
+    merged = this.track.preservePending(merged);
     merged = this.patchUpdate.preservePending(merged);
 
     return this.transport.preservePending(merged);

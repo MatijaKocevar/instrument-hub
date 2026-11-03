@@ -26,6 +26,9 @@ export async function startFixtureServer(
     get armRequests() {
       return context.armRequests;
     },
+    get trackRequests() {
+      return context.trackRequests;
+    },
     get audioRequests() {
       return context.audioRequests;
     },

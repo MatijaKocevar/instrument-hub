@@ -5,6 +5,7 @@ import { GridTable } from "./GridTable";
 import { LoadingGrid } from "./LoadingGrid";
 import type { GridModel } from "./model";
 import { EMPTY_METERS, type MeterSnapshot } from "./meterFrame";
+import { TrackGridTable } from "./TrackGridTable";
 import "./grid.css";
 
 export interface GridViewProps {
@@ -18,6 +19,9 @@ export interface GridViewProps {
     slots: readonly number[],
     colorIndex: number,
   ) => void;
+  readonly onSelectTrack?: (index: number) => void;
+  readonly onToggleTrackFx?: (index: number, hot: number) => void;
+  readonly onSetTrackVolume?: (index: number, step: number) => void;
 }
 
 export function GridView({
@@ -27,23 +31,41 @@ export function GridView({
   onArm,
   onColourChange,
   onFamilyColourChange,
+  onSelectTrack,
+  onToggleTrackFx,
+  onSetTrackVolume,
 }: GridViewProps): ReactElement {
+  const empty =
+    model.layout === "tracks"
+      ? model.tracks.length === 0
+      : model.families.length === 0;
+
   return (
     <section
       className="grid"
       aria-label="Instrument grid"
       data-testid="instrument-grid"
+      data-layout={model.layout}
       data-armed-slot={model.armedSlot}
       data-loading={loading ? "true" : "false"}
     >
-      <GridHeader meters={meters} />
+      <GridHeader meters={meters} layout={model.layout} />
 
       {loading ? (
         <LoadingGrid />
-      ) : model.families.length === 0 ? (
+      ) : empty ? (
         <div className="grid__empty" data-testid="grid-empty">
-          No instruments in this set yet.
+          {model.layout === "tracks"
+            ? "No performance tracks in this set yet."
+            : "No instruments in this set yet."}
         </div>
+      ) : model.layout === "tracks" ? (
+        <TrackGridTable
+          model={model}
+          {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
+          {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
+          {...(onSetTrackVolume !== undefined ? { onSetTrackVolume } : {})}
+        />
       ) : (
         <GridTable
           model={model}

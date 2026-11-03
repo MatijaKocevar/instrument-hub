@@ -12,6 +12,7 @@ import {
   MIDI,
   PAIRING_OFF,
   PLUGIN_FIXTURE,
+  TRACK_FIXTURE,
   fixtureInsert,
   recalculateChain,
 } from "../fixtures";
@@ -39,30 +40,38 @@ export function createFixtureContext(
 
     if (existing !== undefined) return existing;
 
+    const hasInserts = options.layout === "tracks" || slot === 3;
+
     const chain: ControlFxChain = {
       slot,
-      instrumentLatencySamples: slot === 3 ? CHAIN_INSTRUMENT_LATENCY : 0,
+      instrumentLatencySamples:
+        options.layout === "tracks"
+          ? slot === 2
+            ? CHAIN_INSTRUMENT_LATENCY
+            : 0
+          : slot === 3
+            ? CHAIN_INSTRUMENT_LATENCY
+            : 0,
       fxLatencySamples: 0,
       latencySamples: 0,
       latencyMs: 0,
-      inserts:
-        slot === 3
-          ? [
-              fixtureInsert(0, "eq", "eq", "EQ", 0, {
-                lowGainDb: 2,
-                midGainDb: 0,
-                highGainDb: -1,
-              }),
-              fixtureInsert(
-                1,
-                "compressor",
-                "compressor",
-                "Compressor",
-                COMPRESSOR_LATENCY,
-                { thresholdDb: -24, ratio: 3 },
-              ),
-            ]
-          : [],
+      inserts: hasInserts
+        ? [
+            fixtureInsert(0, "eq", "eq", "EQ", 0, {
+              lowGainDb: 2,
+              midGainDb: 0,
+              highGainDb: -1,
+            }),
+            fixtureInsert(
+              1,
+              "compressor",
+              "compressor",
+              "Compressor",
+              COMPRESSOR_LATENCY,
+              { thresholdDb: -24, ratio: 3 },
+            ),
+          ]
+        : [],
     };
 
     recalculateChain(chain);
@@ -73,7 +82,7 @@ export function createFixtureContext(
   return {
     failFirst: options.failFirst ?? 0,
     armDelayMs: options.armDelayMs ?? 0,
-    state: cloneState(FIXTURE),
+    state: cloneState(options.layout === "tracks" ? TRACK_FIXTURE : FIXTURE),
     audio: cloneAudio(AUDIO),
     midi: cloneMidi(MIDI),
     chains,
@@ -100,6 +109,7 @@ export function createFixtureContext(
     measureRequests: 0,
     padTestRequests: 0,
     armRequests: [],
+    trackRequests: [],
     audioRequests: [],
     transportRequests: [],
     pairRequests: [],

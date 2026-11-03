@@ -7,6 +7,7 @@ import type {
   ControlPatchSourceRequest,
   ControlPatchStateCapture,
   ControlPlugin,
+  ControlTrack,
 } from "../../api/client";
 import { InsertChain } from "./InsertChain";
 import { InstrumentFrame } from "./InstrumentFrame";
@@ -33,6 +34,7 @@ export interface InstrumentPageProps {
   readonly captureError?: string | null;
   readonly plugins?: readonly ControlPlugin[] | null;
   readonly pluginError?: string | null;
+  readonly track?: ControlTrack | null;
   readonly loading?: boolean;
 
   readonly onVolumeChange?: (slot: number, volumeDb: number) => void;
@@ -56,6 +58,11 @@ export interface InstrumentPageProps {
   ) => void;
   readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
   readonly onRetryChain?: (slot: number) => void;
+  readonly onAssignHotFx?: (
+    trackIndex: number,
+    hot: number,
+    insertId: string | null,
+  ) => void;
 }
 
 export function InstrumentPage({
@@ -74,6 +81,7 @@ export function InstrumentPage({
   captureError = null,
   plugins = null,
   pluginError = null,
+  track = null,
   loading = false,
   onVolumeChange,
   onPanChange,
@@ -89,6 +97,7 @@ export function InstrumentPage({
   onToggleBypass,
   onMoveInsert,
   onRetryChain,
+  onAssignHotFx,
 }: InstrumentPageProps): ReactElement {
   return (
     <InstrumentFrame
@@ -142,11 +151,13 @@ export function InstrumentPage({
             chainError={chainError}
             chainBusy={chainBusy}
             plugins={plugins}
+            track={track}
             {...(onAddInsert !== undefined ? { onAddInsert } : {})}
             {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
             {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
             {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
             {...(onRetryChain !== undefined ? { onRetryChain } : {})}
+            {...(onAssignHotFx !== undefined ? { onAssignHotFx } : {})}
           />
         </>
       )}

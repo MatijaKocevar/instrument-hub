@@ -72,6 +72,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tracks/{index}/fx/{hot}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign a track's hot FX insert
+         * @description Assigns `insertId` to hot FX `hot` (`0` or `1`) for track `index`.
+         *     An empty string clears the slot. The insert must exist in the live
+         *     chain; assigning an insert already used by the other hot slot moves
+         *     it, so the two assignments stay distinct. Emits a `track` state event.
+         */
+        post: operations["assignTrackFx"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tracks/{index}/volume": {
         parameters: {
             query?: never;
@@ -1115,6 +1138,10 @@ export interface components {
             /** @description The insert's current bypass state. */
             bypassed: boolean;
         };
+        TrackFxAssignRequest: {
+            /** @description Insert id from the live chain; an empty string clears the slot. */
+            insertId: string;
+        };
         TrackVolumeRequest: {
             /**
              * @description Volume step. 0 is silent, 1 is 25% (-12.0 dB), 2 is 50%
@@ -1531,6 +1558,54 @@ export interface operations {
                 };
             };
             /** @description The hot FX slot is unassigned or its insert is missing */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The track or hot FX index is out of range */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    assignTrackFx: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Track index, 0-7. */
+                index: number;
+                /** @description Hot FX slot, 0 or 1. */
+                hot: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackFxAssignRequest"];
+            };
+        };
+        responses: {
+            /** @description The control state after the assignment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            /** @description The insert id is missing from the live chain */
             400: {
                 headers: {
                     [name: string]: unknown;

@@ -93,6 +93,10 @@ public:
     bool selectTrack (int index, std::string& error);
     bool setTrackVolumeStep (int index, int step, std::string& error);
     bool toggleTrackFx (int index, int hot, std::string& error);
+    bool assignTrackFx (int index,
+                        int hot,
+                        const std::string& insertId,
+                        std::string& error);
 
     using TrackGainHandler = std::function<void (int slot, float gain)>;
     void setTrackGainHandler (TrackGainHandler handler);

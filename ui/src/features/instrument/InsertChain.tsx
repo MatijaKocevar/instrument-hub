@@ -5,10 +5,13 @@ import type {
   ControlFxInsertRequest,
   ControlPatch,
   ControlPlugin,
+  ControlTrack,
 } from "../../api/client";
 import { InsertAdd } from "./InsertAdd";
 import { InsertRow } from "./InsertRow";
 import { latencyReadout } from "./latencyReadout";
+import { hotFxName } from "./tracks";
+import "./hotFx.css";
 
 interface InsertChainProps {
   readonly patch: ControlPatch;
@@ -16,6 +19,7 @@ interface InsertChainProps {
   readonly chainError?: string | null;
   readonly chainBusy?: boolean;
   readonly plugins?: readonly ControlPlugin[] | null;
+  readonly track?: ControlTrack | null;
   readonly onAddInsert?: (slot: number, insert: ControlFxInsertRequest) => void;
   readonly onRemoveInsert?: (slot: number, index: number) => void;
   readonly onToggleBypass?: (
@@ -25,6 +29,11 @@ interface InsertChainProps {
   ) => void;
   readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
   readonly onRetryChain?: (slot: number) => void;
+  readonly onAssignHotFx?: (
+    trackIndex: number,
+    hot: number,
+    insertId: string | null,
+  ) => void;
 }
 
 export function InsertChain({
@@ -33,11 +42,13 @@ export function InsertChain({
   chainError,
   chainBusy,
   plugins,
+  track = null,
   onAddInsert,
   onRemoveInsert,
   onToggleBypass,
   onMoveInsert,
   onRetryChain,
+  onAssignHotFx,
 }: InsertChainProps): ReactElement {
   const inserts = chain?.inserts ?? [];
 
@@ -60,6 +71,19 @@ export function InsertChain({
             : latencyReadout(chain.latencySamples, chain.latencyMs)}
         </span>
       </header>
+
+      {track !== null ? (
+        <p
+          className="instrument__hot-summary"
+          data-testid="track-hot-summary"
+          data-track-index={track.index}
+          data-hot-1={hotFxName(track, 0)}
+          data-hot-2={hotFxName(track, 1)}
+        >
+          <span>Hot FX 1 · {hotFxName(track, 0)}</span>
+          <span>Hot FX 2 · {hotFxName(track, 1)}</span>
+        </p>
+      ) : null}
 
       <dl className="instrument__meta instrument__meta--row">
         <div>
@@ -117,9 +141,11 @@ export function InsertChain({
               insert={insert}
               index={index}
               count={inserts.length}
+              track={track}
               {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
               {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
               {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
+              {...(onAssignHotFx !== undefined ? { onAssignHotFx } : {})}
             />
           ))}
         </ol>

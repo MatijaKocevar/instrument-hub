@@ -28,6 +28,11 @@ export function GridRoute({
     void store.updatePatch(slot, { colorIndex });
   };
 
+  const selectTrack = (index: number): void => {
+    void store.selectTrack(index);
+    router.navigate("/instrument");
+  };
+
   return (
     <GridView
       model={grid}
@@ -37,6 +42,13 @@ export function GridRoute({
       onColourChange={changeColour}
       onFamilyColourChange={(familyId, _slots, colorIndex) => {
         void store.updateFamilyColour(familyId, colorIndex);
+      }}
+      onSelectTrack={selectTrack}
+      onToggleTrackFx={(index, hot) => {
+        void store.toggleTrackFx(index, hot);
+      }}
+      onSetTrackVolume={(index, step) => {
+        void store.setTrackVolume(index, step);
       }}
     />
   );

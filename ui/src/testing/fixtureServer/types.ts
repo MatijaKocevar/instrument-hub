@@ -12,10 +12,19 @@ import type {
   ControlTransportPatch,
 } from "../../api/client";
 
+export interface FixtureTrackRequest {
+  readonly kind: "select" | "toggle" | "volume" | "assign";
+  readonly index: number;
+  readonly hot?: number;
+  readonly step?: number;
+  readonly insertId?: string;
+}
+
 export interface FixtureServer {
   baseUrl: string;
   readonly stateRequests: number;
   readonly armRequests: readonly { slot: number | null }[];
+  readonly trackRequests: readonly FixtureTrackRequest[];
   readonly audioRequests: readonly ControlAudioPatch[];
   readonly transportRequests: readonly ControlTransportPatch[];
   readonly measureRequests: number;
@@ -52,6 +61,7 @@ export interface FixtureServer {
 export interface FixtureOptions {
   failFirst?: number;
   armDelayMs?: number;
+  layout?: "families" | "tracks";
 }
 
 export interface FixtureContext {
@@ -74,6 +84,7 @@ export interface FixtureContext {
   padTestRequests: number;
 
   readonly armRequests: { slot: number | null }[];
+  readonly trackRequests: FixtureTrackRequest[];
   readonly audioRequests: ControlAudioPatch[];
   readonly transportRequests: ControlTransportPatch[];
   readonly pairRequests: string[];

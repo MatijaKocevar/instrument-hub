@@ -76,6 +76,48 @@ void registerTrackRoutes (httplib::Server& server, const RouteContext& context)
         respondState (context, response);
     });
 
+    server.Post (R"(/tracks/(\d+)/fx/(\d+)/assign)",
+                 [context] (const httplib::Request& request,
+                            httplib::Response& response)
+    {
+        const int index = readIndex (request, 1);
+        const int hot = readIndex (request, 2);
+
+        juce::var body;
+        std::string error;
+
+        if (! parseJsonObject (request, body, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        auto* object = body.getDynamicObject();
+
+        if (! object->hasProperty ("insertId"))
+        {
+            setError (response, 400, "body must contain \"insertId\"");
+            return;
+        }
+
+        std::string insertId;
+
+        if (! readString (object->getProperty ("insertId"), "insertId",
+                          insertId, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        if (! context.state.assignTrackFx (index, hot, insertId, error))
+        {
+            setError (response, statusForTrackError (error), error);
+            return;
+        }
+
+        respondState (context, response);
+    });
+
     server.Post (R"(/tracks/(\d+)/volume)",
                  [context] (const httplib::Request& request,
                             httplib::Response& response)
