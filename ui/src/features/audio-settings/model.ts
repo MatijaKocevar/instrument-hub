@@ -1,5 +1,6 @@
 import type {
   ControlAudioChannel,
+  ControlAudioDevice,
   ControlAudioPatch,
   ControlAudioState,
 } from "../../api/client";
@@ -99,6 +100,66 @@ export function formatSampleRate(rate: number): string {
 
 export function deviceLabel(type: string, name: string): string {
   return type.length > 0 ? `${name} (${type})` : name;
+}
+
+export function deviceKey(device: ControlAudioDevice): string {
+  return `${device.type}\u0000${device.name}`;
+}
+
+export function uniqueDevices(
+  devices: readonly ControlAudioDevice[],
+): ControlAudioDevice[] {
+  const seen = new Set<string>();
+
+  return devices.filter((device) => {
+    const key = deviceKey(device);
+
+    if (seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+}
+
+export function pickerDevices(audio: ControlAudioState): ControlAudioDevice[] {
+  return uniqueDevices(audio.devices);
+}
+
+export function rawDevices(audio: ControlAudioState): ControlAudioDevice[] {
+  return uniqueDevices(audio.rawDevices ?? []);
+}
+
+export function isCurrentDevice(
+  audio: ControlAudioState,
+  device: ControlAudioDevice,
+): boolean {
+  return device.type === audio.deviceType && device.name === audio.deviceName;
+}
+
+export function deviceDescription(device: ControlAudioDevice): string {
+  const described = device.description?.trim();
+
+  if (described !== undefined && described.length > 0) return described;
+
+  const name = device.name;
+
+  if (name.includes("PipeWire")) return "System mixer";
+  if (name.includes("HDMI")) return "Onboard HDMI output";
+  if (name.includes("analog")) return "Onboard analog output";
+  if (name.includes("UR22") || name.includes("USB"))
+    return "USB audio interface";
+
+  return device.type.length > 0
+    ? `${device.type} audio device`
+    : "Audio device";
+}
+
+export function unavailableReason(device: ControlAudioDevice): string {
+  const reason = device.reason?.trim();
+
+  return reason !== undefined && reason.length > 0
+    ? reason
+    : "in use by another process";
 }
 
 export function activeChannels(channels: ControlAudioChannel[]): number[] {

@@ -148,6 +148,7 @@ set(IHUB_DEVICE_MANAGER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLookup.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceOpen.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DevicePcmHints.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceRawList.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceState.cpp"
 )
 

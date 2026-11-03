@@ -20,6 +20,7 @@ struct AudioDeviceState
 {
     std::string type;
     std::string name;
+    std::string description;
     bool available = true;
     std::string reason;
 };
@@ -48,6 +49,7 @@ struct AudioStateSnapshot
 
     std::vector<std::string> deviceTypes;
     std::vector<AudioDeviceState> devices;
+    std::vector<AudioDeviceState> rawDevices;
 
     double sampleRate = 0.0;
     int bufferSize = 0;

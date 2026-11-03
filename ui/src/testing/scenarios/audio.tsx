@@ -166,7 +166,29 @@ export function assertSnapshotAudio(audioHtml: string): void {
   );
   check(
     audioHtml.includes('data-testid="device-select"'),
-    "panel shows the device control",
+    "panel shows the raw device control",
+  );
+  check(
+    countOf(audioHtml, 'data-testid="device-card"') === 4,
+    "the picker shows four device cards",
+  );
+  check(
+    countOf(audioHtml, 'data-device="Steinberg UR22mkII"') === 1,
+    "the picker has no duplicate card rows",
+  );
+  check(
+    audioHtml.includes('data-testid="device-reason">in use by another process'),
+    "an unavailable card shows its reason",
+  );
+  check(
+    audioHtml.includes('data-testid="device-advanced-toggle"'),
+    "the picker offers the Advanced toggle",
+  );
+  check(
+    audioHtml.includes(
+      'data-testid="device-advanced" data-open="false" hidden',
+    ),
+    "the raw PCM list starts hidden",
   );
   check(
     audioHtml.includes('data-testid="sample-rate-select"'),

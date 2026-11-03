@@ -9,6 +9,7 @@ import { AudioSettingsFooter } from "./AudioSettingsFooter";
 import { AudioSettingsHeader } from "./AudioSettingsHeader";
 import { ChannelMaps } from "./ChannelMaps";
 import { DeviceControls } from "./DeviceControls";
+import { DevicePicker } from "./DevicePicker";
 import { LatencyReadout } from "./LatencyReadout";
 import { MeasureControl } from "./MeasureControl";
 import { RestoreNotice } from "./RestoreNotice";
@@ -79,6 +80,8 @@ export function AudioSettingsPanel({
       ) : null}
 
       <RestoreNotice audio={audio} busy={busy} onChange={onChange} />
+
+      <DevicePicker audio={audio} busy={busy} onChange={onChange} />
 
       <DeviceControls audio={audio} busy={busy} onChange={onChange} />
 

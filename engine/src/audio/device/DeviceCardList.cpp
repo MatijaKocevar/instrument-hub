@@ -59,6 +59,7 @@ std::vector<DeviceInfo> DeviceManager::getCardDevices()
         bool opened = false;
         juce::String firstJuceName;
         juce::String firstPcmName;
+        const auto description = detail::cardDescription (card);
 
         for (const auto& candidate : detail::cardPcmCandidates (card))
         {
@@ -82,6 +83,7 @@ std::vector<DeviceInfo> DeviceManager::getCardDevices()
                                    info,
                                    busy))
             {
+                info.description = description;
                 result.push_back (std::move (info));
                 opened = true;
                 break;
@@ -94,6 +96,7 @@ std::vector<DeviceInfo> DeviceManager::getCardDevices()
         DeviceInfo info;
         info.typeName = "ALSA";
         info.name = friendlyName;
+        info.description = description;
         info.juceName = firstJuceName;
         info.pcmName = firstPcmName;
         info.hasOutput = true;
@@ -140,6 +143,7 @@ std::vector<DeviceInfo> DeviceManager::getSystemDevice()
                                info,
                                busy))
         {
+            info.description = "System mixer";
             info.isDefaultOutput = true;
             result.push_back (std::move (info));
             return result;
@@ -150,6 +154,7 @@ std::vector<DeviceInfo> DeviceManager::getSystemDevice()
             DeviceInfo unavailable;
             unavailable.typeName = "ALSA";
             unavailable.name = "System (PipeWire)";
+            unavailable.description = "System mixer";
             unavailable.juceName = juceName;
             unavailable.pcmName = pcmName;
             unavailable.hasOutput = true;

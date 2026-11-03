@@ -18,4 +18,7 @@ std::vector<PcmHint> readAlsaPcmHints();
 juce::String juceDeviceNameForPcm (const std::vector<PcmHint>& hints,
                                    const juce::String& pcmName);
 
+juce::String pcmNameForJuceDescription (const std::vector<PcmHint>& hints,
+                                        const juce::String& juceName);
+
 } // namespace AudioEngine::detail

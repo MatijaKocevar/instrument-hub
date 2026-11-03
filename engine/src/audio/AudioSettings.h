@@ -56,6 +56,7 @@ private:
     {
         juce::String type;
         juce::String name;
+        juce::String description;
         bool available = true;
         juce::String unavailableReason;
         bool hasInput = false;

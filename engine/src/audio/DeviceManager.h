@@ -17,6 +17,7 @@ struct DeviceInfo
 {
     juce::String typeName;
     juce::String name;
+    juce::String description;
     juce::String juceName;
     juce::String pcmName;
 
@@ -79,6 +80,7 @@ public:
     void setRawDeviceList (bool raw);
 
     std::vector<DeviceInfo> getDevices();
+    std::vector<DeviceInfo> getRawPcmDevices();
 
     juce::Array<double> getAvailableSampleRates (const juce::String& typeName,
                                                  const juce::String& deviceName);
