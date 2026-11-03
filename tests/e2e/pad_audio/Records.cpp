@@ -45,6 +45,8 @@ void writePagesRecord (const PagesResult& pages)
                 << "idle_led_matches_patch_colour="
                 << (pages.idleLed.velocity == pages.idleExpected
                     ? "true" : "false") << "\n"
+                << "red_led_count=" << pages.redLedCount << "\n"
+                << "red_pad=" << pages.redPad << "\n"
                 << "status=" << (E2E::failures == 0 ? "PASS" : "FAIL") << "\n";
 
     check (pagesRecord.good(),

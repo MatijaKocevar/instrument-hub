@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 
-import { ARMED_COLOUR, colourForIndex } from "./colours";
+import { ARMED_COLOUR, colourForIndex, EMPTY_COLOUR } from "./colours";
 import type { GridPatch } from "./model";
 import { formatLatency, meterPercent, pad2 } from "./format";
 import { PatchColourSwatch } from "./ColourSwatch";
@@ -33,11 +33,11 @@ function EmptyGridCell({
       data-empty="true"
       data-family={familyId}
       data-column={column}
-      data-colour-index={0}
-      data-colour={colourForIndex(0)}
-      data-fill={colourForIndex(0)}
+      data-colour-index={-1}
+      data-colour={EMPTY_COLOUR}
+      data-fill={EMPTY_COLOUR}
       style={{
-        background: `linear-gradient(150deg, ${colourForIndex(0)}33 0%, #14151c 70%)`,
+        background: `linear-gradient(150deg, ${EMPTY_COLOUR}22 0%, #14151c 70%)`,
       }}
     />
   );

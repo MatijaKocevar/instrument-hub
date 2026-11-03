@@ -131,8 +131,20 @@ constexpr std::array<std::uint8_t, 3> padColourMessage (int padIndex,
 }
 
 inline constexpr std::array<std::uint8_t, 16> patchPaletteVelocities {
-    5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 3, 1
+    9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 56, 57, 3, 1
 };
+
+constexpr bool patchPaletteAvoidsArmedRed() noexcept
+{
+    for (const auto velocity : patchPaletteVelocities)
+        if (velocity == velocityFor (Colour::Red))
+            return false;
+
+    return true;
+}
+
+static_assert (patchPaletteAvoidsArmedRed(),
+               "the patch palette must leave red to the armed patch");
 
 constexpr std::uint8_t velocityForPatchColour (int colourIndex) noexcept
 {

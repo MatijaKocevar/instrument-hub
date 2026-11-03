@@ -2,10 +2,36 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { EMPTY_METERS, GridView, createGridModel } from "../../features/grid";
+import {
+  EMPTY_COLOUR,
+  EMPTY_METERS,
+  GridView,
+  PATCH_COLOURS,
+  createGridModel,
+} from "../../features/grid";
 import { GRID_FAMILIES, GRID_METERS, GRID_MODEL } from "../fixtures";
 import { renderedGridRows } from "../gridRows";
 import { check, countOf, writeArtifact } from "../harness";
+
+function hueOf(hex: string): number {
+  const value = hex.replace("#", "");
+  const red = Number.parseInt(value.slice(0, 2), 16) / 255;
+  const green = Number.parseInt(value.slice(2, 4), 16) / 255;
+  const blue = Number.parseInt(value.slice(4, 6), 16) / 255;
+  const maximum = Math.max(red, green, blue);
+  const minimum = Math.min(red, green, blue);
+  const delta = maximum - minimum;
+
+  if (delta === 0) return -1;
+  if (maximum === red) return (60 * ((green - blue) / delta) + 360) % 360;
+  if (maximum === green) return 60 * ((blue - red) / delta + 2);
+  return 60 * ((red - green) / delta + 4);
+}
+
+function isRedHue(hex: string): boolean {
+  const hue = hueOf(hex);
+  return hue >= 0 && (hue <= 15 || hue >= 345);
+}
 
 export async function gridSnapshotTest(): Promise<void> {
   const html = renderToStaticMarkup(
@@ -69,6 +95,20 @@ export async function gridSnapshotTest(): Promise<void> {
   check(
     countOf(html, 'data-fill="#ff1f2f"') === 1,
     "the armed cell is bright red",
+  );
+  check(
+    PATCH_COLOURS.every((colour) => !isRedHue(colour)),
+    "no patch palette colour has a red hue",
+  );
+  check(
+    countOf(html, `data-fill="${EMPTY_COLOUR}"`) ===
+      countOf(html, 'data-empty="true"'),
+    "empty cells use the neutral fill",
+  );
+  check(
+    countOf(html, `linear-gradient(150deg, ${EMPTY_COLOUR}22`) ===
+      countOf(html, 'data-empty="true"'),
+    "empty cells use the neutral gradient",
   );
   check(
     html.includes('data-slot="4" data-armed="false" data-empty="false"') &&

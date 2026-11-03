@@ -23,6 +23,26 @@ void testLeds()
     check (Launchpad::velocityFor (Launchpad::Colour::Green) == 21, "green is velocity 21");
     check (Launchpad::velocityFor (Launchpad::Colour::Blue) == 45, "blue is velocity 45");
 
+    const auto redVelocity = Launchpad::velocityFor (Launchpad::Colour::Red);
+    bool anyRedPatchColour = false;
+    bool distinctPatchPalette = true;
+
+    for (int index = 0; index < 16; ++index)
+    {
+        if (Launchpad::velocityForPatchColour (index) == redVelocity)
+            anyRedPatchColour = true;
+
+        for (int other = index + 1; other < 16; ++other)
+            if (Launchpad::velocityForPatchColour (index)
+                == Launchpad::velocityForPatchColour (other))
+                distinctPatchPalette = false;
+    }
+
+    check (! anyRedPatchColour,
+           "no patch palette velocity is the armed red (16-index sweep)");
+    check (distinctPatchPalette,
+           "all 16 patch palette velocities are distinct");
+
     const auto bottomLeft = Launchpad::padColourMessage (0, Launchpad::Colour::Green);
     check (bottomLeft == std::array<std::uint8_t, 3> { 0x90, 0x0B, 0x15 },
            "pad 0 green is 90 0B 15, got " + hexBytes (bottomLeft));
