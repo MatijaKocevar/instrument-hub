@@ -29,6 +29,7 @@ int readFxIndex (const httplib::Request& request);
 void decorate (const RouteContext& context, httplib::Response& response);
 
 void registerStateRoutes (httplib::Server& server, const RouteContext& context);
+void registerTrackRoutes (httplib::Server& server, const RouteContext& context);
 void registerProjectRoutes (httplib::Server& server, const RouteContext& context);
 void registerPatchRoutes (httplib::Server& server, const RouteContext& context);
 void registerFxRoutes (httplib::Server& server, const RouteContext& context);

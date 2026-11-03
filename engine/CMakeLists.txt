@@ -105,6 +105,7 @@ target_sources(instrument-hub
         src/api/routes/RouteHelpers.cpp
         src/api/routes/StateRoutes.cpp
         src/api/routes/StateSerialization.cpp
+        src/api/routes/TrackRoutes.cpp
         src/api/routes/TransportRoutes.cpp
         src/api/Server.cpp
         src/api/state/StateStore.cpp
@@ -117,8 +118,12 @@ target_sources(instrument-hub
         src/api/state/StateStoreTransport.cpp
         src/api/state/StateStoreSnapshot.cpp
         src/api/state/StateStoreProject.cpp
+        src/api/state/StateStoreTracks.cpp
+        src/api/state/StateStoreTrackFx.cpp
+        src/api/state/StateStoreTrackVolume.cpp
         src/api/SessionBridge.cpp
         src/api/StateBroadcast.cpp
+        src/api/TrackBridge.cpp
         src/api/WebSocketRoutes.cpp
         src/app/CommandLine.cpp
         src/app/ControlApi.cpp

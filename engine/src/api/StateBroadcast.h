@@ -29,7 +29,8 @@ enum class StateEventKind
     device,
     midi,
     pairing,
-    project
+    project,
+    track
 };
 
 struct PadMirror

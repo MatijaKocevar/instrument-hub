@@ -85,6 +85,14 @@ struct SessionSlotConfig
     std::vector<AudioEngine::FxInsertConfig> fxChain;
 };
 
+struct SessionTrackConfig
+{
+    std::string id;
+    std::string name;
+    int slot = -1;
+    std::vector<std::string> hotFx;
+};
+
 struct SessionDeviceConfig
 {
     juce::String deviceTypeName;
@@ -103,6 +111,7 @@ struct SessionConfig
 {
     SessionDeviceConfig device;
     std::vector<SessionSlotConfig> slots;
+    std::vector<SessionTrackConfig> tracks;
 
     SessionLayout layout = SessionLayout::families;
 

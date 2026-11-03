@@ -108,14 +108,24 @@ bool loadProjectSession (const juce::File& projectFile,
                         ? SessionLayout::tracks
                         : SessionLayout::families;
     config.warmSlots.clear();
+    config.tracks.clear();
 
     if (config.layout == SessionLayout::tracks)
     {
         config.slots.assign (Controller::SetMapping::maximumTracks,
                              SessionSlotConfig {});
 
+        config.tracks.reserve (document.tracks.size());
+
         for (const auto& track : document.tracks)
         {
+            SessionTrackConfig trackConfig;
+            trackConfig.id = track.id;
+            trackConfig.name = track.name;
+            trackConfig.slot = track.slot;
+            trackConfig.hotFx = track.hotFx;
+            config.tracks.push_back (std::move (trackConfig));
+
             if (track.slot < 0
                 || track.slot >= Controller::SetMapping::maximumTracks)
                 continue;

@@ -16,6 +16,7 @@ set(IHUB_API_ROUTES_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/RouteHelpers.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/StateRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/StateSerialization.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/TrackRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/TransportRoutes.cpp"
 )
 
@@ -66,6 +67,9 @@ set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTransport.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSnapshot.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreProject.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTracks.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTrackFx.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTrackVolume.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
     ${IHUB_SETTINGS_STORE_SOURCES}
 )
@@ -1276,6 +1280,9 @@ target_sources(ihub-session-api-test
         api/session_api/ArmRejection.cpp
         api/session_api/Meters.cpp
         api/session_api/PatchMix.cpp
+        api/session_api/TrackFx.cpp
+        api/session_api/Tracks.cpp
+        api/session_api/TrackVolume.cpp
         api/session_api/Transport.cpp
         ${IHUB_SESSION_SOURCES}
         ${IHUB_DISCOVERY_SOURCES}
@@ -1283,6 +1290,7 @@ target_sources(ihub-session-api-test
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         ${IHUB_BUS_SOURCES}
@@ -1372,6 +1380,7 @@ target_sources(ihub-patch-fx-api-test
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         ${IHUB_BUS_SOURCES}
@@ -1462,6 +1471,7 @@ target_sources(ihub-instrument-page-api-test
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         ${IHUB_BUS_SOURCES}
@@ -1556,6 +1566,7 @@ target_sources(ihub-patch-state-capture-api-test
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         ${IHUB_BUS_SOURCES}
@@ -1646,6 +1657,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_API_ROUTES_SOURCES}
             ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             ${IHUB_BUS_SOURCES}
@@ -1729,6 +1741,7 @@ set(IHUB_SESSION_WARM_TEST_SOURCES
     ${IHUB_API_ROUTES_SOURCES}
     ${IHUB_API_SERVER_SOURCES}
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
     ${IHUB_BUS_SOURCES}
@@ -1871,6 +1884,7 @@ target_sources(ihub-shutdown-test
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         ${IHUB_BUS_SOURCES}
@@ -3829,6 +3843,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_API_ROUTES_SOURCES}
             ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             ${IHUB_BUS_SOURCES}
@@ -4193,6 +4208,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${IHUB_API_ROUTES_SOURCES}
             ${IHUB_API_SERVER_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             ${IHUB_BUS_SOURCES}

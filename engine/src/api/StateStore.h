@@ -6,6 +6,7 @@
 #include "state/MidiState.h"
 #include "state/PatchState.h"
 #include "state/PluginState.h"
+#include "state/TrackState.h"
 #include "state/TransportState.h"
 
 #include <juce_core/juce_core.h>
@@ -87,6 +88,14 @@ public:
     void setNumSlots (int newNumSlots);
     void setLayout (std::string newLayout);
     std::string getLayout () const;
+    void setTracks (std::vector<TrackConfig> tracks);
+
+    bool selectTrack (int index, std::string& error);
+    bool setTrackVolumeStep (int index, int step, std::string& error);
+    bool toggleTrackFx (int index, int hot, std::string& error);
+
+    using TrackGainHandler = std::function<void (int slot, float gain)>;
+    void setTrackGainHandler (TrackGainHandler handler);
     void setSlotName (int slot, std::string name);
     void setSlotIdentity (int slot,
                           std::string family,
@@ -188,6 +197,7 @@ private:
     std::vector<PatchInstrumentState> slotInstruments;
     std::vector<PatchMixState> slotMixes;
     std::vector<bool> slotEditorOpen;
+    std::vector<TrackConfig> tracks;
     std::vector<FamilyState> families;
     SettingsState settings;
     TransportState transport;
@@ -204,6 +214,7 @@ private:
     PatchStateCaptureHandler patchStateCaptureHandler;
     FxChainProvider fxProvider;
     FxCommandHandler fxHandler;
+    TrackGainHandler trackGainHandler;
     TransportProvider transportProvider;
     SlotRuntimeProvider slotRuntimeProvider;
     ProjectStateProvider projectStateProvider;

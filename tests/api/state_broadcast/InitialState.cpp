@@ -33,6 +33,8 @@ void runInitialState (Rig& rig)
         check (mirrored.isObject()
                    && intProperty (mirrored, "armedSlot") == -1,
                "the frame embeds the full /state document (nothing armed)");
+        check (! property (mirrored, "tracks").isArray(),
+               "the legacy family state carries no track list");
     }
 }
 
