@@ -50,6 +50,7 @@ set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSettings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTransport.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSnapshot.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreProject.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
 )
 
@@ -1443,9 +1444,16 @@ target_sources(ihub-patch-state-capture-api-test
         api/RequestDispatch.cpp
         api/SessionRig.cpp
         api/TestSupport.cpp
+        api/patch/Autosave.cpp
         api/patch_state_capture_api/Capture.cpp
         api/patch_state_capture_api/Fixtures.cpp
         api/patch_state_capture_api/Restart.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectAutosave.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectCapture.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
+        ${IHUB_PROJECT_SOURCES}
+        ${IHUB_MAPPING_SOURCES}
         ${IHUB_SESSION_SOURCES}
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -1485,6 +1493,7 @@ target_compile_definitions(ihub-patch-state-capture-api-test
     PRIVATE
         JUCE_PLUGINHOST_VST3=1
         JUCE_MODAL_LOOPS_PERMITTED=1
+        "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
         "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
 )
 
@@ -2894,12 +2903,14 @@ juce_add_console_app(ihub-project-test
 target_sources(ihub-project-test
     PRIVATE
         project/ProjectTest.cpp
+        project/project/Autosave.cpp
         project/project/Import.cpp
         project/project/Reload.cpp
         project/project/SessionDescription.cpp
         project/project/Support.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectAutosave.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectImport.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectPaths.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"

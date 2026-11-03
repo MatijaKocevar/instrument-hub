@@ -43,6 +43,10 @@ void applyProjectSlot (const project::SlotConfig& source,
             slot.samplePath = source.instrument.samplePath;
             break;
 
+        case project::SourceKind::initTone:
+            slot.kind = SessionSlotKind::initTone;
+            break;
+
         case project::SourceKind::plugin:
             slot.pluginFormat = source.instrument.pluginFormat.empty()
                                     ? "VST3"

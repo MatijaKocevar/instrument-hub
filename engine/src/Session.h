@@ -104,6 +104,8 @@ public:
         return config.slots;
     }
 
+    std::vector<SessionSlotConfig> copySourceConfigs() const;
+
     int getSlotLatencySamples (int slot) const noexcept;
 
     bool setSlotSource (int slot,
@@ -134,6 +136,8 @@ public:
     bool savePluginStates();
 
     bool capturePluginState (int slot);
+
+    bool copyPluginStateData (int slot, juce::MemoryBlock& data) const;
 
     bool hasPluginState (int slot) const noexcept;
 

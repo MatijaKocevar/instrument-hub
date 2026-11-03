@@ -1,4 +1,5 @@
 #include "project/Import.h"
+#include "project/Autosave.h"
 #include "project/Reload.h"
 #include "project/SessionDescription.h"
 #include "project/Support.h"
@@ -23,6 +24,7 @@ int main()
     ProjectTest::runImportChecks();
     ProjectTest::runSessionDescriptionChecks();
     ProjectTest::runReloadChecks();
+    ProjectTest::runAutosaveChecks();
 
     std::cout << (ProjectTest::failures == 0 ? "\nPASS" : "\nFAIL")
               << ": " << ProjectTest::failures << " failed check(s)" << std::endl;

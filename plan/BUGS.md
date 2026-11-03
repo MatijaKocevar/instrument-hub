@@ -111,13 +111,13 @@ reported by the human or reproduced on this machine.
 - fix: pending; T200 reproduces first and records the log
 
 ### BUG-011 · Patch edits are never written to the set file
-- status: open
+- status: fixed
 - area: engine
 - steps: change volume, pan, colour or source on the Instrument page, then restart the app
 - expected: the values return
-- actual: every edit is lost; the set file on disk is unchanged
-- evidence: `ihub::project::Serializer::save` has no caller outside `tests/project/SetFileTest.cpp`; `StateStorePatches` mutates memory only
-- fix: pending; T199 makes the `.ihub` project the live set, T204 autosaves it
+- actual: before the fix every edit was lost; the set file on disk was unchanged
+- evidence: `./build/tests/ihub-project-test` -> `PASS: 0 failed check(s)` with `ten fader moves produce one file write (got 1)`, `the edited fader value reached the project file`, `the .bak is byte-identical to the previous project`, `a failed write leaves the previous .ihub byte-identical`, `a crash mid-write still leaves a complete .ihub` and `a read-only project keeps running and reports not saved`; `./build/tests/ihub-patch-state-capture-api-test` -> `all checks passed` with `the patch mixer and colour reached the project file`, `a restart loads the autosaved project`, `the FX chain reached the project file`, `the transport tempo reached the project file`, `the project stores the sound captured before the write` and `restoring app settings never writes the project`; `scripts/test.sh` -> 100% tests passed, 0 failed out of 69 (131.54 s)
+- fix: T204 wires accepted patch/source/FX/transport/capture edits into `ProjectAutosave`: a 500 ms debounce, capture of the touched plug-in slots immediately before the write, `<name>.ihub.tmp` + atomic rename with `<name>.ihub.bak`, `project.dirty`/`saved`/`error` in `/state`, and a `project` state event. Failed or read-only writes leave the previous file intact and report the error.
 
 ### BUG-010 · The grid's armed colour lags the Launchpad by up to two seconds
 - status: fixed

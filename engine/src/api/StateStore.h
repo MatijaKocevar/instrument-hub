@@ -60,8 +60,15 @@ public:
 
     void setSlotRuntimeProvider (SlotRuntimeProvider provider);
 
+    ProjectSaveState getProjectState() const;
+    void setProjectStateProvider (ProjectStateProvider provider);
+    void notifyProjectStateChanged();
+
     using ChangeHandler = std::function<void (const char* kind, int slot)>;
     void setChangeHandler (ChangeHandler handler);
+
+    using EditHandler = std::function<void (const char* kind, int slot)>;
+    void setEditHandler (EditHandler handler);
 
     using DetachHandler = std::function<void()>;
     void setDetachHandler (DetachHandler handler);
@@ -147,6 +154,7 @@ private:
     PatchState makePatchLocked (int slot) const;
     void collectEffectiveGainsLocked (const std::vector<PatchMixState>& mixes,
                                       std::vector<float>& gains) const;
+    void notifyEdited (const char* kind, int slot);
 
     mutable std::mutex mutex;
 
@@ -169,6 +177,7 @@ private:
     ArmHandler armHandler;
     TransportHandler transportHandler;
     ChangeHandler changeHandler;
+    EditHandler editHandler;
     DetachHandler detachHandler;
     PatchHandler patchHandler;
     PatchSourceHandler patchSourceHandler;
@@ -179,6 +188,7 @@ private:
     FxCommandHandler fxHandler;
     TransportProvider transportProvider;
     SlotRuntimeProvider slotRuntimeProvider;
+    ProjectStateProvider projectStateProvider;
 
     std::atomic<std::uint64_t> revision { 0 };
     std::shared_ptr<Lifetime> lifetime = std::make_shared<Lifetime>();

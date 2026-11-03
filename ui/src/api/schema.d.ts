@@ -432,7 +432,8 @@ export interface paths {
          *     - `PATCH /patches/{slot}` changes a patch's volume, pan, mute, solo or
          *       colour (`"patch"`),
          *     - an audio device, MIDI input or pairing setting changes (`"device"`,
-         *       `"midi"` or `"pairing"`).
+         *       `"midi"` or `"pairing"`),
+         *     - an autosave finishes or fails (`"project"`).
          *
          *     Frames are coalesced: a slow client skips sequence numbers instead of
          *     receiving a backlog. Each frame embeds the same document as
@@ -972,6 +973,22 @@ export interface components {
             families: components["schemas"]["Family"][];
             settings: components["schemas"]["Settings"];
             transport: components["schemas"]["Transport"];
+            project?: components["schemas"]["ProjectState"];
+        };
+        ProjectState: {
+            /** @description Absolute path of the open `.ihub` project. */
+            path: string;
+            /** @description Project name, derived from the file name. */
+            name: string;
+            /** @description An accepted edit is waiting for the debounced write. */
+            dirty: boolean;
+            /**
+             * @description The last project write succeeded. A read-only or unwritable
+             *     project keeps running with `saved: false`.
+             */
+            saved: boolean;
+            /** @description The last save error, empty when the last write succeeded. */
+            error: string;
         };
         AudioChannel: {
             /** @description Zero-based channel index inside the device. */

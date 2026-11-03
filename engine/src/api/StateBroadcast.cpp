@@ -28,6 +28,7 @@ const char* eventKindName (StateEventKind kind) noexcept
         case StateEventKind::device:     return "device";
         case StateEventKind::midi:       return "midi";
         case StateEventKind::pairing:    return "pairing";
+        case StateEventKind::project:    return "project";
     }
 
     return "state";
@@ -63,6 +64,9 @@ StateEventKind kindForChange (const char* kind) noexcept
 
     if (name == "pairing")
         return StateEventKind::pairing;
+
+    if (name == "project")
+        return StateEventKind::project;
 
     return StateEventKind::slot;
 }

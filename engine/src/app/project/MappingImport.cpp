@@ -1,8 +1,8 @@
 #include "MappingImport.h"
 
+#include "PatchColours.h"
 #include "ProjectLimits.h"
 
-#include <array>
 #include <string>
 #include <utility>
 
@@ -11,23 +11,6 @@ namespace ihub::app
 
 namespace
 {
-
-constexpr std::array<const char*, 16> patchColours {
-    "#fb923c", "#facc15", "#a3e635", "#4ade80",
-    "#34d399", "#2dd4bf", "#22d3ee", "#38bdf8",
-    "#60a5fa", "#818cf8", "#a78bfa", "#c084fc",
-    "#e879f9", "#f472b6", "#94a3b8", "#e2e8f0"
-};
-
-int clampColourIndex (int index) noexcept
-{
-    return juce::jlimit (0, 15, index);
-}
-
-std::string colourForIndex (int index)
-{
-    return patchColours[static_cast<std::size_t> (clampColourIndex (index))];
-}
 
 void importInstrument (const Controller::InstrumentSpec& instrument,
                        project::SlotConfig& slot)

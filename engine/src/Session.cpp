@@ -166,6 +166,12 @@ int Session::getSlotLatencySamples (int slot) const noexcept
     return engine->getSlot (slot).latencySamples();
 }
 
+std::vector<SessionSlotConfig> Session::copySourceConfigs() const
+{
+    const std::lock_guard<std::mutex> lock (sourceMutex);
+    return sourceConfigs;
+}
+
 float Session::getSlotMeterPeak (int slot) const noexcept
 {
     return meters.getSlotPeak (slot);

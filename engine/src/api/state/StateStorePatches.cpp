@@ -215,6 +215,7 @@ bool StateStore::updatePatch (int slot, const juce::var& patch, std::string& err
                         gains[static_cast<std::size_t> (index)]);
     }
 
+    notifyEdited ("patch", slot);
     notifyChanged ("patch", slot);
 
     return true;

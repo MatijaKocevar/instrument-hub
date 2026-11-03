@@ -63,6 +63,7 @@ const char* toString (SourceKind kind) noexcept
         case SourceKind::plugin:     return "plugin";
         case SourceKind::audioInput: return "audio-input";
         case SourceKind::sampler:    return "sampler";
+        case SourceKind::initTone:   return "init-tone";
     }
 
     return "empty";
@@ -74,6 +75,7 @@ bool sourceKindFromString (std::string_view text, SourceKind& kind) noexcept
     if (text == "plugin")      { kind = SourceKind::plugin;     return true; }
     if (text == "audio-input") { kind = SourceKind::audioInput; return true; }
     if (text == "sampler")     { kind = SourceKind::sampler;    return true; }
+    if (text == "init-tone")   { kind = SourceKind::initTone;   return true; }
 
     return false;
 }

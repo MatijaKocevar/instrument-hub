@@ -109,6 +109,15 @@ juce::var stateToVar (const StateSnapshot& state)
     object->setProperty ("settings", settingsToVar (state.settings));
     object->setProperty ("transport", transportToVar (state.transport));
 
+    auto project = Routes::makeObject();
+    auto* projectObject = project.getDynamicObject();
+    projectObject->setProperty ("path", juce::String (state.project.path));
+    projectObject->setProperty ("name", juce::String (state.project.name));
+    projectObject->setProperty ("dirty", state.project.dirty);
+    projectObject->setProperty ("saved", state.project.saved);
+    projectObject->setProperty ("error", juce::String (state.project.error));
+    object->setProperty ("project", project);
+
     return root;
 }
 

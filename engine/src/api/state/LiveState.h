@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PatchState.h"
+#include "ProjectState.h"
 #include "TransportState.h"
 
 #include <cstdint>
@@ -39,6 +40,7 @@ struct StateSnapshot
 
     SettingsState settings;
     TransportState transport;
+    ProjectSaveState project;
 
     double uptimeMs = 0.0;
 };

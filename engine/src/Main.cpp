@@ -176,6 +176,7 @@ public:
         if (! controlApi.start (commandLine,
                                 session.get(),
                                 apiRequired,
+                                projectFile,
                                 [this] { controller.refreshLeds(); }))
         {
             if (apiRequired)
@@ -241,6 +242,7 @@ public:
         controller.resetMapping();
 
         controlApi.stopServer();
+        controlApi.flushProject();
         controlApi.detachMidi();
         controller.shutdown();
         controlApi.resetServer();
