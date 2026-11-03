@@ -31,6 +31,7 @@ import {
   shellTest,
 } from "./scenarios/shell";
 import { snapshotTest } from "./scenarios/snapshot";
+import { statePushTest, pollFallbackTest } from "./scenarios/statePush";
 import { backoffTest, reconnectTest } from "./scenarios/store";
 
 async function main(): Promise<void> {
@@ -58,6 +59,8 @@ async function main(): Promise<void> {
   await remoteOptimisticTest();
   await reconnectTest();
   await backoffTest();
+  await statePushTest();
+  await pollFallbackTest();
   instrumentModelTest();
   await instrumentPageTest();
   instrumentPluginEditorTest();

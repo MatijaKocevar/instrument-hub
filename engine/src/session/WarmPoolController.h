@@ -25,6 +25,7 @@ public:
     using DestroyObserver = std::function<void (AudioEngine::SlotSource& instance)>;
     using BeforeArmHook = std::function<void (int slot)>;
     using CancelLoads = std::function<void()>;
+    using SlotStateObserver = std::function<void (int slot)>;
 
     WarmPoolController();
     ~WarmPoolController();
@@ -43,6 +44,8 @@ public:
                     BeforeArmHook beforeArm,
                     AudioEngine::SlotSwitcher* switcherToUse,
                     CancelLoads cancelLoads);
+
+    void setSlotStateObserver (SlotStateObserver observer);
 
     void setFormat (double sampleRate, int maximumBlockSize);
     void setNumSlots (int slotCount);
@@ -101,6 +104,7 @@ private:
     DestroyObserver destroyObserver;
     BeforeArmHook beforeArmHook;
     CancelLoads cancelLoads;
+    SlotStateObserver slotStateObserver;
     AudioEngine::SlotSwitcher* switcher = nullptr;
 
     std::unique_ptr<AudioEngine::WarmPool> warmPool;

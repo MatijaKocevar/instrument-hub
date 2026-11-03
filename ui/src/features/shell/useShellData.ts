@@ -48,6 +48,7 @@ export function useShellData(router: RouterState) {
     app,
     store,
     state,
+    live: app.live,
     grid,
     pluginAssignments,
     meters,

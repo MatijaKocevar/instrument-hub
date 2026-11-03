@@ -115,7 +115,6 @@ bool StateStore::updatePatch (int slot, const juce::var& patch, std::string& err
         return false;
     }
 
-    ChangeHandler changed;
     PatchHandler applyPatch;
     std::vector<PatchState> patches;
     std::vector<float> gains;
@@ -206,7 +205,6 @@ bool StateStore::updatePatch (int slot, const juce::var& patch, std::string& err
         for (int index = 0; index < numSlots; ++index)
             patches.push_back (makePatchLocked (index));
 
-        changed = changeHandler;
         applyPatch = patchHandler;
     }
 
@@ -217,8 +215,7 @@ bool StateStore::updatePatch (int slot, const juce::var& patch, std::string& err
                         gains[static_cast<std::size_t> (index)]);
     }
 
-    if (changed != nullptr)
-        changed ("patch", slot);
+    notifyChanged ("patch", slot);
 
     return true;
 }

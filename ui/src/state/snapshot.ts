@@ -13,6 +13,7 @@ export type ConnectionPhase = "idle" | "connecting" | "ready" | "offline";
 
 export interface AppSnapshot {
   phase: ConnectionPhase;
+  live: boolean;
   state: ControlState | null;
   audio: ControlAudioState | null;
   error: string | null;
@@ -51,6 +52,7 @@ export interface AppSnapshot {
 export function initialSnapshot(): AppSnapshot {
   return {
     phase: "idle",
+    live: false,
     state: null,
     audio: null,
     error: null,

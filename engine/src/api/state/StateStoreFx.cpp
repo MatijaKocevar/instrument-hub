@@ -51,7 +51,6 @@ bool StateStore::applyFxCommand (int slot,
                                  std::string& error)
 {
     FxCommandHandler handler;
-    ChangeHandler changed;
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
@@ -63,7 +62,6 @@ bool StateStore::applyFxCommand (int slot,
         }
 
         handler = fxHandler;
-        changed = changeHandler;
     }
 
     if (handler == nullptr)
@@ -84,8 +82,8 @@ bool StateStore::applyFxCommand (int slot,
         return false;
     }
 
-    if (applied && changed != nullptr)
-        changed ("patch", slot);
+    if (applied)
+        notifyChanged ("patch", slot);
 
     return applied;
 }

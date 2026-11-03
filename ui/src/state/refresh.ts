@@ -40,9 +40,16 @@ export async function refreshSnapshot(deps: RefreshDeps): Promise<boolean> {
     return false;
   }
 
+  const current = deps.getSnapshot().state;
+  const incoming = stateResult.value;
+  const acceptState =
+    current === null ||
+    incoming.revision >= current.revision ||
+    incoming.uptimeMs < current.uptimeMs;
+
   deps.patch({
     phase: "ready",
-    state: deps.preservePending(stateResult.value),
+    ...(acceptState ? { state: deps.preservePending(incoming) } : {}),
     ...(audioResult.status === "fulfilled"
       ? { audio: audioResult.value, audioError: null }
       : { audioError: messageOf(audioResult.reason) }),

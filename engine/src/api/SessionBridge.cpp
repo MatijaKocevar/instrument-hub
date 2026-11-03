@@ -432,6 +432,21 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         return runtime;
     });
 
+    session.setSlotStateObserver ([&state, lifetime = state.getLifetime()] (int slot)
+    {
+        const std::lock_guard<std::mutex> lock (lifetime->mutex);
+
+        if (! lifetime->alive)
+            return;
+
+        state.notifyChanged ("warm", slot);
+    });
+
+    state.setDetachHandler ([&session]
+    {
+        session.setSlotStateObserver ({});
+    });
+
     state.setTransportProvider ([&session]
     {
         return toTransportState (session.getTransport().snapshot());

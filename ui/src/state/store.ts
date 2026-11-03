@@ -27,6 +27,7 @@ import { PluginActions } from "./plugins";
 import { PollLoop } from "./pollLoop";
 import { refreshSnapshot } from "./refresh";
 import type { AppSnapshot } from "./snapshot";
+import { StateSync } from "./stateSync";
 import { StoreCore } from "./storeCore";
 import { TransportActions } from "./transport";
 
@@ -38,6 +39,7 @@ export class AppStore {
   private readonly options: ResolvedAppStoreOptions;
   private readonly core: StoreCore;
   private readonly polling: PollLoop;
+  private readonly sync: StateSync;
   private readonly patchArm: PatchArmActions;
   private readonly patchUpdate: PatchUpdateActions;
   private readonly patchSource: PatchSourceActions;
@@ -86,6 +88,30 @@ export class AppStore {
       () => this.load(),
       () => this.core.getSnapshot().failedAttempts,
     );
+
+    this.sync = new StateSync({
+      baseUrl: api.baseUrl,
+      socketFactory: this.options.stateSocketFactory,
+      reconnectBaseMs: this.options.retryBaseMs,
+      reconnectMaxMs: this.options.retryMaxMs,
+      currentState: () => this.core.getSnapshot().state,
+      applyState: (state) => {
+        this.core.patch({
+          phase: "ready",
+          state: this.withPendingState(state),
+          error: null,
+          unauthorized: false,
+          failedAttempts: 0,
+          updatedAt: this.options.now(),
+        });
+      },
+      onLiveChange: (live) => {
+        if (this.core.getSnapshot().live !== live) this.core.patch({ live });
+      },
+      onAuxiliaryChange: () => {
+        void this.refresh();
+      },
+    });
   }
 
   getSnapshot = (): AppSnapshot => this.core.getSnapshot();
@@ -105,9 +131,11 @@ export class AppStore {
 
   start(): void {
     this.polling.start();
+    this.sync.start();
   }
 
   stop(): void {
+    this.sync.stop();
     this.polling.stop();
   }
 

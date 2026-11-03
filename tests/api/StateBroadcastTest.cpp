@@ -2,6 +2,7 @@
 #include "state_broadcast/Accounting.h"
 #include "state_broadcast/InitialState.h"
 #include "state_broadcast/PadPath.h"
+#include "state_broadcast/RevisionPath.h"
 #include "state_broadcast/UiPath.h"
 
 #include <juce_events/juce_events.h>
@@ -23,6 +24,7 @@ int main()
         ApiTest::StateBroadcast::runInitialState (rig);
         ApiTest::StateBroadcast::runPadPath (rig);
         ApiTest::StateBroadcast::runUiPath (rig);
+        ApiTest::StateBroadcast::runRevisionPath (rig);
         ApiTest::StateBroadcast::runAccounting (rig);
 
         rig.stop();

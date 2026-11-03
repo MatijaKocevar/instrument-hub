@@ -428,14 +428,19 @@ export interface paths {
          *     - a hardware pad is pressed or released (`event.kind: "pad"`),
          *     - `POST /arm` changes the armed slot (`"arm"`),
          *     - `POST /settings` or `POST /transport` succeeds,
-         *     - a slot name or measured latency changes (`"slot"`),
+         *     - a slot name, warm state or measured latency changes (`"slot"` / `"warm"`),
          *     - `PATCH /patches/{slot}` changes a patch's volume, pan, mute, solo or
-         *       colour (`"patch"`).
+         *       colour (`"patch"`),
+         *     - an audio device, MIDI input or pairing setting changes (`"device"`,
+         *       `"midi"` or `"pairing"`).
          *
          *     Frames are coalesced: a slow client skips sequence numbers instead of
          *     receiving a backlog. Each frame embeds the same document as
-         *     `GET /state`, so a client never has to poll after an event. Latency
-         *     from the physical pad press to the frame is under 100 ms.
+         *     `GET /state`, so a client never has to poll after an event. The
+         *     `revision` field is monotonic and increases whenever the embedded
+         *     document changes; a client applies only frames with a revision newer
+         *     than the state it already holds. Latency from the physical pad press
+         *     to the frame is under 100 ms.
          *
          *     Frame shape (`application/json` text message):
          *
@@ -443,13 +448,14 @@ export interface paths {
          *     {
          *       "type": "state",
          *       "sequence": 7,
+         *       "revision": 8,
          *       "timestampMs": 1400.5,
          *       "event": { "kind": "pad", "pad": 3, "slot": -1, "pressed": true, "timestampMs": 1400.5 },
          *       "pads": [
          *         { "index": 0, "pressed": false, "updatedMs": 0.0 },
          *         { "index": 3, "pressed": true, "updatedMs": 1400.5 }
          *       ],
-         *       "state": { "schemaVersion": 1, "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
+         *       "state": { "schemaVersion": 1, "revision": 8, "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
          *     }
          *     ```
          */
@@ -951,6 +957,11 @@ export interface components {
         State: {
             /** @constant */
             schemaVersion: 1;
+            /**
+             * Format: int64
+             * @description Monotonic control-state revision.
+             */
+            revision: number;
             application: components["schemas"]["Application"];
             /** @description Armed slot index, or -1 when disarmed. */
             armedSlot: number;

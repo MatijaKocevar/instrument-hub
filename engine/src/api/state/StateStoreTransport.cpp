@@ -42,7 +42,6 @@ bool StateStore::updateTransport (const juce::var& patch, std::string& error)
     }
 
     TransportHandler handler;
-    ChangeHandler changed;
     TransportState next;
 
     {
@@ -100,14 +99,12 @@ bool StateStore::updateTransport (const juce::var& patch, std::string& error)
 
         transport = next;
         handler = transportHandler;
-        changed = changeHandler;
     }
 
     if (handler != nullptr)
         handler (next, patch);
 
-    if (changed != nullptr)
-        changed ("transport", -1);
+    notifyChanged ("transport", -1);
 
     return true;
 }

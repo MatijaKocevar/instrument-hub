@@ -198,6 +198,9 @@ public:
 
     const char* getWarmStateName (int slot) const noexcept;
 
+    using SlotStateObserver = session::WarmPoolController::SlotStateObserver;
+    void setSlotStateObserver (SlotStateObserver observer);
+
     bool waitForSlotWarm (int slot, int timeoutMs = 5000);
 
     bool waitForSlotActive (int slot, int timeoutMs = 5000);

@@ -54,6 +54,7 @@ void registerPairingRoutes (httplib::Server& server, const RouteContext& context
 
         decorate (context, response);
         setJson (response, 200, pairingToVar (context.setLanMode (enabled)));
+        context.state.notifyChanged ("pairing", -1);
     });
 
     server.Post ("/pairing/revoke", [context] (const httplib::Request&,
@@ -69,6 +70,7 @@ void registerPairingRoutes (httplib::Server& server, const RouteContext& context
 
         decorate (context, response);
         setJson (response, 200, pairingToVar (context.pairing->snapshot()));
+        context.state.notifyChanged ("pairing", -1);
     });
 
     server.Post ("/pair", [context] (const httplib::Request& request,
@@ -130,6 +132,7 @@ void registerPairingRoutes (httplib::Server& server, const RouteContext& context
 
         decorate (context, response);
         setJson (response, 200, result);
+        context.state.notifyChanged ("pairing", -1);
     });
 }
 

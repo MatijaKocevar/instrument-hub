@@ -2086,6 +2086,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             api/state_broadcast/Fixtures.cpp
             api/state_broadcast/InitialState.cpp
             api/state_broadcast/PadPath.cpp
+            api/state_broadcast/RevisionPath.cpp
             api/state_broadcast/UiPath.cpp
             ${IHUB_DISCOVERY_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
