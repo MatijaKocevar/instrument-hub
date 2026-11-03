@@ -1,21 +1,34 @@
 #include "audio/AudioSettings.h"
 
+#include "audio/device/DeviceErrors.h"
+
 namespace AudioEngine
 {
 
 bool AudioSettingsBridge::openCachedDevice (const CachedDevice& device,
                                             juce::String* errorMessage)
 {
+    if (! device.available)
+    {
+        if (errorMessage != nullptr)
+        {
+            const auto reason = detail::describeDeviceError (device.unavailableReason);
+            *errorMessage = reason.isNotEmpty() ? reason : "the device is not connected";
+        }
+
+        return false;
+    }
+
     DeviceSetup setup;
     setup.deviceTypeName = device.type;
     setup.outputDeviceName = device.name;
     setup.inputDeviceName = device.hasInput ? device.name : juce::String();
     setup.sampleRate = 48000.0;
     setup.bufferSize = 128;
-    setup.numOutputChannels = juce::jmin (2, device.outputNames.size());
-    setup.numInputChannels = device.hasInput
-                                 ? juce::jmin (2, device.inputNames.size())
-                                 : 0;
+    setup.numOutputChannels = device.outputNames.isEmpty()
+                                  ? 2
+                                  : juce::jmin (2, device.outputNames.size());
+    setup.numInputChannels = device.hasInput ? device.inputNames.size() : 0;
     setup.outputChannels = DeviceSetup::channelMask (setup.numOutputChannels);
     setup.inputChannels = DeviceSetup::channelMask (setup.numInputChannels);
 

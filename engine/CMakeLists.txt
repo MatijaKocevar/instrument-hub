@@ -156,6 +156,7 @@ target_sources(instrument-hub
         src/audio/device/DeviceCards.cpp
         src/audio/device/DeviceDescription.cpp
         src/audio/device/DeviceEnumeration.cpp
+        src/audio/device/DeviceErrors.cpp
         src/audio/device/DeviceLatency.cpp
         src/audio/device/DeviceLookup.cpp
         src/audio/device/DeviceOpen.cpp

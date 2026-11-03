@@ -58,7 +58,8 @@ ChannelMap resolveChannelMap (const std::optional<std::vector<int>>& requested,
     }
     else if (deviceChanged || current.isZero())
     {
-        map.count = juce::jlimit (0, availableChannels, defaultChannels);
+        const int limit = availableChannels > 0 ? availableChannels : defaultChannels;
+        map.count = juce::jlimit (0, limit, defaultChannels);
         map.mask = DeviceSetup::channelMask (map.count);
     }
     else

@@ -1,5 +1,6 @@
 #include "audio/AudioSettings.h"
 
+#include "audio/device/DeviceErrors.h"
 #include "audio/settings/AudioSettingsChannels.h"
 #include "audio/settings/AudioSettingsPersistence.h"
 
@@ -50,12 +51,27 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
             targetName = firstOutputDeviceOfType (targetType);
     }
 
-    const auto* info = findDevice (targetType, targetName);
+    const CachedDevice* info = findDevice (targetType, targetName);
+
+    if (info != nullptr && ! info->available)
+    {
+        refreshDevices();
+        info = findDevice (targetType, targetName);
+    }
 
     if (info == nullptr || ! info->hasOutput)
     {
-        error = "unknown audio output device: "
-                + targetType.toStdString() + " / " + targetName.toStdString();
+        error = "the device is not connected";
+        return false;
+    }
+
+    if (! info->available)
+    {
+        error = detail::describeDeviceError (info->unavailableReason).toStdString();
+
+        if (error.empty())
+            error = "the device is not connected";
+
         return false;
     }
 
@@ -94,11 +110,16 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     setup.bufferSize = patch.bufferSize.value_or (wasOpen ? manager.getCurrentBufferSize()
                                                           : 128);
 
+    const int availableOutputs = info->outputNames.size();
+    const int availableInputs = info->hasInput ? info->inputNames.size() : 0;
+    const bool channelsNeededProbe = info->outputNames.isEmpty()
+                                     || (info->hasInput && info->inputNames.isEmpty());
+
     const auto outputMap = detail::resolveChannelMap (
         patch.outputChannels,
         setup.outputChannels,
-        info->outputNames.size(),
-        juce::jmin (2, info->outputNames.size()),
+        availableOutputs,
+        2,
         deviceChanged);
 
     setup.outputChannels = outputMap.mask;
@@ -107,14 +128,14 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     const auto inputMap = detail::resolveChannelMap (
         patch.inputChannels,
         setup.inputChannels,
-        info->inputNames.size(),
-        info->hasInput ? juce::jmin (2, info->inputNames.size()) : 0,
+        availableInputs,
+        availableInputs,
         deviceChanged);
 
     setup.inputChannels = inputMap.mask;
     setup.numInputChannels = inputMap.count;
 
-    if (setup.numOutputChannels <= 0)
+    if (patch.outputChannels.has_value() && setup.numOutputChannels <= 0)
     {
         error = "outputChannels must select at least one channel";
         return false;
@@ -130,6 +151,9 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
                                            : "could not open the audio device";
             return false;
         }
+
+        if (deviceChanged && channelsNeededProbe)
+            refreshDevices();
     }
     else
     {
