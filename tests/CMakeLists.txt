@@ -299,6 +299,53 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+juce_add_console_app(ihub-settings-store-test
+    PRODUCT_NAME "ihub-settings-store-test"
+)
+
+target_sources(ihub-settings-store-test
+    PRIVATE
+        settings/SettingsStoreTest.cpp
+        settings/TestSupport.cpp
+        settings/Defaults.cpp
+        settings/RoundTrip.cpp
+        settings/CorruptRecovery.cpp
+        settings/UnknownKeys.cpp
+        settings/AtomicReplace.cpp
+        settings/NewerVersion.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
+)
+
+target_include_directories(ihub-settings-store-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-settings-store-test
+    PRIVATE
+        juce::juce_core
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-settings-store-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-settings-store
+    COMMAND ihub-settings-store-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(
         NAME ihub-app-list-devices
