@@ -71,6 +71,7 @@ bool ControlApi::start (const juce::String& commandLine,
     }
 
     midiBridge = std::make_unique<Api::MidiBridge>();
+    midiBridge->setSettingsStore (settings);
     midiBridge->setRestoreHandler (std::move (midiRestore));
 
     if (session != nullptr)

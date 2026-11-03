@@ -25,6 +25,8 @@ set(IHUB_DISCOVERY_SOURCES
 
 set(IHUB_MIDI_BRIDGE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/JuceMidiInputBackend.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiInputPersistence.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiPadTest.cpp"
 )
 
@@ -41,6 +43,7 @@ set(IHUB_RT_GUARD_SOURCES
 
 set(IHUB_SETTINGS_STORE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/MidiInputNames.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
@@ -325,6 +328,7 @@ target_sources(ihub-settings-store-test
         settings/UnknownKeys.cpp
         settings/AtomicReplace.cpp
         settings/NewerVersion.cpp
+        settings/MidiInputs.cpp
         ${IHUB_SETTINGS_STORE_SOURCES}
 )
 
@@ -2324,9 +2328,11 @@ target_sources(ihub-midi-api-test
         api/midi_api/DeviceEnumeration.cpp
         api/midi_api/Fixtures.cpp
         api/midi_api/PadTest.cpp
+        api/midi_api/Persistence.cpp
         api/midi_api/Routes.cpp
         ${IHUB_DISCOVERY_SOURCES}
         ${IHUB_MIDI_BRIDGE_SOURCES}
+        ${IHUB_SETTINGS_STORE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}
         ${IHUB_API_SERVER_SOURCES}
@@ -2350,6 +2356,10 @@ target_link_libraries(ihub-midi-api-test
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(ihub-midi-api-test PRIVATE ALSA::ALSA)
+endif()
 
 set_target_properties(ihub-midi-api-test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
@@ -3380,6 +3390,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             session_midi/SessionMidiTest.cpp
             ${IHUB_SESSION_SOURCES}
             ${IHUB_MIDI_BRIDGE_SOURCES}
+            ${IHUB_SETTINGS_STORE_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             ${IHUB_BUS_SOURCES}
             ${IHUB_DEVICE_MANAGER_SOURCES}

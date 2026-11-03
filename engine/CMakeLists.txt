@@ -81,6 +81,8 @@ target_sources(instrument-hub
         src/api/discovery/DnsPacket.cpp
         src/api/discovery/MdnsSocket.cpp
         src/api/MidiBridge.cpp
+        src/api/midi/JuceMidiInputBackend.cpp
+        src/api/midi/MidiInputPersistence.cpp
         src/api/midi/MidiPadTest.cpp
         src/api/Pairing.cpp
         src/api/PluginBridge.cpp
@@ -293,6 +295,7 @@ target_sources(instrument-hub
         src/session/warm/WarmPoolMeasurement.cpp
         src/session/warm/WarmPoolVoice.cpp
         src/settings/AtomicFileWrite.cpp
+        src/settings/MidiInputNames.cpp
         src/settings/SettingsJsonRead.cpp
         src/settings/SettingsJsonWrite.cpp
         src/settings/SettingsStore.cpp
@@ -350,7 +353,8 @@ target_link_libraries(instrument-hub
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(X11 REQUIRED)
-    target_link_libraries(instrument-hub PRIVATE X11::X11)
+    find_package(ALSA REQUIRED)
+    target_link_libraries(instrument-hub PRIVATE X11::X11 ALSA::ALSA)
 endif()
 
 if(IHUB_ENABLE_RT_GUARD)

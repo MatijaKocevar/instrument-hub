@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Server.h"
+#include "api/midi/MidiInputBackend.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
@@ -19,6 +20,11 @@ namespace Controller
 class LaunchpadDriver;
 }
 
+namespace ihub::settings
+{
+class SettingsStore;
+}
+
 namespace Api
 {
 
@@ -28,9 +34,12 @@ public:
     static constexpr int padTestDurationMs = 900;
 
     MidiBridge();
+    explicit MidiBridge (std::unique_ptr<MidiInputBackend> backend);
     ~MidiBridge() override;
 
     void setLaunchpad (Controller::LaunchpadDriver* driver);
+
+    void setSettingsStore (ihub::settings::SettingsStore* store);
 
     void setMidiSink (std::function<bool (const juce::MidiMessage&)> sink);
 
@@ -57,7 +66,7 @@ public:
 private:
     struct Monitor
     {
-        std::unique_ptr<juce::MidiInput> input;
+        std::unique_ptr<MidiInputHandle> input;
         std::uint64_t events = 0;
         std::string lastEvent;
     };
@@ -65,11 +74,20 @@ private:
     void handleIncomingMidiMessage (juce::MidiInput* source,
                                     const juce::MidiMessage& message) override;
 
+    std::vector<MidiInputDevice> listDevices() const;
+    bool openInput (const MidiInputDevice& device, std::string& error);
+    void restoreStoredInputs();
+    void rememberInput (const MidiInputDevice& device);
+    void forgetInput (const MidiInputDevice& device);
+
     void paintPadTestFrame (int frame);
     void runPadTestAnimation (std::uint64_t generation);
     void closeInputs();
 
     static std::string describeMessage (const juce::MidiMessage& message);
+
+    std::unique_ptr<MidiInputBackend> inputBackend;
+    ihub::settings::SettingsStore* settingsStore = nullptr;
 
     std::atomic<Controller::LaunchpadDriver*> launchpad { nullptr };
 
