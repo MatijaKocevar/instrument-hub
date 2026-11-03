@@ -138,13 +138,13 @@ reported by the human or reproduced on this machine.
 - fix: pending; T197
 
 ### BUG-008 · Grid rows are mirrored between the UI and the Launchpad
-- status: open
+- status: fixed
 - area: grid
-- steps: compare the first family row on `/grid` with the bottom-left row of the Launchpad
+- steps: open `/grid` at 1200x800 and compare the first family row with the bottom-left row of the Launchpad
 - expected: the same slots in the same physical place
 - actual: slot 1 is the top-left cell on screen but the bottom-left pad (note 11) on the controller, so the first row reads red at the top on screen and at the bottom on the hardware
-- evidence: `LaunchpadGrid.h:15-24` maps pad index 0 to note 11 (bottom-left); `ui/src/features/grid/model.ts:45-77` puts slots 1–8 in the first rendered row
-- fix: pending; T196
+- evidence: Playwright before the fix read `data-row="0"` first with `data-slot` 0–7; after the fix the first rendered family row is `data-row="7"` with `data-slot` 56–63 and the last is `data-row="0"` with 0–7 (screenshots `tests/artifacts/ui-grid-before-T196.png`, `ui-grid-after-T196.png`); clicking the top row's slot 60 opened `/instrument?slot=60` and `GET /state` reported `armedSlot: 60`, clicking the bottom row's slot 3 reported `armedSlot: 3`; `ihub-launchpad-protocol-test` -> `ok : note 11 maps back to pad 0`, `ihub-launchpad-driver-test` captures the note-11 LED as pad 0, `ihub-e2e` -> `pad 0 arms slot 0` and `PASS`; `cd ui && pnpm test:snapshot` -> `ui-snapshot: all checks passed` including `PASS the top rendered row holds slots 57–64`; `scripts/test.sh` -> 100% tests passed, 0 failed out of 68
+- fix: T196 adds `gridRows()` in `ui/src/features/grid/model.ts`, which reverses the family order for rendering only; `GridTable` renders top-down while slot indexes, column order and all slot-keyed callbacks stay unchanged, and `data-row` keeps the hardware row (0 = bottom), so the rendered rows are numbered 08 at the top to 01 at the bottom. Snapshot assertions moved to `ui/src/testing/scenarios/gridSnapshot.tsx` with new top-down row checks against the 64-slot fixture.
 
 ### BUG-006 · Audio device and mixer settings are lost on every restart
 - status: open

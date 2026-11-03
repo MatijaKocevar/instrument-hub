@@ -25,6 +25,11 @@ export interface GridModel {
   readonly armedSlot: number;
 }
 
+export interface GridRow {
+  readonly family: GridFamily;
+  readonly row: number;
+}
+
 export function createGridModel(
   families: readonly GridFamily[],
   armedSlot: number,
@@ -97,6 +102,10 @@ export function gridFromState(state: ControlState | null): GridModel {
       : slotsAsFamilies(state);
 
   return createGridModel(families, state.armedSlot);
+}
+
+export function gridRows(model: GridModel): readonly GridRow[] {
+  return model.families.map((family, row) => ({ family, row })).reverse();
 }
 
 export function gridPatches(model: GridModel): readonly GridPatch[] {
