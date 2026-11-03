@@ -2,7 +2,6 @@ import type { ReactElement } from "react";
 
 import { GridView } from "../grid";
 import type { RouterState } from "../../state/router";
-import { SystemPanels } from "./SystemPanels";
 import { armAndOpenInstrument } from "./armAndOpenInstrument";
 import type { ShellData } from "./useShellData";
 
@@ -30,19 +29,15 @@ export function GridRoute({
   };
 
   return (
-    <>
-      {state === null ? null : <SystemPanels state={state} />}
-
-      <GridView
-        model={grid}
-        meters={meters}
-        loading={state === null}
-        onArm={openPatch}
-        onColourChange={changeColour}
-        onFamilyColourChange={(familyId, _slots, colorIndex) => {
-          void store.updateFamilyColour(familyId, colorIndex);
-        }}
-      />
-    </>
+    <GridView
+      model={grid}
+      meters={meters}
+      loading={state === null}
+      onArm={openPatch}
+      onColourChange={changeColour}
+      onFamilyColourChange={(familyId, _slots, colorIndex) => {
+        void store.updateFamilyColour(familyId, colorIndex);
+      }}
+    />
   );
 }

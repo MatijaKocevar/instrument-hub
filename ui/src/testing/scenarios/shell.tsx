@@ -350,10 +350,6 @@ export function assertSnapshotShell(html: string): void {
   check(html.includes("Instrument Hub"), "snapshot shows the application name");
   check(html.includes("0.1.0"), "snapshot shows the application version");
   check(
-    html.includes('data-testid="armed-slot"'),
-    "snapshot shows the armed-slot widget",
-  );
-  check(
     html.includes('data-testid="app-status" data-phase="ready"'),
     "the footer reports the connection phase",
   );
@@ -363,8 +359,8 @@ export function assertSnapshotShell(html: string): void {
     "the grid page has no global header or connection bar",
   );
   check(
-    html.includes('data-testid="transport-bpm"'),
-    "snapshot shows the transport widget",
+    !html.includes("app__panels"),
+    "the grid page renders the grid without engine panels",
   );
   check(
     html.includes('data-testid="instrument-grid"'),

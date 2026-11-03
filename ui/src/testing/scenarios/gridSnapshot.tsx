@@ -259,6 +259,4 @@ export function assertSnapshotArmed(html: string, armedSlot: number): void {
 export function assertSnapshotGridFixture(html: string): void {
   check(html.includes("Drawbar Organ"), "snapshot shows the armed patch name");
   check(html.includes("Studio Grand"), "snapshot shows the first slot name");
-  check(html.includes("128 BPM"), "snapshot shows the fetched tempo");
-  check(html.includes("Playing"), "snapshot shows the fetched transport state");
 }

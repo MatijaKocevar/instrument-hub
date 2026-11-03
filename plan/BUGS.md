@@ -81,13 +81,13 @@ reported by the human or reproduced on this machine.
 - fix: pending; T203
 
 ### BUG-014 · Grid page opens with three engine cards above the grid
-- status: open
+- status: fixed
 - area: ui
 - steps: open `/grid`
 - expected: the page is the 8×8 grid only
 - actual: `EnginePanel`, `TransportPanel` and `SettingsPanel` render as a three-card band above it
 - evidence: `ui/src/features/shell/GridRoute.tsx:34` renders `SystemPanels`, which renders the three panels
-- fix: pending; T202
+- fix: T202 removes `SystemPanels` from `GridRoute` and deletes `SystemPanels`, `EnginePanel`, `TransportPanel` and `SettingsPanel` with their dead `.app__panels`/`.panel` styles and the snapshot checks for the armed-slot and transport widgets. `tests/artifacts/ui-state-snapshot.html` now has one `instrument-grid` and no `app__panels`; `corepack pnpm typecheck` -> clean; `corepack pnpm test:snapshot` -> all checks passed; `corepack pnpm format:check` -> all matched files use Prettier code style.
 
 ### BUG-013 · Arming one pad recolours the other Launchpad pads
 - status: fixed
