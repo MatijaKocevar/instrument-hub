@@ -6,8 +6,10 @@
 namespace Api
 {
 
-StateStore::StateStore (int numSlotsToUse)
+StateStore::StateStore (int numSlotsToUse,
+                        ihub::settings::SettingsStore* settingsStoreToUse)
     : numSlots (juce::jmax (1, numSlotsToUse)),
+      settingsStore (settingsStoreToUse),
       startedAt (std::chrono::steady_clock::now())
 {
     revision.store (static_cast<std::uint64_t> (
@@ -32,6 +34,8 @@ StateStore::StateStore (int numSlotsToUse)
         slotNames.push_back ("Slot " + std::to_string (index + 1));
         slotInstruments[static_cast<std::size_t> (index)].name = slotNames.back();
     }
+
+    loadStoredSettings();
 }
 
 StateStore::~StateStore()

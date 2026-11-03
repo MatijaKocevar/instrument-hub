@@ -6,6 +6,8 @@
 #include "StateBroadcast.h"
 #include "WebSocketRoutes.h"
 
+#include "settings/SettingsStore.h"
+
 #include <httplib.h>
 
 #include <chrono>
@@ -31,8 +33,27 @@ struct Server::Impl
     {
         nextPort = options.port;
 
-        if (options.lanMode)
+        auto* store = state.getSettingsStore();
+
+        if (store != nullptr)
+        {
+            const auto& account = store->settings().account;
+
+            if (account.pairingToken.isNotEmpty())
+                pairing.restoreToken (account.pairingToken.toStdString());
+
+            if (options.lanMode || account.lanEnabled)
+                pairing.setLanEnabled (true);
+
+            pairing.setAccountChangeHandler ([this] (bool lan, const std::string& token)
+            {
+                state.persistAccountSettings (lan, token);
+            });
+        }
+        else if (options.lanMode)
+        {
             pairing.setLanEnabled (true);
+        }
     }
 
     std::string desiredAddress() const
