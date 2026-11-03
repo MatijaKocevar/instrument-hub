@@ -79,7 +79,7 @@ bool decodeFamilies (const YamlValue& root, SetMapping& out, MappingError& error
                              "an instrument needs id, name and slot");
 
             if (! readString (*id, instrument.id, error, "instrument id")
-                || ! readString (*name, instrument.name, error, "instrument name")
+                || ! readString (*name, instrument.name, error, "instrument name", true)
                 || ! readInt (*slot, instrument.slot, error, "instrument slot"))
                 return false;
 

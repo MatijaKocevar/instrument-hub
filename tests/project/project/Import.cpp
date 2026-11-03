@@ -3,6 +3,7 @@
 #include "Support.h"
 
 #include "app/ProjectSetup.h"
+#include "app/project/ProjectImport.h"
 #include "project/Serializer.h"
 #include "project/SetFile.h"
 #include "session/PluginStateFile.h"
@@ -48,8 +49,8 @@ void runImportChecks()
     bool created = false;
 
     check (ihub::app::ensureProjectFile (resolved, error, &created),
-           "the missing project imports from the bundled set: " + error.toStdString());
-    check (created, "the first launch reports that it imported the project");
+           "the missing project imports the blank template: " + error.toStdString());
+    check (created, "the first launch reports that it created the project");
     check (projectFile.existsAsFile(), "the project file exists after the import");
 
     ihub::project::SetFile set;
@@ -57,25 +58,40 @@ void runImportChecks()
     check (ihub::project::Serializer::load (projectFile, set, error),
            "the imported project loads: " + error.toStdString());
 
-    if (set.slots.empty())
-    {
-        directory.deleteRecursively();
-        return;
-    }
+    const auto blankFile = bundledMappingFile().getSiblingFile ("blank-set.yaml");
+    check (blankFile.existsAsFile(), "the blank mapping template exists");
 
     check (set.slots.size() == 64,
-           "the project carries 64 patches (got "
+           "the blank project carries 64 patches (got "
                + std::to_string (set.slots.size()) + ")");
     check (! set.mappingYaml.empty(), "the project keeps the raw mapping YAML");
+    check (set.mappingYaml == blankFile.loadFileAsString().toStdString(),
+           "mapping.yaml is the blank template byte for byte");
+    check (set.pluginStates.empty(), "a blank project carries no plugin state");
 
-    const auto mappingText = bundledMappingFile().loadFileAsString().toStdString();
-    check (set.mappingYaml == mappingText, "mapping.yaml is stored byte for byte");
+    if (! set.slots.empty())
+    {
+        check (set.slots[0].instrument.kind == ihub::project::SourceKind::empty,
+               "slot 0 starts with no source");
+        check (set.slots[0].instrument.name.empty(),
+               "slot 0 starts without a patch name");
+    }
+
+    ihub::project::SetFile bundled;
+
+    check (ihub::app::importBundledSet (bundledMappingFile(),
+                                        bundledPluginStateDirectory(),
+                                        bundledSourcesFile(),
+                                        bundled,
+                                        error),
+           "the starter set still imports through importBundledSet: "
+               + error.toStdString());
 
     const int sidecarStates = pluginStateFileCount (bundledPluginStateDirectory());
     check (sidecarStates > 0,
            "the bundled set has plugin-state sidecars (got "
                + std::to_string (sidecarStates) + ")");
-    check (static_cast<int> (set.pluginStates.size()) == sidecarStates,
+    check (static_cast<int> (bundled.pluginStates.size()) == sidecarStates,
            "every sidecar blob becomes one project chunk");
 
     const int slots[] { 0, 48, 56 };
@@ -86,14 +102,14 @@ void runImportChecks()
                               .getChildFile ("slot-" + juce::String (slotIndex) + ".bin");
 
         if (! file.existsAsFile()
-            || slotIndex >= static_cast<int> (set.slots.size()))
+            || slotIndex >= static_cast<int> (bundled.slots.size()))
             continue;
 
         ihub::session::PluginStateFileData stored;
         check (ihub::session::readPluginStateFileData (file, slotIndex, stored),
                "sidecar slot " + std::to_string (slotIndex) + " is readable");
 
-        const auto& slot = set.slots[static_cast<std::size_t> (slotIndex)];
+        const auto& slot = bundled.slots[static_cast<std::size_t> (slotIndex)];
         check (slot.instrument.kind == ihub::project::SourceKind::plugin,
                "slot " + std::to_string (slotIndex) + " imports as a plugin");
         check (slot.instrument.pluginPath == stored.pluginPath.toStdString(),
@@ -103,7 +119,7 @@ void runImportChecks()
         check (! slot.instrument.pluginState.empty(),
                "slot " + std::to_string (slotIndex) + " owns a state reference");
 
-        const auto* chunk = set.findPluginState (slot.instrument.pluginState);
+        const auto* chunk = bundled.findPluginState (slot.instrument.pluginState);
 
         check (chunk != nullptr
                    && chunk->data.getSize() == stored.data.getSize(),
@@ -141,17 +157,6 @@ void runImportChecks()
     check (reimported.slots[0].instrument.pluginPath
                == set.slots[0].instrument.pluginPath,
            "the re-import keeps slot 0's plugin path");
-
-    if (! set.slots[0].instrument.pluginState.empty())
-    {
-        const auto* original = set.findPluginState (set.slots[0].instrument.pluginState);
-        const auto* imported = reimported.findPluginState (
-            reimported.slots[0].instrument.pluginState);
-
-        check (original != nullptr && imported != nullptr
-                   && original->data == imported->data,
-               "the re-import keeps slot 0's plugin-state bytes");
-    }
 
     directory.deleteRecursively();
 }

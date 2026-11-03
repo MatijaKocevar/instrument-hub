@@ -191,3 +191,14 @@ reported by the human or reproduced on this machine.
 - evidence: 2026-11-03 released app `GET /audio` -> `deviceTypes: ["ALSA","JACK"]`, `devices: [HD-Audio Generic (analog), Steinberg UR22mkII, System (PipeWire)]`, all 52 `rawDevices` typed `ALSA`; `--list-devices` -> `audio device types: ALSA, JACK` with only ALSA devices below it. `DeviceCardList.cpp` and `DeviceRawList.cpp` enumerate ALSA only, and `AudioSettingsBridge::apply` resolves names through those lists. This machine also has no JACK server (`jackd` not installed, no JACK socket), so the live server path is queued in `BLOCKERS.md` B012.
 - fix: T206 appends non-ALSA device types to the curated list: each JACK client becomes a `<TYPE> audio device` card with channel names and rates probed through a temporary device, while a server-less type contributes no entries. `ihub-device-manager-test` now also asserts the list holds no JACK entry without a server.
 - verified: 2026-11-03 with `pipewire-jack` installed and the app launched through `scripts/run.sh` (a `pw-jack` wrapper). `GET /audio` lists 11 `JACK` cards including `Steinberg UR22mkII  Pro`; `POST /audio` switched to that card and the app reports `open: true`, 48 kHz / 128 frames, 6.67 ms, 0.33% load and no new xruns over 12 s; `pw-link` shows the `JUCEJack` client connected to the UR22 playback ports. The requested buffer size is set as PipeWire's `clock.force-quantum` when the JACK device opens and removed when it closes (verified by switching back to ALSA and by closing the window), so the desktop default returns; a live buffer change reports "restart the app to change the JACK buffer size".
+
+### BUG-017 · New projects open the preset Starter Set instead of a blank grid
+- status: fixed
+- area: engine
+- steps:
+  1. launch with no project, or issue `POST /project {"action":"new"}`
+  2. look at the grid
+- expected: an 8×8 grid with no instruments, plugins, patch names or preset colours
+- actual: the app imported `shared/set.yaml`, producing named patches and Analog Lab on slots 0/48/56; every new project inherited the Starter Set
+- evidence: 2026-11-03 `POST /project {"action":"new","name":"Untitled"}` created `Untitled 2.ihub`; `GET /state` returns families `row1`..`row8`, 64 patches with empty names and `colorIndex: 14`, and slot 0 armed with no source. `ihub-project` -> `PASS: 0 failed check(s)`; `ihub-project-lifecycle-api`, `ihub-launchpad-protocol`, `ihub-launchpad-mapping` and `ihub-launchpad-driver` pass.
+- fix: `shared/blank-set.yaml` defines eight empty rows, `writeBundledProject` prefers it when creating a project, and an instrument may have an empty display name so blank patches render without text. The Starter Set stays available through Open or `INSTRUMENT_HUB_SET`.

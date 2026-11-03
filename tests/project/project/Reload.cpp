@@ -29,13 +29,13 @@ void runReloadChecks()
     check (ihub::project::Serializer::load (projectFile, replacement, error),
            "the reload project loads: " + error.toStdString());
 
-    const auto position = replacement.mappingYaml.find ("instrument: piano");
+    const auto position = replacement.mappingYaml.find ("instrument: empty-0");
     check (position != std::string::npos,
-           "the mapping contains the pad-0 piano binding");
+           "the mapping contains the pad-0 empty binding");
 
     if (position != std::string::npos)
-        replacement.mappingYaml.replace (position, std::string ("instrument: piano").size(),
-                                         "instrument: strings");
+        replacement.mappingYaml.replace (position, std::string ("instrument: empty-0").size(),
+                                         "instrument: empty-1");
 
     check (ihub::project::Serializer::save (replacement, replacementFile, error),
            "the replacement project saves: " + error.toStdString());
@@ -50,8 +50,8 @@ void runReloadChecks()
                       : " (" + mappingError.message + ")"));
 
     const auto initial = mapping.getPadBinding (0);
-    check (initial.has_value() && initial->instrument == "piano" && initial->slot == 0,
-           "pad 0 starts on keys/piano / slot 0");
+    check (initial.has_value() && initial->instrument == "empty-0" && initial->slot == 0,
+           "pad 0 starts on row1/empty-0 / slot 0");
 
     check (mapping.startWatching (20), "the project watcher starts");
 
@@ -67,7 +67,7 @@ void runReloadChecks()
     {
         const auto binding = mapping.getPadBinding (0);
 
-        if (binding.has_value() && binding->instrument == "strings"
+        if (binding.has_value() && binding->instrument == "empty-1"
             && binding->slot == 1)
         {
             rerouted = true;

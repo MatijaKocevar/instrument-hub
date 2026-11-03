@@ -42,6 +42,11 @@ juce::File bundledMappingFile()
     return juce::File (IHUB_SET_YAML);
 }
 
+juce::File bundledBlankSetFile()
+{
+    return bundledMappingFile().getSiblingFile ("blank-set.yaml");
+}
+
 juce::File bundledPluginStateDirectory()
 {
     return juce::File (IHUB_PLUGIN_STATE_DIR);

@@ -1,0 +1,567 @@
+# Instrument Hub blank set
+#
+# Eight empty rows: every pad is unassigned, so a new project starts as a
+# blank grid. Assign a source from the Instrument page to start playing.
+
+schemaVersion: 1
+name: Blank Set
+
+families:
+  row1:
+    name: Row 1
+    colorIndex: 14
+    instruments:
+      - id: empty-0
+        name: ""
+        kind: empty
+        slot: 0
+        colorIndex: 14
+      - id: empty-1
+        name: ""
+        kind: empty
+        slot: 1
+        colorIndex: 14
+      - id: empty-2
+        name: ""
+        kind: empty
+        slot: 2
+        colorIndex: 14
+      - id: empty-3
+        name: ""
+        kind: empty
+        slot: 3
+        colorIndex: 14
+      - id: empty-4
+        name: ""
+        kind: empty
+        slot: 4
+        colorIndex: 14
+      - id: empty-5
+        name: ""
+        kind: empty
+        slot: 5
+        colorIndex: 14
+      - id: empty-6
+        name: ""
+        kind: empty
+        slot: 6
+        colorIndex: 14
+      - id: empty-7
+        name: ""
+        kind: empty
+        slot: 7
+        colorIndex: 14
+  row2:
+    name: Row 2
+    colorIndex: 14
+    instruments:
+      - id: empty-8
+        name: ""
+        kind: empty
+        slot: 8
+        colorIndex: 14
+      - id: empty-9
+        name: ""
+        kind: empty
+        slot: 9
+        colorIndex: 14
+      - id: empty-10
+        name: ""
+        kind: empty
+        slot: 10
+        colorIndex: 14
+      - id: empty-11
+        name: ""
+        kind: empty
+        slot: 11
+        colorIndex: 14
+      - id: empty-12
+        name: ""
+        kind: empty
+        slot: 12
+        colorIndex: 14
+      - id: empty-13
+        name: ""
+        kind: empty
+        slot: 13
+        colorIndex: 14
+      - id: empty-14
+        name: ""
+        kind: empty
+        slot: 14
+        colorIndex: 14
+      - id: empty-15
+        name: ""
+        kind: empty
+        slot: 15
+        colorIndex: 14
+  row3:
+    name: Row 3
+    colorIndex: 14
+    instruments:
+      - id: empty-16
+        name: ""
+        kind: empty
+        slot: 16
+        colorIndex: 14
+      - id: empty-17
+        name: ""
+        kind: empty
+        slot: 17
+        colorIndex: 14
+      - id: empty-18
+        name: ""
+        kind: empty
+        slot: 18
+        colorIndex: 14
+      - id: empty-19
+        name: ""
+        kind: empty
+        slot: 19
+        colorIndex: 14
+      - id: empty-20
+        name: ""
+        kind: empty
+        slot: 20
+        colorIndex: 14
+      - id: empty-21
+        name: ""
+        kind: empty
+        slot: 21
+        colorIndex: 14
+      - id: empty-22
+        name: ""
+        kind: empty
+        slot: 22
+        colorIndex: 14
+      - id: empty-23
+        name: ""
+        kind: empty
+        slot: 23
+        colorIndex: 14
+  row4:
+    name: Row 4
+    colorIndex: 14
+    instruments:
+      - id: empty-24
+        name: ""
+        kind: empty
+        slot: 24
+        colorIndex: 14
+      - id: empty-25
+        name: ""
+        kind: empty
+        slot: 25
+        colorIndex: 14
+      - id: empty-26
+        name: ""
+        kind: empty
+        slot: 26
+        colorIndex: 14
+      - id: empty-27
+        name: ""
+        kind: empty
+        slot: 27
+        colorIndex: 14
+      - id: empty-28
+        name: ""
+        kind: empty
+        slot: 28
+        colorIndex: 14
+      - id: empty-29
+        name: ""
+        kind: empty
+        slot: 29
+        colorIndex: 14
+      - id: empty-30
+        name: ""
+        kind: empty
+        slot: 30
+        colorIndex: 14
+      - id: empty-31
+        name: ""
+        kind: empty
+        slot: 31
+        colorIndex: 14
+  row5:
+    name: Row 5
+    colorIndex: 14
+    instruments:
+      - id: empty-32
+        name: ""
+        kind: empty
+        slot: 32
+        colorIndex: 14
+      - id: empty-33
+        name: ""
+        kind: empty
+        slot: 33
+        colorIndex: 14
+      - id: empty-34
+        name: ""
+        kind: empty
+        slot: 34
+        colorIndex: 14
+      - id: empty-35
+        name: ""
+        kind: empty
+        slot: 35
+        colorIndex: 14
+      - id: empty-36
+        name: ""
+        kind: empty
+        slot: 36
+        colorIndex: 14
+      - id: empty-37
+        name: ""
+        kind: empty
+        slot: 37
+        colorIndex: 14
+      - id: empty-38
+        name: ""
+        kind: empty
+        slot: 38
+        colorIndex: 14
+      - id: empty-39
+        name: ""
+        kind: empty
+        slot: 39
+        colorIndex: 14
+  row6:
+    name: Row 6
+    colorIndex: 14
+    instruments:
+      - id: empty-40
+        name: ""
+        kind: empty
+        slot: 40
+        colorIndex: 14
+      - id: empty-41
+        name: ""
+        kind: empty
+        slot: 41
+        colorIndex: 14
+      - id: empty-42
+        name: ""
+        kind: empty
+        slot: 42
+        colorIndex: 14
+      - id: empty-43
+        name: ""
+        kind: empty
+        slot: 43
+        colorIndex: 14
+      - id: empty-44
+        name: ""
+        kind: empty
+        slot: 44
+        colorIndex: 14
+      - id: empty-45
+        name: ""
+        kind: empty
+        slot: 45
+        colorIndex: 14
+      - id: empty-46
+        name: ""
+        kind: empty
+        slot: 46
+        colorIndex: 14
+      - id: empty-47
+        name: ""
+        kind: empty
+        slot: 47
+        colorIndex: 14
+  row7:
+    name: Row 7
+    colorIndex: 14
+    instruments:
+      - id: empty-48
+        name: ""
+        kind: empty
+        slot: 48
+        colorIndex: 14
+      - id: empty-49
+        name: ""
+        kind: empty
+        slot: 49
+        colorIndex: 14
+      - id: empty-50
+        name: ""
+        kind: empty
+        slot: 50
+        colorIndex: 14
+      - id: empty-51
+        name: ""
+        kind: empty
+        slot: 51
+        colorIndex: 14
+      - id: empty-52
+        name: ""
+        kind: empty
+        slot: 52
+        colorIndex: 14
+      - id: empty-53
+        name: ""
+        kind: empty
+        slot: 53
+        colorIndex: 14
+      - id: empty-54
+        name: ""
+        kind: empty
+        slot: 54
+        colorIndex: 14
+      - id: empty-55
+        name: ""
+        kind: empty
+        slot: 55
+        colorIndex: 14
+  row8:
+    name: Row 8
+    colorIndex: 14
+    instruments:
+      - id: empty-56
+        name: ""
+        kind: empty
+        slot: 56
+        colorIndex: 14
+      - id: empty-57
+        name: ""
+        kind: empty
+        slot: 57
+        colorIndex: 14
+      - id: empty-58
+        name: ""
+        kind: empty
+        slot: 58
+        colorIndex: 14
+      - id: empty-59
+        name: ""
+        kind: empty
+        slot: 59
+        colorIndex: 14
+      - id: empty-60
+        name: ""
+        kind: empty
+        slot: 60
+        colorIndex: 14
+      - id: empty-61
+        name: ""
+        kind: empty
+        slot: 61
+        colorIndex: 14
+      - id: empty-62
+        name: ""
+        kind: empty
+        slot: 62
+        colorIndex: 14
+      - id: empty-63
+        name: ""
+        kind: empty
+        slot: 63
+        colorIndex: 14
+
+macros:
+  volume:
+    name: Volume
+    parameter: master.volume
+    min: 0.0
+    max: 1.0
+    default: 0.8
+
+encoders:
+  - encoder: 0
+    macro: volume
+
+pads:
+  - pad: 0
+    family: row1
+    instrument: empty-0
+  - pad: 1
+    family: row1
+    instrument: empty-1
+  - pad: 2
+    family: row1
+    instrument: empty-2
+  - pad: 3
+    family: row1
+    instrument: empty-3
+  - pad: 4
+    family: row1
+    instrument: empty-4
+  - pad: 5
+    family: row1
+    instrument: empty-5
+  - pad: 6
+    family: row1
+    instrument: empty-6
+  - pad: 7
+    family: row1
+    instrument: empty-7
+  - pad: 8
+    family: row2
+    instrument: empty-8
+  - pad: 9
+    family: row2
+    instrument: empty-9
+  - pad: 10
+    family: row2
+    instrument: empty-10
+  - pad: 11
+    family: row2
+    instrument: empty-11
+  - pad: 12
+    family: row2
+    instrument: empty-12
+  - pad: 13
+    family: row2
+    instrument: empty-13
+  - pad: 14
+    family: row2
+    instrument: empty-14
+  - pad: 15
+    family: row2
+    instrument: empty-15
+  - pad: 16
+    family: row3
+    instrument: empty-16
+  - pad: 17
+    family: row3
+    instrument: empty-17
+  - pad: 18
+    family: row3
+    instrument: empty-18
+  - pad: 19
+    family: row3
+    instrument: empty-19
+  - pad: 20
+    family: row3
+    instrument: empty-20
+  - pad: 21
+    family: row3
+    instrument: empty-21
+  - pad: 22
+    family: row3
+    instrument: empty-22
+  - pad: 23
+    family: row3
+    instrument: empty-23
+  - pad: 24
+    family: row4
+    instrument: empty-24
+  - pad: 25
+    family: row4
+    instrument: empty-25
+  - pad: 26
+    family: row4
+    instrument: empty-26
+  - pad: 27
+    family: row4
+    instrument: empty-27
+  - pad: 28
+    family: row4
+    instrument: empty-28
+  - pad: 29
+    family: row4
+    instrument: empty-29
+  - pad: 30
+    family: row4
+    instrument: empty-30
+  - pad: 31
+    family: row4
+    instrument: empty-31
+  - pad: 32
+    family: row5
+    instrument: empty-32
+  - pad: 33
+    family: row5
+    instrument: empty-33
+  - pad: 34
+    family: row5
+    instrument: empty-34
+  - pad: 35
+    family: row5
+    instrument: empty-35
+  - pad: 36
+    family: row5
+    instrument: empty-36
+  - pad: 37
+    family: row5
+    instrument: empty-37
+  - pad: 38
+    family: row5
+    instrument: empty-38
+  - pad: 39
+    family: row5
+    instrument: empty-39
+  - pad: 40
+    family: row6
+    instrument: empty-40
+  - pad: 41
+    family: row6
+    instrument: empty-41
+  - pad: 42
+    family: row6
+    instrument: empty-42
+  - pad: 43
+    family: row6
+    instrument: empty-43
+  - pad: 44
+    family: row6
+    instrument: empty-44
+  - pad: 45
+    family: row6
+    instrument: empty-45
+  - pad: 46
+    family: row6
+    instrument: empty-46
+  - pad: 47
+    family: row6
+    instrument: empty-47
+  - pad: 48
+    family: row7
+    instrument: empty-48
+  - pad: 49
+    family: row7
+    instrument: empty-49
+  - pad: 50
+    family: row7
+    instrument: empty-50
+  - pad: 51
+    family: row7
+    instrument: empty-51
+  - pad: 52
+    family: row7
+    instrument: empty-52
+  - pad: 53
+    family: row7
+    instrument: empty-53
+  - pad: 54
+    family: row7
+    instrument: empty-54
+  - pad: 55
+    family: row7
+    instrument: empty-55
+  - pad: 56
+    family: row8
+    instrument: empty-56
+  - pad: 57
+    family: row8
+    instrument: empty-57
+  - pad: 58
+    family: row8
+    instrument: empty-58
+  - pad: 59
+    family: row8
+    instrument: empty-59
+  - pad: 60
+    family: row8
+    instrument: empty-60
+  - pad: 61
+    family: row8
+    instrument: empty-61
+  - pad: 62
+    family: row8
+    instrument: empty-62
+  - pad: 63
+    family: row8
+    instrument: empty-63

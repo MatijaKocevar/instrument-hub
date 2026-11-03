@@ -45,9 +45,9 @@ void runSessionDescriptionChecks()
     Controller::SetMapping document;
     Controller::MappingError mappingError;
 
-    const auto mappingText = bundledMappingFile().loadFileAsString().toStdString();
+    const auto mappingText = bundledBlankSetFile().loadFileAsString().toStdString();
     check (Controller::parseSetMappingYaml (mappingText, document, mappingError),
-           "the bundled mapping parses for comparison");
+           "the blank mapping parses for comparison");
 
     ihub::SessionConfig config;
     check (ihub::app::loadProjectSession (projectFile, config, error),
