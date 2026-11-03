@@ -1,16 +1,9 @@
 #include "audio/WarmPool.h"
 
-#include <algorithm>
-#include <limits>
 #include <utility>
 
 namespace AudioEngine
 {
-
-namespace
-{
-constexpr int minimumWarmInstances = 1;
-}
 
 void WarmPool::setNeighbourCount (int count)
 {
@@ -101,7 +94,7 @@ void WarmPool::setRequest (int slotIndex, Request request)
         if (! sameRequest)
             retireLocked (slotIndex, false);
 
-        if (isProtectedLocked (slotIndex))
+        if (isRetainedLocked (slotIndex))
             enqueueWarmLocked (slotIndex);
     }
 
@@ -128,61 +121,6 @@ bool WarmPool::hasRequest (int slotIndex) const
     return slots[static_cast<size_t> (slotIndex)].request.isValid();
 }
 
-std::vector<int> WarmPool::protectedLocked() const
-{
-    std::vector<int> result;
-
-    if (numSlots <= 0)
-        return result;
-
-    const int anchor = isValidSlotLocked (activeSlot) ? activeSlot : 0;
-
-    result.push_back (anchor);
-
-    for (int added = 0; added < neighbourCount; ++added)
-    {
-        int best = -1;
-        int bestDistance = std::numeric_limits<int>::max();
-
-        for (int index = 0; index < numSlots; ++index)
-        {
-            if (std::find (result.begin(), result.end(), index) != result.end())
-                continue;
-
-            const int distance = std::abs (index - anchor) * 2 + (index > anchor ? 1 : 0);
-
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                best = index;
-            }
-        }
-
-        if (best < 0)
-            break;
-
-        result.push_back (best);
-    }
-
-    return result;
-}
-
-bool WarmPool::isProtectedLocked (int slotIndex) const
-{
-    const auto protectedSlots = protectedLocked();
-
-    return std::find (protectedSlots.begin(), protectedSlots.end(), slotIndex)
-        != protectedSlots.end();
-}
-
-int WarmPool::limitLocked() const
-{
-    if (numSlots <= 0)
-        return 0;
-
-    return juce::jmin (numSlots, juce::jmax (minimumWarmInstances, 1 + neighbourCount));
-}
-
 bool WarmPool::needsWarmLocked (int slotIndex) const
 {
     if (! isValidSlotLocked (slotIndex))
@@ -199,7 +137,7 @@ bool WarmPool::needsWarmLocked (int slotIndex) const
     if (slot.failedId == slot.request.id)
         return false;
 
-    return isProtectedLocked (slotIndex);
+    return isRetainedLocked (slotIndex);
 }
 
 }

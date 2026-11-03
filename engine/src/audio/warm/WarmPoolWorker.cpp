@@ -182,7 +182,7 @@ void WarmPool::run()
                 slot.lastError = error;
                 slot.failedId = request.id;
             }
-            else if (stillNeeded && isProtectedLocked (slotIndex))
+            else if (stillNeeded && isRetainedLocked (slotIndex))
             {
                 slot.deferred = true;
             }

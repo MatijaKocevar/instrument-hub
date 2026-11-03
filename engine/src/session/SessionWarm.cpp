@@ -7,14 +7,51 @@ namespace ihub
 
 int Session::getWarmInstanceLimit() const noexcept
 {
-    return warmPool.getPool() != nullptr
-               ? warmPool.getInstanceLimit()
-               : juce::jmin (getLogicalSlotCount(), 1 + config.neighbourCount);
+    if (warmPool.getPool() != nullptr)
+        return warmPool.getInstanceLimit();
+
+    const int desired = config.warmSlots.empty()
+                            ? 1 + config.neighbourCount
+                            : juce::jmax (1, static_cast<int> (config.warmSlots.size()));
+
+    return juce::jmin (getLogicalSlotCount(),
+                       AudioEngine::WarmPool::maximumWarmInstances,
+                       desired);
 }
 
 int Session::getLiveInstrumentCount() const noexcept
 {
     return warmPool.getLiveInstrumentCount();
+}
+
+int Session::getWarmProtectedCount() const noexcept
+{
+    return warmPool.getProtectedCount();
+}
+
+std::vector<int> Session::getWarmProtectedSlots() const
+{
+    return warmPool.getProtectedSlots();
+}
+
+std::uint64_t Session::getWarmCreationCount() const noexcept
+{
+    return warmPool.getWarmCount();
+}
+
+std::uint64_t Session::getWarmEvictionCount() const noexcept
+{
+    return warmPool.getEvictionCount();
+}
+
+AudioEngine::WarmPool::PreloadReport Session::preloadAll()
+{
+    return warmPool.preloadAll();
+}
+
+bool Session::waitForWarmIdle (int timeoutMs)
+{
+    return warmPool.waitForIdle (timeoutMs);
 }
 
 int Session::getPeakInstrumentCount() const noexcept

@@ -132,6 +132,7 @@ set(IHUB_FX_RACK_SOURCES
 set(IHUB_WARM_POOL_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolEviction.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolProtected.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolShutdown.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolSlots.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolWarming.cpp"
@@ -1719,6 +1720,37 @@ else()
     message(STATUS "ihub-plugin-editor-api-test: Linux-only; skipping")
 endif()
 
+set(IHUB_SESSION_WARM_TEST_SOURCES
+    ${IHUB_SESSION_SOURCES}
+    ${IHUB_DISCOVERY_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+    ${IHUB_API_ROUTES_SOURCES}
+    ${IHUB_API_SERVER_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+    ${IHUB_BUS_SOURCES}
+    ${IHUB_DEVICE_MANAGER_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+    ${IHUB_FX_RACK_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
+    ${IHUB_LATENCY_PROBE_SOURCES}
+    ${IHUB_RT_GUARD_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
+    ${IHUB_WARM_POOL_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
+    ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
+    ${IHUB_SAMPLER_SOURCES}
+)
+
 juce_add_console_app(ihub-session-warm-test
     PRODUCT_NAME "ihub-session-warm-test"
 )
@@ -1726,34 +1758,7 @@ juce_add_console_app(ihub-session-warm-test
 target_sources(ihub-session-warm-test
     PRIVATE
         session_warm/SessionWarmPoolTest.cpp
-        ${IHUB_SESSION_SOURCES}
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_FX_RACK_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        ${IHUB_RT_GUARD_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_SAMPLER_SOURCES}
+        ${IHUB_SESSION_WARM_TEST_SOURCES}
 )
 
 target_include_directories(ihub-session-warm-test
@@ -1793,6 +1798,59 @@ set_target_properties(ihub-session-warm-test PROPERTIES
 add_test(
     NAME ihub-session-warm
     COMMAND ihub-session-warm-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+juce_add_console_app(ihub-session-warm-protected-test
+    PRODUCT_NAME "ihub-session-warm-protected-test"
+)
+
+target_sources(ihub-session-warm-protected-test
+    PRIVATE
+        session_warm/ProtectedWarmSetTest.cpp
+        session_warm/ProtectedWarmFixtures.cpp
+        session_warm/WarmPoolProtectedTest.cpp
+        session_warm/SessionProtectedTest.cpp
+        ${IHUB_SESSION_WARM_TEST_SOURCES}
+)
+
+target_include_directories(ihub-session-warm-protected-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-session-warm-protected-test
+    PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_MODAL_LOOPS_PERMITTED=1
+)
+
+target_link_libraries(ihub-session-warm-protected-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_audio_devices
+        juce::juce_dsp
+        juce::juce_audio_formats
+        juce::juce_audio_processors_headless
+        juce::juce_core
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-session-warm-protected-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-session-warm-protected
+    COMMAND ihub-session-warm-protected-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 

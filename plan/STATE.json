@@ -594,8 +594,8 @@
       "status": "done"
     },
     "T300": {
-      "attempts": 0,
-      "status": "todo"
+      "attempts": 1,
+      "status": "done"
     },
     "T301": {
       "attempts": 0,

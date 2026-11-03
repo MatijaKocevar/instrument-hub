@@ -201,6 +201,7 @@ target_sources(instrument-hub
         src/audio/Transport.cpp
         src/audio/WarmPool.cpp
         src/audio/warm/WarmPoolEviction.cpp
+        src/audio/warm/WarmPoolProtected.cpp
         src/audio/warm/WarmPoolShutdown.cpp
         src/audio/warm/WarmPoolSlots.cpp
         src/audio/warm/WarmPoolWarming.cpp
