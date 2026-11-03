@@ -93,98 +93,144 @@ def clock(stamp: str) -> str:
     return stamp[11:16] + "Z" if len(stamp) >= 16 else stamp
 
 
+RUN = ROOT / "plan" / ".autopilot" / "run.json"
+
+
+def run_task_ids(order: list[str]) -> list[str]:
+    """Tasks queued for the current run, newest ROADMAP additions first."""
+    if RUN.exists():
+        try:
+            data = json.loads(RUN.read_text())
+            ids = [str(tid) for tid in data.get("tasks", [])]
+            if ids:
+                return [tid for tid in order if tid in set(ids)] or ids
+        except (OSError, ValueError):
+            pass
+
+    try:
+        commits = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(ROOT),
+                "log",
+                "-n",
+                "20",
+                "--format=%H",
+                "--",
+                "plan/ROADMAP.md",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=2,
+        ).stdout.split()
+
+        for commit in commits:
+            diff = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(ROOT),
+                    "show",
+                    "--unified=0",
+                    "--format=",
+                    commit,
+                    "--",
+                    "plan/ROADMAP.md",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=2,
+            ).stdout
+            ids = re.findall(r"^\+## (T\d+)", diff, re.M)
+            if ids:
+                return [tid for tid in order if tid in set(ids)] or ids
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+    return order
+
+
 def status() -> dict:
     tasks = json.loads(STATE.read_text())["tasks"]
     titles, order = task_heading_map()
-    counts = Counter(entry.get("status", "todo") for entry in tasks.values())
     lines = tail_lines(LOG, 240)
+    run_ids = run_task_ids(order)
 
     current_id = None
     current_stamp = None
-    current_title = ""
 
     for line in reversed(lines):
         match = START_EVENT.match(line)
         if match is not None:
             current_id = match.group("task")
             current_stamp = match.group("stamp")
-            current_title = titles.get(current_id, "")
             break
         if END_EVENT.match(line) is not None:
             break
 
-    last_id = None
-    last_stamp = None
-    last_duration = ""
+    end_info: dict[str, tuple[str, str]] = {}
 
-    for line in reversed(lines):
+    for line in lines:
         match = END_EVENT.match(line)
         if match is not None:
-            last_id = match.group("task")
-            last_stamp = match.group("stamp")
-            last_duration = match.group("duration")
-            break
-
-    rows: list[dict[str, str]] = []
-    seen: set[str] = set()
-
-    for tid in order:
-        if tasks.get(tid, {}).get("status") == "blocked" and tid not in seen:
-            rows.append(
-                {
-                    "id": tid,
-                    "title": titles.get(tid, ""),
-                    "status": "blocked",
-                    "detail": tasks[tid].get("note", "blocked"),
-                }
+            end_info[match.group("task")] = (
+                match.group("stamp"),
+                match.group("duration"),
             )
-            seen.add(tid)
 
-    if current_id is not None:
-        rows.append(
-            {
-                "id": current_id,
-                "title": current_title,
-                "status": "working",
-                "detail": f"started {clock(current_stamp or '')} · "
-                f"{elapsed_since(current_stamp or '')}",
-            }
-        )
-        seen.add(current_id)
+    run_counts = Counter(tasks.get(tid, {}).get("status", "todo") for tid in run_ids)
+    rows: list[dict[str, str]] = []
 
-    if last_id is not None and last_id not in seen:
-        rows.append(
-            {
-                "id": last_id,
-                "title": titles.get(last_id, ""),
-                "status": "done",
-                "detail": f"finished {clock(last_stamp or '')} · {last_duration}",
-            }
-        )
-        seen.add(last_id)
+    for tid in run_ids:
+        entry = tasks.get(tid, {})
+        state_name = entry.get("status", "todo")
 
-    for tid in order:
-        if tasks.get(tid, {}).get("status") != "todo" or tid in seen:
-            continue
-        attempts = tasks[tid].get("attempts", 0)
+        if tid == current_id:
+            status_name = "working"
+            detail = (
+                f"started {clock(current_stamp or '')} · "
+                f"{elapsed_since(current_stamp or '')}"
+            )
+        elif state_name == "done":
+            status_name = "done"
+            ended = end_info.get(tid)
+            detail = (
+                f"finished {clock(ended[0])} · {ended[1]}"
+                if ended is not None
+                else "done"
+            )
+        elif state_name == "blocked":
+            status_name = "blocked"
+            detail = entry.get("note", "blocked")
+        elif state_name == "partial":
+            status_name = "partial"
+            detail = entry.get("note", "partial")
+        else:
+            status_name = "todo"
+            attempts = entry.get("attempts", 0)
+            detail = f"attempt {attempts}/3" if attempts else "queued"
+
         rows.append(
             {
                 "id": tid,
                 "title": titles.get(tid, ""),
-                "status": "todo",
-                "detail": f"attempt {attempts}/3" if attempts else "queued",
+                "status": status_name,
+                "detail": detail,
             }
         )
 
-    done = counts.get("done", 0)
-    total = len(tasks)
+    done = run_counts.get("done", 0)
+    total = len(run_ids)
 
     return {
         "done": done,
         "total": total,
-        "todo": counts.get("todo", 0),
-        "blocked": counts.get("blocked", 0),
-        "partial": counts.get("partial", 0),
+        "todo": run_counts.get("todo", 0),
+        "blocked": run_counts.get("blocked", 0),
+        "partial": run_counts.get("partial", 0),
         "percent": round(done / total * 100) if total else 0,
         "driverPids": driver_pids(),
         "lastCommit": last_commit(),
@@ -237,6 +283,7 @@ HTML = """<!doctype html>
   .st-done { background: #1f2937; color: #9ca3af; }
   .st-todo { background: #1e293b; color: #93c5fd; }
   .st-blocked { background: #7f1d1d; color: #fca5a5; }
+  .st-partial { background: #78350f; color: #fcd34d; }
   .mono { font-variant-numeric: tabular-nums; }
   pre { background: #0f1218; border: 1px solid #1d232e; border-radius: 10px;
         padding: 14px; overflow: auto; max-height: 40vh; font-size: 12.5px;
@@ -257,9 +304,9 @@ HTML = """<!doctype html>
 
   <div class="progress"><div class="fill" id="fill" style="width:0%"></div>
     <span id="progressText">–</span></div>
-  <div class="legend">green = done · grey = recently finished · blue = open · red = blocked</div>
+  <div class="legend">green = done · blue = open · red = blocked · amber = partial</div>
 
-  <h2>Tasks</h2>
+  <h2>This run</h2>
   <table>
     <thead><tr><th>Task</th><th>Title</th><th>Status</th><th>Detail</th></tr></thead>
     <tbody id="rows"></tbody>
