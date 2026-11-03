@@ -1,5 +1,6 @@
 #include "api/StateStore.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace Api
@@ -14,6 +15,7 @@ StateSnapshot StateStore::snapshot() const
     std::vector<PatchInstrumentState> instruments;
     std::vector<PatchMixState> mixes;
     std::vector<bool> editors;
+    std::vector<TrackConfig> trackConfigs;
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
@@ -46,6 +48,7 @@ StateSnapshot StateStore::snapshot() const
         instruments = slotInstruments;
         mixes = slotMixes;
         editors = slotEditorOpen;
+        trackConfigs = tracks;
 
         transportReader = transportProvider;
         slotReader = slotRuntimeProvider;
@@ -91,6 +94,85 @@ StateSnapshot StateStore::snapshot() const
         }
         catch (...)
         {
+        }
+    }
+
+    result.tracks.reserve (trackConfigs.size());
+
+    for (std::size_t index = 0; index < trackConfigs.size(); ++index)
+    {
+        const auto& config = trackConfigs[index];
+
+        TrackState track;
+        track.index = static_cast<int> (index);
+        track.id = config.id;
+        track.name = config.name;
+        track.slot = config.slot;
+        track.volumeStep = config.volumeStep;
+        track.volumeDb = trackDbForStep (config.volumeStep);
+        track.gain = trackGainForStep (config.volumeStep);
+        track.hotFx.resize (2);
+
+        for (std::size_t hot = 0; hot < track.hotFx.size(); ++hot)
+            track.hotFx[hot].index = static_cast<int> (hot);
+
+        if (config.slot >= 0
+            && config.slot < static_cast<int> (result.slots.size()))
+        {
+            const auto slotIndex = static_cast<std::size_t> (config.slot);
+            track.selected = result.slots[slotIndex].armed;
+            track.instrument = instruments[slotIndex];
+
+            if (track.instrument.name.empty())
+                track.instrument.name = track.name;
+        }
+
+        for (std::size_t hot = 0;
+             hot < track.hotFx.size() && hot < config.hotFx.size();
+             ++hot)
+        {
+            auto& entry = track.hotFx[hot];
+            entry.id = config.hotFx[hot];
+            entry.name = entry.id;
+        }
+
+        result.tracks.push_back (std::move (track));
+    }
+
+    for (auto& track : result.tracks)
+    {
+        const bool assigned = std::any_of (track.hotFx.begin(), track.hotFx.end(),
+                                           [] (const TrackHotFxState& hot)
+                                           {
+                                               return ! hot.id.empty();
+                                           });
+
+        if (! assigned)
+            continue;
+
+        FxChainState chain;
+        std::string error;
+
+        if (! getFxChain (track.slot, chain, error))
+            continue;
+
+        for (auto& hot : track.hotFx)
+        {
+            if (hot.id.empty())
+                continue;
+
+            const auto insert = std::find_if (chain.inserts.begin(),
+                                              chain.inserts.end(),
+                                              [&hot] (const FxInsertState& candidate)
+                                              {
+                                                  return candidate.id == hot.id;
+                                              });
+
+            if (insert == chain.inserts.end())
+                continue;
+
+            hot.name = insert->name.empty() ? insert->id : insert->name;
+            hot.bypassed = insert->bypassed;
         }
     }
 

@@ -3,6 +3,8 @@
 #include "api/SessionBridge.h"
 
 #include <iostream>
+#include <string>
+#include <utility>
 
 namespace ApiTest
 {
@@ -17,6 +19,47 @@ ihub::SessionConfig makeToneConfig (int slots)
     config.fadeMilliseconds = 3.0f;
     config.slots = ihub::Session::makeDefaultSet (ihub::SessionSlotKind::initTone);
     config.slots.resize (static_cast<std::size_t> (slots));
+    return config;
+}
+
+ihub::SessionConfig makeTrackConfig (int slots)
+{
+    auto config = makeToneConfig (slots);
+    config.layout = ihub::SessionLayout::tracks;
+    config.tracks.clear();
+    config.tracks.reserve (static_cast<std::size_t> (slots));
+
+    for (int slot = 0; slot < slots; ++slot)
+    {
+        const auto name = "Track " + std::to_string (slot + 1);
+        auto& configSlot = config.slots[static_cast<std::size_t> (slot)];
+        configSlot.name = name;
+        configSlot.family = "track-" + std::to_string (slot + 1);
+        configSlot.familyName = name;
+        configSlot.patch = configSlot.family;
+        configSlot.patchName = name;
+        configSlot.colorIndex = 14;
+
+        AudioEngine::FxInsertConfig eq;
+        eq.type = AudioEngine::FxInsertType::equalizer;
+        eq.id = "eq";
+        eq.name = "EQ";
+
+        AudioEngine::FxInsertConfig compressor;
+        compressor.type = AudioEngine::FxInsertType::compressor;
+        compressor.id = "comp";
+        compressor.name = "Compressor";
+
+        configSlot.fxChain = { eq, compressor };
+
+        ihub::SessionTrackConfig track;
+        track.id = configSlot.family;
+        track.name = name;
+        track.slot = slot;
+        track.hotFx = { "eq", "comp" };
+        config.tracks.push_back (std::move (track));
+    }
+
     return config;
 }
 

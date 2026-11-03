@@ -25,6 +25,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tracks/{index}/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Select and arm a performance track
+         * @description Selects the track at `index` (0-7) and arms its slot. Exactly one
+         *     track is selected at a time; the previous track fades out through the
+         *     normal slot crossfade. Emits a `track` state event.
+         *
+         *     Only available when `GET /state` reports `layout: tracks`.
+         */
+        post: operations["selectTrack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tracks/{index}/fx/{hot}/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Toggle a track's hot FX insert
+         * @description Toggles bypass on the insert assigned as hot FX `hot` (`0` or `1`)
+         *     for track `index`. The insert is identified by the track's mapping
+         *     hot-FX assignment, so an unassigned or missing insert is rejected.
+         *     Emits a `track` state event.
+         */
+        post: operations["toggleTrackFx"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tracks/{index}/volume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set a track's stepped volume
+         * @description Sets the track volume step and applies the corresponding linear gain
+         *     to the track slot. Emits a `track` state event.
+         */
+        post: operations["setTrackVolume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/project": {
         parameters: {
             query?: never;
@@ -457,6 +525,8 @@ export interface paths {
          *     - `POST /arm` changes the armed slot (`"arm"`),
          *     - `POST /settings` or `POST /transport` succeeds,
          *     - a slot name, warm state or measured latency changes (`"slot"` / `"warm"`),
+         *     - a track is selected, a hot FX toggles or the track volume changes
+         *       (`"track"`),
          *     - `PATCH /patches/{slot}` changes a patch's volume, pan, mute, solo or
          *       colour (`"patch"`),
          *     - an audio device, MIDI input or pairing setting changes (`"device"`,
@@ -1002,11 +1072,56 @@ export interface components {
             /** @description Milliseconds since the API state was created. */
             uptimeMs: number;
             slots: components["schemas"]["Slot"][];
+            /**
+             * @description The eight performance tracks when `layout` is `tracks`. Legacy
+             *     family projects omit the field so their v1 state is unchanged.
+             */
+            tracks?: components["schemas"]["Track"][];
             /** @description Family -> patch tree, one entry per patch. */
             families: components["schemas"]["Family"][];
             settings: components["schemas"]["Settings"];
             transport: components["schemas"]["Transport"];
             project?: components["schemas"]["ProjectState"];
+        };
+        Track: {
+            /** @description Zero-based track index. */
+            index: number;
+            /** @description Stable track id from the set mapping. */
+            id: string;
+            name: string;
+            /** @description Fixed audio-graph slot that hosts this track. */
+            slot: number;
+            /** @description True for the armed track, which is the only audible one. */
+            selected: boolean;
+            instrument: components["schemas"]["PatchInstrument"];
+            /**
+             * @description Stepped volume: 0 silent, 1 25%, 2 50%, 3 75%, 4 100% (0 dB),
+             *     5 +6 dB over.
+             */
+            volumeStep: number;
+            /** @description The published gain in dB; step 0 reports -60. */
+            volumeDb: number;
+            /** @description Linear slot gain for the current step. */
+            gain: number;
+            /** @description The two hot-FX slots for this track. */
+            hotFx: components["schemas"]["TrackHotFx"][];
+        };
+        TrackHotFx: {
+            index: number;
+            /** @description Insert id from the mapping assignment, empty when unassigned. */
+            id: string;
+            /** @description Insert name from the live chain, empty when unassigned. */
+            name: string;
+            /** @description The insert's current bypass state. */
+            bypassed: boolean;
+        };
+        TrackVolumeRequest: {
+            /**
+             * @description Volume step. 0 is silent, 1 is 25% (-12.0 dB), 2 is 50%
+             *     (-6.0 dB), 3 is 75% (-2.5 dB), 4 is 100% (0 dB) and 5 is the
+             *     +6 dB over step.
+             */
+            step: number;
         };
         ProjectState: {
             /** @description Absolute path of the open `.ihub` project. */
@@ -1357,6 +1472,129 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    selectTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Track index, 0-7. */
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The control state after the selection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The track index is out of range */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    toggleTrackFx: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Track index, 0-7. */
+                index: number;
+                /** @description Hot FX slot, 0 or 1. */
+                hot: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The control state after the toggle */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            /** @description The hot FX slot is unassigned or its insert is missing */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The track or hot FX index is out of range */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setTrackVolume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Track index, 0-7. */
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackVolumeRequest"];
+            };
+        };
+        responses: {
+            /** @description The control state after the volume change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            /** @description The step is missing or outside 0-5 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The track index is out of range */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     getProject: {

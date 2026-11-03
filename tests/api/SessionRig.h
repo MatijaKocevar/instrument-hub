@@ -13,6 +13,7 @@ namespace ApiTest
 {
 
 ihub::SessionConfig makeToneConfig (int slots);
+ihub::SessionConfig makeTrackConfig (int slots);
 
 class SessionRig
 {

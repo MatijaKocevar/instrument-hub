@@ -70,6 +70,148 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /tracks/{index}/select:
+    post:
+      tags: [state]
+      operationId: selectTrack
+      summary: Select and arm a performance track
+      description: |
+        Selects the track at `index` (0-7) and arms its slot. Exactly one
+        track is selected at a time; the previous track fades out through the
+        normal slot crossfade. Emits a `track` state event.
+
+        Only available when `GET /state` reports `layout: tracks`.
+      parameters:
+        - name: index
+          in: path
+          required: true
+          description: Track index, 0-7.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 7
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The control state after the selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "404":
+          description: The track index is out of range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /tracks/{index}/fx/{hot}/toggle:
+    post:
+      tags: [state]
+      operationId: toggleTrackFx
+      summary: Toggle a track's hot FX insert
+      description: |
+        Toggles bypass on the insert assigned as hot FX `hot` (`0` or `1`)
+        for track `index`. The insert is identified by the track's mapping
+        hot-FX assignment, so an unassigned or missing insert is rejected.
+        Emits a `track` state event.
+      parameters:
+        - name: index
+          in: path
+          required: true
+          description: Track index, 0-7.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 7
+        - name: hot
+          in: path
+          required: true
+          description: Hot FX slot, 0 or 1.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The control state after the toggle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          description: The hot FX slot is unassigned or its insert is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: The track or hot FX index is out of range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /tracks/{index}/volume:
+    post:
+      tags: [state]
+      operationId: setTrackVolume
+      summary: Set a track's stepped volume
+      description: |
+        Sets the track volume step and applies the corresponding linear gain
+        to the track slot. Emits a `track` state event.
+      parameters:
+        - name: index
+          in: path
+          required: true
+          description: Track index, 0-7.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 7
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackVolumeRequest"
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The control state after the volume change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          description: The step is missing or outside 0-5
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: The track index is out of range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /project:
     get:
       tags: [state]
@@ -988,6 +1130,8 @@ paths:
         - `POST /arm` changes the armed slot (`"arm"`),
         - `POST /settings` or `POST /transport` succeeds,
         - a slot name, warm state or measured latency changes (`"slot"` / `"warm"`),
+        - a track is selected, a hot FX toggles or the track volume changes
+          (`"track"`),
         - `PATCH /patches/{slot}` changes a patch's volume, pan, mute, solo or
           colour (`"patch"`),
         - an audio device, MIDI input or pairing setting changes (`"device"`,
@@ -1942,6 +2086,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Slot"
+        tracks:
+          type: array
+          description: |
+            The eight performance tracks when `layout` is `tracks`. Legacy
+            family projects omit the field so their v1 state is unchanged.
+          minItems: 8
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/Track"
         families:
           type: array
           description: Family -> patch tree, one entry per patch.
@@ -1953,6 +2106,90 @@ components:
           $ref: "#/components/schemas/Transport"
         project:
           $ref: "#/components/schemas/ProjectState"
+
+    Track:
+      type: object
+      required:
+        [index, id, name, slot, selected, instrument, volumeStep, volumeDb,
+         gain, hotFx]
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+          minimum: 0
+          maximum: 7
+          description: Zero-based track index.
+        id:
+          type: string
+          description: Stable track id from the set mapping.
+        name:
+          type: string
+        slot:
+          type: integer
+          minimum: 0
+          description: Fixed audio-graph slot that hosts this track.
+        selected:
+          type: boolean
+          description: True for the armed track, which is the only audible one.
+        instrument:
+          $ref: "#/components/schemas/PatchInstrument"
+        volumeStep:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: |
+            Stepped volume: 0 silent, 1 25%, 2 50%, 3 75%, 4 100% (0 dB),
+            5 +6 dB over.
+        volumeDb:
+          type: number
+          minimum: -60
+          maximum: 12
+          description: The published gain in dB; step 0 reports -60.
+        gain:
+          type: number
+          minimum: 0
+          maximum: 2
+          description: Linear slot gain for the current step.
+        hotFx:
+          type: array
+          minItems: 2
+          maxItems: 2
+          description: The two hot-FX slots for this track.
+          items:
+            $ref: "#/components/schemas/TrackHotFx"
+
+    TrackHotFx:
+      type: object
+      required: [index, id, name, bypassed]
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+          minimum: 0
+          maximum: 1
+        id:
+          type: string
+          description: Insert id from the mapping assignment, empty when unassigned.
+        name:
+          type: string
+          description: Insert name from the live chain, empty when unassigned.
+        bypassed:
+          type: boolean
+          description: The insert's current bypass state.
+
+    TrackVolumeRequest:
+      type: object
+      required: [step]
+      additionalProperties: false
+      properties:
+        step:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: |
+            Volume step. 0 is silent, 1 is 25% (-12.0 dB), 2 is 50%
+            (-6.0 dB), 3 is 75% (-2.5 dB), 4 is 100% (0 dB) and 5 is the
+            +6 dB over step.
 
     ProjectState:
       type: object

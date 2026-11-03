@@ -2,6 +2,7 @@
 
 #include "PatchState.h"
 #include "ProjectState.h"
+#include "TrackState.h"
 #include "TransportState.h"
 
 #include <cstdint>
@@ -37,6 +38,7 @@ struct StateSnapshot
 
     int armedSlot = -1;
     std::vector<SlotSnapshot> slots;
+    std::vector<TrackState> tracks;
 
     std::vector<FamilyState> families;
 

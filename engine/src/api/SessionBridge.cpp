@@ -1,6 +1,7 @@
 #include "SessionBridge.h"
 
 #include "Session.h"
+#include "TrackBridge.h"
 
 #include <algorithm>
 #include <cmath>
@@ -383,6 +384,8 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
             chain = toFxChainState (snapshot);
             return true;
         });
+
+    attachTrackState (state, session);
 
     state.setArmHandler ([&session] (int slot)
     {

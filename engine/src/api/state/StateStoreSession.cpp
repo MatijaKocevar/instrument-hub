@@ -18,6 +18,7 @@ void StateStore::setNumSlots (int newNumSlots)
         numSlots.store (next, std::memory_order_release);
         armedSlot = -1;
         families.clear();
+        tracks.clear();
         slotNames.assign (static_cast<std::size_t> (next), {});
         slotFamilies.assign (static_cast<std::size_t> (next), {});
         slotFamilyNames.assign (static_cast<std::size_t> (next), {});
@@ -45,7 +46,27 @@ void StateStore::setLayout (std::string newLayout)
 {
     {
         const std::lock_guard<std::mutex> lock (mutex);
+
         layout = std::move (newLayout);
+
+        if (layout != "tracks")
+        {
+            tracks.clear();
+        }
+        else if (tracks.empty())
+        {
+            const int count = juce::jmin (8, numSlots.load (std::memory_order_relaxed));
+            tracks.reserve (static_cast<std::size_t> (count));
+
+            for (int slot = 0; slot < count; ++slot)
+            {
+                TrackConfig track;
+                track.id = "track-" + std::to_string (slot + 1);
+                track.name = "Track " + std::to_string (slot + 1);
+                track.slot = slot;
+                tracks.push_back (std::move (track));
+            }
+        }
     }
 
     notifyChanged ("layout", -1);

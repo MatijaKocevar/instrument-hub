@@ -29,6 +29,7 @@ const char* eventKindName (StateEventKind kind) noexcept
         case StateEventKind::midi:       return "midi";
         case StateEventKind::pairing:    return "pairing";
         case StateEventKind::project:    return "project";
+        case StateEventKind::track:      return "track";
     }
 
     return "state";
@@ -67,6 +68,9 @@ StateEventKind kindForChange (const char* kind) noexcept
 
     if (name == "project")
         return StateEventKind::project;
+
+    if (name == "track")
+        return StateEventKind::track;
 
     return StateEventKind::slot;
 }
