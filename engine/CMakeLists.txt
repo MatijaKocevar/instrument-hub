@@ -128,7 +128,9 @@ target_sources(instrument-hub
         src/app/CommandLine.cpp
         src/app/ControlApi.cpp
         src/app/ControllerSurface.cpp
+        src/app/ControllerSurfaceLeds.cpp
         src/app/Modes.cpp
+        src/app/surface/TrackSurface.cpp
         src/app/project/MappingImport.cpp
         src/app/project/ProjectAutosave.cpp
         src/app/project/ProjectCapture.cpp
@@ -220,6 +222,8 @@ target_sources(instrument-hub
         src/controller/LaunchpadLed.cpp
         src/controller/LaunchpadProtocol.cpp
         src/controller/Mapping.cpp
+        src/controller/launchpad/TrackPadLeds.cpp
+        src/controller/launchpad/TrackPadRouting.cpp
         src/controller/mapping/MappingApply.cpp
         src/controller/mapping/MappingButtonEvents.cpp
         src/controller/mapping/MappingDecoder.cpp

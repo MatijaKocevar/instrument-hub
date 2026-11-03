@@ -1,5 +1,7 @@
 #include "controller/Mapping.h"
 
+#include "controller/launchpad/TrackPadRouting.h"
+
 #include <algorithm>
 
 namespace Controller
@@ -13,6 +15,7 @@ bool Mapping::handlePad (int pad, bool pressed)
     Listeners listenersCopy;
     std::optional<PadBinding> binding;
     int armedSlot = -1;
+    bool arms = false;
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
@@ -22,14 +25,16 @@ bool Mapping::handlePad (int pad, bool pressed)
             if (const auto* currentBinding = current->padBinding (pad))
                 binding = *currentBinding;
 
-        if (pressed && binding.has_value())
+        arms = binding.has_value() && padRoleArms (binding->role);
+
+        if (pressed && arms)
         {
             activePad.store (pad, std::memory_order_release);
             armedSlot = binding->slot;
         }
     }
 
-    if (pressed && binding.has_value() && listenersCopy.armSlot)
+    if (pressed && arms && listenersCopy.armSlot)
         listenersCopy.armSlot (armedSlot);
 
     if (listenersCopy.padEvent)
