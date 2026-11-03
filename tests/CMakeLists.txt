@@ -87,6 +87,7 @@ set(IHUB_PROJECT_SOURCES
 
 set(IHUB_MAPPING_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/TrackPadRouting.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingApply.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingButtonEvents.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingDecoder.cpp"
@@ -115,6 +116,7 @@ set(IHUB_LAUNCHPAD_PROTOCOL_SOURCES
 
 set(IHUB_LAUNCHPAD_DRIVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadLed.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/TrackPadLeds.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverConnection.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverDevice.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverLeds.cpp"
@@ -2086,6 +2088,64 @@ set_target_properties(ihub-launchpad-driver-test PROPERTIES
 add_test(
     NAME ihub-launchpad-driver
     COMMAND ihub-launchpad-driver-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+juce_add_console_app(ihub-launchpad-track-test
+    PRODUCT_NAME "ihub-launchpad-track-test"
+)
+
+target_sources(ihub-launchpad-track-test
+    PRIVATE
+        controller/LaunchpadTrackTest.cpp
+        controller/TestSupport.cpp
+        controller/track_pads/Capture.cpp
+        controller/track_pads/Fixture.cpp
+        controller/track_pads/Leds.cpp
+        controller/track_pads/Routing.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/surface/TrackSurface.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+        ${IHUB_DISCOVERY_SOURCES}
+        ${IHUB_API_ROUTES_SOURCES}
+        ${IHUB_API_SERVER_SOURCES}
+        ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
+        ${IHUB_MAPPING_SOURCES}
+)
+
+target_include_directories(ihub-launchpad-track-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-launchpad-track-test
+    PRIVATE
+        "IHUB_TRACKS_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/tracks-set.yaml\""
+)
+
+target_link_libraries(ihub-launchpad-track-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_audio_devices
+        juce::juce_core
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-launchpad-track-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-launchpad-track
+    COMMAND ihub-launchpad-track-test
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 

@@ -1,5 +1,7 @@
 #include "controller/Mapping.h"
 
+#include "controller/launchpad/TrackPadRouting.h"
+
 #include <utility>
 
 namespace Controller
@@ -64,8 +66,16 @@ bool Mapping::applyText (const std::string& text,
 
         routeChanged = ! bindingsEqual (oldBinding, newBinding);
 
-        if (newBinding != nullptr)
+        const bool oldArms = oldBinding != nullptr && padRoleArms (oldBinding->role);
+        const bool newArms = newBinding != nullptr && padRoleArms (newBinding->role);
+
+        if (newArms)
             armTarget = newBinding->slot;
+        else if (routeChanged && oldArms)
+            armTarget = -1;
+
+        if (routeChanged && ! oldArms && ! newArms)
+            routeChanged = false;
 
         if (newMapping->bankBinding (activeBank.load (std::memory_order_relaxed)) == nullptr)
             activeBank.store (-1, std::memory_order_release);
