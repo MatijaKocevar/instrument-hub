@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 
 import { pad2 } from "./format";
 import { FamilyRow } from "./FamilyRow";
-import { GRID_COLUMNS, type GridModel } from "./model";
+import { GRID_COLUMNS, gridRows, type GridModel } from "./model";
 import type { MeterSnapshot } from "./meterFrame";
 
 export interface GridTableProps {
@@ -49,7 +49,7 @@ export function GridTable({
           ))}
         </div>
 
-        {model.families.map((family, row) => (
+        {gridRows(model).map(({ family, row }) => (
           <FamilyRow
             key={family.id}
             family={family}

@@ -8,7 +8,7 @@ import {
   assertSnapshotArmed,
   assertSnapshotGrid,
   assertSnapshotGridFixture,
-} from "./grid";
+} from "./gridSnapshot";
 import { assertSnapshotInstrument } from "./instrument";
 import { assertSnapshotMidi } from "./midi";
 import { assertSnapshotPairing, assertSnapshotPairingMoved } from "./pairing";

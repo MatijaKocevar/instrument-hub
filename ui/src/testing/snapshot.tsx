@@ -3,10 +3,10 @@ import { audioSettingsTest } from "./scenarios/audio";
 import {
   armTest,
   colourEditTest,
-  gridSnapshotTest,
   loadingTest,
   meterTest,
 } from "./scenarios/grid";
+import { gridSnapshotTest } from "./scenarios/gridSnapshot";
 import {
   instrumentModelTest,
   instrumentPageTest,
