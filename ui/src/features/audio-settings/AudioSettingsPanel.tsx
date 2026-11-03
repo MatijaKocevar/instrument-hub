@@ -11,6 +11,7 @@ import { ChannelMaps } from "./ChannelMaps";
 import { DeviceControls } from "./DeviceControls";
 import { LatencyReadout } from "./LatencyReadout";
 import { MeasureControl } from "./MeasureControl";
+import { RestoreNotice } from "./RestoreNotice";
 import { XrunCounter } from "./XrunCounter";
 import "./audio-settings.css";
 
@@ -76,6 +77,8 @@ export function AudioSettingsPanel({
           {error}
         </p>
       ) : null}
+
+      <RestoreNotice audio={audio} busy={busy} onChange={onChange} />
 
       <DeviceControls audio={audio} busy={busy} onChange={onChange} />
 

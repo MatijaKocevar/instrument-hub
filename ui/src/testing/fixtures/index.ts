@@ -1,4 +1,4 @@
-export { AUDIO } from "./audio";
+export { AUDIO, AUDIO_FALLBACK } from "./audio";
 export {
   CHAIN_INSTRUMENT_LATENCY,
   COMPRESSOR_LATENCY,

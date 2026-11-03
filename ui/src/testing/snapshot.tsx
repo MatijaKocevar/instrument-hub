@@ -1,6 +1,10 @@
 import { failureCount } from "./harness";
 import { audioSettingsTest } from "./scenarios/audio";
 import {
+  audioRestoreActionTest,
+  audioRestoreModelTest,
+} from "./scenarios/audioRestore";
+import {
   armTest,
   colourEditTest,
   loadingTest,
@@ -45,6 +49,8 @@ async function main(): Promise<void> {
   meterTest();
   loadingTest();
   await audioSettingsTest();
+  audioRestoreModelTest();
+  await audioRestoreActionTest();
   midiModelTest();
   await midiPageTest();
   await pairingTest();
