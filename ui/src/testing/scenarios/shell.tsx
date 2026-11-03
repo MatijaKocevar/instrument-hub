@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 
 import { createControlApi } from "../../api/client";
 import { armAndOpenInstrument } from "../../features/shell";
+import { NavLink } from "../../features/shell/NavLink";
+import { AUDIO_ITEM } from "../../features/shell/navigation";
 import {
   instrumentPathForSlot,
   pathForRoute,
@@ -13,6 +15,7 @@ import {
 import { AppStore } from "../../state/store";
 import { startFixtureServer } from "../fixtureServer";
 import { check, countOf, renderApp, writeArtifact } from "../harness";
+import { sectionOf } from "../markup";
 
 export function routeTest(): void {
   check(
@@ -76,6 +79,29 @@ export function routeTest(): void {
     actions.join("|") === "arm:5|nav:/instrument?slot=5",
     "one click arms the patch and routes to its instrument page",
   );
+
+  const clicked: string[] = [];
+  const footerLink = NavLink({
+    item: AUDIO_ITEM,
+    route: "grid",
+    navigate: (path) => {
+      clicked.push(path);
+    },
+    variant: "footer",
+  });
+
+  const onClick = (
+    footerLink.props as {
+      readonly onClick: (event: { preventDefault: () => void }) => void;
+    }
+  ).onClick;
+
+  onClick({ preventDefault: () => undefined });
+
+  check(
+    clicked.join("|") === "/audio",
+    "clicking the footer Audio & MIDI entry opens /audio",
+  );
 }
 
 export async function shellTest(): Promise<void> {
@@ -91,6 +117,9 @@ export async function shellTest(): Promise<void> {
     const wide = renderApp(store, "/grid", 1200);
 
     writeArtifact("ui-shell-1200x800.html", wide);
+
+    const wideNav = sectionOf(wide, 'data-testid="app-nav"', "</nav>");
+    const wideFooter = sectionOf(wide, 'data-testid="app-footer"', "</footer>");
 
     check(
       wide.includes('data-layout="wide"'),
@@ -113,8 +142,20 @@ export async function shellTest(): Promise<void> {
       "exactly one workspace navigation is rendered",
     );
     check(
-      countOf(wide, 'data-workspace-item="true"') === 4,
-      "the sidebar lists exactly four workspace items",
+      countOf(wideNav, 'data-workspace-item="true"') === 3,
+      "the sidebar lists Grid, Instrument and Plugins",
+    );
+    check(
+      !wideNav.includes('data-testid="nav-audio"'),
+      "Audio & MIDI is not a sidebar workspace item",
+    );
+    check(
+      countOf(wideFooter, 'data-testid="nav-audio"') === 1,
+      "the footer carries the Audio & MIDI entry",
+    );
+    check(
+      wideFooter.includes('href="/audio"'),
+      "the footer Audio & MIDI entry routes to /audio",
     );
     check(
       wide.includes('data-testid="settings-group"'),
@@ -130,7 +171,7 @@ export async function shellTest(): Promise<void> {
     );
     check(
       wide.includes(">Audio &amp; MIDI<"),
-      "the fourth workspace item is named Audio & MIDI",
+      "the footer entry is named Audio & MIDI",
     );
     check(
       !wide.includes("app__nav-link"),
@@ -169,10 +210,14 @@ export async function shellTest(): Promise<void> {
         `the ${destination.route} destination renders its page`,
       );
       check(
+        page.includes(`data-route="${destination.route}"`),
+        `the ${destination.route} destination is mounted`,
+      );
+      check(
         page.includes(
           `data-testid="nav-${destination.route}" data-active="true"`,
         ),
-        `the ${destination.route} destination highlights its sidebar item`,
+        `the ${destination.route} destination highlights its nav item`,
       );
       check(
         page.includes('data-testid="sidebar-session"'),
@@ -224,6 +269,12 @@ export async function shellTest(): Promise<void> {
 
     writeArtifact("ui-shell-narrow.html", narrow);
 
+    const narrowTabs = sectionOf(
+      narrow,
+      'data-testid="app-bottom-tabs"',
+      "</nav>",
+    );
+
     check(
       narrow.includes('data-layout="narrow"'),
       "a 420 px viewport collapses the shell",
@@ -237,8 +288,12 @@ export async function shellTest(): Promise<void> {
       "the narrow shell drops the full sidebar",
     );
     check(
-      countOf(narrow, 'data-workspace-item="true"') === 4,
+      countOf(narrowTabs, 'data-workspace-item="true"') === 4,
       "the bottom tabs keep four workspace destinations",
+    );
+    check(
+      countOf(narrowTabs, 'data-testid="nav-audio"') === 1,
+      "the narrow bottom tabs keep the Audio & MIDI entry",
     );
     check(
       narrow.includes('data-testid="nav-settings"'),
@@ -251,7 +306,7 @@ export async function shellTest(): Promise<void> {
 
     for (const route of ["grid", "instrument", "plugins", "audio", "settings"])
       check(
-        countOf(narrow, `data-testid="nav-${route}"`) === 1,
+        countOf(narrowTabs, `data-testid="nav-${route}"`) === 1,
         `the narrow shell has one ${route} tab`,
       );
 
@@ -342,6 +397,9 @@ export function assertSnapshotNonBlank(html: string): void {
 }
 
 export function assertSnapshotShell(html: string): void {
+  const nav = sectionOf(html, 'data-testid="app-nav"', "</nav>");
+  const footer = sectionOf(html, 'data-testid="app-footer"', "</footer>");
+
   check(
     html.includes('data-testid="sidebar-session" data-phase="ready"'),
     "the sidebar reports the connection is ready",
@@ -375,8 +433,16 @@ export function assertSnapshotShell(html: string): void {
     "snapshot shows the workspace navigation",
   );
   check(
-    countOf(html, 'data-workspace-item="true"') === 4,
-    "the sidebar lists four workspace items",
+    countOf(nav, 'data-workspace-item="true"') === 3,
+    "the sidebar lists three workspace items",
+  );
+  check(
+    !nav.includes('data-testid="nav-audio"'),
+    "Audio & MIDI is not a sidebar workspace item",
+  );
+  check(
+    footer.includes('data-testid="nav-audio"'),
+    "the footer carries the Audio & MIDI entry",
   );
   check(
     html.includes(">Grid<") &&

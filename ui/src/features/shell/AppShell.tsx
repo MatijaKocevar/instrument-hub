@@ -57,7 +57,11 @@ export function AppShell({
             <RouteOutlet router={router} shell={shell} />
           </div>
 
-          <ShellFooter shell={shell} />
+          <ShellFooter
+            shell={shell}
+            route={router.route}
+            navigate={router.navigate}
+          />
         </main>
       </div>
 

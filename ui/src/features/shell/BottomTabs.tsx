@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 
 import { NavLink } from "./NavLink";
 import {
+  AUDIO_ITEM,
   SETTINGS_ITEM,
   WORKSPACE_ITEMS,
   type ShellNavProps,
@@ -15,13 +16,13 @@ export function BottomTabs({ route, navigate }: ShellNavProps): ReactElement {
       data-testid="app-bottom-tabs"
       data-collapsed="true"
     >
-      {[...WORKSPACE_ITEMS, SETTINGS_ITEM].map((item) => (
+      {[...WORKSPACE_ITEMS, AUDIO_ITEM, SETTINGS_ITEM].map((item) => (
         <NavLink
           key={item.route}
           item={item}
           route={route}
           navigate={navigate}
-          compact
+          variant="tab"
         />
       ))}
     </nav>

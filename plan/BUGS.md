@@ -72,13 +72,13 @@ reported by the human or reproduced on this machine.
 - fix: T185 closes the shutdown path. `WarmPoolController::shutdown()` now cancels in-flight loads before draining, waits for the worker with a 1 s budget instead of `pumpMessages(2)` (which busy-spins once the quit message has been received), and abandons a worker that ignores the budget rather than joining it forever. `WarmPool::shutdown()` sets quit, joins only after the worker signals completion, and destroys the abandoned instances on the calling thread; the old destructor path could join a worker stuck in `SandboxHost::start()`. `SandboxHost` gained `shouldAbortStart`, polled every 2 ms, so a shutdown kills the helper instead of waiting out its 15 s startup timeout; `Session::beginShutdown()` sets that token and skips plugin-state capture while the session is tearing down. `Main::shutdown()` now calls it before `closeDevice()` and releases the audio bridge/server before the session. The original Analog Lab hang was not reproduced without the real plugin: the regression reproduces its shape (worker blocked in plugin startup, message loop already stopped) with a fake stalling sandbox helper. Remaining gap: an in-process editor mirror or a non-sandbox factory that blocks and ignores the token can still leave a worker behind; the controller abandons it instead of keeping the process alive, so any future blocking factory must honour the cancellation token before it can be considered shutdown-safe. The sandboxed audio path itself is unaffected.
 
 ### BUG-015 · Audio & MIDI is a sidebar workspace item, not a footer entry
-- status: open
+- status: fixed
 - area: ui
 - steps: open any desktop route
 - expected: the sidebar lists Grid, Instrument and Plugins; Audio & MIDI sits in the footer with the status line
 - actual: `WORKSPACE_ITEMS` puts Audio & MIDI fourth in the sidebar
 - evidence: `ui/src/features/shell/navigation.ts:14`, `Sidebar.tsx:39`
-- fix: pending; T203
+- fix: T203 splits `AUDIO_ITEM` out of `WORKSPACE_ITEMS` and renders it in `ShellFooter` next to the status line with a footer variant of `NavLink`; the sidebar keeps Grid, Instrument and Plugins while the narrow bottom tabs still list all four workspace destinations plus Settings. `tests/artifacts/ui-shell-1200x800.html` has three `app-nav` items and `nav-audio` inside `app-footer` with `href="/audio"`, `tests/artifacts/ui-shell-narrow.html` keeps `nav-audio` in `app-bottom-tabs`; `corepack pnpm typecheck` -> clean; `corepack pnpm test:snapshot` -> all checks passed; `corepack pnpm format:check` -> all matched files use Prettier code style.
 
 ### BUG-014 · Grid page opens with three engine cards above the grid
 - status: fixed
