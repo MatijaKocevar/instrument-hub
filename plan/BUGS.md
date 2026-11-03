@@ -181,7 +181,7 @@ reported by the human or reproduced on this machine.
 - fix: T184 routes every plugin slot through `plugins::SandboxHost` in `SessionBuild.cpp`; audio and MIDI cross the existing shared-memory rings, plugin state is applied and captured over a new shared-memory control command, and a dead helper becomes a slot error instead of an in-process abort. Editor and parameter access use a lazily created in-process `PluginInstrument` mirror, so the sandboxed audio path never loads the plugin in the engine process. Remaining gap: while an editor mirror is open that second instance is still an in-process crash surface, and a yabridge bundle that cannot host a second instance concurrently can stall the mirror load (the editor API fixture now prefers vstbridge, the production bridge from this bug); the sandboxed audio path itself stays isolated.
 
 ### BUG-016 · JACK never appears as a selectable device
-- status: reproduced
+- status: verified
 - area: audio
 - steps:
   1. launch the app and open `/audio`
@@ -190,3 +190,4 @@ reported by the human or reproduced on this machine.
 - actual: `deviceTypes` lists `JACK`, but `devices` holds only ALSA cards, the Advanced list is ALSA PCMs only, and `POST /audio` with any JACK name answers "the device is not connected"; JACK cannot be selected anywhere
 - evidence: 2026-11-03 released app `GET /audio` -> `deviceTypes: ["ALSA","JACK"]`, `devices: [HD-Audio Generic (analog), Steinberg UR22mkII, System (PipeWire)]`, all 52 `rawDevices` typed `ALSA`; `--list-devices` -> `audio device types: ALSA, JACK` with only ALSA devices below it. `DeviceCardList.cpp` and `DeviceRawList.cpp` enumerate ALSA only, and `AudioSettingsBridge::apply` resolves names through those lists. This machine also has no JACK server (`jackd` not installed, no JACK socket), so the live server path is queued in `BLOCKERS.md` B012.
 - fix: T206 appends non-ALSA device types to the curated list: each JACK client becomes a `<TYPE> audio device` card with channel names and rates probed through a temporary device, while a server-less type contributes no entries. `ihub-device-manager-test` now also asserts the list holds no JACK entry without a server.
+- verified: 2026-11-03 with `pipewire-jack` installed and the app launched through `scripts/run.sh` (a `pw-jack` wrapper). `GET /audio` lists 11 `JACK` cards including `Steinberg UR22mkII  Pro`; `POST /audio` switched to that card and the app reports `open: true`, 48 kHz / 128 frames, 6.67 ms, 0.33% load and no new xruns over 12 s; `pw-link` shows the `JUCEJack` client connected to the UR22 playback ports.

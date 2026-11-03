@@ -1133,5 +1133,5 @@ LED capture for the controller) and records the verbatim evidence in
 - goal: Add non-ALSA devices to the curated `GET /audio` device list so the Audio page can select a JACK client, keeping ALSA the default and the raw ALSA PCM list unchanged. Enumerate each non-ALSA type's client names, describe them as `<TYPE> audio device`, and probe channel names, sample rates and buffer sizes through a temporary device without activating it; a type with no server contributes no devices.
 - files: `engine/src/audio/device/`, `engine/src/audio/DeviceManager.h`, `tests/device_manager/`, `docs/architecture.md`
 - accept: with no JACK server `GET /audio` still lists only ALSA cards and `ihub-device-manager-test` passes; with a running server each JACK client appears as a card and `POST /audio` opens it; `scripts/test.sh` passes.
-- note: the live server check is queued in `BLOCKERS.md` B012 because this machine has no JACK server.
+- note: verified 2026-11-03 through PipeWire's JACK server (B012 resolved): the app lists 11 JACK cards and opens `Steinberg UR22mkII  Pro` at 48 kHz / 128 frames / 6.67 ms with no new xruns.
 

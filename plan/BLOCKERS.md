@@ -113,8 +113,10 @@ Status legend: `open` · `resolved`
 ## B012 · No JACK server to verify the native JACK path
 - task: T206
 - severity: hard
-- status: open
-- what: The machine has `libjack` but neither `jackd` nor PipeWire's JACK server, so native JACK can never list a device and the open path cannot be verified.
-- why: `jackd` is not installed, no JACK socket exists under `/run/user/1000`, and the `pipewire-jack` module is absent; JUCE's JACK type therefore reports zero devices.
-- human must: choose one: (a) `sudo apt install jackd2`, stop PipeWire's hold on the UR22, start `jackd -d alsa -d hw:UR22mkII`, then restart the app; or (b) install `pipewire-jack` and launch the app through `pw-jack` so `libjack.so.0` resolves to PipeWire. Then select the JACK client under `/audio`.
-- workaround: ALSA stays the default and playable; `ihub-device-manager-test` covers the no-server path, and T206 makes a running server's clients appear as device cards.
+- status: **resolved 2026-11-03**
+- what: The machine had `libjack` but neither `jackd` nor PipeWire's JACK server, so native JACK could never list a device and the open path could not be verified.
+- why: `jackd` was not installed, no JACK socket existed under `/run/user/1000`, and the `pipewire-jack` module was absent; JUCE's JACK type therefore reported zero devices.
+- human did: installed `pipewire-jack` 1.2.7-1ubuntu5.1 with apt.
+- verified: the app launched through `scripts/run.sh` (which wraps the binary in `pw-jack`) lists 11 JACK devices including `Steinberg UR22mkII  Pro`; `POST /audio` switched to it and the app reports `open: true`, 48 kHz / 128 frames, 6.67 ms, 0 new xruns over 12 s (5 at start-up) and 0.33% load; `pw-link` shows the `JUCEJack` client wired to the UR22 playback ports.
+- note: PipeWire's default quantum is 1024, so without `pw-metadata -n settings 0 clock.force-quantum 128` the app opens at 1024 frames / 53 ms. That setting is runtime-only; persist `default.clock.quantum = 128` under `~/.config/pipewire/pipewire.conf.d/` to keep it across restarts.
+- workaround: ALSA stays the default fallback and remains playable; `ihub-device-manager-test` covers the no-server path, and T206 lists a running server's clients as device cards.

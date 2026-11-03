@@ -252,10 +252,12 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   every existing test keep their device. JACK is enumerated even when `jackd`
   is not running; it then reports no devices and the Audio page shows the type
   only. When a server runs, its client names become device cards next to the
-  ALSA cards, described as `JACK audio device`. The live JACK open path is not
-  covered by the test suite: start `jackd`, start or restart the app so the
-  types are rescanned, then select the JACK client under `/audio`. An ALSA
-  `jack` PCM is a different device and may also appear in the ALSA device list.
+  ALSA cards, described as `JACK audio device`. Launch through
+  `scripts/run.sh`, which wraps the binary in `pw-jack` when available so
+  `libjack.so.0` resolves to PipeWire; start or restart the app so the types
+  are rescanned, then select the JACK client under `/audio`. A real `jackd`
+  works the same way when it is running. An ALSA `jack` PCM is a different
+  device and may also appear in the ALSA device list.
 - [AudioSettings.h](../engine/src/audio/AudioSettings.h) /
   [AudioSettings.cpp](../engine/src/audio/AudioSettings.cpp) — the Audio page's
   device and latency bridge. Device selection, the `/audio` snapshot, patch
