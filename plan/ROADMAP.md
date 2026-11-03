@@ -1127,3 +1127,11 @@ LED capture for the controller) and records the verbatim evidence in
 - files: `engine/src/api/`, `engine/src/app/`, `engine/src/settings/`, `ui/src/features/shell/`, `tests/api/project/`, `ui/src/testing/`
 - accept: Playwright switches projects and the grid, instruments and mixer follow; a dirty project shows the marker and clears it after autosave; Save-as writes a new file and leaves the original untouched; the recent list survives a restart; `scripts/test.sh`, `pnpm typecheck` and `pnpm test:snapshot` pass.
 
+## T206 · BUG-016 offer JACK devices in the audio picker
+- depends: none
+- size: M
+- goal: Add non-ALSA devices to the curated `GET /audio` device list so the Audio page can select a JACK client, keeping ALSA the default and the raw ALSA PCM list unchanged. Enumerate each non-ALSA type's client names, describe them as `<TYPE> audio device`, and probe channel names, sample rates and buffer sizes through a temporary device without activating it; a type with no server contributes no devices.
+- files: `engine/src/audio/device/`, `engine/src/audio/DeviceManager.h`, `tests/device_manager/`, `docs/architecture.md`
+- accept: with no JACK server `GET /audio` still lists only ALSA cards and `ihub-device-manager-test` passes; with a running server each JACK client appears as a card and `POST /audio` opens it; `scripts/test.sh` passes.
+- note: the live server check is queued in `BLOCKERS.md` B012 because this machine has no JACK server.
+

@@ -109,3 +109,12 @@ Status legend: `open` · `resolved`
 - why: see the session log in `.autopilot/T137.log`
 - human must: read the log for T137
 - workaround: none recorded
+
+## B012 · No JACK server to verify the native JACK path
+- task: T206
+- severity: hard
+- status: open
+- what: The machine has `libjack` but neither `jackd` nor PipeWire's JACK server, so native JACK can never list a device and the open path cannot be verified.
+- why: `jackd` is not installed, no JACK socket exists under `/run/user/1000`, and the `pipewire-jack` module is absent; JUCE's JACK type therefore reports zero devices.
+- human must: choose one: (a) `sudo apt install jackd2`, stop PipeWire's hold on the UR22, start `jackd -d alsa -d hw:UR22mkII`, then restart the app; or (b) install `pipewire-jack` and launch the app through `pw-jack` so `libjack.so.0` resolves to PipeWire. Then select the JACK client under `/audio`.
+- workaround: ALSA stays the default and playable; `ihub-device-manager-test` covers the no-server path, and T206 makes a running server's clients appear as device cards.

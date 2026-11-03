@@ -168,6 +168,7 @@ target_sources(instrument-hub
         src/audio/device/DevicePcmHints.cpp
         src/audio/device/DeviceRawList.cpp
         src/audio/device/DeviceState.cpp
+        src/audio/device/DeviceTypeCards.cpp
         src/audio/fx/FxInsertFactory.cpp
         src/audio/fx/FxInsertParameters.cpp
         src/audio/fx/FxInsertType.cpp

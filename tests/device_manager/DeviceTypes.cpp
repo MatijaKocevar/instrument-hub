@@ -40,5 +40,14 @@ int DeviceManagerTest::checkDeviceTypes (AudioEngine::DeviceManager& manager)
     failures += check (foundJack && ! jackHasOutput,
                        "JACK reports no output devices when no server is running");
 
+    bool jackDeviceListed = false;
+
+    for (const auto& device : manager.getDevices())
+        if (device.typeName == "JACK")
+            jackDeviceListed = true;
+
+    failures += check (! jackDeviceListed,
+                       "the device list holds no JACK entry when no server is running");
+
     return failures;
 }

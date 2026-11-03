@@ -54,6 +54,11 @@ std::vector<DeviceInfo> DeviceManager::getDevices()
         for (auto& device : system)
             cardCache.push_back (std::move (device));
 
+        auto extraTypes = getTypeDevices();
+
+        for (auto& device : extraTypes)
+            cardCache.push_back (std::move (device));
+
         cardCacheValid = true;
     }
 
