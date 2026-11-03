@@ -13,7 +13,11 @@ setting is process memory:
 | audio device type, name, rate, buffer | lost on restart | `app/SessionSetup.cpp` picks `--audio-device` or the first ALSA output |
 | master gain, input gain, MIDI channel, metronome | lost on restart | `api/state/TransportState.h` |
 | enabled MIDI inputs | lost on restart | `api/MidiBridge.cpp` |
+| LAN mode, pairing token | lost on restart | `api/AuthGuard.cpp` |
 | channel masks | lost on restart | derived from the opened device |
+
+Patch and instrument data is **not** here: that belongs to a project, see
+`plan/PROJECTS.md`. This file covers only what belongs to the machine.
 
 The audio case is the one that bites: picking the UR22 in `/audio` works
 until the next launch, then the app opens PipeWire's ALSA plugin and the
@@ -56,6 +60,10 @@ be the persisted key.
 handler share one `SettingsStore`; it is only touched from the message /
 HTTP thread. The audio callback never reads or writes it.
 
+**D8 — account data is app settings, not project data.** LAN mode and the
+pairing token live in `settings.json` written `0600`; revoking the token
+deletes it. The pairing code itself is ephemeral.
+
 ## Schema (v1)
 
 ```json
@@ -68,9 +76,13 @@ HTTP thread. The audio callback never reads or writes it.
     "bufferSize": 128
   },
   "mixer": { "masterGain": 0.8, "inputGain": 1.0, "midiChannel": 1, "metronome": false },
-  "midi": { "enabledInputs": [ { "client": "Keystation Mini 32 MK3", "port": "Keystation Mini 32 MK3 MIDI 1" } ] }
+  "midi": { "enabledInputs": [ { "client": "Keystation Mini 32 MK3", "port": "Keystation Mini 32 MK3 MIDI 1" } ] },
+  "account": { "lanEnabled": false, "pairingToken": "…" }
 }
 ```
+
+The file is created `0600` because of the token. The pairing code is not
+stored.
 
 ## Restore flow
 

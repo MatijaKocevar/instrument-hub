@@ -117,7 +117,7 @@ reported by the human or reproduced on this machine.
 - expected: the values return
 - actual: every edit is lost; the set file on disk is unchanged
 - evidence: `ihub::project::Serializer::save` has no caller outside `tests/project/SetFileTest.cpp`; `StateStorePatches` mutates memory only
-- fix: pending; T199
+- fix: pending; T199 makes the `.ihub` project the live set, T204 autosaves it
 
 ### BUG-010 · The grid's armed colour lags the Launchpad by up to two seconds
 - status: open
