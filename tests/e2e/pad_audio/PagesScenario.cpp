@@ -154,6 +154,16 @@ PagesResult runPagesScenario()
 
     Controller::LaunchpadDriver ledDriver;
     const auto leds = captureGridLeds (snapshot, ledDriver);
+    const auto redVelocity = Launchpad::velocityFor (Launchpad::Colour::Red);
+
+    for (const auto& [pad, hit] : leds)
+    {
+        if (hit.seen && hit.velocity == redVelocity)
+        {
+            ++result.redLedCount;
+            result.redPad = pad;
+        }
+    }
 
     if (const auto found = leds.find (kPagePad); found != leds.end())
         result.armedLed = found->second;
@@ -181,6 +191,8 @@ PagesResult runPagesScenario()
     check (result.idleLed.velocity
                != Launchpad::velocityFor (Launchpad::Colour::Red),
            "the idle pad is not painted as the armed pad");
+    check (result.redLedCount == 1 && result.redPad == kPagePad,
+           "exactly one pad LED is red (the armed pad)");
 
     std::cout << "  pages: click_slot=" << result.clickSlot
               << " click_armed=" << result.clickArmed
@@ -197,6 +209,8 @@ PagesResult runPagesScenario()
               << " idle_led_velocity="
               << static_cast<int> (result.idleLed.velocity)
               << " idle_led_expected=" << static_cast<int> (result.idleExpected)
+              << " red_led_count=" << result.redLedCount
+              << " red_pad=" << result.redPad
               << std::endl;
 
     result.ran = true;

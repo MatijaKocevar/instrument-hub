@@ -115,7 +115,7 @@ yellow, and a load error flashes red.
 
 | State | Colour | Velocity | When |
 | --- | --- | --- | --- |
-| `idle` | patch palette | 5..57 | unselected patch |
+| `idle` | patch palette | 9..57, no red | unselected patch |
 | `warming` | Yellow | 13 | card is loading a cold patch |
 | `armed` | Red | 5 | the armed patch |
 | `error` | Red, flashing | 5 (`0x91`) | slot could not be loaded |

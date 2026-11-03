@@ -22,6 +22,8 @@ struct PagesResult
     LedHit armedLed;
     LedHit idleLed;
     std::uint8_t idleExpected = 0;
+    int redLedCount = 0;
+    int redPad = -1;
     bool samePatch = false;
 };
 

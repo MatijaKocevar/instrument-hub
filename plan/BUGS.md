@@ -129,13 +129,13 @@ reported by the human or reproduced on this machine.
 - fix: pending; T198
 
 ### BUG-009 · The patch palette starts with red, so a whole row is red
-- status: open
+- status: fixed
 - area: ui
 - steps: open `/grid`
 - expected: no red except the armed patch
 - actual: colour index 0 is `#f43f5e` in the UI and Launchpad velocity 5 (red) on the controller, so index-0 rows read as a red row; the rose at index 13 does the same
-- evidence: `ui/src/features/grid/colours.ts:2,14`; `engine/src/controller/LaunchpadProtocol.h:133-135`; `ARMED_COLOUR` is also red (`colours.ts:20`)
-- fix: pending; T197
+- evidence: `ui/src/features/grid/colours.ts:2-17` now runs from `#fb923c` through `#f472b6` to slate, with no hue in the red band; empty cells use `EMPTY_COLOUR` `#64748b`; `ihub-launchpad-protocol` -> `ok  : no patch palette velocity is the armed red (16-index sweep)`; `build/tests/ihub-e2e-pages-record.txt` -> `armed_led_velocity=5`, `idle_led_velocity=17`, `red_led_count=1`, `red_pad=10`, `status=PASS`; `cd ui && pnpm test:snapshot` -> `PASS no patch palette colour has a red hue`, `PASS empty cells use the neutral fill`, `PASS empty cells use the neutral gradient`, `ui-snapshot: all checks passed`; `scripts/test.sh` -> 100% tests passed, 0 failed out of 68
+- fix: T197 shifts the Launchpad patch velocities to `9,13,17,21,25,29,33,37,41,45,49,53,56,57,3,1` so velocity 5 stays reserved for armed/error, replaces the rose UI colours with the same non-red order, and paints empty cells with a neutral slate gradient.
 
 ### BUG-008 · Grid rows are mirrored between the UI and the Launchpad
 - status: fixed

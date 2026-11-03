@@ -32,14 +32,24 @@ void runPatchLedChecks (Rig& rig)
            "a patch error flashes red");
 
     bool distinctPalette = true;
+    bool idlePaletteIsNeverRed = true;
+    const auto redVelocity = Launchpad::velocityFor (Launchpad::Colour::Red);
 
     for (int index = 0; index < 16; ++index)
+    {
+        if (Controller::launchpadLedForPatch (index, false, false, false).velocity
+            == redVelocity)
+            idlePaletteIsNeverRed = false;
+
         for (int other = index + 1; other < 16; ++other)
             if (Launchpad::velocityForPatchColour (index)
                 == Launchpad::velocityForPatchColour (other))
                 distinctPalette = false;
+    }
 
     check (distinctPalette, "all 16 patch colours have distinct LED velocities");
+    check (idlePaletteIsNeverRed,
+           "an unarmed patch never uses the armed red LED");
 
     rig.driver.setPatchLed (0, 2, false, false, false);
 

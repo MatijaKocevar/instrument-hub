@@ -3,6 +3,7 @@ export {
   ARMED_COLOUR,
   clampColourIndex,
   colourForIndex,
+  EMPTY_COLOUR,
   nextColourIndex,
   PATCH_COLOURS,
 } from "./colours";
