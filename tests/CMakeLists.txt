@@ -219,6 +219,7 @@ set(IHUB_PLUGIN_INVENTORY_SOURCES
 set(IHUB_SANDBOX_HOST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/SandboxHost.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostMidi.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostParameters.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostProcess.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostState.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostStatus.cpp"
@@ -234,6 +235,7 @@ set(IHUB_SESSION_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/FxChainController.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MeterBridge.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MidiBridge.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MirrorSync.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateFile.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateStore.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateStoreData.cpp"
@@ -3497,6 +3499,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-session-editor-follow-test
         PRIVATE
             plugin_state/SessionEditorFollowTest.cpp
+            plugin_state/editor_follow/EditorAudioScenario.cpp
             ${IHUB_SESSION_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
             ${IHUB_BUS_SOURCES}

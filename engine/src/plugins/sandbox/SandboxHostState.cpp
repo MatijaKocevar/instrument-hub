@@ -72,8 +72,11 @@ bool SandboxHost::runControlCommand (sandbox::ControlCommand command,
     stateTransferFile.deleteFile();
 
     if (command == sandbox::ControlCommand::applyState
-        && ! stateTransferFile.replaceWithData (input.getData(), input.getSize()))
-        return false;
+        || command == sandbox::ControlCommand::applyParameters)
+    {
+        if (! stateTransferFile.replaceWithData (input.getData(), input.getSize()))
+            return false;
+    }
 
     std::snprintf (shared->control.statePath,
                    sizeof (shared->control.statePath),
@@ -124,6 +127,7 @@ bool SandboxHost::runControlCommand (sandbox::ControlCommand command,
     shared->control.command = static_cast<std::int32_t> (sandbox::ControlCommand::none);
 
     return completed && (command == sandbox::ControlCommand::applyState
+                         || command == sandbox::ControlCommand::applyParameters
                          || output.getSize() > 0);
 }
 

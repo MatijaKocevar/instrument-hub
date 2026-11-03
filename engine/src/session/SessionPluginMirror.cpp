@@ -3,6 +3,7 @@
 #include "plugins/PluginInstrument.h"
 #include "plugins/SandboxHost.h"
 #include "session/EditorHost.h"
+#include "session/MirrorSync.h"
 
 #include <thread>
 #include <utility>
@@ -71,7 +72,7 @@ bool Session::ensurePluginMirrorNow (int slot, std::string& error)
         return false;
     }
 
-    auto mirror = std::make_unique<plugins::PluginInstrument>();
+    auto mirror = std::make_shared<plugins::PluginInstrument>();
     juce::String loadError;
 
     if (! mirror->loadFromFile (*pluginFormats,
@@ -92,9 +93,14 @@ bool Session::ensurePluginMirrorNow (int slot, std::string& error)
     if (state.getSize() > 0)
         (void) mirror->setStateInformation (state);
 
+    mirror->setParameterChangedCallback ([this, slot] (const juce::String& id, float value)
+    {
+        syncMirrorParameter (slot, id, value);
+    });
+
     mirror->setStateChangedCallback ([this, slot]
     {
-        syncPluginMirrorToSandbox (slot);
+        syncMirrorState (slot);
     });
 
     plugins::PluginInstrument* stored = nullptr;
@@ -126,7 +132,7 @@ bool Session::ensurePluginMirrorNow (int slot, std::string& error)
 
 void Session::releasePluginMirror (int slot)
 {
-    std::unique_ptr<plugins::PluginInstrument> mirror;
+    std::shared_ptr<plugins::PluginInstrument> mirror;
 
     {
         const std::lock_guard<std::mutex> lock (mirrorMutex);
@@ -140,6 +146,7 @@ void Session::releasePluginMirror (int slot)
     if (mirror == nullptr)
         return;
 
+    mirror->setParameterChangedCallback (nullptr);
     mirror->setStateChangedCallback (nullptr);
 
     if (editorHost != nullptr)
@@ -157,28 +164,40 @@ void Session::releaseAllPluginMirrors()
         releasePluginMirror (slot);
 }
 
-void Session::syncPluginMirrorToSandbox (int slot)
+void Session::syncMirrorParameter (int slot,
+                                   const juce::String& id,
+                                   float normalisedValue)
 {
-    plugins::PluginInstrument* mirror = nullptr;
+    if (mirrorSync != nullptr)
+        mirrorSync->parameterChanged (slot, id, normalisedValue);
+}
+
+void Session::syncMirrorState (int slot)
+{
+    if (mirrorSync == nullptr)
+        return;
+
+    auto state = copyMirrorState (slot);
+
+    if (state.getSize() > 0)
+        mirrorSync->stateChanged (slot, std::move (state));
+}
+
+juce::MemoryBlock Session::copyMirrorState (int slot) const
+{
+    std::shared_ptr<plugins::PluginInstrument> mirror;
 
     {
         const std::lock_guard<std::mutex> lock (mirrorMutex);
 
-        if (slot < 0 || slot >= static_cast<int> (pluginMirrors.size()))
-            return;
+        if (slot < 0 || slot >= static_cast<int> (pluginMirrors.size())
+            || pluginMirrors[static_cast<std::size_t> (slot)] == nullptr)
+            return {};
 
-        mirror = pluginMirrors[static_cast<std::size_t> (slot)].get();
+        mirror = pluginMirrors[static_cast<std::size_t> (slot)];
     }
 
-    auto* sandbox = sandboxForSlot (slot);
-
-    if (mirror == nullptr || sandbox == nullptr || ! sandbox->isRunning())
-        return;
-
-    const auto state = mirror->getStateInformation();
-
-    if (state.getSize() > 0)
-        (void) sandbox->setStateInformation (state);
+    return mirror->getStateInformation();
 }
 
 }

@@ -11,10 +11,16 @@ juce::MemoryBlock PluginInstrument::getStateInformation() const
 
 void PluginInstrument::getStateInformation (juce::MemoryBlock& destination) const
 {
+    const std::lock_guard<std::mutex> lock (stateMutex);
+
     destination.reset();
 
     if (plugin != nullptr)
+    {
+        suppressNotifications.store (true, std::memory_order_release);
         plugin->getStateInformation (destination);
+        suppressNotifications.store (false, std::memory_order_release);
+    }
 }
 
 bool PluginInstrument::setStateInformation (const void* data, int numBytes)
@@ -22,7 +28,14 @@ bool PluginInstrument::setStateInformation (const void* data, int numBytes)
     if (plugin == nullptr || data == nullptr || numBytes <= 0)
         return false;
 
-    plugin->setStateInformation (data, numBytes);
+    {
+        const std::lock_guard<std::mutex> lock (stateMutex);
+
+        suppressNotifications.store (true, std::memory_order_release);
+        plugin->setStateInformation (data, numBytes);
+        suppressNotifications.store (false, std::memory_order_release);
+    }
+
     notifyStateChanged();
 
     return true;

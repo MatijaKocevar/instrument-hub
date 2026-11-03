@@ -99,7 +99,7 @@ reported by the human or reproduced on this machine.
 - fix: pending; T201
 
 ### BUG-012 · Changing a sound in Analog Lab silences audio until the editor is closed
-- status: open
+- status: fixed
 - area: instrument
 - steps:
   1. arm an Analog Lab patch and confirm it plays
@@ -107,8 +107,8 @@ reported by the human or reproduced on this machine.
   3. play the Keystation
 - expected: the new sound plays immediately
 - actual: audio is silent for about a second and stays silent until the editor window is closed, then the new sound plays
-- evidence: reported 2026-11-03; root cause not yet captured — the sound reaches the sandboxed audio instance only through the editor mirror, which T184 introduced
-- fix: pending; T200 reproduces first and records the log
+- evidence: reproduced 2026-11-03 with Analog Lab V through vstbridge and `t200_analog_lab_editor_probe`: before the fix one `Master` edit blocked the message thread for 412.689 ms and 32 rapid editor edits took 8770.5 ms, because every parameter notification serialised the whole mirror and synchronously applied it to the sandbox; the sandbox loop was busy applying 100 KB states instead of rendering. After the fix the same edit took 0.135 ms and the 32-edit burst 67.7 ms (mostly the probe's own 2 ms sleeps), and the slot rendered -25.1 / -25.5 / -26.9 dBFS before, during and after the burst. `ihub-session-editor-follow` now checks the TestPlugin mirror with the editor open: 64 edits complete in 0.25-0.4 ms, the slot stays above -40 dBFS, the next render is 880.86 Hz, a preset-state change reaches the sandbox, the sandbox pid is unchanged and the played-block counter keeps rising; `ihub-per-patch-state` passes its 8-patch exact-state round trip; `ihub-sandbox`, `ihub-plugin-instance` and `ihub-session-plugin-state` pass. An earlier full `scripts/test.sh` run could not finish because the session's display stack had degraded (`sddm` at ~21 GB RSS, Xorg in an `accept() failed` loop); after it recovered, the full suite on the completed tree passes: 100% tests passed, 0 failed out of 69 (129.82 s), including the WebKit snapshot, GUI selftest, `ihub-session-editor-follow`, `ihub-per-patch-state` and `ihub-sandbox`. Remaining human step: the real Analog Lab editor preset-change check on a licensed machine.
+- fix: T200 stops treating every editor parameter notification as a full plugin-state save. `PluginInstrument` now exposes a parameter-changed callback in addition to the state-changed callback, and `SandboxHost`/`ihub-sandbox` gained a bulk `applyParameters` control command keyed by parameter ID. `session::MirrorSync` coalesces edits per slot on a worker thread (10 ms quiet window, 64-parameter batches) and pushes only the changed parameters, so the editor/message thread never waits for the sandbox. Full state blobs are captured on the message thread and applied after a 150 ms quiet window, which covers preset loads without a per-parameter state storm. State captures and applies suppress re-entrant notifications, mirror state is now captured from the mirror rather than the sandbox when a sandbox is evicted, and the play path, audio device and slot graph are untouched.
 
 ### BUG-011 · Patch edits are never written to the set file
 - status: fixed

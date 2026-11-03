@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 
 namespace ihub::plugins
 {
@@ -47,6 +48,11 @@ public:
     void unload();
 
     void setBeforeUnloadCallback (std::function<void()> callback);
+
+    using ParameterChangedCallback = std::function<void (const juce::String& parameterId,
+                                                         float normalisedValue)>;
+
+    void setParameterChangedCallback (ParameterChangedCallback callback);
 
     void setStateChangedCallback (std::function<void()> callback);
 
@@ -96,9 +102,13 @@ public:
 
     int getNumParameters() const;
 
+    juce::String getParameterId (int index) const;
+
     juce::AudioProcessorParameter* findParameter (const juce::String& idOrName) const;
 
     bool setParameterValue (const juce::String& idOrName, float normalisedValue);
+
+    bool setParameterValueByIndex (int index, float normalisedValue);
 
     float getParameterValue (const juce::String& idOrName) const;
 
@@ -113,7 +123,9 @@ private:
 
     bool pushEvent (const juce::uint8* bytes, int numBytes) noexcept;
     void drainPendingMidi (juce::MidiBuffer& destination) noexcept;
+    void notifyParameterChanged (int parameterIndex, float normalisedValue);
     void notifyStateChanged();
+    void refreshListener();
 
     class StateChangeForwarder;
 
@@ -135,8 +147,11 @@ private:
     juce::MidiBuffer midiScratch;
 
     std::function<void()> beforeUnloadCallback;
+    ParameterChangedCallback parameterChangedCallback;
     std::function<void()> stateChangedCallback;
     std::unique_ptr<StateChangeForwarder> stateChangeForwarder;
+    mutable std::mutex stateMutex;
+    mutable std::atomic<bool> suppressNotifications { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginInstrument)
 };
