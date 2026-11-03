@@ -38,3 +38,12 @@ export const AUDIO: ControlAudioState = {
   callbacks: 128000,
   loadPercent: 7.5,
 };
+
+export const AUDIO_FALLBACK: ControlAudioState = {
+  ...AUDIO,
+  restore: {
+    usedStoredDevice: false,
+    fallback: true,
+    reason: 'stored device "UR22mkII" is not available',
+  },
+};

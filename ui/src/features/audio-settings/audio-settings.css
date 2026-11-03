@@ -69,6 +69,83 @@
   font-size: 0.82rem;
 }
 
+.audio-settings__restore {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  border: 1px solid rgba(255, 196, 110, 0.45);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 196, 110, 0.08);
+}
+
+.audio-settings__restore-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 14rem;
+  flex: 1 1 20rem;
+}
+
+.audio-settings__restore-eyebrow {
+  margin: 0;
+  color: #ffc46e;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.audio-settings__restore-device {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.audio-settings__restore-reason {
+  margin: 0;
+  color: #c8cede;
+  font-size: 0.8rem;
+}
+
+.audio-settings__restore-stored {
+  margin: 0;
+  color: #8b93a7;
+  font-size: 0.75rem;
+}
+
+.audio-settings__restore-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.audio-settings__restore-actions button {
+  min-height: 40px;
+  border: 1px solid #4a4f63;
+  border-radius: 10px;
+  padding: 0 0.9rem;
+  background: #1c1e27;
+  color: #eceef4;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.audio-settings__restore-actions button:first-child {
+  border-color: rgba(110, 231, 200, 0.5);
+  background: rgba(110, 231, 200, 0.12);
+  color: #b8fff0;
+}
+
+.audio-settings__restore-actions button:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
 .audio-settings__controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
