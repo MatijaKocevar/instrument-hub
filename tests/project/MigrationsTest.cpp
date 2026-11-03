@@ -113,7 +113,7 @@ int main()
            "a v1 container loads: " + error.toStdString());
     check (loaded.schemaVersion == currentSetSchemaVersion,
            "the loaded set is at the current schema version");
-    check (currentSetSchemaVersion == 3, "the current schema version is 3");
+    check (currentSetSchemaVersion == 4, "the current schema version is 4");
     check (loaded.validate (error),
            "the migrated set validates: " + error.toStdString());
 
@@ -192,7 +192,7 @@ int main()
         const auto root = juce::JSON::parse (juce::String (manifest));
 
         check (readVersion (root) == currentSetSchemaVersion,
-               "the saved manifest declares schemaVersion 3");
+               "the saved manifest declares the current schema version");
 
         const auto* object = root.getDynamicObject();
         check (object != nullptr && object->hasProperty ("notes"),
@@ -240,20 +240,24 @@ int main()
 
     check (migrationStepCount (1, 2) == 1, "the chain has one step from v1 to v2");
     check (migrationStepCount (2, 3) == 1, "the chain has one step from v2 to v3");
-    check (migrationStepCount (1, 3) == 2, "the chain has two steps from v1 to v3");
+    check (migrationStepCount (3, 4) == 1, "the chain has one step from v3 to v4");
+    check (migrationStepCount (1, 4) == 3, "the chain has three steps from v1 to v4");
     check (migrationStepCount (1, 1) == 0, "no steps are needed from v1 to v1");
     check (migrationStepCount (2, 2) == 0, "no steps are needed from v2 to v2");
     check (migrationStepCount (3, 3) == 0, "no steps are needed from v3 to v3");
+    check (migrationStepCount (4, 4) == 0, "no steps are needed from v4 to v4");
     check (migrationStepCount (2, 1) == -1, "the chain cannot go backwards");
     check (migrationStepCount (0, 3) == -1, "a version older than the oldest is not connected");
-    check (migrationStepCount (1, 4) == -1, "the chain does not reach a future version");
+    check (migrationStepCount (1, 5) == -1, "the chain does not reach a future version");
 
     const auto* firstStep = findMigrationStep (1);
     check (firstStep != nullptr && firstStep->toVersion == 2,
            "the v1 step upgrades to v2");
     check (findMigrationStep (2) != nullptr && findMigrationStep (2)->toVersion == 3,
            "the v2 step upgrades to v3");
-    check (findMigrationStep (3) == nullptr, "there is no step beyond v3");
+    check (findMigrationStep (3) != nullptr && findMigrationStep (3)->toVersion == 4,
+           "the v3 step upgrades to v4");
+    check (findMigrationStep (4) == nullptr, "there is no step beyond v4");
     check (findMigrationStep (0) == nullptr, "there is no step below v1");
 
     {
@@ -271,8 +275,8 @@ int main()
                "a v1 document migrates: " + migrationError.toStdString());
 
         const auto* object = document.getDynamicObject();
-        check (object != nullptr && readVersion (document) == 3,
-               "the migrated document declares v3");
+        check (object != nullptr && readVersion (document) == 4,
+               "the migrated document declares v4");
         check (object != nullptr && object->hasProperty ("notes")
                    && object->getProperty ("notes").toString().isEmpty(),
                "the notes default is empty");
@@ -300,7 +304,7 @@ int main()
         check (migrateManifest (document, migrationError),
                "migrating an already-current document succeeds: "
                    + migrationError.toStdString());
-        check (readVersion (document) == 3, "migrating twice is idempotent");
+        check (readVersion (document) == 4, "migrating twice is idempotent");
     }
 
     {
@@ -319,7 +323,7 @@ int main()
         check (migrateManifest (document, migrationError),
                "a v2 document migrates: " + migrationError.toStdString());
 
-        check (readVersion (document) == 3, "the migrated v2 document declares v3");
+        check (readVersion (document) == 4, "the migrated v2 document declares v4");
 
         const auto slotsValue = document.getDynamicObject()->getProperty ("slots");
         const auto* slots = slotsValue.getArray();

@@ -424,7 +424,9 @@ the kit and sample loaders. Both implement `Instrument` and `SlotSource`.
 ### 3.10 `engine/src/project/`
 
 The `.ihub` set container and its migration. It is a library layer above the
-engine and is currently exercised by tests, not by the app (see §8).
+engine and is the live project format: the app imports the bundled set into a
+project on first launch, loads its mapping and sources, and watches the
+container for mapping changes.
 
 - [SetFile.h](../engine/src/project/SetFile.h) / [SetFile.cpp](../engine/src/project/SetFile.cpp)
   — the set document model and validation.
@@ -437,7 +439,7 @@ engine and is currently exercised by tests, not by the app (see §8).
   keeps validation and archive orchestration.
 - [Migrations.h](../engine/src/project/Migrations.h) /
   [Migrations.cpp](../engine/src/project/Migrations.cpp) — schema upgrades
-  (1 → 2 and 2 → 3); never rewrites a document in an old format.
+  (1 → 2, 2 → 3 and 3 → 4); never rewrites a document in an old format.
 
 The live per-patch plugin-state cache is `session/PluginStateStore`, not a
 second binder in this directory. Its sidecar file format is

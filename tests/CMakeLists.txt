@@ -1832,12 +1832,14 @@ target_include_directories(ihub-launchpad-mapping-test
 
 target_compile_definitions(ihub-launchpad-mapping-test
     PRIVATE
+        JUCE_USE_CURL=0
         "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
 )
 
 target_link_libraries(ihub-launchpad-mapping-test
     PRIVATE
         Threads::Threads
+        juce::juce_core
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -2885,6 +2887,74 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+juce_add_console_app(ihub-project-test
+    PRODUCT_NAME "ihub-project-test"
+)
+
+target_sources(ihub-project-test
+    PRIVATE
+        project/ProjectTest.cpp
+        project/project/Import.cpp
+        project/project/Reload.cpp
+        project/project/SessionDescription.cpp
+        project/project/Support.cpp
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectImport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectPaths.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SourceImport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
+        ${IHUB_BUS_SOURCES}
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertType.cpp"
+        ${IHUB_LATENCY_PROBE_SOURCES}
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateFile.cpp"
+        ${IHUB_PROJECT_SOURCES}
+        ${IHUB_MAPPING_SOURCES}
+)
+
+target_include_directories(ihub-project-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_compile_definitions(ihub-project-test
+    PRIVATE
+        "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+        "IHUB_PLUGIN_STATE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.plugin-state\""
+        "IHUB_SOURCES_JSON=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.sources.json\""
+)
+
+target_link_libraries(ihub-project-test
+    PRIVATE
+        Threads::Threads
+        juce::juce_audio_devices
+        juce::juce_audio_processors_headless
+        juce::juce_core
+        juce::juce_events
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-project-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-project
+    COMMAND ihub-project-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 juce_add_console_app(ihub-sample-loader-test
     PRODUCT_NAME "ihub-sample-loader-test"
 )
@@ -3500,6 +3570,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             e2e/PadToAudio.cpp
             e2e/Check.cpp
+            e2e/project/ProjectScenario.cpp
             e2e/pad_audio/AlsaPcm.cpp
             e2e/pad_audio/GridLeds.cpp
             e2e/pad_audio/Loopback.cpp
@@ -3512,6 +3583,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             e2e/pad_audio/Render.cpp
             e2e/pad_audio/Rig.cpp
             ${IHUB_SESSION_SOURCES}
+            ${IHUB_PROJECT_SOURCES}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectImport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectPaths.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SourceImport.cpp"
             ${IHUB_DISCOVERY_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
             ${IHUB_API_ROUTES_SOURCES}
@@ -3553,6 +3632,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             JUCE_PLUGINHOST_VST3=1
             JUCE_MODAL_LOOPS_PERMITTED=1
             "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/e2e/set-init-tone.yaml\""
+            "IHUB_SHARED_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
     )
 
     target_link_libraries(ihub-e2e-test

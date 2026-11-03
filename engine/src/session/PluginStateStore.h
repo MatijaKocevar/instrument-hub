@@ -44,6 +44,10 @@ public:
                      const PluginStateIdentity& identity,
                      const juce::MemoryBlock& data);
 
+    bool seedState (int slot,
+                    const PluginStateIdentity& identity,
+                    const juce::MemoryBlock& data);
+
     juce::MemoryBlock readState (int slot,
                                  const PluginStateIdentity& identity) const;
 

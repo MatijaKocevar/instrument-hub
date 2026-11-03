@@ -57,6 +57,7 @@ struct InstrumentConfig
     std::string pluginName;
     std::string pluginManufacturer;
     std::string pluginVersion;
+    std::string pluginPath;
 
     std::string samplePath;
 

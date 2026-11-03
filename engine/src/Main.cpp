@@ -6,6 +6,7 @@
 #include "app/ControllerSurface.h"
 #include "app/DiagnosticModes.h"
 #include "app/Modes.h"
+#include "app/ProjectSetup.h"
 #include "app/SessionSetup.h"
 #include "app/UiModes.h"
 #include "diag/CrashDump.h"
@@ -162,8 +163,13 @@ public:
                 break;
         }
 
+        juce::File projectFile;
+
         if (mode == ihub::app::AppMode::gui || mode == ihub::app::AppMode::serve)
-            session = ihub::app::startSession (commandLine);
+        {
+            projectFile = ihub::app::resolveProjectFile (commandLine);
+            session = ihub::app::startSession (commandLine, projectFile);
+        }
 
         const bool apiRequired = mode == ihub::app::AppMode::serve;
 
@@ -187,7 +193,9 @@ public:
         }
 
         if (mode == ihub::app::AppMode::gui)
-            controller.start (controlApi.getState(), controlApi.getMidiBridge());
+            controller.start (controlApi.getState(),
+                              controlApi.getMidiBridge(),
+                              projectFile);
 
         mainWindow = std::make_unique<MainWindow> (getApplicationName(),
             [this] (const juce::String& url)

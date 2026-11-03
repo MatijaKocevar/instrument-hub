@@ -65,6 +65,8 @@ struct SessionSlotConfig
     std::string pluginVersion;
     std::string samplePath;
 
+    juce::MemoryBlock pluginState;
+
     int inputChannel = 0;
 
     std::string family;
