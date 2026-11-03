@@ -21,8 +21,9 @@ edit.
 > target structure. **T182** (Prettier for the UI), **T187** (native JACK
 > device type), **T188–T192** (settings persistence, design in
 > `plan/SETTINGS.md`), **T193–T195** (device list, design in
-> `plan/DEVICES.md`) and **T196–T203** (the human-reported bug list of
-> 2026-11-03) are likewise explicit human requests.
+> `plan/DEVICES.md`) and **T196–T205** (the human-reported bug list of
+> 2026-11-03) are likewise explicit human requests. Machine settings and
+> projects are separate stores; see `plan/PROJECTS.md`.
 
 ---
 
@@ -986,12 +987,14 @@ LED capture for the controller) and records the verbatim evidence in
 - files: `ui/src/features/grid/model.ts`, `ui/src/features/grid/GridView.tsx`, `ui/src/features/grid/GridTable.tsx`, `ui/src/testing/`
 - accept: with `/grid` open at 1200x800, the first rendered `grid-cell` row holds slots 57–64 and the last holds 0–7; clicking any cell still arms its own slot; the virtual-Launchpad capture for note 11 lights slot 0; `pnpm test:snapshot` passes.
 
+
 ## T197 · BUG-009 reserve red for the armed patch
 - depends: none
 - size: M
 - goal: Remove red from the patch palette on both sides and keep the two palettes aligned, so only the armed patch is red. Replace the rose entries in `PATCH_COLOURS`, replace the red Launchpad velocities (including index 0's velocity 5) with non-red ones in the same order, and give empty cells a neutral gradient instead of the index-0 colour.
 - files: `ui/src/features/grid/colours.ts`, `ui/src/features/grid/GridCell.tsx`, `engine/src/controller/LaunchpadProtocol.h`, `engine/src/controller/LaunchpadLed.cpp`, `tests/controller/`, `tests/e2e/`
 - accept: a 16-index sweep produces no red velocity from `velocityForPatchColour`; after arming one pad the virtual-Launchpad capture contains exactly one red LED; the UI palette has no red hue and empty cells are neutral; `scripts/test.sh` and `pnpm test:snapshot` pass.
+
 
 ## T198 · BUG-010 push armed-state changes to the UI
 - depends: none
@@ -1000,13 +1003,22 @@ LED capture for the controller) and records the verbatim evidence in
 - files: `engine/src/api/WebSocketRoutes.cpp`, `engine/src/api/StateBroadcast.cpp`, `engine/src/api/state/`, `ui/src/state/store.ts`, `ui/src/state/pollLoop.ts`, `ui/src/features/shell/useShellData.ts`, `tests/api/`
 - accept: with `/grid` open, a `POST /arm` issued outside the browser moves `grid-cell[data-armed="true"]` within 250 ms; with the socket aborted the poll still applies it within 3 s; `scripts/test.sh` and `pnpm test:snapshot` pass.
 
-## T199 · BUG-011 write patch edits back to the set
+
+## T199 · BUG-011 make the `.ihub` project the live set
 - depends: none
 - size: L
-- goal: Persist accepted patch and family edits. `Serializer::save` is currently called only by tests; wire a debounced, atomic save of the loaded set after each accepted change (volume, pan, mute, solo, colour, source, FX chain) and after a captured plug-in sound, keeping the loaded path. A failed save must surface as an error on the request instead of being dropped.
-- files: `engine/src/api/state/StateStorePatches.cpp`, `engine/src/api/StateStore.*`, `engine/src/project/Serializer.cpp`, `engine/src/Session.cpp`, `tests/api/patch/`, `tests/project/`
-- accept: an edit followed by a restart of the engine loads the edited value; a read-only set path returns a save error and leaves the file untouched; concurrent edits produce one valid file, not a partial one; `scripts/test.sh` passes.
-- note: if a set is loaded from a location the app may not write, keep running and report `persisted: false` rather than failing the edit.
+- goal: Make the project container the runtime format, per `plan/PROJECTS.md`. Resolve the project path (`--project` > `~/Music/Instrument Hub/Untitled.ihub`); if it does not exist, import the bundled `shared/set.yaml` plus `shared/set.plugin-state/` through `Serializer::save` once. Load the project with `Serializer::load`, parse `SetFile::mappingYaml` with the existing mapping parser (add a string entry point; do not write a temp file), and build the session from it. Watch the project file's mtime instead of `set.yaml` for hot reload. No saving yet; the last-opened path is T205.
+- files: `engine/src/app/SessionSetup.cpp`, `engine/src/project/Serializer.cpp`, `engine/src/project/serializer/`, `engine/src/controller/mapping/MappingFile.cpp`, `engine/src/controller/mapping/MappingYaml.cpp`, `tests/project/`, `tests/e2e/`
+- accept: launching with `--project` on a temp `.ihub` produces the same 64 pads, families, colours and plug-in state as the imported `set.yaml`; deleting the `.ihub` and relaunching re-imports once; replacing the `.ihub` externally re-routes pads within the watcher interval; `scripts/test.sh` passes.
+
+
+## T204 · BUG-011 autosave the project
+- depends: T199
+- size: L
+- goal: Save the project after accepted edits: patch and family mixer, colour, source, FX chain, transport and a captured plug-in sound. Capture the running plug-in state for touched slots immediately before each write, debounce 500 ms, write `<name>.ihub.tmp` and rename, keep the previous file as `<name>.ihub.bak`, and expose a `dirty` flag plus the last save error so the footer can show it. A read-only project keeps running with `saved: false`. Restoring app settings never writes the project.
+- files: `engine/src/api/state/StateStorePatches.cpp`, `engine/src/api/StateStore.*`, `engine/src/project/Serializer.cpp`, `engine/src/session/PluginStateFile.cpp`, `engine/src/Session.cpp`, `tests/api/patch/`, `tests/project/`
+- accept: an edit followed by a 1 s wait and a restart loads the edited value; a burst of ten fader moves produces one file write; a simulated write failure leaves the previous `.ihub` byte-identical and returns the error; a crash mid-write never leaves a partial `.ihub`; `scripts/test.sh` passes.
+
 
 ## T200 · BUG-012 keep audio alive while the plug-in editor changes sound
 - depends: none
@@ -1016,12 +1028,14 @@ LED capture for the controller) and records the verbatim evidence in
 - accept: with a TestPlugin mirror, changing a parameter while the editor is open keeps the slot rendering above -40 dBFS and the new value is audible in the next render; the engine log shows no device close/reopen; `scripts/test.sh` passes. The real Analog Lab check is recorded for the human.
 - note: if the fix needs the real plug-in, prove the mechanism with TestPlugin and write `STATUS: partial` with the remaining human step rather than `done`.
 
+
 ## T201 · BUG-013 stop arming from recolouring the other pads
 - depends: none
 - size: M
 - goal: Every pad keeps its patch colour; arming changes only the armed pad (static red). Show warming with a pulsing mode and error with a flashing red instead of replacing the colour of every pad that changes warm state.
 - files: `engine/src/app/ControllerSurface.cpp`, `engine/src/controller/LaunchpadLed.cpp`, `engine/src/controller/launchpad/LaunchpadDriverLeds.cpp`, `tests/controller/`, `tests/e2e/`
 - accept: a virtual-Launchpad capture taken before and after arming differs in exactly one pad's `(velocity, mode)`; all other pads keep their patch colour; an erroring pad still flashes; `scripts/test.sh` passes.
+
 
 ## T202 · BUG-014 make the Grid page just the grid
 - depends: none
@@ -1030,12 +1044,14 @@ LED capture for the controller) and records the verbatim evidence in
 - files: `ui/src/features/shell/GridRoute.tsx`, `ui/src/features/shell/SystemPanels.tsx`, `ui/src/testing/`
 - accept: `/grid` contains `instrument-grid` and no `app__panels`; no unused panel component remains; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
 
+
 ## T203 · BUG-015 move Audio & MIDI to the footer
 - depends: none
 - size: S
 - goal: Take Audio & MIDI out of the sidebar workspace and render it in the shell footer next to the status line; the sidebar keeps Grid, Instrument and Plugins. Keep the item in the narrow-layout bottom tabs so the route stays reachable.
 - files: `ui/src/features/shell/navigation.ts`, `ui/src/features/shell/Sidebar.tsx`, `ui/src/features/shell/ShellFooter.tsx`, `ui/src/features/shell/BottomTabs.tsx`, `ui/src/testing/`
 - accept: at 1200x800 `nav-audio` is inside `app-footer` and not inside `app-nav`, and clicking it opens `/audio`; at a narrow width the bottom tabs still show it; `pnpm typecheck` and `pnpm test:snapshot` pass.
+
 
 ## T188 · App settings store
 - depends: T187
@@ -1045,6 +1061,7 @@ LED capture for the controller) and records the verbatim evidence in
 - accept: a new `ihub-settings-store-test` covers round-trip, defaults for a missing file, corrupt-file recovery, unknown-key preservation, atomic replace (no partial file after a simulated failure) and a schema with a newer version being rejected without touching the file; `scripts/test.sh` passes.
 - note: use a temporary directory per test, never the real `~/.config/Instrument Hub`.
 
+
 ## T189 · Restore the audio device on launch
 - depends: T188
 - size: M
@@ -1053,12 +1070,14 @@ LED capture for the controller) and records the verbatim evidence in
 - accept: a regression opens a stored device, restarts the settings/session path against the same temp config dir and asserts the second open uses it; CLI flags beat the file; a stored device that no longer exists falls back and leaves the file byte-identical; a failed `POST /audio` writes nothing; `scripts/test.sh` passes.
 - note: `BUG-006` evidence is the manual check — select the UR22, restart the real app, confirm `GET /audio` still reports it.
 
-## T190 · Persist mixer settings
+
+## T190 · Persist app-level settings
 - depends: T188
-- size: S
-- goal: Route `masterGain`, `inputGain`, `midiChannel` and `metronome` through the same store: load on startup, save when `POST /settings` accepts a change. Keep the API shape and ranges unchanged.
-- files: `engine/src/api/state/`, `engine/src/settings/`, `tests/api/`
-- accept: a regression changes each value, reconstructs the state store against the same temp config dir, and asserts the values return; invalid values are still rejected and not written; `scripts/test.sh` passes.
+- size: M
+- goal: Route the app-level settings through the store: `masterGain`, `inputGain`, `midiChannel`, `metronome`, the LAN mode and the pairing token. Load on startup, save when `POST /settings` accepts a change and when LAN/token change, and write the file `0600`. Revoking the token deletes it from the file. Keep the API shape and ranges unchanged.
+- files: `engine/src/api/state/`, `engine/src/api/AuthGuard.cpp`, `engine/src/settings/`, `tests/api/`
+- accept: a regression changes each value, reconstructs the state store against the same temp config directory and asserts the values return; invalid values are rejected and not written; the settings file is `0600`; a revoked token is gone after a restart; `scripts/test.sh` passes.
+
 
 ## T191 · Persist enabled MIDI inputs by port name
 - depends: T188
@@ -1067,12 +1086,14 @@ LED capture for the controller) and records the verbatim evidence in
 - files: `engine/src/api/MidiBridge.cpp`, `engine/src/settings/`, `tests/api/midi/`, `tests/settings/`
 - accept: a regression enables two synthetic ports, reconstructs the bridge, and asserts only those two are enabled; a stored port missing from the enumeration is skipped without erasing it; the Launchpad/Keystation role tests are unchanged; `scripts/test.sh` passes.
 
+
 ## T192 · Show restore fallback and offer to forget the device
 - depends: T189
 - size: S
 - goal: Surface `restore` in the Audio page: when the stored device was not used, show the chosen fallback and the reason, with a "Forget device" action that clears the stored audio entry and a "Use this device" action that re-applies the stored one. No changes to the engine API beyond what T189 added.
 - files: `ui/src/features/audio-settings/`, `ui/src/testing/`
 - accept: a snapshot scenario renders the fallback notice and both actions; `pnpm typecheck` and `pnpm test:snapshot` pass; formatting is Prettier-clean.
+
 
 ## T193 · Card-based audio device list
 - depends: T189
@@ -1082,6 +1103,7 @@ LED capture for the controller) and records the verbatim evidence in
 - accept: `GET /audio` on this machine returns the UR22, the two onboard outputs and `System (PipeWire)` and nothing else; `--list-devices --raw-devices` still prints every PCM; the Loopback appears only with `--show-test-devices`; `ihub-device-manager-test` and the audio-settings tests pass unchanged.
 - note: the UR22 exposes S32_LE only, so a float-only probe must fall through to S32 rather than reporting an empty device; this is the root cause of BUG-007's channel error.
 
+
 ## T194 · Make a device switch succeed in one request
 - depends: T193
 - size: M
@@ -1089,9 +1111,19 @@ LED capture for the controller) and records the verbatim evidence in
 - files: `engine/src/audio/settings/`, `engine/src/audio/device/`, `tests/api/audio_settings/`
 - accept: `POST /audio` with only `deviceName` and `sampleRate`/`bufferSize` opens the device and returns the live latency; a busy device returns the busy message; the existing channel-selection tests are unchanged; `scripts/test.sh` passes.
 
+
 ## T195 · Device picker UI
 - depends: T194
 - size: M
 - goal: Show the curated list in the Audio page with the card name and a short description, render unavailable devices disabled with their reason, add the Advanced toggle that reveals the raw PCM list, and surface the `restore` notice from T189 next to the picker.
 - files: `ui/src/features/audio-settings/`, `ui/src/testing/`
 - accept: a snapshot scenario shows four device entries and no duplicate card rows, an unavailable card renders disabled with its reason, the Advanced toggle reveals the raw list; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
+
+
+## T205 · Project lifecycle: new, open, save as, recent
+- depends: T188, T199, T204
+- size: L
+- goal: Make projects first-class: `GET /project` returns path, name and dirty state; `POST /project` supports new, open, save-as and close, each writing through the autosave path; app settings keep the last opened path and a recent list; the footer shows the project name and dirty marker with Save and Open actions; `--project` overrides the stored path for that run only.
+- files: `engine/src/api/`, `engine/src/app/`, `engine/src/settings/`, `ui/src/features/shell/`, `tests/api/project/`, `ui/src/testing/`
+- accept: Playwright switches projects and the grid, instruments and mixer follow; a dirty project shows the marker and clears it after autosave; Save-as writes a new file and leaves the original untouched; the recent list survives a restart; `scripts/test.sh`, `pnpm typecheck` and `pnpm test:snapshot` pass.
+
