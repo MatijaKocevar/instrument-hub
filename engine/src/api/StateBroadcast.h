@@ -24,7 +24,11 @@ enum class StateEventKind
     settings,
     transport,
     slot,
-    patch
+    patch,
+    warm,
+    device,
+    midi,
+    pairing
 };
 
 struct PadMirror

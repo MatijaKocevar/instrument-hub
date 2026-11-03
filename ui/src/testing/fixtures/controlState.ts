@@ -167,6 +167,7 @@ const FIXTURE_PATCHES: ControlState["families"] = FIXTURE_FAMILIES.map(
 
 export const FIXTURE: ControlState = {
   schemaVersion: 1,
+  revision: 1,
   application: { name: "Instrument Hub", version: "0.1.0" },
   armedSlot: 3,
   uptimeMs: 128_000,

@@ -53,13 +53,14 @@ export interface StateEndpoints {
   ): Promise<ControlPatchStateCapture>;
 }
 
-function isControlState(value: unknown): value is ControlState {
+export function isControlState(value: unknown): value is ControlState {
   if (value === null || typeof value !== "object") return false;
 
   const candidate = value as Partial<ControlState>;
 
   return (
     candidate.schemaVersion === 1 &&
+    typeof candidate.revision === "number" &&
     typeof candidate.application?.name === "string" &&
     typeof candidate.application?.version === "string" &&
     typeof candidate.armedSlot === "number" &&

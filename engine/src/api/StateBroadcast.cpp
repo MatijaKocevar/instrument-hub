@@ -24,6 +24,10 @@ const char* eventKindName (StateEventKind kind) noexcept
         case StateEventKind::transport:  return "transport";
         case StateEventKind::slot:       return "slot";
         case StateEventKind::patch:      return "patch";
+        case StateEventKind::warm:       return "warm";
+        case StateEventKind::device:     return "device";
+        case StateEventKind::midi:       return "midi";
+        case StateEventKind::pairing:    return "pairing";
     }
 
     return "state";
@@ -47,6 +51,18 @@ StateEventKind kindForChange (const char* kind) noexcept
 
     if (name == "patch")
         return StateEventKind::patch;
+
+    if (name == "warm")
+        return StateEventKind::warm;
+
+    if (name == "device")
+        return StateEventKind::device;
+
+    if (name == "midi")
+        return StateEventKind::midi;
+
+    if (name == "pairing")
+        return StateEventKind::pairing;
 
     return StateEventKind::slot;
 }
@@ -137,8 +153,11 @@ std::string StateBroadcast::buildFrameLocked (std::uint64_t sequence,
     auto frame = juce::var (new juce::DynamicObject());
     auto* root = frame.getDynamicObject();
 
+    const auto snapshot = state.snapshot();
+
     root->setProperty ("type", "state");
     root->setProperty ("sequence", static_cast<juce::int64> (sequence));
+    root->setProperty ("revision", static_cast<juce::int64> (snapshot.revision));
     root->setProperty ("timestampMs", timestampMs);
 
     auto event = juce::var (new juce::DynamicObject());
@@ -165,7 +184,7 @@ std::string StateBroadcast::buildFrameLocked (std::uint64_t sequence,
 
     root->setProperty ("pads", juce::var (padArray));
 
-    root->setProperty ("state", stateToVar (state.snapshot()));
+    root->setProperty ("state", stateToVar (snapshot));
 
     return toJson (frame);
 }

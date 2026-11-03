@@ -1,5 +1,7 @@
 #include "Session.h"
 
+#include <utility>
+
 namespace ihub
 {
 
@@ -48,6 +50,11 @@ SessionWarmState Session::getWarmState (int slot) const noexcept
 const char* Session::getWarmStateName (int slot) const noexcept
 {
     return toString (getWarmState (slot));
+}
+
+void Session::setSlotStateObserver (SlotStateObserver observer)
+{
+    warmPool.setSlotStateObserver (std::move (observer));
 }
 
 bool Session::waitForSlotWarm (int slot, int timeoutMs)

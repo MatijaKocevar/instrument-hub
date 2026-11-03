@@ -21,8 +21,6 @@ bool StateStore::updateSettings (const juce::var& patch, std::string& error)
         return false;
     }
 
-    ChangeHandler changed;
-
     {
         const std::lock_guard<std::mutex> lock (mutex);
         auto next = settings;
@@ -77,11 +75,9 @@ bool StateStore::updateSettings (const juce::var& patch, std::string& error)
         }
 
         settings = next;
-        changed = changeHandler;
     }
 
-    if (changed != nullptr)
-        changed ("settings", -1);
+    notifyChanged ("settings", -1);
 
     return true;
 }

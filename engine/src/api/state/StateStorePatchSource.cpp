@@ -33,7 +33,6 @@ bool StateStore::applyPatchSource (int slot,
 
     PatchSourceHandler applySource;
     PatchInstrumentState previous;
-    ChangeHandler changed;
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
@@ -90,11 +89,9 @@ bool StateStore::applyPatchSource (int slot,
 
         slotInstruments[static_cast<std::size_t> (slot)] = next;
         slotEditorOpen[static_cast<std::size_t> (slot)] = false;
-        changed = changeHandler;
     }
 
-    if (changed != nullptr)
-        changed ("patch", slot);
+    notifyChanged ("patch", slot);
 
     return true;
 }
@@ -116,7 +113,6 @@ bool StateStore::openPatchEditor (int slot, std::string& error)
     }
 
     PatchEditorHandler open;
-    ChangeHandler changed;
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
@@ -140,11 +136,9 @@ bool StateStore::openPatchEditor (int slot, std::string& error)
     {
         const std::lock_guard<std::mutex> lock (mutex);
         slotEditorOpen[static_cast<std::size_t> (slot)] = true;
-        changed = changeHandler;
     }
 
-    if (changed != nullptr)
-        changed ("patch", slot);
+    notifyChanged ("patch", slot);
 
     error.clear();
     return true;
@@ -159,7 +153,6 @@ bool StateStore::closePatchEditor (int slot, std::string& error)
     }
 
     PatchEditorHandler close;
-    ChangeHandler changed;
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
@@ -183,11 +176,9 @@ bool StateStore::closePatchEditor (int slot, std::string& error)
     {
         const std::lock_guard<std::mutex> lock (mutex);
         slotEditorOpen[static_cast<std::size_t> (slot)] = false;
-        changed = changeHandler;
     }
 
-    if (changed != nullptr)
-        changed ("patch", slot);
+    notifyChanged ("patch", slot);
 
     error.clear();
     return true;

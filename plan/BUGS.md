@@ -120,13 +120,13 @@ reported by the human or reproduced on this machine.
 - fix: pending; T199 makes the `.ihub` project the live set, T204 autosaves it
 
 ### BUG-010 · The grid's armed colour lags the Launchpad by up to two seconds
-- status: open
+- status: fixed
 - area: ui
 - steps: arm a patch from the Launchpad while looking at `/grid`
 - expected: the red cell follows the pad immediately
-- actual: the pad lights at once, the UI catches up on the next poll
-- evidence: `ui/src/state/options.ts:18` sets `pollIntervalMs: 2000`; state reaches the UI only through `PollLoop`, the WebSocket carries meters only
-- fix: pending; T198
+- actual: before the fix the pad lit at once and the UI caught up on the next 2 s poll
+- evidence: `/state` now carries a monotonic `revision`; `/events` frames carry it plus the full state, and the store applies any newer revision and ignores stale poll responses. `./build/tests/ihub-state-broadcast-test` -> `PASS: state broadcast acceptance (0 failure(s))`, with `the UI arm event arrived in 5.90 ms` and passing warm/device/pad revision checks; a real `instrument-hub --serve --api-port 18080` run with a Node WebSocket client measured `push armed=6 revision=1793669494497745 in 46.5 ms` and `poll armed=2 revision=1793669494497746 in 5.1 ms` after the socket closed; `cd ui && corepack pnpm test:snapshot` -> `ui-snapshot: all checks passed` including `the pushed state is applied without another GET /state`, `a stale frame cannot roll the store back`, `polling applies the external arm within three seconds`; `scripts/test.sh` -> 100% tests passed, 0 failed out of 68 (157.49 s)
+- fix: T198 adds `StateStore::getRevision()` and `notifyChanged()`, includes `revision` in `/state` and `/events`, publishes warm/device/midi/pairing changes, and wires the UI store to the existing `/events` socket via `StateTransport`/`parseStatePushFrame`. Polling and its backoff are unchanged and remain the fallback; Vite proxies the existing `/events` endpoint so the dev grid uses it too.
 
 ### BUG-009 · The patch palette starts with red, so a whole row is red
 - status: fixed

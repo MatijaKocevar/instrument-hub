@@ -1,4 +1,8 @@
 import type { TokenStorage } from "../features/pairing/model";
+import {
+  defaultStateSocketFactory,
+  type StateSocketFactory,
+} from "./stateSocket";
 
 export interface AppStoreOptions {
   pollIntervalMs?: number;
@@ -6,6 +10,7 @@ export interface AppStoreOptions {
   retryMaxMs?: number;
   now?: () => number;
   storage?: TokenStorage | null;
+  stateSocketFactory?: StateSocketFactory;
 }
 
 export type ResolvedAppStoreOptions = Required<
@@ -20,6 +25,7 @@ const DEFAULT_OPTIONS: ResolvedAppStoreOptions = {
   retryMaxMs: 5000,
   now: () => Date.now(),
   storage: typeof localStorage === "undefined" ? null : localStorage,
+  stateSocketFactory: defaultStateSocketFactory,
 };
 
 export function resolveAppStoreOptions(

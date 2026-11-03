@@ -28,6 +28,7 @@ using TransportProvider = std::function<TransportState()>;
 struct StateSnapshot
 {
     int schemaVersion = 1;
+    std::uint64_t revision = 0;
     std::string applicationName = "Instrument Hub";
     std::string applicationVersion = "0.1.0";
 

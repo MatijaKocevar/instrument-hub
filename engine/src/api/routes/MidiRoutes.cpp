@@ -87,6 +87,8 @@ void registerMidiRoutes (httplib::Server& server, const RouteContext& context)
             return;
         }
 
+        context.state.notifyChanged ("midi", -1);
+
         decorate (context, response);
         setJson (response, 200, midiStateToVar (readMidiState()));
     });
@@ -107,6 +109,8 @@ void registerMidiRoutes (httplib::Server& server, const RouteContext& context)
             setError (response, 409, error);
             return;
         }
+
+        context.state.notifyChanged ("midi", -1);
 
         decorate (context, response);
         setJson (response, 200, midiStateToVar (readMidiState()));

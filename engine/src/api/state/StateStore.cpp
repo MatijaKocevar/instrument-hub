@@ -10,6 +10,12 @@ StateStore::StateStore (int numSlotsToUse)
     : numSlots (juce::jmax (1, numSlotsToUse)),
       startedAt (std::chrono::steady_clock::now())
 {
+    revision.store (static_cast<std::uint64_t> (
+                        std::chrono::duration_cast<std::chrono::microseconds> (
+                            std::chrono::system_clock::now().time_since_epoch())
+                            .count()),
+                    std::memory_order_relaxed);
+
     slotNames.reserve (static_cast<std::size_t> (numSlots));
     slotFamilies.assign (static_cast<std::size_t> (numSlots), {});
     slotFamilyNames.assign (static_cast<std::size_t> (numSlots), {});
@@ -28,16 +34,66 @@ StateStore::StateStore (int numSlotsToUse)
     }
 }
 
+StateStore::~StateStore()
+{
+    {
+        const std::lock_guard<std::mutex> lock (lifetime->mutex);
+        lifetime->alive = false;
+    }
+
+    DetachHandler handler;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        handler = std::move (detachHandler);
+    }
+
+    if (handler != nullptr)
+    {
+        try
+        {
+            handler();
+        }
+        catch (...)
+        {
+        }
+    }
+}
+
 int StateStore::getArmedSlot() const noexcept
 {
     const std::lock_guard<std::mutex> lock (mutex);
     return armedSlot;
 }
 
+std::uint64_t StateStore::getRevision() const noexcept
+{
+    return revision.load (std::memory_order_acquire);
+}
+
+std::shared_ptr<StateStore::Lifetime> StateStore::getLifetime() const noexcept
+{
+    return lifetime;
+}
+
+void StateStore::notifyChanged (const char* kind, int slot)
+{
+    revision.fetch_add (1, std::memory_order_acq_rel);
+
+    ChangeHandler changed;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        changed = changeHandler;
+    }
+
+    if (changed != nullptr)
+        changed (kind, slot);
+}
+
 bool StateStore::setArmedSlot (int slot)
 {
     ArmHandler handler;
-    ChangeHandler changed;
     int appliedSlot = -1;
 
     {
@@ -49,14 +105,12 @@ bool StateStore::setArmedSlot (int slot)
         appliedSlot = slot < 0 ? -1 : slot;
         armedSlot = appliedSlot;
         handler = armHandler;
-        changed = changeHandler;
     }
 
     if (handler != nullptr)
         handler (appliedSlot);
 
-    if (changed != nullptr)
-        changed ("arm", appliedSlot);
+    notifyChanged ("arm", appliedSlot);
 
     return true;
 }
@@ -80,6 +134,12 @@ void StateStore::setChangeHandler (ChangeHandler handler)
     changeHandler = std::move (handler);
 }
 
+void StateStore::setDetachHandler (DetachHandler handler)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    detachHandler = std::move (handler);
+}
+
 int StateStore::getNumSlots() const noexcept
 {
     return numSlots;
@@ -87,8 +147,6 @@ int StateStore::getNumSlots() const noexcept
 
 void StateStore::setSlotName (int slot, std::string name)
 {
-    ChangeHandler changed;
-
     {
         const std::lock_guard<std::mutex> lock (mutex);
 
@@ -96,11 +154,9 @@ void StateStore::setSlotName (int slot, std::string name)
             return;
 
         slotNames[static_cast<std::size_t> (slot)] = std::move (name);
-        changed = changeHandler;
     }
 
-    if (changed != nullptr)
-        changed ("slot", slot);
+    notifyChanged ("slot", slot);
 }
 
 void StateStore::setSlotIdentity (int slot,
@@ -109,8 +165,6 @@ void StateStore::setSlotIdentity (int slot,
                                   std::string patch,
                                   std::string patchName)
 {
-    ChangeHandler changed;
-
     {
         const std::lock_guard<std::mutex> lock (mutex);
 
@@ -122,25 +176,19 @@ void StateStore::setSlotIdentity (int slot,
         slotFamilyNames[index] = std::move (familyName);
         slotPatches[index] = std::move (patch);
         slotPatchNames[index] = std::move (patchName);
-        changed = changeHandler;
     }
 
-    if (changed != nullptr)
-        changed ("slot", slot);
+    notifyChanged ("slot", slot);
 }
 
 void StateStore::setFamilyTree (std::vector<FamilyState> tree)
 {
-    ChangeHandler changed;
-
     {
         const std::lock_guard<std::mutex> lock (mutex);
         families = std::move (tree);
-        changed = changeHandler;
     }
 
-    if (changed != nullptr)
-        changed ("slot", -1);
+    notifyChanged ("slot", -1);
 }
 
 std::vector<FamilyState> StateStore::getFamilyTree() const
@@ -152,8 +200,6 @@ std::vector<FamilyState> StateStore::getFamilyTree() const
 
 void StateStore::setSlotLatency (int slot, int samples, double sampleRate)
 {
-    ChangeHandler changed;
-
     {
         const std::lock_guard<std::mutex> lock (mutex);
 
@@ -167,11 +213,9 @@ void StateStore::setSlotLatency (int slot, int samples, double sampleRate)
         slotLatencyMs[index] = sampleRate > 0.0
                                    ? static_cast<double> (clampedSamples) * 1000.0 / sampleRate
                                    : 0.0;
-        changed = changeHandler;
     }
 
-    if (changed != nullptr)
-        changed ("slot", slot);
+    notifyChanged ("slot", slot);
 }
 
 double StateStore::getUptimeMs() const noexcept

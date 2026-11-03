@@ -19,6 +19,7 @@ export default defineConfig({
       "/pairing": "http://127.0.0.1:8080",
       "/pair": "http://127.0.0.1:8080",
       "/meters": { target: "ws://127.0.0.1:8080", ws: true },
+      "/events": { target: "ws://127.0.0.1:8080", ws: true },
     },
   },
   build: {

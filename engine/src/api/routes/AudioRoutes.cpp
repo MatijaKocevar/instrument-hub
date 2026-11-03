@@ -177,6 +177,8 @@ void registerAudioRoutes (httplib::Server& server, const RouteContext& context)
             return;
         }
 
+        context.state.notifyChanged ("device", -1);
+
         decorate (context, response);
 
         const auto audio = context.audioProvider != nullptr

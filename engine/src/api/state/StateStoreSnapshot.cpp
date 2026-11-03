@@ -17,6 +17,7 @@ StateSnapshot StateStore::snapshot() const
     {
         const std::lock_guard<std::mutex> lock (mutex);
 
+        result.revision = revision.load (std::memory_order_acquire);
         result.armedSlot = armedSlot;
         result.settings = settings;
         result.transport = transport;

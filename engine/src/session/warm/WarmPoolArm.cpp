@@ -97,25 +97,36 @@ void WarmPoolController::replaceRequest (int slot,
 
 void WarmPoolController::warmCallback (int slot)
 {
-    const std::lock_guard<std::mutex> lock (armMutex);
+    SlotStateObserver observer;
 
-    if (warmPool == nullptr)
-        return;
-
-    auto* instance = warmPool->acquire (slot);
-
-    if (instance == nullptr)
-        return;
-
-    bindVoice (slot, instance);
-
-    if (pendingArmSlot.load (std::memory_order_relaxed) == slot)
     {
-        (void) finishArmLocked (slot, instance);
-        return;
+        const std::lock_guard<std::mutex> lock (armMutex);
+        observer = slotStateObserver;
+
+        if (warmPool != nullptr)
+        {
+            if (auto* instance = warmPool->acquire (slot); instance != nullptr)
+            {
+                bindVoice (slot, instance);
+
+                if (pendingArmSlot.load (std::memory_order_relaxed) == slot)
+                    (void) finishArmLocked (slot, instance);
+                else
+                    warmPool->release (slot);
+            }
+        }
     }
 
-    warmPool->release (slot);
+    if (observer != nullptr)
+    {
+        try
+        {
+            observer (slot);
+        }
+        catch (...)
+        {
+        }
+    }
 }
 
 bool WarmPoolController::finishArmLocked (int slot,

@@ -107,6 +107,12 @@ void WarmPoolController::configure (SourceFactory factory,
     });
 }
 
+void WarmPoolController::setSlotStateObserver (SlotStateObserver observer)
+{
+    const std::lock_guard<std::mutex> lock (armMutex);
+    slotStateObserver = std::move (observer);
+}
+
 void WarmPoolController::setFormat (double sampleRate, int maximumBlockSize)
 {
     if (warmPool != nullptr)

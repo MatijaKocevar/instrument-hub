@@ -10,8 +10,10 @@
 
 #include <juce_core/juce_core.h>
 
+#include <atomic>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -22,9 +24,22 @@ namespace Api
 class StateStore
 {
 public:
+    struct Lifetime
+    {
+        std::mutex mutex;
+        bool alive = true;
+    };
+
     explicit StateStore (int numSlots = 64);
+    ~StateStore();
 
     int getArmedSlot() const noexcept;
+
+    std::uint64_t getRevision() const noexcept;
+
+    std::shared_ptr<Lifetime> getLifetime() const noexcept;
+
+    void notifyChanged (const char* kind, int slot = -1);
 
     bool setArmedSlot (int slot);
 
@@ -47,6 +62,9 @@ public:
 
     using ChangeHandler = std::function<void (const char* kind, int slot)>;
     void setChangeHandler (ChangeHandler handler);
+
+    using DetachHandler = std::function<void()>;
+    void setDetachHandler (DetachHandler handler);
 
     int getNumSlots() const noexcept;
     void setSlotName (int slot, std::string name);
@@ -151,6 +169,7 @@ private:
     ArmHandler armHandler;
     TransportHandler transportHandler;
     ChangeHandler changeHandler;
+    DetachHandler detachHandler;
     PatchHandler patchHandler;
     PatchSourceHandler patchSourceHandler;
     PatchEditorHandler patchEditorHandler;
@@ -160,6 +179,9 @@ private:
     FxCommandHandler fxHandler;
     TransportProvider transportProvider;
     SlotRuntimeProvider slotRuntimeProvider;
+
+    std::atomic<std::uint64_t> revision { 0 };
+    std::shared_ptr<Lifetime> lifetime = std::make_shared<Lifetime>();
 
     const std::chrono::steady_clock::time_point startedAt;
 };

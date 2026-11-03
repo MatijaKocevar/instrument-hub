@@ -11,6 +11,7 @@ juce::var stateToVar (const StateSnapshot& state)
     auto* object = root.getDynamicObject();
 
     object->setProperty ("schemaVersion", state.schemaVersion);
+    object->setProperty ("revision", static_cast<juce::int64> (state.revision));
 
     auto application = Routes::makeObject();
     application.getDynamicObject()->setProperty ("name", juce::String (state.applicationName));
