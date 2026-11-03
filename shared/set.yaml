@@ -39,7 +39,6 @@ families:
         name: Grand Piano
         kind: empty
         slot: 0
-        colorIndex: 1
         volumeDb: -2.5
         pan: -0.15
         fx:

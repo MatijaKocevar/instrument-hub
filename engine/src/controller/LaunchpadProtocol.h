@@ -131,7 +131,7 @@ constexpr std::array<std::uint8_t, 3> padColourMessage (int padIndex,
 }
 
 inline constexpr std::array<std::uint8_t, 16> patchPaletteVelocities {
-    9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 56, 57, 3, 1
+    13, 21, 29, 37, 45, 49, 3, 1, 17, 25, 33, 41, 48, 8, 2, 12
 };
 
 constexpr bool patchPaletteAvoidsArmedRed() noexcept
