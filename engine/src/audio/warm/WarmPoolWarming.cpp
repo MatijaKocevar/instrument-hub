@@ -85,10 +85,10 @@ void WarmPool::release (int slotIndex)
         {
             retireLocked (slotIndex, true);
 
-            if (isProtectedLocked (slotIndex))
+            if (isRetainedLocked (slotIndex))
                 enqueueWarmLocked (slotIndex);
         }
-        else if (slot.instance != nullptr && ! isProtectedLocked (slotIndex))
+        else if (slot.instance != nullptr && ! isRetainedLocked (slotIndex))
         {
             pendingDestroy.push_back (std::move (slot.instance));
             ++evictionCount;
@@ -141,7 +141,7 @@ WarmPool::PreloadReport WarmPool::preloadAll()
         {
             const auto& slot = slots[static_cast<size_t> (index)];
 
-            if (slot.request.isValid() && ! isProtectedLocked (index))
+            if (slot.request.isValid() && ! isRetainedLocked (index))
                 ++report.deferred;
         }
     }
@@ -227,7 +227,7 @@ void WarmPool::setActiveLocked (int slotIndex)
         if (slot.instance == nullptr || slot.pins > 0)
             continue;
 
-        if (isProtectedLocked (index))
+        if (isRetainedLocked (index))
             continue;
 
         pendingDestroy.push_back (std::move (slot.instance));
@@ -235,7 +235,7 @@ void WarmPool::setActiveLocked (int slotIndex)
         ++evictionCount;
     }
 
-    for (const int index : protectedLocked())
+    for (const int index : retainedLocked())
         enqueueWarmLocked (index);
 }
 

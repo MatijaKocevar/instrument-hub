@@ -180,6 +180,7 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
 
     warmPool.setFormat (config.device.sampleRate, config.device.bufferSize);
     warmPool.setNumSlots (slotCount);
+    warmPool.setProtectedSlots (config.warmSlots);
 
     for (int index = 0; index < slotCount; ++index)
     {

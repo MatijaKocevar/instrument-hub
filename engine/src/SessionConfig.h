@@ -102,6 +102,8 @@ struct SessionConfig
 
     int neighbourCount = AudioEngine::WarmPool::defaultNeighbourCount;
 
+    std::vector<int> warmSlots;
+
     int loadDelayMilliseconds = 0;
 };
 

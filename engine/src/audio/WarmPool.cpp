@@ -62,6 +62,12 @@ std::vector<int> WarmPool::getProtectedSlots() const
     return protectedLocked();
 }
 
+int WarmPool::getProtectedCount() const
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    return static_cast<int> (protectedLocked().size());
+}
+
 std::vector<WarmPool::SlotInfo> WarmPool::describe() const
 {
     const std::lock_guard<std::mutex> lock (mutex);

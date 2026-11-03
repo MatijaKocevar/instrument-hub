@@ -99,7 +99,7 @@ bool WarmPool::evictOneLocked()
         if (slot.instance == nullptr || slot.pins > 0)
             continue;
 
-        if (isProtectedLocked (index))
+        if (isRetainedLocked (index))
             continue;
 
         if (slot.lastUsed < oldest)

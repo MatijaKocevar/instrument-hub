@@ -125,6 +125,22 @@ void WarmPoolController::setNumSlots (int slotCount)
         warmPool->setNumSlots (slotCount);
 }
 
+void WarmPoolController::setProtectedSlots (const std::vector<int>& slots)
+{
+    if (warmPool != nullptr)
+        warmPool->setProtectedSlots (slots);
+}
+
+std::vector<int> WarmPoolController::getProtectedSlots() const
+{
+    return warmPool != nullptr ? warmPool->getProtectedSlots() : std::vector<int>();
+}
+
+int WarmPoolController::getProtectedCount() const noexcept
+{
+    return warmPool != nullptr ? warmPool->getProtectedCount() : 0;
+}
+
 void WarmPoolController::setRequest (int slot, const juce::String& requestId)
 {
     if (warmPool == nullptr)
@@ -142,10 +158,12 @@ void WarmPoolController::setActiveSlot (int slot)
         warmPool->setActiveSlot (slot);
 }
 
-void WarmPoolController::preloadAll()
+AudioEngine::WarmPool::PreloadReport WarmPoolController::preloadAll()
 {
     if (warmPool != nullptr)
-        (void) warmPool->preloadAll();
+        return warmPool->preloadAll();
+
+    return {};
 }
 
 void WarmPoolController::shutdown() noexcept
@@ -216,6 +234,16 @@ int WarmPoolController::getLiveInstrumentCount() const noexcept
 int WarmPoolController::getPeakInstrumentCount() const noexcept
 {
     return warmPool != nullptr ? warmPool->getPeakLiveInstanceCount() : 0;
+}
+
+std::uint64_t WarmPoolController::getWarmCount() const noexcept
+{
+    return warmPool != nullptr ? warmPool->getWarmCount() : 0;
+}
+
+std::uint64_t WarmPoolController::getEvictionCount() const noexcept
+{
+    return warmPool != nullptr ? warmPool->getEvictionCount() : 0;
 }
 
 int WarmPoolController::getNeighbourCount() const noexcept

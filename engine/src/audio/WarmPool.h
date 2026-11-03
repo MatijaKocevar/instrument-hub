@@ -57,6 +57,7 @@ public:
     using WarmCallback = std::function<void (int slot)>;
 
     static constexpr int defaultNeighbourCount = 2;
+    static constexpr int maximumWarmInstances = 16;
 
     explicit WarmPool (int neighbourCount = defaultNeighbourCount);
 
@@ -70,6 +71,10 @@ public:
 
     void setNeighbourCount (int count);
     int getNeighbourCount() const;
+
+    void setProtectedSlots (std::vector<int> slots);
+    std::vector<int> getProtectedSlots() const;
+    int getProtectedCount() const;
 
     void setNumSlots (int count);
     int getNumSlots() const;
@@ -106,8 +111,6 @@ public:
 
     std::uint64_t getEvictionCount() const;
 
-    std::vector<int> getProtectedSlots() const;
-
     std::vector<SlotInfo> describe() const;
 
     bool isIdle() const;
@@ -138,7 +141,9 @@ private:
     bool isValidSlotLocked (int slot) const noexcept { return slot >= 0 && slot < numSlots; }
 
     std::vector<int> protectedLocked() const;
+    std::vector<int> retainedLocked() const;
     bool isProtectedLocked (int slot) const;
+    bool isRetainedLocked (int slot) const;
     int limitLocked() const;
     int liveCountLocked() const;
     bool isIdleLocked() const;
@@ -181,6 +186,7 @@ private:
     int numSlots = 0;
     int neighbourCount = defaultNeighbourCount;
     int activeSlot = -1;
+    std::vector<int> explicitProtectedSlots;
 
     bool warming = false;
     bool retryDeferred = false;

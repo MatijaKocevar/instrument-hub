@@ -3,6 +3,7 @@
 #include "audio/WarmPool.h"
 
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -49,9 +50,12 @@ public:
 
     void setFormat (double sampleRate, int maximumBlockSize);
     void setNumSlots (int slotCount);
+    void setProtectedSlots (const std::vector<int>& slots);
+    std::vector<int> getProtectedSlots() const;
+    int getProtectedCount() const noexcept;
     void setRequest (int slot, const juce::String& requestId);
     void setActiveSlot (int slot);
-    void preloadAll();
+    AudioEngine::WarmPool::PreloadReport preloadAll();
 
     void shutdown() noexcept;
 
@@ -77,6 +81,8 @@ public:
     int getInstanceLimit() const noexcept;
     int getLiveInstrumentCount() const noexcept;
     int getPeakInstrumentCount() const noexcept;
+    std::uint64_t getWarmCount() const noexcept;
+    std::uint64_t getEvictionCount() const noexcept;
     int getNeighbourCount() const noexcept;
     void setNeighbourCount (int count);
 

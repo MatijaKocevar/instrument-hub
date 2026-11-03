@@ -198,6 +198,14 @@ public:
     int getWarmInstanceLimit() const noexcept;
     int getLiveInstrumentCount() const noexcept;
 
+    int getWarmProtectedCount() const noexcept;
+    std::vector<int> getWarmProtectedSlots() const;
+    std::uint64_t getWarmCreationCount() const noexcept;
+    std::uint64_t getWarmEvictionCount() const noexcept;
+
+    AudioEngine::WarmPool::PreloadReport preloadAll();
+    bool waitForWarmIdle (int timeoutMs = 10000);
+
     int getPeakInstrumentCount() const noexcept;
 
     bool isSlotWarm (int slot) const noexcept;
