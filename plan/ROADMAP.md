@@ -1135,3 +1135,71 @@ LED capture for the controller) and records the verbatim evidence in
 - accept: with no JACK server `GET /audio` still lists only ALSA cards and `ihub-device-manager-test` passes; with a running server each JACK client appears as a card and `POST /audio` opens it; `scripts/test.sh` passes.
 - note: verified 2026-11-03 through PipeWire's JACK server (B012 resolved): the app lists 11 JACK cards and opens `Steinberg UR22mkII  Pro` at 48 kHz / 128 frames / 6.67 ms with no new xruns.
 
+## Track performance grid (human-requested, 2026-11-03)
+
+The 8x8 grid becomes eight prepared performance tracks, one per column. Each
+track owns one instrument, an arbitrary FX chain with two inserts marked as
+"hot", and a stepped volume. All eight track instruments are loaded at project
+open; pressing a track button switches instantly because nothing loads during
+performance. Only the selected track is audible. Existing 64-patch projects
+keep the legacy family grid; new projects use the track layout.
+
+Rows, bottom to top: 0-4 volume steps (0 / 25 / 50 / 75 / 100%, pressing 100%
+again goes to +6 dB "over"), 5-6 hot FX toggles, 7 track selector.
+
+## T300 · Explicit eight-track warm set
+- depends: none
+- size: M
+- goal: Replace the active-plus-neighbour warm policy with an explicit protected slot list. Add a warm-slot list to `SessionConfig` and `WarmPool::setProtectedSlots`; `preloadAll` warms every protected slot, eviction never picks one, and the live limit is at least the protected count with a hard cap of 16. A session with an empty list keeps the current neighbour policy, so legacy 64-patch projects behave as before. Expose protected and live counts for diagnostics and tests.
+- files: `engine/src/audio/WarmPool.h`, `engine/src/audio/warm/`, `engine/src/SessionConfig.h`, `engine/src/session/WarmPoolController.*`, `engine/src/session/SessionBuild.cpp`, `tests/session_warm/`
+- accept: with 8 protected slots `preloadAll` reports all 8 warm; arming each slot reports `active` and never `warming`; 100 switches create no new instances and no evictions; the legacy neighbour test is unchanged; `scripts/test.sh` passes.
+
+## T301 · Track layout v2 in the mapping
+- depends: none
+- size: M
+- goal: Accept `schemaVersion: 2` with `layout: tracks`. Add a `tracks` list of eight entries (`id`, `name`, `slot` 0-7, optional `hotFx` with up to two insert ids) and pad roles: `track` (row 7 selects a track), `fx` with `hot: 0|1` (rows 6/5), and `volume` with `step: 0..4` (rows 4..0). When `layout` is `tracks`, families may be empty/omitted and macros/encoders may be empty. Version 1 documents must parse exactly as today with the family/patch grid.
+- files: `engine/src/controller/Mapping.h`, `engine/src/controller/MappingYaml.*`, `engine/src/controller/mapping/`, `shared/schema/`, `tests/controller/`
+- accept: a tracks template parses into 8 tracks, 8 `track` roles, 16 `fx` roles and 40 `volume` roles; `shared/set.yaml` still parses with identical pad bindings; malformed roles and duplicate tracks fail with line numbers; mapping tests pass.
+
+## T302 · Build the eight-track session and blank template
+- depends: T301
+- size: M
+- goal: Add `shared/tracks-set.yaml` as the blank template for new projects: eight empty tracks on slots 0-7, no instruments or FX, the track-layout pad roles, and the stepped volume. New projects import it; the session builds exactly eight track slots, sets the warm list to 0-7, and reports the track layout. Existing v1 projects still build the 64-slot family session with the neighbour warm policy.
+- files: `shared/tracks-set.yaml`, `engine/src/app/project/`, `engine/src/app/SessionSetup.cpp`, `engine/src/session/SessionBuild.cpp`, `tests/project/`, `tests/api/project/`
+- accept: a fresh project has 8 tracks in `GET /state` and 8 warm slots; the Starter Set still opens as a 64-patch legacy project; `ihub-project`, `ihub-project-lifecycle-api` and `scripts/test.sh` pass.
+
+## T303 · Track state and commands over the API
+- depends: T302
+- size: M
+- goal: Extend `GET /state` with the layout and eight track entries: selected flag, instrument, volume step, and the two hot FX entries with name and bypass state. Add `POST /tracks/{index}/select`, `POST /tracks/{index}/fx/{hot}/toggle` and `POST /tracks/{index}/volume` with `step: 0..5` (step 4 is 0 dB, step 5 is +6 dB). Broadcast a `track` state event over the existing WebSocket. Update the OpenAPI contract and regenerate the UI schema.
+- files: `engine/src/api/`, `engine/src/api/state/`, `shared/api/openapi.yaml`, `ui/src/api/schema.d.ts`, `tests/api/`
+- accept: state lists 8 tracks; select arms only that slot; the FX command toggles the chosen insert; volume steps map to the documented gains and persist across a `GET`; WebSocket clients receive the change; v1 legacy state is unchanged; API tests pass.
+
+## T304 · Route Launchpad track pads
+- depends: T303
+- size: M
+- goal: Decode the v2 pad roles and route presses by role: track pads arm their slot, fx pads toggle their hot insert, volume pads set their step. Pressing the pad for the current 100% step toggles the over step (+6 dB) and back. LED policy: the armed track pad is red, other track pads keep their instrument colour, fx pads show enabled/disabled, volume pads light the active step, over is a bright non-red colour, and unassigned hot pads are dark. No long-press behaviours.
+- files: `engine/src/controller/`, `engine/src/controller/launchpad/`, `engine/src/app/ControllerSurface.cpp`, `tests/controller/`, `tests/e2e/`
+- accept: a virtual-Launchpad capture arms the pressed track, toggles the correct insert, sets the requested gain, and applies over only on a repeated 100% press; exactly one red track LED; controller tests pass.
+
+## T305 · Track grid UI and hot-FX setup
+- depends: T303
+- size: L
+- goal: Render the track layout as eight columns: row 7 track/instrument selector, rows 6/5 hot FX toggles with names and states, rows 4-0 volume steps with the over state. The Instrument page lets the selected track choose its instrument and mark up to two inserts as hot FX 1/2; the grid follows. Legacy projects keep the existing family grid.
+- files: `ui/src/features/grid/`, `ui/src/features/instrument/`, `ui/src/testing/`
+- accept: the grid shows 8 tracks with the correct rows; clicking arms, toggles and sets volume through the API; the hot assignment updates the grid labels; legacy grid still renders; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
+
+## T306 · Persist the track setup
+- depends: T302, T303
+- size: M
+- goal: Persist each track's instrument, full FX chain, hot-FX choice and volume step through the project autosave, and restore them on restart. The hot-FX list belongs to the track layout; instrument, FX and gain belong to the slot. A failed or read-only save keeps the previous project intact.
+- files: `engine/src/app/project/`, `engine/src/project/`, `engine/src/api/state/StateStorePatches.cpp`, `tests/project/`, `tests/api/`
+- accept: set up eight tracks with distinct instruments, FX and volumes, restart, and all values return; a failed write leaves the previous `.ihub` byte-identical; v1 projects are unchanged; `ihub-project` passes.
+
+## T307 · Track-grid end-to-end and docs
+- depends: T300, T301, T302, T303, T304, T305, T306
+- size: M
+- goal: Prove the performance path: new track project, eight instruments loaded, switch through all eight with no `warming`, toggle hot FX and change volume from pads and API, capture LEDs, and measure memory with eight warm instances. Update `docs/architecture.md` and `docs/launchpad-mini-mk3.md` with the layout, row roles and LED policy.
+- files: `tests/e2e/`, `docs/architecture.md`, `docs/launchpad-mini-mk3.md`
+- accept: the e2e run switches all eight tracks with zero load events, applies FX and volume actions, and records the LED stream; no xruns; peak RSS with eight warm TestPlugin instances is recorded in the result; docs match the implementation; `scripts/test.sh` passes.
+
