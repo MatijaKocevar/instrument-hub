@@ -2,6 +2,7 @@
 #include "mapping/Document.h"
 #include "mapping/Fixtures.h"
 #include "mapping/HotReload.h"
+#include "mapping/Tracks.h"
 #include "mapping/Validation.h"
 
 #include <juce_events/juce_events.h>
@@ -21,6 +22,7 @@ int main()
 
     MappingTest::runDocumentChecks();
     MappingTest::runValidationChecks();
+    MappingTest::runTrackChecks();
     MappingTest::runHotReloadChecks();
 
     std::cout << (ControllerTest::failures == 0 ? "\nPASS" : "\nFAIL")

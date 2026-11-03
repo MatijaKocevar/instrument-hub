@@ -48,6 +48,29 @@ const SceneSpec* SetMapping::sceneBinding (int scene) const noexcept
     return entry.has_value() ? &*entry : nullptr;
 }
 
+const TrackSpec* SetMapping::trackAtSlot (int slot) const noexcept
+{
+    for (const auto& track : tracks)
+        if (track.slot == slot)
+            return &track;
+
+    return nullptr;
+}
+
+const TrackSpec* SetMapping::trackForId (std::string_view id) const noexcept
+{
+    for (const auto& track : tracks)
+        if (track.id == id)
+            return &track;
+
+    return nullptr;
+}
+
+const TrackSpec* SetMapping::trackFor (const PadBinding& binding) const noexcept
+{
+    return binding.track.empty() ? nullptr : trackForId (binding.track);
+}
+
 const InstrumentSpec* SetMapping::instrumentFor (const PadBinding& binding) const noexcept
 {
     const auto family = families.find (binding.family);
@@ -131,6 +154,11 @@ int SetMapping::countScenes() const noexcept
             ++count;
 
     return count;
+}
+
+int SetMapping::countTracks() const noexcept
+{
+    return static_cast<int> (tracks.size());
 }
 
 std::vector<const InstrumentSpec*> SetMapping::allInstruments() const

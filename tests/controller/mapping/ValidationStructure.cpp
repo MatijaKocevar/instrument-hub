@@ -14,7 +14,7 @@ void runStructureChecks()
 
     if (schemaPosition != std::string::npos)
         futureSchemaYaml.replace (schemaPosition, std::string ("schemaVersion: 1").size(),
-                                  "schemaVersion: 2");
+                                  "schemaVersion: 3");
 
     expectInvalid ("a future schemaVersion", futureSchemaYaml, "unsupported schemaVersion");
 

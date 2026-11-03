@@ -11,15 +11,26 @@ namespace Controller::MappingDetail
 bool decodeFamilies (const YamlValue& root, SetMapping& out, MappingError& error)
 {
     const auto* families = root.find ("families");
+    const bool trackLayout = out.layout == MappingLayout::tracks;
 
-    if (families == nullptr)
+    if (families == nullptr || (trackLayout && families->kind == YamlKind::nullValue))
+    {
+        if (trackLayout)
+            return true;
+
         return fail (error, root, "families is required");
+    }
 
     if (families->kind != YamlKind::mapping)
         return fail (error, *families, "families must be a mapping of family ids");
 
     if (families->mapping.empty())
+    {
+        if (trackLayout)
+            return true;
+
         return fail (error, *families, "families must not be empty");
+    }
 
     for (const auto& [familyId, familyValue] : families->mapping)
     {

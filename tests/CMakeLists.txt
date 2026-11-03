@@ -95,6 +95,7 @@ set(IHUB_MAPPING_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingPadEvents.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingReload.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingScenes.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingTracks.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingWatcher.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/YamlParser.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/YamlScalar.cpp"
@@ -2087,6 +2088,10 @@ target_sources(ihub-mapping-test
         controller/mapping/Fixtures.cpp
         controller/mapping/HotReload.cpp
         controller/mapping/Render.cpp
+        controller/mapping/TrackDocument.cpp
+        controller/mapping/TrackFixtures.cpp
+        controller/mapping/TrackValidation.cpp
+        controller/mapping/Tracks.cpp
         controller/mapping/Validation.cpp
         controller/mapping/ValidationStructure.cpp
         controller/mapping/ValidationSupport.cpp
