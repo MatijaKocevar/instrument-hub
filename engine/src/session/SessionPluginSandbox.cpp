@@ -64,6 +64,12 @@ void Session::unregisterSandboxSlot (plugins::SandboxHost& host)
         || ! sameIdentity (current, removed.identity))
         return;
 
+    if (pluginState.getInstrument (removed.slot) != nullptr)
+    {
+        (void) capturePluginState (removed.slot);
+        return;
+    }
+
     const auto state = host.getStateInformation();
 
     if (state.getSize() > 0)

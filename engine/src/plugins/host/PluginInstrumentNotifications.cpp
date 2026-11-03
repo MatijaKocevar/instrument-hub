@@ -19,10 +19,10 @@ public:
     }
 
     void audioProcessorParameterChanged (juce::AudioProcessor*,
-                                         int,
-                                         float) override
+                                         int parameterIndex,
+                                         float newValue) override
     {
-        owner.notifyStateChanged();
+        owner.notifyParameterChanged (parameterIndex, newValue);
     }
 
 private:
@@ -49,6 +49,7 @@ void PluginInstrument::unload()
         plugin->removeListener (stateChangeForwarder.get());
 
     stateChangeForwarder.reset();
+    parameterChangedCallback = nullptr;
     stateChangedCallback = nullptr;
 
     plugin.reset();
@@ -58,11 +59,24 @@ void PluginInstrument::unload()
     midiScratch.clear();
 }
 
+void PluginInstrument::setParameterChangedCallback (ParameterChangedCallback callback)
+{
+    parameterChangedCallback = std::move (callback);
+    refreshListener();
+}
+
 void PluginInstrument::setStateChangedCallback (std::function<void()> callback)
 {
     stateChangedCallback = std::move (callback);
+    refreshListener();
+}
 
-    if (stateChangedCallback == nullptr)
+void PluginInstrument::refreshListener()
+{
+    const bool wantsListener = parameterChangedCallback != nullptr
+                            || stateChangedCallback != nullptr;
+
+    if (! wantsListener)
     {
         if (stateChangeForwarder != nullptr && plugin != nullptr)
             plugin->removeListener (stateChangeForwarder.get());
@@ -78,8 +92,26 @@ void PluginInstrument::setStateChangedCallback (std::function<void()> callback)
     }
 }
 
+void PluginInstrument::notifyParameterChanged (int parameterIndex,
+                                               float normalisedValue)
+{
+    if (suppressNotifications.load (std::memory_order_acquire)
+        || parameterChangedCallback == nullptr)
+        return;
+
+    const auto id = getParameterId (parameterIndex);
+
+    if (id.isEmpty())
+        return;
+
+    parameterChangedCallback (id, juce::jlimit (0.0f, 1.0f, normalisedValue));
+}
+
 void PluginInstrument::notifyStateChanged()
 {
+    if (suppressNotifications.load (std::memory_order_acquire))
+        return;
+
     if (stateChangedCallback != nullptr)
         stateChangedCallback();
 }

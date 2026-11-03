@@ -24,6 +24,7 @@ inline constexpr int maximumChannels = 2;
 inline constexpr int maximumMidiEvents = 256;
 inline constexpr int errorTextSize = 256;
 inline constexpr int statePathSize = 512;
+inline constexpr int maximumParameterBatch = 100000;
 
 enum class ProcessState : std::int32_t
 {
@@ -38,7 +39,8 @@ enum class ControlCommand : std::int32_t
 {
     none = 0,
     applyState = 1,
-    captureState = 2
+    captureState = 2,
+    applyParameters = 3
 };
 
 enum class ControlStatus : std::int32_t

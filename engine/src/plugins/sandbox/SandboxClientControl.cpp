@@ -46,6 +46,49 @@ void applyState (sandbox::SharedMemory& shared, PluginInstrument* plugin)
                           : sandbox::ControlStatus::failed);
 }
 
+void applyParameters (sandbox::SharedMemory& shared, PluginInstrument* plugin)
+{
+    const auto path = stateFileFor (shared);
+
+    juce::MemoryBlock data;
+
+    if (plugin == nullptr || ! path.existsAsFile() || ! path.loadFileAsData (data))
+    {
+        setControlStatus (shared, sandbox::ControlStatus::failed);
+        return;
+    }
+
+    juce::MemoryInputStream stream (data, false);
+    const auto count = stream.readInt();
+
+    if (count <= 0 || count > sandbox::maximumParameterBatch)
+    {
+        setControlStatus (shared, sandbox::ControlStatus::failed);
+        return;
+    }
+
+    for (int index = 0; index < count; ++index)
+    {
+        const auto id = stream.readString();
+
+        if (id.isEmpty() || stream.getNumBytesRemaining() < static_cast<juce::int64> (sizeof (float)))
+        {
+            setControlStatus (shared, sandbox::ControlStatus::failed);
+            return;
+        }
+
+        const auto value = stream.readFloat();
+
+        if (! plugin->setParameterValue (id, value))
+        {
+            setControlStatus (shared, sandbox::ControlStatus::failed);
+            return;
+        }
+    }
+
+    setControlStatus (shared, sandbox::ControlStatus::done);
+}
+
 void captureState (sandbox::SharedMemory& shared, PluginInstrument* plugin)
 {
     if (plugin == nullptr)
@@ -91,6 +134,10 @@ void handleControl (sandbox::SharedMemory& shared,
 
         case sandbox::ControlCommand::captureState:
             captureState (shared, plugin);
+            return;
+
+        case sandbox::ControlCommand::applyParameters:
+            applyParameters (shared, plugin);
             return;
 
         case sandbox::ControlCommand::none:

@@ -1,4 +1,5 @@
 #include "Session.h"
+#include "editor_follow/EditorAudioScenario.h"
 #include "plugins/PluginInstrument.h"
 #include "plugins/PluginWindow.h"
 
@@ -158,6 +159,13 @@ int main()
         check (session.isEditorOpen (kSlotA), "the armed patch's editor is tracked");
         check (ihub::plugins::PluginWindow::getOpenWindowCount() == 1,
                "exactly one native window is open");
+
+        EditorAudioScenario::run (session,
+                                  kSlotA,
+                                  [] (bool condition, const std::string& what)
+                                  {
+                                      check (condition, what);
+                                  });
 
         if (! waitForWarm (session, kSlotB, 15000))
         {

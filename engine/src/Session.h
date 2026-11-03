@@ -39,6 +39,7 @@ class SandboxHost;
 namespace ihub::session
 {
 class EditorHost;
+class MirrorSync;
 }
 
 namespace ihub
@@ -257,7 +258,9 @@ private:
     bool ensurePluginMirrorNow (int slot, std::string& error);
     void releasePluginMirror (int slot);
     void releaseAllPluginMirrors();
-    void syncPluginMirrorToSandbox (int slot);
+    void syncMirrorParameter (int slot, const juce::String& id, float normalisedValue);
+    void syncMirrorState (int slot);
+    juce::MemoryBlock copyMirrorState (int slot) const;
     void cancelPendingLoads();
 
     void registerSandboxSlot (int slot,
@@ -284,6 +287,7 @@ private:
     mutable std::mutex sourceAssignedMutex;
 
     std::unique_ptr<session::EditorHost> editorHost;
+    std::unique_ptr<session::MirrorSync> mirrorSync;
 
     session::PluginStateStore pluginState { defaultLogicalSlots };
 
@@ -298,7 +302,7 @@ private:
     std::vector<SandboxSlot> sandboxSlots;
 
     mutable std::mutex mirrorMutex;
-    std::vector<std::unique_ptr<plugins::PluginInstrument>> pluginMirrors;
+    std::vector<std::shared_ptr<plugins::PluginInstrument>> pluginMirrors;
 
     mutable std::mutex slotErrorMutex;
     std::vector<juce::String> slotErrors;

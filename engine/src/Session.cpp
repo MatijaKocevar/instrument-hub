@@ -2,6 +2,7 @@
 
 #include "plugins/PluginInstrument.h"
 #include "session/EditorHost.h"
+#include "session/MirrorSync.h"
 
 #include <cmath>
 
@@ -79,6 +80,14 @@ Session::Session()
         [this] (int slot)
         {
             (void) capturePluginState (slot);
+            syncMirrorState (slot);
+        });
+
+    mirrorSync = std::make_unique<session::MirrorSync> (
+        defaultLogicalSlots,
+        [this] (int slot)
+        {
+            return sandboxForSlot (slot);
         });
 }
 
@@ -90,6 +99,9 @@ Session::~Session()
     if (editorHost != nullptr)
         editorHost->closeAll();
 
+    if (mirrorSync != nullptr)
+        mirrorSync->shutdown();
+
     releaseAllPluginMirrors();
     warmPool.shutdown();
     switcher.reset();
@@ -97,6 +109,7 @@ Session::~Session()
     fxChain.reset();
     warmPool.clearVoices();
     pluginFormats.reset();
+    mirrorSync.reset();
     editorHost.reset();
 }
 

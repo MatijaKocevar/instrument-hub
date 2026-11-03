@@ -4,6 +4,7 @@
 #include "plugins/PluginInstrument.h"
 #include "plugins/SandboxHost.h"
 #include "session/EditorHost.h"
+#include "session/MirrorSync.h"
 #include "session/SlotSources.h"
 
 #if defined (JUCE_MODULE_AVAILABLE_juce_gui_basics) && JUCE_MODULE_AVAILABLE_juce_gui_basics
@@ -30,6 +31,9 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
 
     if (editorHost != nullptr)
         editorHost->closeAll();
+
+    if (mirrorSync != nullptr)
+        mirrorSync->clear();
 
     releaseAllPluginMirrors();
 

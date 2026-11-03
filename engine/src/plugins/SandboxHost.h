@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace ihub::plugins
 {
@@ -66,6 +67,14 @@ public:
     bool setStateInformation (const void* data, int numBytes);
     bool setStateInformation (const juce::MemoryBlock& block);
     juce::MemoryBlock getStateInformation();
+
+    struct ParameterEdit
+    {
+        juce::String id;
+        float normalisedValue = 0.0f;
+    };
+
+    bool setParameters (const std::vector<ParameterEdit>& edits);
 
     int getChildProcessId() const noexcept;
 

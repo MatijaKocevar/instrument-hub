@@ -243,6 +243,7 @@ target_sources(instrument-hub
         src/plugins/window/PluginWindowEditor.cpp
         src/plugins/SandboxHost.cpp
         src/plugins/sandbox/SandboxHostMidi.cpp
+        src/plugins/sandbox/SandboxHostParameters.cpp
         src/plugins/sandbox/SandboxHostProcess.cpp
         src/plugins/sandbox/SandboxHostState.cpp
         src/plugins/sandbox/SandboxHostStatus.cpp
@@ -267,6 +268,7 @@ target_sources(instrument-hub
         src/session/FxChainController.cpp
         src/session/MeterBridge.cpp
         src/session/MidiBridge.cpp
+        src/session/MirrorSync.cpp
         src/session/PluginStateFile.cpp
         src/session/PluginStateStore.cpp
         src/session/PluginStateStoreData.cpp
