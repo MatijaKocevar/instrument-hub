@@ -12,6 +12,7 @@ int main()
     SettingsTest::runUnknownKeyChecks();
     SettingsTest::runAtomicReplaceChecks();
     SettingsTest::runNewerVersionChecks();
+    SettingsTest::runMidiInputNameChecks();
 
     std::cout << (SettingsTest::failures == 0 ? "\nPASS" : "\nFAIL")
               << ": ihub-settings-store ("

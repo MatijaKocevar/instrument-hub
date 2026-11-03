@@ -16,6 +16,16 @@ std::string toStd (const juce::String& value)
     return value.toStdString();
 }
 
+MidiInputState stateFor (const MidiInputDevice& device)
+{
+    MidiInputState state;
+    state.id = device.id;
+    state.name = device.name;
+    state.role = MidiBridge::roleForName (juce::String (device.name));
+    state.port = MidiBridge::portForName (juce::String (device.name));
+    return state;
+}
+
 bool containsIgnoringCase (const juce::String& name, const char* fragment)
 {
     return name.toLowerCase().contains (fragment);
@@ -37,7 +47,15 @@ std::string lastToken (const juce::String& name)
 }
 }
 
-MidiBridge::MidiBridge() = default;
+MidiBridge::MidiBridge()
+{
+    inputBackend = makeJuceMidiInputBackend (*this);
+}
+
+MidiBridge::MidiBridge (std::unique_ptr<MidiInputBackend> backend)
+    : inputBackend (std::move (backend))
+{
+}
 
 MidiBridge::~MidiBridge()
 {
@@ -89,6 +107,37 @@ void MidiBridge::setRestoreHandler (RestoreHandler handler)
     restoreHandler = std::move (handler);
 }
 
+std::vector<MidiInputDevice> MidiBridge::listDevices() const
+{
+    if (inputBackend == nullptr)
+        return {};
+
+    return inputBackend->list();
+}
+
+bool MidiBridge::openInput (const MidiInputDevice& device, std::string& error)
+{
+    if (inputBackend == nullptr)
+    {
+        error = "the MIDI input backend is not available";
+        return false;
+    }
+
+    auto input = inputBackend->open (device.id);
+
+    if (input == nullptr)
+    {
+        error = "cannot open MIDI input '" + device.name + "'";
+        return false;
+    }
+
+    input->start();
+
+    const std::lock_guard<std::mutex> lock (monitorMutex);
+    monitors[device.id].input = std::move (input);
+    return true;
+}
+
 std::string MidiBridge::roleForName (const juce::String& name)
 {
     if (Controller::LaunchpadDriver::isLaunchpadName (name))
@@ -120,26 +169,20 @@ std::vector<MidiInputState> MidiBridge::enumerateInputs()
 {
     std::vector<MidiInputState> inputs;
 
-    for (const auto& device : juce::MidiInput::getAvailableDevices())
-    {
-        MidiInputState state;
-        state.id = toStd (device.identifier);
-        state.name = toStd (device.name);
-        state.role = roleForName (device.name);
-        state.port = portForName (device.name);
-
-        state.enabled = false;
-        state.open = false;
-        inputs.push_back (std::move (state));
-    }
+    for (const auto& device : listJuceMidiInputDevices())
+        inputs.push_back (stateFor (device));
 
     return inputs;
 }
 
 MidiStateSnapshot MidiBridge::snapshot()
 {
+    restoreStoredInputs();
+
     MidiStateSnapshot state;
-    state.inputs = enumerateInputs();
+
+    for (const auto& device : listDevices())
+        state.inputs.push_back (stateFor (device));
 
     auto* driver = launchpad.load (std::memory_order_acquire);
 
@@ -222,9 +265,9 @@ MidiStateSnapshot MidiBridge::snapshot()
 
 bool MidiBridge::setInputEnabled (const std::string& id, bool enabled, std::string& error)
 {
-    const auto inputs = enumerateInputs();
+    const auto inputs = listDevices();
     const auto device = std::find_if (inputs.begin(), inputs.end(),
-                                      [&id] (const MidiInputState& input)
+                                      [&id] (const MidiInputDevice& input)
                                       {
                                           return input.id == id;
                                       });
@@ -235,7 +278,9 @@ bool MidiBridge::setInputEnabled (const std::string& id, bool enabled, std::stri
         return false;
     }
 
-    if (device->role == "launchpad")
+    const auto state = stateFor (*device);
+
+    if (state.role == "launchpad")
     {
         auto* driver = launchpad.load (std::memory_order_acquire);
 
@@ -245,7 +290,7 @@ bool MidiBridge::setInputEnabled (const std::string& id, bool enabled, std::stri
             return false;
         }
 
-        if (device->port == "DA")
+        if (state.port == "DA")
         {
             error = "the Launchpad grid uses the MI port; the DA port carries no pads or LEDs";
             return false;
@@ -281,41 +326,36 @@ bool MidiBridge::setInputEnabled (const std::string& id, bool enabled, std::stri
             const auto existing = monitors.find (id);
 
             if (existing != monitors.end() && existing->second.input != nullptr)
+            {
+                rememberInput (*device);
                 return true;
+            }
         }
 
-        auto input = juce::MidiInput::openDevice (juce::String (id), this);
-
-        if (input == nullptr)
-        {
-            error = "cannot open MIDI input '" + device->name + "'";
+        if (! openInput (*device, error))
             return false;
-        }
 
-        input->start();
-
-        const std::lock_guard<std::mutex> lock (monitorMutex);
-        auto& monitor = monitors[id];
-        monitor.input = std::move (input);
+        rememberInput (*device);
         return true;
     }
 
-    std::unique_ptr<juce::MidiInput> closing;
+    std::unique_ptr<MidiInputHandle> closing;
 
     {
         const std::lock_guard<std::mutex> lock (monitorMutex);
         const auto existing = monitors.find (id);
 
-        if (existing == monitors.end())
-            return true;
-
-        closing = std::move (existing->second.input);
-        monitors.erase (existing);
+        if (existing != monitors.end())
+        {
+            closing = std::move (existing->second.input);
+            monitors.erase (existing);
+        }
     }
 
     if (closing != nullptr)
         closing->stop();
 
+    forgetInput (*device);
     return true;
 }
 

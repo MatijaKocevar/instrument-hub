@@ -35,5 +35,6 @@ void runCorruptRecoveryChecks();
 void runUnknownKeyChecks();
 void runAtomicReplaceChecks();
 void runNewerVersionChecks();
+void runMidiInputNameChecks();
 
 }

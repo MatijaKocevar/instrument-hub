@@ -1,6 +1,7 @@
 #include "TestSupport.h"
 #include "midi_api/DeviceEnumeration.h"
 #include "midi_api/PadTest.h"
+#include "midi_api/Persistence.h"
 #include "midi_api/Routes.h"
 
 #include <iostream>
@@ -10,6 +11,7 @@ int main()
     ApiTest::MidiApi::runRoutes();
     ApiTest::MidiApi::runDeviceEnumeration();
     ApiTest::MidiApi::runPadTestStream();
+    ApiTest::MidiApi::runPersistence();
 
     if (ApiTest::failures > 0)
     {
