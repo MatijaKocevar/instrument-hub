@@ -19,6 +19,7 @@ juce::var stateToVar (const StateSnapshot& state)
                                                  juce::String (state.applicationVersion));
     object->setProperty ("application", application);
 
+    object->setProperty ("layout", juce::String (state.layout));
     object->setProperty ("armedSlot", state.armedSlot);
     object->setProperty ("uptimeMs", state.uptimeMs);
 

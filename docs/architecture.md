@@ -431,10 +431,11 @@ the kit and sample loaders. Both implement `Instrument` and `SlotSource`.
 ### 3.10 `engine/src/project/`
 
 The `.ihub` set container and its migration. It is a library layer above the
-engine and is the live project format: the app creates a blank project from
-`shared/blank-set.yaml` on first launch, loads its mapping and sources, and
-watches the container for mapping changes. The shipped Starter Set in
-`shared/set.yaml` remains available through Open or `INSTRUMENT_HUB_SET`.
+engine and is the live project format: the app creates a blank eight-track
+project from `shared/tracks-set.yaml` on first launch, loads its mapping and
+sources, and watches the container for mapping changes. The shipped Starter
+Set in `shared/set.yaml` remains available through Open or
+`INSTRUMENT_HUB_SET` and keeps the legacy 64-patch family layout.
 
 - [SetFile.h](../engine/src/project/SetFile.h) / [SetFile.cpp](../engine/src/project/SetFile.cpp)
   — the set document model and validation.
@@ -499,7 +500,7 @@ instrument registry.
 | [ui/src/state/store.ts](../ui/src/state/store.ts) | Polling store, optimistic arm/mix edits, reconnect/backoff. |
 | [shared/api/openapi.yaml](../shared/api/openapi.yaml) | HTTP contract and generated TypeScript schema. |
 | [shared/set.yaml](../shared/set.yaml) | The shipped 8 × 8 Launchpad set mapping. |
-| [shared/blank-set.yaml](../shared/blank-set.yaml) | The blank 8 × 8 template used for new projects. |
+| [shared/tracks-set.yaml](../shared/tracks-set.yaml) | The blank eight-track template used for new projects. |
 | [shared/schema/set.schema.json](../shared/schema/set.schema.json) | Set mapping schema. |
 | [shared/schema/kit.schema.json](../shared/schema/kit.schema.json) | Sampler kit schema. |
 | [tests](../tests) | ctest targets, including the pad/click/LED acceptance in `tests/e2e/`. |

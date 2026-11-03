@@ -42,6 +42,11 @@ juce::File bundledMappingFile()
     return juce::File (IHUB_SET_YAML);
 }
 
+juce::File bundledTracksSetFile()
+{
+    return bundledMappingFile().getSiblingFile ("tracks-set.yaml");
+}
+
 juce::File bundledBlankSetFile()
 {
     return bundledMappingFile().getSiblingFile ("blank-set.yaml");

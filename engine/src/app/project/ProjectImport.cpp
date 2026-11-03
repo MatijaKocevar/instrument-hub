@@ -103,19 +103,25 @@ bool writeBundledProject (const juce::File& projectFile,
     }
 
     juce::File mappingFile (juce::String (bundled.string()));
+    const auto trackFile = mappingFile.getSiblingFile ("tracks-set.yaml");
     const auto blankFile = mappingFile.getSiblingFile ("blank-set.yaml");
-    const bool blank = blankFile.existsAsFile();
+    const bool tracks = trackFile.existsAsFile();
+    const bool blank = ! tracks && blankFile.existsAsFile();
 
-    if (blank)
+    if (tracks)
+        mappingFile = trackFile;
+    else if (blank)
         mappingFile = blankFile;
 
     project::SetFile set;
 
     if (! importBundledSet (mappingFile,
-                            blank ? juce::File()
-                                  : mappingFile.getSiblingFile ("set.plugin-state"),
-                            blank ? juce::File()
-                                  : mappingFile.getSiblingFile ("set.sources.json"),
+                            tracks || blank
+                                ? juce::File()
+                                : mappingFile.getSiblingFile ("set.plugin-state"),
+                            tracks || blank
+                                ? juce::File()
+                                : mappingFile.getSiblingFile ("set.sources.json"),
                             set,
                             error))
         return false;

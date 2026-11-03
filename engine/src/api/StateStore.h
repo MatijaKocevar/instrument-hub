@@ -84,6 +84,9 @@ public:
     void setDetachHandler (DetachHandler handler);
 
     int getNumSlots() const noexcept;
+    void setNumSlots (int newNumSlots);
+    void setLayout (std::string newLayout);
+    std::string getLayout () const;
     void setSlotName (int slot, std::string name);
     void setSlotIdentity (int slot,
                           std::string family,
@@ -171,7 +174,8 @@ private:
 
     mutable std::mutex mutex;
 
-    const int numSlots;
+    std::atomic<int> numSlots;
+    std::string layout = "families";
     ihub::settings::SettingsStore* const settingsStore;
     int armedSlot = -1;
     std::vector<std::string> slotNames;

@@ -146,7 +146,7 @@ void StateStore::setDetachHandler (DetachHandler handler)
 
 int StateStore::getNumSlots() const noexcept
 {
-    return numSlots;
+    return numSlots.load (std::memory_order_acquire);
 }
 
 void StateStore::setSlotName (int slot, std::string name)

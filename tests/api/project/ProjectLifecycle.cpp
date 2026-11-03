@@ -19,6 +19,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 #ifndef IHUB_SET_YAML
  #define IHUB_SET_YAML "shared/set.yaml"
@@ -278,6 +279,8 @@ bool runLifecycle (const juce::File& root)
                      - (-12.5)) < 0.01,
            "reopening alpha restores its autosaved mixer");
 
+    setenv ("INSTRUMENT_HUB_SET", IHUB_SET_YAML, 1);
+
     const auto fresh = root.getChildFile ("Fresh.ihub");
     response = client.Post ("/project", projectBody ("new", fresh),
                             "application/json");
@@ -288,12 +291,41 @@ bool runLifecycle (const juce::File& root)
     check (stringProperty (body, "path") == fresh.getFullPathName().toStdString(),
            "new switches to the new project path");
 
+    check (rig.session().getNumSlots() == 8,
+           "the new project opens the eight-track session");
+    check (rig.session().getLayout() == ihub::SessionLayout::tracks,
+           "the new session reports the track layout");
+    check (rig.session().getConfig().warmSlots
+               == std::vector<int> { 0, 1, 2, 3, 4, 5, 6, 7 },
+           "the new session protects all eight warm slots");
+
+    check (rig.session().waitForWarmIdle (2000),
+           "the eight track slots finish warming");
+
     response = client.Get ("/state");
     state = response ? parseJson (response->body) : juce::var {};
-    check (familyWithId (state, "alpha").isObject(),
-           "the new project imports the bundled mapping");
-    check (rig.session().getNumSlots() == 64,
-           "the new project opens the full 64-slot grid");
+
+    check (stringProperty (state, "layout") == "tracks",
+           "GET /state reports the track layout");
+    check (! familyWithId (state, "alpha").isObject(),
+           "the new project no longer carries the previous grid family");
+    check (familyWithId (state, "track-1").isObject(),
+           "the new project carries its first track");
+
+    const auto* freshSlots = arrayProperty (state, "slots");
+    check (freshSlots != nullptr && freshSlots->size() == 8,
+           "GET /state lists eight track slots");
+
+    int warmSlots = 0;
+
+    if (freshSlots != nullptr)
+        for (const auto& entry : *freshSlots)
+            if (boolProperty (entry, "warm"))
+                ++warmSlots;
+
+    check (warmSlots == 8,
+           "GET /state reports eight warm track slots (got "
+               + std::to_string (warmSlots) + ")");
 
     response = client.Post ("/project", R"({"action":"close"})",
                             "application/json");

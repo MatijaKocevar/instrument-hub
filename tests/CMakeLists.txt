@@ -60,6 +60,7 @@ set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreFx.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePatchSource.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePatches.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSession.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSettings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSettingsPersistence.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTransport.cpp"

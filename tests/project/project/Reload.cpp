@@ -29,13 +29,13 @@ void runReloadChecks()
     check (ihub::project::Serializer::load (projectFile, replacement, error),
            "the reload project loads: " + error.toStdString());
 
-    const auto position = replacement.mappingYaml.find ("instrument: empty-0");
+    const auto position = replacement.mappingYaml.find ("track: track-1");
     check (position != std::string::npos,
-           "the mapping contains the pad-0 empty binding");
+           "the mapping contains the track-1 pad binding");
 
     if (position != std::string::npos)
-        replacement.mappingYaml.replace (position, std::string ("instrument: empty-0").size(),
-                                         "instrument: empty-1");
+        replacement.mappingYaml.replace (position, std::string ("track: track-1").size(),
+                                         "track: track-2");
 
     check (ihub::project::Serializer::save (replacement, replacementFile, error),
            "the replacement project saves: " + error.toStdString());
@@ -49,9 +49,9 @@ void runReloadChecks()
                       ? std::string()
                       : " (" + mappingError.message + ")"));
 
-    const auto initial = mapping.getPadBinding (0);
-    check (initial.has_value() && initial->instrument == "empty-0" && initial->slot == 0,
-           "pad 0 starts on row1/empty-0 / slot 0");
+    const auto initial = mapping.getPadBinding (56);
+    check (initial.has_value() && initial->track == "track-1" && initial->slot == 0,
+           "pad 56 starts on track-1 / slot 0");
 
     check (mapping.startWatching (20), "the project watcher starts");
 
@@ -65,9 +65,9 @@ void runReloadChecks()
 
     while (std::chrono::steady_clock::now() < deadline)
     {
-        const auto binding = mapping.getPadBinding (0);
+        const auto binding = mapping.getPadBinding (56);
 
-        if (binding.has_value() && binding->instrument == "empty-1"
+        if (binding.has_value() && binding->track == "track-2"
             && binding->slot == 1)
         {
             rerouted = true;
@@ -80,9 +80,9 @@ void runReloadChecks()
     check (rerouted, "replacing the project re-routes pad 0 within the watch interval");
     check (mapping.getLastError().isEmpty(), "the hot reload reports no error");
 
-    const auto reroutedBinding = mapping.getPadBinding (0);
+    const auto reroutedBinding = mapping.getPadBinding (56);
     check (reroutedBinding.has_value() && reroutedBinding->slot == 1,
-           "the published mapping points pad 0 at slot 1");
+           "the published mapping points pad 56 at slot 1");
 
     mapping.stopWatching();
     check (! mapping.isWatching(), "the project watcher stops");

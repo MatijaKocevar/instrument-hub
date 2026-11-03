@@ -1015,7 +1015,7 @@ paths:
             { "index": 0, "pressed": false, "updatedMs": 0.0 },
             { "index": 3, "pressed": true, "updatedMs": 1400.5 }
           ],
-          "state": { "schemaVersion": 1, "revision": 8, "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
+          "state": { "schemaVersion": 1, "revision": 8, "layout": "families", "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
         }
         ```
       security:
@@ -1927,6 +1927,10 @@ components:
           description: Monotonic control-state revision.
         application:
           $ref: "#/components/schemas/Application"
+        layout:
+          type: string
+          enum: [families, tracks]
+          description: The session layout; legacy projects use families, new projects use tracks.
         armedSlot:
           type: integer
           minimum: -1
