@@ -227,6 +227,7 @@ target_sources(instrument-hub
         src/controller/mapping/MappingPadEvents.cpp
         src/controller/mapping/MappingReload.cpp
         src/controller/mapping/MappingScenes.cpp
+        src/controller/mapping/MappingTracks.cpp
         src/controller/mapping/MappingWatcher.cpp
         src/controller/mapping/YamlParser.cpp
         src/controller/mapping/YamlScalar.cpp

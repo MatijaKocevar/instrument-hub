@@ -66,9 +66,9 @@ void runDocumentChecks()
                                        : nullptr;
 
         check (pianoPatch != nullptr
-                   && pianoPatch->colorIndex == 1
-                   && pianoPatch->resolvedColorIndex == 1,
-               "keys/piano overrides the family colour");
+                   && pianoPatch->colorIndex == -1
+                   && pianoPatch->resolvedColorIndex == 0,
+               "keys/piano inherits the family colour");
         check (stringsPatch != nullptr
                    && stringsPatch->colorIndex == -1
                    && stringsPatch->resolvedColorIndex == 0,
@@ -83,13 +83,30 @@ void runDocumentChecks()
                "keys/piano carries its FX chain");
 
         const auto* pianoPad = shipped.padBinding (0);
-        check (pianoPad != nullptr && shipped.colorIndexFor (*pianoPad) == 1,
+        check (pianoPad != nullptr && shipped.colorIndexFor (*pianoPad) == 0,
                "the resolved colour reaches the pad binding");
 
         const auto* padZero = shipped.padBinding (0);
         check (padZero != nullptr && padZero->family == "keys"
                    && padZero->instrument == "piano" && padZero->slot == 0,
                "pad 0 resolves to keys/piano on slot 0");
+
+        const std::string rowFamilies[] { "keys", "drums", "bass", "pads",
+                                          "lead", "fx", "perc", "vox" };
+        bool padBindingsIntact = true;
+
+        for (int pad = 0; pad < Controller::SetMapping::maximumPads; ++pad)
+        {
+            const auto* binding = shipped.padBinding (pad);
+
+            if (binding == nullptr || binding->role != Controller::PadRole::patch
+                || binding->slot != pad || binding->family != rowFamilies[pad / 8]
+                || binding->instrument.empty())
+                padBindingsIntact = false;
+        }
+
+        check (padBindingsIntact,
+               "set.yaml keeps all 64 family patch pads on slots 0..63");
 
         const auto* encoderZero = shipped.encoderBinding (0);
         const auto* cutoff = encoderZero != nullptr ? shipped.macroFor (*encoderZero) : nullptr;

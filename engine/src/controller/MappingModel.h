@@ -6,10 +6,35 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Controller
 {
+
+enum class MappingLayout
+{
+    families,
+    tracks
+};
+
+enum class PadRole
+{
+    patch,
+    track,
+    fx,
+    volume
+};
+
+struct TrackSpec
+{
+    std::string id;
+    std::string name;
+    int slot = -1;
+    std::vector<std::string> hotFx;
+
+    bool operator== (const TrackSpec&) const = default;
+};
 
 struct PatchFxSpec
 {
@@ -83,9 +108,13 @@ struct MacroSpec
 struct PadBinding
 {
     int pad = -1;
+    PadRole role = PadRole::patch;
     std::string family;
     std::string instrument;
+    std::string track;
     int slot = -1;
+    int hot = -1;
+    int step = -1;
 
     bool operator== (const PadBinding&) const = default;
 };
@@ -119,6 +148,7 @@ struct SceneSpec
 struct SetMapping
 {
     static constexpr int supportedSchemaVersion = 1;
+    static constexpr int supportedTrackSchemaVersion = 2;
     static constexpr int maximumSlot = 63;
 
     static constexpr int maximumColourIndex = 15;
@@ -130,11 +160,17 @@ struct SetMapping
     static constexpr int maximumBanks = 8;
     static constexpr int maximumScenes = 8;
 
+    static constexpr int maximumTracks = 8;
+    static constexpr int maximumHotFx = 2;
+    static constexpr int maximumVolumeStep = 4;
+
     int schemaVersion = supportedSchemaVersion;
+    MappingLayout layout = MappingLayout::families;
     std::string name;
 
     std::map<std::string, FamilySpec> families;
     std::map<std::string, MacroSpec> macros;
+    std::vector<TrackSpec> tracks;
 
     std::array<std::optional<PadBinding>, maximumPads> pads;
     std::array<std::optional<EncoderBinding>, maximumEncoders> encoders;
@@ -145,6 +181,9 @@ struct SetMapping
     const EncoderBinding* encoderBinding (int encoder) const noexcept;
     const MacroBankSpec* bankBinding (int bank) const noexcept;
     const SceneSpec* sceneBinding (int scene) const noexcept;
+    const TrackSpec* trackAtSlot (int slot) const noexcept;
+    const TrackSpec* trackForId (std::string_view id) const noexcept;
+    const TrackSpec* trackFor (const PadBinding& binding) const noexcept;
 
     const InstrumentSpec* instrumentFor (const PadBinding& binding) const noexcept;
     const MacroSpec* macroFor (const EncoderBinding& binding) const noexcept;
@@ -157,6 +196,7 @@ struct SetMapping
     int countEncoders() const noexcept;
     int countBanks() const noexcept;
     int countScenes() const noexcept;
+    int countTracks() const noexcept;
 
     std::vector<const InstrumentSpec*> allInstruments() const;
 };

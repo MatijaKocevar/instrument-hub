@@ -7,6 +7,8 @@ namespace Controller::MappingDetail
 
 bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error);
 
+bool decodeTracks (const YamlValue& root, SetMapping& out, MappingError& error);
+
 bool decodeFamilies (const YamlValue& root, SetMapping& out, MappingError& error);
 
 bool readFx (const YamlValue& value, PatchFxSpec& fx, MappingError& error);
