@@ -1971,12 +1971,28 @@ components:
           minimum: 0
           description: bufferMs + deviceMs + chainMs.
 
+    AudioRestore:
+      type: object
+      required: [usedStoredDevice, fallback, reason]
+      additionalProperties: false
+      properties:
+        usedStoredDevice:
+          type: boolean
+          description: Whether the launch used the device stored in settings.json.
+        fallback:
+          type: boolean
+          description: Whether the stored device was missing or could not be opened.
+        reason:
+          type: string
+          description: Human-readable explanation when fallback is true.
+
     AudioState:
       type: object
       required:
         [open, deviceType, deviceName, deviceTypes, devices, sampleRate,
          bufferSize, sampleRates, bufferSizes, inputChannels, outputChannels,
-         latency, xruns, deviceXruns, callbackOverruns, callbacks, loadPercent]
+         latency, restore, xruns, deviceXruns, callbackOverruns, callbacks,
+         loadPercent]
       additionalProperties: false
       properties:
         open:
@@ -2018,6 +2034,8 @@ components:
             $ref: "#/components/schemas/AudioChannel"
         latency:
           $ref: "#/components/schemas/AudioLatency"
+        restore:
+          $ref: "#/components/schemas/AudioRestore"
         xruns:
           type: integer
           minimum: 0

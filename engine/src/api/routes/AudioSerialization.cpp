@@ -85,6 +85,14 @@ juce::var audioStateToVar (const AudioStateSnapshot& audio)
     object->setProperty ("callbacks", static_cast<juce::int64> (audio.callbacks));
     object->setProperty ("loadPercent", audio.loadPercent);
 
+    auto restore = Routes::makeObject();
+    restore.getDynamicObject()->setProperty ("usedStoredDevice",
+                                             audio.restore.usedStoredDevice);
+    restore.getDynamicObject()->setProperty ("fallback", audio.restore.fallback);
+    restore.getDynamicObject()->setProperty ("reason",
+                                             juce::String (audio.restore.reason));
+    object->setProperty ("restore", restore);
+
     return root;
 }
 

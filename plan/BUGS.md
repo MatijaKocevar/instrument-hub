@@ -156,7 +156,7 @@ reported by the human or reproduced on this machine.
 - expected: the app reopens the UR22 directly and the latency readout stays low
 - actual: it reopens `PulseAudio Sound Server` through PipeWire at 18.7 ms; master gain, MIDI channel and enabled MIDI inputs reset too
 - evidence: 2026-11-03 running app reports `deviceName: PulseAudio Sound Server`, `totalMs: 18.67`; `~/.config/Instrument Hub/` holds only `KnownPluginList.xml` and `PluginCache.xml`, no settings file; `app/SessionSetup.cpp` falls back to the first ALSA output and `api/state/TransportState.h` is memory-only
-- fix: pending; design is `plan/SETTINGS.md`, implementation T188–T192
+- fix: in progress; T188 adds the settings store and T189 restores the stored device at launch, saves the effective device after a successful `POST /audio`, and reports `restore.usedStoredDevice`/`restore.fallback`/`restore.reason` in `GET /audio`; mixer and MIDI inputs remain T190–T191, and the manual restart check is still required.
 
 ### BUG-007 · Device picker lists ~60 ALSA PCMs and switching to the real interface fails
 - status: open

@@ -143,10 +143,13 @@ set(IHUB_LATENCY_PROBE_SOURCES
 
 set(IHUB_AUDIO_SETTINGS_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioDeviceRestore.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioDeviceSelection.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsApply.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsChannels.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsMeasure.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsOpen.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsPersistence.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsSnapshot.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/LatencyBudget.cpp"
 )
@@ -2203,6 +2206,11 @@ target_sources(ihub-audio-settings-test
         api/TestSupport.cpp
         api/audio_settings/DeviceBridge.cpp
         api/audio_settings/Fixtures.cpp
+        api/audio_settings/Persistence.cpp
+        api/audio_settings/Restore.cpp
+        api/audio_settings/RestoreCli.cpp
+        api/audio_settings/RestoreStored.cpp
+        api/audio_settings/RestoreSupport.cpp
         api/audio_settings/Routes.cpp
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
@@ -2213,6 +2221,10 @@ target_sources(ihub-audio-settings-test
         ${IHUB_DEVICE_MANAGER_SOURCES}
         ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
 )
 
 target_include_directories(ihub-audio-settings-test

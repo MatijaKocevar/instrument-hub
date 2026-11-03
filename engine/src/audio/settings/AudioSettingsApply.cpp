@@ -1,6 +1,7 @@
 #include "audio/AudioSettings.h"
 
 #include "audio/settings/AudioSettingsChannels.h"
+#include "audio/settings/AudioSettingsPersistence.h"
 
 #include <cmath>
 
@@ -168,6 +169,18 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     pendingName = targetName;
     pendingSampleRate = manager.getCurrentSampleRate();
     pendingBufferSize = manager.getCurrentBufferSize();
+
+    restoreState = Api::AudioRestoreState {};
+
+    if (settingsStore != nullptr)
+    {
+        const bool saved = persistAudioSettings (*settingsStore, manager);
+        restoreState.usedStoredDevice = saved;
+
+        if (! saved)
+            restoreState.reason = "the audio device was applied but could not be saved";
+    }
+
     return true;
 }
 

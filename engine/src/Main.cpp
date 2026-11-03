@@ -12,6 +12,7 @@
 #include "diag/CrashDump.h"
 #include "diag/Diagnostics.h"
 #include "plugins/ProcessLimits.h"
+#include "settings/SettingsStore.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
@@ -164,11 +165,25 @@ public:
         }
 
         juce::File projectFile;
+        Api::AudioRestoreState audioRestore;
+
+        settingsStore = std::make_unique<ihub::settings::SettingsStore>();
+
+        if (const auto status = settingsStore->load();
+            status != ihub::settings::LoadStatus::loaded
+            && status != ihub::settings::LoadStatus::missing)
+        {
+            std::cerr << "settings: " << settingsStore->getLastError() << std::endl;
+        }
 
         if (mode == ihub::app::AppMode::gui || mode == ihub::app::AppMode::serve)
         {
             projectFile = ihub::app::resolveProjectFile (commandLine);
-            session = ihub::app::startSession (commandLine, projectFile);
+            auto startup = ihub::app::startSession (commandLine,
+                                                    projectFile,
+                                                    settingsStore.get());
+            audioRestore = startup.audioRestore;
+            session = std::move (startup.session);
         }
 
         const bool apiRequired = mode == ihub::app::AppMode::serve;
@@ -177,7 +192,9 @@ public:
                                 session.get(),
                                 apiRequired,
                                 projectFile,
-                                [this] { controller.refreshLeds(); }))
+                                [this] { controller.refreshLeds(); },
+                                settingsStore.get(),
+                                audioRestore))
         {
             if (apiRequired)
             {
@@ -285,6 +302,7 @@ private:
 
     std::unique_ptr<MainWindow> mainWindow;
     std::unique_ptr<ihub::Session> session;
+    std::unique_ptr<ihub::settings::SettingsStore> settingsStore;
     ihub::app::ControllerSurface controller;
     ihub::app::ControlApi controlApi;
     std::unique_ptr<ihub::app::UiModeController> uiMode;

@@ -16,6 +16,7 @@ void runRoutes()
 {
     Api::StateStore state (8);
     FakeBackend backend;
+    backend.audio.restore = { true, true, "the stored device is not available" };
 
     Api::Server::Options options;
     options.address = "127.0.0.1";
@@ -47,6 +48,15 @@ void runRoutes()
                                          "totalMs") - 8.1667) < 0.01,
                "GET /audio reports buffer + device + chain latency");
         check (intProperty (body, "xruns") == 3, "GET /audio reports the xrun total");
+
+        const auto restore = property (body, "restore");
+        check (boolProperty (restore, "usedStoredDevice"),
+               "GET /audio reports that the stored device was used");
+        check (boolProperty (restore, "fallback"),
+               "GET /audio reports the restore fallback");
+        check (stringProperty (restore, "reason")
+                   == "the stored device is not available",
+               "GET /audio explains why the restore fell back");
     }
 
     response = client.Post ("/audio", "{\"bufferSize\":256}", "application/json");

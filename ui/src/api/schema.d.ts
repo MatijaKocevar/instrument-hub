@@ -1014,6 +1014,14 @@ export interface components {
             /** @description bufferMs + deviceMs + chainMs. */
             totalMs: number;
         };
+        AudioRestore: {
+            /** @description Whether the launch used the device stored in settings.json. */
+            usedStoredDevice: boolean;
+            /** @description Whether the stored device was missing or could not be opened. */
+            fallback: boolean;
+            /** @description Human-readable explanation when fallback is true. */
+            reason: string;
+        };
         AudioState: {
             /** @description Whether an audio device is currently streaming. */
             open: boolean;
@@ -1028,6 +1036,7 @@ export interface components {
             inputChannels: components["schemas"]["AudioChannel"][];
             outputChannels: components["schemas"]["AudioChannel"][];
             latency: components["schemas"]["AudioLatency"];
+            restore: components["schemas"]["AudioRestore"];
             /** @description Total xruns (device driver + callback overruns). */
             xruns: number;
             deviceXruns: number;
