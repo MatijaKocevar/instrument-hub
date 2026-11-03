@@ -202,3 +202,13 @@ reported by the human or reproduced on this machine.
 - actual: the app imported `shared/set.yaml`, producing named patches and Analog Lab on slots 0/48/56; every new project inherited the Starter Set
 - evidence: 2026-11-03 `POST /project {"action":"new","name":"Untitled"}` created `Untitled 2.ihub`; `GET /state` returns families `row1`..`row8`, 64 patches with empty names and `colorIndex: 14`, and slot 0 armed with no source. `ihub-project` -> `PASS: 0 failed check(s)`; `ihub-project-lifecycle-api`, `ihub-launchpad-protocol`, `ihub-launchpad-mapping` and `ihub-launchpad-driver` pass.
 - fix: `shared/blank-set.yaml` defines eight empty rows, `writeBundledProject` prefers it when creating a project, and an instrument may have an empty display name so blank patches render without text. The Starter Set stays available through Open or `INSTRUMENT_HUB_SET`.
+
+### BUG-018 · Launchpad rows use near-identical colours and a salmon row that reads as red
+- status: fixed
+- area: launchpad
+- steps:
+  1. start the app with the Starter Set and look at the 8×8 Launchpad
+- expected: each family row is a distinct hue, and only the armed pad is red
+- actual: the palette stepped through `9,13,17,21,25,29,33,37`, so the bottom row was salmon/red-orange and five rows were green/teal shades; slot 0's `colorIndex: 1` override also made the bottom-left pad differ from its row
+- evidence: 2026-11-03 photo of the Launchpad shows the salmon bottom row and the miscoloured bottom-left pad. The palette is now `13,21,29,37,45,49,3,1,17,25,33,41,48,8,2,12` (yellow/green/teal/blue/purple/white/grey, no red or near-red), the piano override is removed, and the UI palette follows the same order. `ihub-launchpad-protocol`, `ihub-launchpad-driver` and `ihub-launchpad-mapping` pass; `pnpm test:snapshot`, `pnpm typecheck` and `pnpm format:check` pass.
+- fix: the new palette replaces the contiguous ramp with widely spaced hues, removes the patch-level colour override from the Starter Set, and aligns the UI palette with the Launchpad order.

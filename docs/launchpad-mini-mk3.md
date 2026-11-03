@@ -116,7 +116,7 @@ load error flashes red.
 
 | State | Colour | Velocity | When |
 | --- | --- | --- | --- |
-| `idle` | patch palette | 9..57, no red | every unarmed patch |
+| `idle` | patch palette | yellow/green/teal/blue/purple/white/grey, never red | every unarmed patch |
 | `armed`, warming | Red, pulsing | 5 (`0x92`) | the armed patch is still loading |
 | `armed` | Red | 5 | the armed patch is active |
 | `error` | Red, flashing | 5 (`0x91`) | any slot could not be loaded |
