@@ -7,10 +7,21 @@
 namespace AudioEngine
 {
 
+struct DeviceListOptions
+{
+    bool showTestDevices = true;
+    bool raw = false;
+};
+
 struct DeviceInfo
 {
     juce::String typeName;
     juce::String name;
+    juce::String juceName;
+    juce::String pcmName;
+
+    bool available = true;
+    juce::String unavailableReason;
 
     bool hasInput = false;
     bool hasOutput = false;
@@ -62,6 +73,11 @@ public:
 
     std::vector<DeviceTypeInfo> getDeviceTypes();
 
+    void setDeviceListOptions (const DeviceListOptions& options);
+    const DeviceListOptions& getDeviceListOptions() const noexcept;
+    void setShowTestDevices (bool show);
+    void setRawDeviceList (bool raw);
+
     std::vector<DeviceInfo> getDevices();
 
     juce::Array<double> getAvailableSampleRates (const juce::String& typeName,
@@ -109,8 +125,22 @@ public:
 private:
     void ensureInitialised();
     juce::AudioIODeviceType* findDeviceType (const juce::String& typeName);
-    std::unique_ptr<juce::AudioIODevice> createDevice (const juce::String& typeName,
-                                                       const juce::String& deviceName);
+    std::unique_ptr<juce::AudioIODevice> createRawDevice (const juce::String& typeName,
+                                                          const juce::String& outputName,
+                                                          const juce::String& inputName);
+    juce::String resolveListedName (const juce::String& typeName,
+                                    const juce::String& deviceName);
+    std::vector<DeviceInfo> getRawDevices();
+    std::vector<DeviceInfo> getCardDevices();
+    std::vector<DeviceInfo> getSystemDevice();
+
+    bool probeListedDevice (const juce::String& friendlyName,
+                            const juce::String& juceName,
+                            const juce::String& pcmName,
+                            bool hasInput,
+                            DeviceInfo& info,
+                            bool& busy);
+
     juce::AudioDeviceManager::AudioDeviceSetup makeNativeSetup (const DeviceSetup& setup) const;
     bool applyNativeSetup (const juce::AudioDeviceManager::AudioDeviceSetup& native,
                            juce::String* errorMessage);
@@ -118,6 +148,11 @@ private:
     juce::AudioDeviceManager deviceManager;
     juce::AudioIODeviceCallback* audioCallback = nullptr;
     bool initialised = false;
+
+    DeviceListOptions listOptions;
+    std::vector<DeviceInfo> cardCache;
+    bool cardCacheValid = false;
+    juce::String currentDisplayName;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DeviceManager)
 };

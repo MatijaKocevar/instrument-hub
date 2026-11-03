@@ -47,6 +47,8 @@ juce::var audioStateToVar (const AudioStateSnapshot& audio)
         auto item = Routes::makeObject();
         item.getDynamicObject()->setProperty ("type", juce::String (device.type));
         item.getDynamicObject()->setProperty ("name", juce::String (device.name));
+        item.getDynamicObject()->setProperty ("available", device.available);
+        item.getDynamicObject()->setProperty ("reason", juce::String (device.reason));
         devices.add (item);
     }
 

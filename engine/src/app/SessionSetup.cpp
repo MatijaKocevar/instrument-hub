@@ -149,6 +149,8 @@ SessionStartup startSession (const juce::String& commandLine,
         return result;
     }
 
+    session->getDevices().setShowTestDevices (commandLine.contains ("--show-test-devices"));
+
     const auto outcome = restoreDevice (*session, settings, commandLine);
     result.audioRestore.usedStoredDevice = outcome.usedStoredDevice;
     result.audioRestore.fallback = outcome.fallback;

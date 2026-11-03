@@ -137,7 +137,7 @@ public:
                 return;
 
             case ihub::app::AppMode::listDevices:
-                setApplicationReturnValue (ihub::app::runListDevices());
+                setApplicationReturnValue (ihub::app::runListDevices (commandLine));
                 quit();
                 return;
 

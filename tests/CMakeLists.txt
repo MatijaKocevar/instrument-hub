@@ -138,11 +138,15 @@ set(IHUB_WARM_POOL_SOURCES
 set(IHUB_DEVICE_MANAGER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceChannels.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceCardList.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceCardProbe.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceCards.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceDescription.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceEnumeration.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLatency.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLookup.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceOpen.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DevicePcmHints.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceState.cpp"
 )
 
@@ -362,12 +366,32 @@ add_test(
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(
         NAME ihub-app-list-devices
-        COMMAND $<TARGET_FILE:instrument-hub> --list-devices
+        COMMAND $<TARGET_FILE:instrument-hub> --list-devices --show-test-devices
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
     set_tests_properties(ihub-app-list-devices PROPERTIES
         PASS_REGULAR_EXPRESSION "Loopback"
+    )
+
+    add_test(
+        NAME ihub-app-list-devices-raw
+        COMMAND $<TARGET_FILE:instrument-hub> --list-devices --raw-devices
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    set_tests_properties(ihub-app-list-devices-raw PROPERTIES
+        PASS_REGULAR_EXPRESSION "Loopback"
+    )
+
+    add_test(
+        NAME ihub-app-list-devices-default
+        COMMAND $<TARGET_FILE:instrument-hub> --list-devices
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    set_tests_properties(ihub-app-list-devices-default PROPERTIES
+        FAIL_REGULAR_EXPRESSION "Loopback"
     )
 
     add_test(

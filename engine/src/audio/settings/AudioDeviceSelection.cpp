@@ -34,7 +34,9 @@ const DeviceInfo* findOutputDevice (const std::vector<DeviceInfo>& devices,
         if (type.isNotEmpty() && device.typeName != type)
             continue;
 
-        if (! nameMatches (device.name, name, exactName))
+        if (! nameMatches (device.name, name, exactName)
+            && ! nameMatches (device.juceName, name, exactName)
+            && ! nameMatches (device.pcmName, name, exactName))
             continue;
 
         return &device;

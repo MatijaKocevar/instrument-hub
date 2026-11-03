@@ -1001,8 +1001,12 @@ export interface components {
         AudioDevice: {
             /** @example ALSA */
             type: string;
-            /** @example Loopback */
+            /** @example Steinberg UR22mkII */
             name: string;
+            /** @description Whether the device could be opened during enumeration. */
+            available?: boolean;
+            /** @description Why an unavailable device cannot be opened. */
+            reason?: string;
         };
         AudioLatency: {
             /** @description One device buffer, in milliseconds. */

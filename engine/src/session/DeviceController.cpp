@@ -33,7 +33,9 @@ bool DeviceController::resolve (const SessionDeviceConfig& config,
         }
 
         if (config.outputDeviceName.isNotEmpty()
-            && ! info.name.containsIgnoreCase (config.outputDeviceName))
+            && ! info.name.containsIgnoreCase (config.outputDeviceName)
+            && ! info.juceName.containsIgnoreCase (config.outputDeviceName)
+            && ! info.pcmName.containsIgnoreCase (config.outputDeviceName))
         {
             continue;
         }
