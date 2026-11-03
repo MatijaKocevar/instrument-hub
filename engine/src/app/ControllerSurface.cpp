@@ -145,7 +145,7 @@ void ControllerSurface::refreshLeds()
         }
 
         const bool armed = pad == snapshot.armedSlot;
-        const bool warming = patch->warmState == "warming";
+        const bool warming = armed && patch->warmState == "warming";
         const bool error = patch->warmState == "error";
 
         launchpad->setPatchLed (pad, patch->colorIndex, armed, warming, error);

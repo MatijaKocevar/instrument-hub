@@ -109,16 +109,17 @@ controller selection, not a graph change.
 
 ## LED policy
 
-The grid mirrors `/state`: every unarmed patch lights its `colorIndex`
-palette colour, the armed patch is bright red, a patch that is warming is
-yellow, and a load error flashes red.
+The grid mirrors `/state`: every unarmed patch keeps its `colorIndex`
+palette colour even while the warm pool preloads it. The armed patch is
+bright red, pulses while it warms and stays static once it is active; a
+load error flashes red.
 
 | State | Colour | Velocity | When |
 | --- | --- | --- | --- |
-| `idle` | patch palette | 9..57, no red | unselected patch |
-| `warming` | Yellow | 13 | card is loading a cold patch |
-| `armed` | Red | 5 | the armed patch |
-| `error` | Red, flashing | 5 (`0x91`) | slot could not be loaded |
+| `idle` | patch palette | 9..57, no red | every unarmed patch |
+| `armed`, warming | Red, pulsing | 5 (`0x92`) | the armed patch is still loading |
+| `armed` | Red | 5 | the armed patch is active |
+| `error` | Red, flashing | 5 (`0x91`) | any slot could not be loaded |
 
 The generic `PadState` feedback used by the controller scripts keeps its
 legacy mapping (idle off, warming yellow, active green, error red); the app

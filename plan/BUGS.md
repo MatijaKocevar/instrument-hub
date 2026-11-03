@@ -90,13 +90,13 @@ reported by the human or reproduced on this machine.
 - fix: pending; T202
 
 ### BUG-013 · Arming one pad recolours the other Launchpad pads
-- status: open
+- status: fixed
 - area: launchpad
 - steps: arm a patch from the controller and watch the grid LEDs
 - expected: only the armed pad changes (to red); every other pad keeps its patch colour
 - actual: other pads change colour as their warm state flips (`warming` paints every pad yellow, `error` red flashing)
-- evidence: `engine/src/app/ControllerSurface.cpp:147-151` derives the LED from the live warm state for all 64 pads; `LaunchpadLed.cpp:24-37` lets `warming`/`error` override the patch colour
-- fix: pending; T201
+- evidence: `ihub-launchpad-driver` -> `PASS: 0 failed check(s)` with `arming one pad changes exactly one LED (pad 42)`, `the armed pad keeps a static red LED`, `arming sends exactly one LED frame, for the armed pad only`, `every other pad keeps its patch colour`, `a cold armed pad pulses red without touching the other pads`, `background warming does not repaint another pad`, `a non-armed warming pad keeps its static patch colour`, `a non-armed warm-state flip sends no LED frame`, `an erroring pad still flashes red` and `the error frame flashes red on the failing pad only`; `ctest --test-dir build -R '^ihub-e2e$'` -> Passed; `scripts/test.sh` -> 100% tests passed, 0 failed out of 69 (124.12 s)
+- fix: T201 keeps the patch colour as the base LED and applies warm state only to the armed pad: it pulses red while loading and settles to static red, while background warm-pool preloads of other pads no longer repaint them. `launchpadLedForPatch` no longer paints warming yellow, `ControllerSurface::refreshLeds` passes warming only for the armed pad, and the e2e grid capture mirrors that policy. Errors still flash red on the failing pad.
 
 ### BUG-012 · Changing a sound in Analog Lab silences audio until the editor is closed
 - status: fixed

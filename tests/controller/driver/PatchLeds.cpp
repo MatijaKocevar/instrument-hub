@@ -15,7 +15,8 @@ void runPatchLedChecks (Rig& rig)
 
     const auto idle = Controller::launchpadLedForPatch (2, false, false, false);
     const auto armed = Controller::launchpadLedForPatch (9, true, false, false);
-    const auto warming = Controller::launchpadLedForPatch (9, true, true, false);
+    const auto armedWarming = Controller::launchpadLedForPatch (9, true, true, false);
+    const auto warming = Controller::launchpadLedForPatch (9, false, true, false);
     const auto errorLed = Controller::launchpadLedForPatch (9, false, false, true);
 
     check (idle.velocity == Launchpad::velocityForPatchColour (2)
@@ -24,9 +25,12 @@ void runPatchLedChecks (Rig& rig)
     check (armed.velocity == Launchpad::velocityFor (Launchpad::Colour::Red)
                && armed.mode == Launchpad::LedMode::Static,
            "the armed patch is bright red");
-    check (warming.velocity == Launchpad::velocityFor (Launchpad::Colour::Yellow)
-               && warming.mode == Launchpad::LedMode::Static,
-           "a warming patch is yellow even while armed");
+    check (armedWarming.velocity == Launchpad::velocityFor (Launchpad::Colour::Red)
+               && armedWarming.mode == Launchpad::LedMode::Pulsing,
+           "an armed patch that is warming pulses red");
+    check (warming.velocity == Launchpad::velocityForPatchColour (9)
+               && warming.mode == Launchpad::LedMode::Pulsing,
+           "a warming patch keeps its colour and pulses");
     check (errorLed.velocity == Launchpad::velocityFor (Launchpad::Colour::Red)
                && errorLed.mode == Launchpad::LedMode::Flashing,
            "a patch error flashes red");
@@ -69,7 +73,13 @@ void runPatchLedChecks (Rig& rig)
     check (hex (rig.sent.back()) == "90 0B 05", "the armed pad LED is red");
 
     rig.driver.setPatchLed (0, 9, true, true, false);
-    check (hex (rig.sent.back()) == "90 0B 0D", "the warming pad LED is yellow");
+    check (hex (rig.sent.back()) == "92 0B 05",
+           "the armed pad pulses red while it warms");
+
+    rig.driver.setPatchLed (0, 9, false, true, false);
+    check (hex (rig.sent.back()) == "92 0B " + velocityHex (
+                      Launchpad::velocityForPatchColour (9)),
+           "the warming pad LED pulses its patch colour");
 
     rig.driver.setPatchLed (0, 9, false, false, true);
     check (hex (rig.sent.back()) == "91 0B 05", "the error pad LED flashes red");

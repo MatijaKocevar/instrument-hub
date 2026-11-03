@@ -25,16 +25,14 @@ PatchLed launchpadLedForPatch (int colorIndex,
         return { Launchpad::velocityFor (Launchpad::Colour::Red),
                  Launchpad::LedMode::Flashing };
 
+    const auto colour = armed
+                            ? Launchpad::velocityFor (Launchpad::Colour::Red)
+                            : Launchpad::velocityForPatchColour (colorIndex);
+
     if (warming)
-        return { Launchpad::velocityFor (Launchpad::Colour::Yellow),
-                 Launchpad::LedMode::Static };
+        return { colour, Launchpad::LedMode::Pulsing };
 
-    if (armed)
-        return { Launchpad::velocityFor (Launchpad::Colour::Red),
-                 Launchpad::LedMode::Static };
-
-    return { Launchpad::velocityForPatchColour (colorIndex),
-             Launchpad::LedMode::Static };
+    return { colour, Launchpad::LedMode::Static };
 }
 
 }

@@ -1,4 +1,5 @@
 #include "TestSupport.h"
+#include "driver/ArmingCapture.h"
 #include "driver/Grid.h"
 #include "driver/Handshake.h"
 #include "driver/LedStream.h"
@@ -25,6 +26,7 @@ int main()
     DriverTest::runLedStreamChecks (rig);
     DriverTest::runGridChecks (rig);
     DriverTest::runPatchLedChecks (rig);
+    DriverTest::runArmingCaptureChecks (rig);
 
     std::cout << (ControllerTest::failures == 0 ? "\nPASS" : "\nFAIL") << ": "
               << ControllerTest::failures << " failed check(s)" << std::endl;
