@@ -4,6 +4,7 @@ import type { ShellRoute } from "../../state/router";
 import { NavLink } from "./NavLink";
 import { AUDIO_ITEM } from "./navigation";
 import { PHASE_LABEL } from "./phaseLabel";
+import { ProjectFooter } from "./ProjectFooter";
 import type { ShellData } from "./useShellData";
 
 export function ShellFooter({
@@ -19,6 +20,7 @@ export function ShellFooter({
 
   return (
     <footer className="app__footer" data-testid="app-footer">
+      <ProjectFooter shell={shell} />
       <span
         className="app__status"
         data-testid="app-status"

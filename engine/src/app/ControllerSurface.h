@@ -29,6 +29,8 @@ public:
                 Api::MidiBridge* midiBridge,
                 const juce::File& projectFile);
 
+    void loadProjectFile (const juce::File& projectFile);
+
     void refreshLeds();
 
     void resetMapping();
@@ -36,6 +38,8 @@ public:
     void shutdown();
 
 private:
+    void createMapping();
+
     std::unique_ptr<Controller::Mapping> mapping;
     std::unique_ptr<Controller::LaunchpadDriver> launchpad;
     Api::StateStore* apiState = nullptr;

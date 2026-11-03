@@ -57,6 +57,9 @@ public:
                           MidiInputHandler enableInput,
                           MidiPadTestHandler padTest);
 
+    void setProjectHandlers (ProjectOverviewProvider provider,
+                             ProjectCommandHandler command);
+
     void setAuthToken (std::string token);
     bool hasAuthToken() const;
 

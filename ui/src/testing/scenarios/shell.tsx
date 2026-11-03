@@ -492,4 +492,17 @@ export function assertSnapshotFooter(html: string, armedSlot: number): void {
     armedSlot < 0 === html.includes("armed none"),
     "footer reports the fetched arm state",
   );
+  check(
+    html.includes('data-testid="project-name"') && html.includes(">Demo<"),
+    "the footer shows the project name",
+  );
+  check(
+    html.includes('data-testid="project-dirty" data-dirty="false"'),
+    "a clean project carries a cleared dirty marker",
+  );
+  check(
+    html.includes('data-testid="project-save"') &&
+      html.includes('data-testid="project-open"'),
+    "the footer offers the Save and Open actions",
+  );
 }

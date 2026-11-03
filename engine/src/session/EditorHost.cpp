@@ -144,6 +144,26 @@ struct EditorHost::Impl final
 
     void closeAll()
     {
+        bool anyOpen = openWindowCount.load (std::memory_order_acquire) > 0;
+
+        for (const auto& window : windows)
+            anyOpen = anyOpen || (window != nullptr && window->isOpen());
+
+        if (! anyOpen)
+        {
+            for (auto& flag : openFlags)
+                flag.store (false, std::memory_order_release);
+
+            openWindowCount.store (0, std::memory_order_release);
+
+            const std::lock_guard<std::mutex> lock (instrumentMutex);
+
+            for (auto& entry : instruments)
+                entry = nullptr;
+
+            return;
+        }
+
         auto closeHere = [this]
         {
             for (auto& window : windows)

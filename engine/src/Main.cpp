@@ -178,12 +178,16 @@ public:
 
         if (mode == ihub::app::AppMode::gui || mode == ihub::app::AppMode::serve)
         {
-            projectFile = ihub::app::resolveProjectFile (commandLine);
+            const auto resolution = ihub::app::resolveProjectPath (
+                commandLine, settingsStore->settings().project);
+            projectFile = resolution.file;
             auto startup = ihub::app::startSession (commandLine,
                                                     projectFile,
                                                     settingsStore.get());
             audioRestore = startup.audioRestore;
             session = std::move (startup.session);
+
+            controlApiPersistProjectPath = ! resolution.fromCommandLine;
         }
 
         const bool apiRequired = mode == ihub::app::AppMode::serve;
@@ -194,7 +198,12 @@ public:
                                 projectFile,
                                 [this] { controller.refreshLeds(); },
                                 settingsStore.get(),
-                                audioRestore))
+                                audioRestore,
+                                controlApiPersistProjectPath,
+                                [this] (const juce::File& file)
+                                {
+                                    controller.loadProjectFile (file);
+                                }))
         {
             if (apiRequired)
             {
@@ -307,6 +316,7 @@ private:
     ihub::app::ControlApi controlApi;
     std::unique_ptr<ihub::app::UiModeController> uiMode;
     bool ledPollMode = false;
+    bool controlApiPersistProjectPath = true;
 };
 
 START_JUCE_APPLICATION (InstrumentHubApplication)

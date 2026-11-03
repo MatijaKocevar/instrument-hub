@@ -25,6 +25,7 @@ import { PatchSourceActions } from "./patchSource";
 import { PatchUpdateActions } from "./patchUpdate";
 import { PluginActions } from "./plugins";
 import { PollLoop } from "./pollLoop";
+import { ProjectActions } from "./project";
 import { refreshSnapshot } from "./refresh";
 import type { AppSnapshot } from "./snapshot";
 import { StateSync } from "./stateSync";
@@ -51,6 +52,7 @@ export class AppStore {
   private readonly audio: AudioActions;
   private readonly transport: TransportActions;
   private readonly pairing: PairingActions;
+  private readonly project: ProjectActions;
 
   constructor(api: ControlApi, options: AppStoreOptions = {}) {
     this.api = api;
@@ -82,6 +84,7 @@ export class AppStore {
       storage: this.options.storage,
       refresh: () => this.refresh(),
     });
+    this.project = new ProjectActions(context);
 
     this.polling = new PollLoop(
       this.options,
@@ -168,6 +171,21 @@ export class AppStore {
 
   savePatchSound = (slot: number): Promise<boolean> =>
     this.patchCapture.savePatchSound(slot);
+
+  loadProject = (): Promise<boolean> => this.project.loadProject();
+
+  newProject = (path?: string, name?: string): Promise<boolean> =>
+    this.project.newProject(path, name);
+
+  openProject = (path: string): Promise<boolean> =>
+    this.project.openProject(path);
+
+  saveProject = (): Promise<boolean> => this.project.saveProject();
+
+  saveProjectAs = (path: string): Promise<boolean> =>
+    this.project.saveProjectAs(path);
+
+  closeProject = (): Promise<boolean> => this.project.closeProject();
 
   loadFxChain = (
     slot: number,

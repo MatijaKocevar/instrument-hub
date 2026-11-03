@@ -16,7 +16,33 @@ ProjectAutosave::ProjectAutosave (juce::File projectFile, int debounceMillisecon
 
 ProjectAutosave::~ProjectAutosave()
 {
+    shutdown();
+}
+
+void ProjectAutosave::suspend()
+{
     stopTimer();
+
+    const std::lock_guard<std::mutex> operation (operationMutex);
+    const std::lock_guard<std::mutex> lock (mutex);
+    suspended = true;
+}
+
+void ProjectAutosave::resume()
+{
+    const std::lock_guard<std::mutex> operation (operationMutex);
+    const std::lock_guard<std::mutex> lock (mutex);
+    suspended = false;
+}
+
+void ProjectAutosave::shutdown()
+{
+    stopTimer();
+
+    const std::lock_guard<std::mutex> operation (operationMutex);
+    const std::lock_guard<std::mutex> lock (mutex);
+    active = false;
+    suspended = true;
 }
 
 void ProjectAutosave::setCaptureHandler (CaptureHandler handler)
@@ -40,6 +66,10 @@ void ProjectAutosave::noteEdit (const char* kind, int slot)
 
     {
         const std::lock_guard<std::mutex> lock (mutex);
+
+        if (! active || suspended)
+            return;
+
         dirty = true;
         saved = false;
         ++generation;
@@ -55,6 +85,8 @@ bool ProjectAutosave::saveNow (juce::String* errorOut, bool force)
 {
     stopTimer();
 
+    const std::lock_guard<std::mutex> operation (operationMutex);
+
     CaptureHandler handler;
     juce::File target;
     std::vector<int> slots;
@@ -63,12 +95,28 @@ bool ProjectAutosave::saveNow (juce::String* errorOut, bool force)
     {
         const std::lock_guard<std::mutex> lock (mutex);
 
+        if (! active)
+        {
+            if (errorOut != nullptr)
+                *errorOut = "the project is closed";
+
+            return false;
+        }
+
         if (! force && ! dirty)
         {
             if (errorOut != nullptr)
                 errorOut->clear();
 
             return true;
+        }
+
+        if (suspended)
+        {
+            if (errorOut != nullptr)
+                *errorOut = "the project is suspended";
+
+            return false;
         }
 
         handler = capture;

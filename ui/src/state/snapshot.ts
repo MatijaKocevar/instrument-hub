@@ -6,6 +6,7 @@ import type {
   ControlPairingState,
   ControlPatchStateCapture,
   ControlPluginList,
+  ControlProjectOverview,
   ControlState,
 } from "../api/client";
 
@@ -44,6 +45,9 @@ export interface AppSnapshot {
   pairing: ControlPairingState | null;
   pairingError: string | null;
   pairingBusy: boolean;
+  project: ControlProjectOverview | null;
+  projectError: string | null;
+  projectBusy: boolean;
   unauthorized: boolean;
   failedAttempts: number;
   updatedAt: number | null;
@@ -83,6 +87,9 @@ export function initialSnapshot(): AppSnapshot {
     pairing: null,
     pairingError: null,
     pairingBusy: false,
+    project: null,
+    projectError: null,
+    projectBusy: false,
     unauthorized: false,
     failedAttempts: 0,
     updatedAt: null,

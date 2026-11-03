@@ -25,6 +25,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/project": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the project lifecycle
+         * @description Returns the running `.ihub` project's path, name and dirty state plus
+         *     the recent project list from app settings.
+         */
+        get: operations["getProject"];
+        put?: never;
+        /**
+         * New, open, save, save-as or close a project
+         * @description Every action writes through the project autosave path. `new` and
+         *     `open` rebuild the session, so the grid, instruments and mixer follow
+         *     the selected project. `close` flushes pending edits and detaches the
+         *     autosave target without stopping audio.
+         */
+        post: operations["updateProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/arm": {
         parameters: {
             query?: never;
@@ -990,6 +1018,40 @@ export interface components {
             /** @description The last save error, empty when the last write succeeded. */
             error: string;
         };
+        ProjectEntry: {
+            /** @description Absolute path of a recent `.ihub` project. */
+            path: string;
+            /** @description Project name derived from the file name. */
+            name: string;
+        };
+        ProjectOverview: {
+            /** @description Absolute path of the open `.ihub` project, empty when closed. */
+            path: string;
+            /** @description Project name, derived from the file name. */
+            name: string;
+            /** @description An accepted edit is waiting for the debounced write. */
+            dirty: boolean;
+            /** @description The last project write succeeded. */
+            saved: boolean;
+            /** @description The last save or lifecycle error, empty on success. */
+            error: string;
+            /** @description Recently opened projects, newest first. */
+            recent: components["schemas"]["ProjectEntry"][];
+        };
+        ProjectCommand: {
+            /**
+             * @description The lifecycle action to perform.
+             * @enum {string}
+             */
+            action: "new" | "open" | "save" | "save-as" | "close";
+            /**
+             * @description Absolute path for `open` and `save-as`; optional for `new`,
+             *     which chooses the next untitled path when omitted.
+             */
+            path?: string;
+            /** @description Optional display name for `new`. */
+            name?: string;
+        };
         AudioChannel: {
             /** @description Zero-based channel index inside the device. */
             index: number;
@@ -1289,6 +1351,53 @@ export interface operations {
                     "application/json": components["schemas"]["State"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current project and recent projects */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOverview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    updateProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCommand"];
+            };
+        };
+        responses: {
+            /** @description The project lifecycle after the command */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOverview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };

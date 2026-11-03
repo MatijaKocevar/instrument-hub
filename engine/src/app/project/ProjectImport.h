@@ -17,4 +17,8 @@ bool ensureProjectFile (const juce::File& projectFile,
                         juce::String& error,
                         bool* created = nullptr);
 
+bool writeBundledProject (const juce::File& projectFile,
+                          const juce::String& name,
+                          juce::String& error);
+
 }

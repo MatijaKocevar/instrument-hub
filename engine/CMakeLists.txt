@@ -100,6 +100,8 @@ target_sources(instrument-hub
         src/api/routes/PairingSerialization.cpp
         src/api/routes/PatchRoutes.cpp
         src/api/routes/PluginRoutes.cpp
+        src/api/routes/ProjectRoutes.cpp
+        src/api/routes/ProjectSerialization.cpp
         src/api/routes/RouteHelpers.cpp
         src/api/routes/StateRoutes.cpp
         src/api/routes/StateSerialization.cpp
@@ -125,6 +127,9 @@ target_sources(instrument-hub
         src/app/project/ProjectAutosave.cpp
         src/app/project/ProjectCapture.cpp
         src/app/project/ProjectImport.cpp
+        src/app/project/ProjectLifecycle.cpp
+        src/app/project/ProjectLifecycleOpen.cpp
+        src/app/project/ProjectLifecycleSave.cpp
         src/app/project/ProjectPaths.cpp
         src/app/project/ProjectSession.cpp
         src/app/project/SessionSlotMapping.cpp
@@ -302,6 +307,7 @@ target_sources(instrument-hub
         src/session/warm/WarmPoolVoice.cpp
         src/settings/AtomicFileWrite.cpp
         src/settings/MidiInputNames.cpp
+        src/settings/ProjectHistory.cpp
         src/settings/SettingsJsonRead.cpp
         src/settings/SettingsJsonWrite.cpp
         src/settings/SettingsStore.cpp

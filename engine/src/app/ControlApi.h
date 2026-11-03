@@ -37,7 +37,7 @@ class SettingsStore;
 namespace ihub::app
 {
 
-class ProjectAutosave;
+class ProjectLifecycle;
 
 class ControlApi
 {
@@ -51,7 +51,9 @@ public:
                 const juce::File& projectFile,
                 std::function<void()> midiRestore = {},
                 ihub::settings::SettingsStore* settings = nullptr,
-                const Api::AudioRestoreState& audioRestore = {});
+                const Api::AudioRestoreState& audioRestore = {},
+                bool persistProjectPath = true,
+                std::function<void (const juce::File&)> projectOpened = {});
 
     void stopServer();
     void detachMidi();
@@ -63,12 +65,14 @@ public:
     Api::MidiBridge* getMidiBridge() noexcept { return midiBridge.get(); }
 
 private:
+    void resetProject();
+
     std::unique_ptr<ihub::plugins::PluginInventory> pluginInventory;
     std::unique_ptr<Api::StateStore> apiState;
     std::unique_ptr<Api::Server> apiServer;
     std::unique_ptr<Api::MidiBridge> midiBridge;
     std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
-    std::unique_ptr<ProjectAutosave> projectAutosave;
+    std::unique_ptr<ProjectLifecycle> projectLifecycle;
 };
 
 }

@@ -15,6 +15,7 @@ import { handlePatchEditor } from "./routes/patchEditor";
 import { handlePatchSource } from "./routes/patchSource";
 import { handlePatchUpdate } from "./routes/patchUpdate";
 import { handlePlugins } from "./routes/plugins";
+import { handleProject } from "./routes/project";
 import { handleState } from "./routes/state";
 import { handleTransport } from "./routes/transport";
 import type { FixtureContext, FixtureRoute } from "./types";
@@ -31,6 +32,7 @@ const routes: readonly FixtureRoute[] = [
   handleMidi,
   handlePatchUpdate,
   handleState,
+  handleProject,
   handleArm,
   handleTransport,
   handleAudio,

@@ -81,6 +81,19 @@ bool ensureProjectFile (const juce::File& projectFile,
     if (projectFile.existsAsFile())
         return true;
 
+    if (! writeBundledProject (projectFile, {}, error))
+        return false;
+
+    if (created != nullptr)
+        *created = true;
+
+    return true;
+}
+
+bool writeBundledProject (const juce::File& projectFile,
+                          const juce::String& name,
+                          juce::String& error)
+{
     const auto bundled = Controller::Mapping::findDefaultSetFile();
 
     if (bundled.empty())
@@ -99,13 +112,10 @@ bool ensureProjectFile (const juce::File& projectFile,
                             error))
         return false;
 
-    if (! project::Serializer::save (set, projectFile, error))
-        return false;
+    if (name.isNotEmpty())
+        set.name = name.toStdString();
 
-    if (created != nullptr)
-        *created = true;
-
-    return true;
+    return project::Serializer::save (set, projectFile, error);
 }
 
 }

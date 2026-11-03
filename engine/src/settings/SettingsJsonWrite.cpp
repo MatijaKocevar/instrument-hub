@@ -57,6 +57,24 @@ void writeAccount (juce::DynamicObject& object, const AccountSettings& account)
         object.removeProperty ("pairingToken");
 }
 
+void writeProject (juce::DynamicObject& object, const ProjectSettings& project)
+{
+    auto& projectObject = objectFor (object, "project");
+    projectObject.setProperty ("lastPath", project.lastPath);
+
+    juce::Array<juce::var> recent;
+
+    for (const auto& entry : project.recent)
+    {
+        auto* item = new juce::DynamicObject();
+        item->setProperty ("path", entry.path);
+        item->setProperty ("name", entry.name);
+        recent.add (juce::var (item));
+    }
+
+    projectObject.setProperty ("recent", juce::var (recent));
+}
+
 }
 
 juce::var buildDocument (const juce::var& preserved, const Settings& settings)
@@ -72,6 +90,7 @@ juce::var buildDocument (const juce::var& preserved, const Settings& settings)
     writeMixer (objectFor (*rootObject, "mixer"), settings.mixer);
     writeMidi (objectFor (*rootObject, "midi"), settings.midi);
     writeAccount (objectFor (*rootObject, "account"), settings.account);
+    writeProject (*rootObject, settings.project);
 
     return root;
 }

@@ -127,6 +127,12 @@ export async function backoffTest(): Promise<void> {
     runMidiPadTest: async () => {
       throw new Error("connection refused");
     },
+    getProject: async () => {
+      throw new Error("connection refused");
+    },
+    updateProject: async () => {
+      throw new Error("connection refused");
+    },
   };
 
   const store = new AppStore(failingApi, { retryBaseMs: 5, retryMaxMs: 15 });

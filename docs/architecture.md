@@ -441,6 +441,11 @@ container for mapping changes.
   [Migrations.cpp](../engine/src/project/Migrations.cpp) — schema upgrades
   (1 → 2, 2 → 3 and 3 → 4); never rewrites a document in an old format.
 
+Project lifecycle lives in `app/project/`: `ProjectLifecycle` owns the open
+path, the recent list handoff and the `new`/`open`/`save`/`save-as`/`close`
+commands; `ProjectAutosave` owns the debounced atomic write; `ProjectPaths`
+resolves `--project`, the stored last path and the default untitled file.
+
 The live per-patch plugin-state cache is `session/PluginStateStore`, not a
 second binder in this directory. Its sidecar file format is
 `session/PluginStateFile`; the store keeps the in-memory blobs and the live
