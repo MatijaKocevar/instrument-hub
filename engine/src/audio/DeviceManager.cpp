@@ -9,6 +9,8 @@ DeviceManager::~DeviceManager()
 {
     if (audioCallback != nullptr)
         deviceManager.removeAudioCallback (audioCallback);
+
+    jackQuantum.restore();
 }
 
 void DeviceManager::ensureInitialised()
@@ -55,6 +57,7 @@ void DeviceManager::setRawDeviceList (bool raw)
 void DeviceManager::close()
 {
     deviceManager.closeAudioDevice();
+    jackQuantum.restore();
     currentDisplayName.clear();
     cardCacheValid = false;
 }

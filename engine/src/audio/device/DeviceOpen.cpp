@@ -101,8 +101,30 @@ bool DeviceManager::open (const DeviceSetup& setup, juce::String* errorMessage)
                                        ? resolved.outputDeviceName
                                        : resolveListedName (typeName, setup.inputDeviceName);
 
+    if (typeName != "JACK")
+    {
+        jackQuantum.restore();
+    }
+    else
+    {
+        juce::String quantumError;
+
+        if (! jackQuantum.apply (resolved.bufferSize, &quantumError))
+        {
+            if (errorMessage != nullptr)
+                *errorMessage = quantumError;
+
+            return false;
+        }
+    }
+
     if (! applyNativeSetup (makeNativeSetup (resolved), errorMessage))
+    {
+        if (typeName == "JACK")
+            jackQuantum.restore();
+
         return false;
+    }
 
     currentDisplayName = setup.outputDeviceName.isNotEmpty() ? setup.outputDeviceName
                                                             : setup.inputDeviceName;
@@ -121,6 +143,17 @@ bool DeviceManager::setBufferSize (int bufferSize, juce::String* errorMessage)
     {
         if (errorMessage != nullptr)
             *errorMessage = "no audio device is open";
+
+        return false;
+    }
+
+    if (getCurrentDeviceTypeName() == "JACK")
+    {
+        if (getCurrentBufferSize() == bufferSize)
+            return true;
+
+        if (errorMessage != nullptr)
+            *errorMessage = "restart the app to change the JACK buffer size";
 
         return false;
     }

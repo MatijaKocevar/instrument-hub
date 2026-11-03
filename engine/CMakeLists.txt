@@ -169,6 +169,7 @@ target_sources(instrument-hub
         src/audio/device/DeviceRawList.cpp
         src/audio/device/DeviceState.cpp
         src/audio/device/DeviceTypeCards.cpp
+        src/audio/device/PipeWireQuantum.cpp
         src/audio/fx/FxInsertFactory.cpp
         src/audio/fx/FxInsertParameters.cpp
         src/audio/fx/FxInsertType.cpp
