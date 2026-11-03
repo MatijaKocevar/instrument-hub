@@ -9,7 +9,7 @@ namespace ihub::project
 
 inline constexpr int oldestSupportedSetSchemaVersion = 1;
 
-inline constexpr int currentSetSchemaVersion = 3;
+inline constexpr int currentSetSchemaVersion = 4;
 
 inline constexpr const char* defaultSlotColour = "#5a6478";
 

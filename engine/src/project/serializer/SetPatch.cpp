@@ -27,6 +27,7 @@ var instrumentToVar (const InstrumentConfig& instrument)
     object->setProperty ("pluginName", juce::String (instrument.pluginName));
     object->setProperty ("pluginManufacturer", juce::String (instrument.pluginManufacturer));
     object->setProperty ("pluginVersion", juce::String (instrument.pluginVersion));
+    object->setProperty ("pluginPath", juce::String (instrument.pluginPath));
     object->setProperty ("samplePath", juce::String (instrument.samplePath));
     object->setProperty ("inputChannel", instrument.inputChannel);
     object->setProperty ("gain", static_cast<double> (instrument.gain));
@@ -84,6 +85,7 @@ bool parseInstrument (const var& value,
         || ! readString (value, "pluginManufacturer", context,
                          instrument.pluginManufacturer, error, false)
         || ! readString (value, "pluginVersion", context, instrument.pluginVersion, error, false)
+        || ! readString (value, "pluginPath", context, instrument.pluginPath, error, false)
         || ! readString (value, "samplePath", context, instrument.samplePath, error, false)
         || ! readInteger (value, "inputChannel", context, inputChannel, 0, 63, error, false)
         || ! readNumber (value, "gain", context, gain, error, false)

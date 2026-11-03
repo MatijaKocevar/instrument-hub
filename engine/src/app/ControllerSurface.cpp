@@ -20,14 +20,14 @@ ControllerSurface::~ControllerSurface()
     shutdown();
 }
 
-void ControllerSurface::start (Api::StateStore* state, Api::MidiBridge* bridge)
+void ControllerSurface::start (Api::StateStore* state,
+                               Api::MidiBridge* bridge,
+                               const juce::File& projectFile)
 {
     apiState = state;
     midiBridge = bridge;
 
-    const auto setFile = Controller::Mapping::findDefaultSetFile();
-
-    if (! setFile.empty())
+    if (projectFile.existsAsFile())
     {
         mapping = std::make_unique<Controller::Mapping>();
 
@@ -79,7 +79,7 @@ void ControllerSurface::start (Api::StateStore* state, Api::MidiBridge* bridge)
 
         Controller::MappingError error;
 
-        if (! mapping->load (setFile, &error))
+        if (! mapping->loadProject (projectFile.getFullPathName().toStdString(), &error))
             std::cerr << "mapping: " << error.message << std::endl;
         else
             mapping->startWatching();

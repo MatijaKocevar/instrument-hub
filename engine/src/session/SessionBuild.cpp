@@ -83,6 +83,23 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
         return false;
     }
 
+    for (int index = 0; index < slotCount; ++index)
+    {
+        const auto& slotConfig = config.slots[static_cast<std::size_t> (index)];
+
+        if (slotConfig.kind != SessionSlotKind::plugin
+            || slotConfig.pluginState.getSize() == 0)
+            continue;
+
+        const session::PluginStateIdentity identity {
+            juce::String (slotConfig.path),
+            juce::String (slotConfig.pluginId),
+            juce::String (slotConfig.pluginName)
+        };
+
+        (void) pluginState.seedState (index, identity, slotConfig.pluginState);
+    }
+
     engine = std::make_unique<AudioEngine::AudioEngine> (slotCount,
                                                          config.device.numOutputChannels);
     switcher = std::make_unique<AudioEngine::SlotSwitcher> (config.fadeMilliseconds);

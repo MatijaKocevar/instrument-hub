@@ -117,6 +117,12 @@ target_sources(instrument-hub
         src/app/ControlApi.cpp
         src/app/ControllerSurface.cpp
         src/app/Modes.cpp
+        src/app/project/MappingImport.cpp
+        src/app/project/ProjectImport.cpp
+        src/app/project/ProjectPaths.cpp
+        src/app/project/ProjectSession.cpp
+        src/app/project/SessionSlotMapping.cpp
+        src/app/project/SourceImport.cpp
         src/app/SessionSetup.cpp
         src/app/SnapshotCapture.cpp
         src/app/SourcePersistence.cpp

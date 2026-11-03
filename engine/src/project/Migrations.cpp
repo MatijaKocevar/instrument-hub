@@ -127,6 +127,47 @@ bool migrateV2ToV3 (juce::var& root, juce::String& error)
     return true;
 }
 
+bool migrateV3ToV4 (juce::var& root, juce::String& error)
+{
+    auto* set = root.getDynamicObject();
+
+    if (set == nullptr)
+    {
+        error = "set.json is not a JSON object";
+        return false;
+    }
+
+    auto* slots = set->getProperties().getVarPointer ("slots");
+
+    if (slots == nullptr || ! slots->isArray())
+    {
+        return true;
+    }
+
+    auto* array = slots->getArray();
+
+    for (int i = 0; i < array->size(); ++i)
+    {
+        auto& value = array->getReference (i);
+
+        if (! value.isObject())
+            continue;
+
+        auto* slot = value.getDynamicObject();
+        auto* instrument = slot->getProperties().getVarPointer ("instrument");
+
+        if (instrument == nullptr || ! instrument->isObject())
+            continue;
+
+        auto* instrumentObject = instrument->getDynamicObject();
+
+        if (! instrumentObject->hasProperty ("pluginPath"))
+            instrumentObject->setProperty ("pluginPath", juce::String());
+    }
+
+    return true;
+}
+
 }
 
 const std::vector<MigrationStep>& migrationSteps()
@@ -134,7 +175,8 @@ const std::vector<MigrationStep>& migrationSteps()
     static const std::vector<MigrationStep> steps
     {
         { 1, 2, &migrateV1ToV2, "add set notes and per-slot colour defaults" },
-        { 2, 3, &migrateV2ToV3, "add per-patch colour, pan and solo defaults" }
+        { 2, 3, &migrateV2ToV3, "add per-patch colour, pan and solo defaults" },
+        { 3, 4, &migrateV3ToV4, "add the plugin bundle path to source descriptors" }
     };
 
     return steps;

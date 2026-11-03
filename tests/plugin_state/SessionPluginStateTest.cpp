@@ -200,6 +200,8 @@ int main()
 
     const auto config = makeConfig (bundlePath);
 
+    juce::MemoryBlock seededState;
+
     {
         ihub::Session session;
         session.setPluginStateDirectory (stateDirectory);
@@ -219,6 +221,11 @@ int main()
                "patch A arms");
 
         applyPreset (session, kPluginSlotA, kFrequencyA, kStateMarkerA);
+
+        if (auto* instrument = session.getPluginInstrument (kPluginSlotA))
+            seededState = instrument->getStateInformation();
+
+        check (seededState.getSize() > 0, "patch A produced a seedable state");
 
         check (waitForWarm (session, kPluginSlotB, 15000),
                "patch B's TestPlugin instance is resident");
@@ -321,6 +328,39 @@ int main()
         check (approximately (pitchAfterRestartB, kFrequencyB, 40.0),
                "patch B renders its own sound after the restart ("
                    + std::to_string (pitchAfterRestartB) + " Hz)");
+    }
+
+    {
+        auto seededConfig = makeConfig (bundlePath);
+        seededConfig.slots[static_cast<std::size_t> (kPluginSlotA)].pluginState = seededState;
+
+        ihub::Session session;
+        juce::String error;
+
+        if (! session.build (seededConfig, error))
+        {
+            std::cerr << "session-plugin-state-test: FAILED to seed: " << error
+                      << std::endl;
+            return 1;
+        }
+
+        check (waitForWarm (session, kPluginSlotA, 15000),
+               "the seeded patch warms");
+        check (armAndWait (session, kPluginSlotA), "the seeded patch arms");
+
+        const auto marker = stateMarker (session, kPluginSlotA);
+        check (approximately (marker, kStateMarkerA, 0.01),
+               "a project-seeded state reaches the plugin ("
+                   + std::to_string (marker) + ")");
+
+        auto* instrument = session.getPluginInstrument (kPluginSlotA);
+        const auto frequency = instrument != nullptr
+                                    ? denormaliseFrequency (
+                                          instrument->getParameterValue ("Frequency"))
+                                    : 0.0;
+        check (approximately (frequency, kFrequencyA, 5.0),
+               "the seeded state restores the patch frequency ("
+                   + std::to_string (frequency) + " Hz)");
     }
 
     (void) tempRoot.deleteRecursively();

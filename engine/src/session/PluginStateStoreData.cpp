@@ -4,6 +4,30 @@
 
 namespace ihub::session
 {
+bool PluginStateStore::seedState (int slot,
+                                  const PluginStateIdentity& identity,
+                                  const juce::MemoryBlock& data)
+{
+    if (slot < 0 || slot >= static_cast<int> (states.size())
+        || data.getSize() == 0)
+        return false;
+
+    const std::lock_guard<std::mutex> lock (mutex);
+    auto& state = states[static_cast<std::size_t> (slot)];
+
+    if (state.data != data)
+    {
+        state.data = data;
+        ++state.revision;
+    }
+
+    state.pluginPath = identity.pluginPath;
+    state.pluginId = identity.pluginId;
+    state.pluginName = identity.pluginName;
+    state.appliedRevision = 0;
+    return true;
+}
+
 bool PluginStateStore::storeState (int slot,
                                    const PluginStateIdentity& identity,
                                    const juce::MemoryBlock& data)

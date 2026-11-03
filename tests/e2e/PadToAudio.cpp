@@ -5,6 +5,7 @@
 #include "pad_audio/PadScenario.h"
 #include "pad_audio/PagesScenario.h"
 #include "pad_audio/Records.h"
+#include "project/ProjectScenario.h"
 
 #include <juce_events/juce_events.h>
 
@@ -20,6 +21,7 @@ int main()
               << " slots=" << PadAudio::kDefaultSlots << std::endl;
 
     PadAudio::runMappingScenario();
+    PadAudio::runProjectScenario();
 
     const auto pad = PadAudio::runPadScenario();
     const auto loopback = PadAudio::runLoopbackScenario();

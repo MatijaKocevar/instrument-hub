@@ -12,6 +12,7 @@ class Session;
 namespace ihub::app
 {
 
-std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine);
+std::unique_ptr<ihub::Session> startSession (const juce::String& commandLine,
+                                             const juce::File& projectFile);
 
 }

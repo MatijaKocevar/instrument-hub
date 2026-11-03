@@ -1,5 +1,7 @@
 #pragma once
 
+#include <juce_core/juce_core.h>
+
 #include <memory>
 
 namespace Api
@@ -23,7 +25,9 @@ public:
     ControllerSurface();
     ~ControllerSurface();
 
-    void start (Api::StateStore* state, Api::MidiBridge* midiBridge);
+    void start (Api::StateStore* state,
+                Api::MidiBridge* midiBridge,
+                const juce::File& projectFile);
 
     void refreshLeds();
 

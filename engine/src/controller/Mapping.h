@@ -58,6 +58,9 @@ public:
 
     bool load (const std::filesystem::path& file, MappingError* error = nullptr);
 
+    bool loadProject (const std::filesystem::path& projectFile,
+                      MappingError* error = nullptr);
+
     bool reload (MappingError* error = nullptr);
 
     bool poll();
@@ -105,6 +108,9 @@ private:
                     std::uint64_t contentHash,
                     bool force,
                     MappingError* error);
+    bool openSource (const std::filesystem::path& file,
+                     std::string archiveEntry,
+                     MappingError* error);
     bool reloadInternal (bool hotReload, MappingError* error);
     void reportError (const MappingError& error, std::uint64_t contentHash,
                       bool rememberHash);
@@ -114,6 +120,9 @@ private:
     Listeners listeners;
 
     std::filesystem::path path;
+    std::string archiveEntry;
+    std::filesystem::file_time_type writeTime {};
+    bool hasWriteTime = false;
     std::shared_ptr<const SetMapping> current;
 
     MappingError lastError;
