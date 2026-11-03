@@ -30,6 +30,13 @@ struct AudioLatencyState
     double totalMs = 0.0;
 };
 
+struct AudioRestoreState
+{
+    bool usedStoredDevice = false;
+    bool fallback = false;
+    std::string reason;
+};
+
 struct AudioStateSnapshot
 {
     bool open = false;
@@ -50,6 +57,8 @@ struct AudioStateSnapshot
     std::vector<AudioChannelState> outputChannels;
 
     AudioLatencyState latency;
+
+    AudioRestoreState restore;
 
     std::uint64_t deviceXruns = 0;
     std::uint64_t callbackOverruns = 0;

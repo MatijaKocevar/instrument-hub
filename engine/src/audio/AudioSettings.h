@@ -13,6 +13,11 @@
 #include <string>
 #include <vector>
 
+namespace ihub::settings
+{
+class SettingsStore;
+}
+
 namespace AudioEngine
 {
 
@@ -23,6 +28,10 @@ public:
     ~AudioSettingsBridge() = default;
 
     void setDeviceManager (DeviceManager* manager);
+
+    void setSettingsStore (ihub::settings::SettingsStore* store);
+
+    void setRestoreState (const Api::AudioRestoreState& state);
 
     bool openLoopback (juce::String* errorMessage = nullptr);
 
@@ -84,6 +93,9 @@ private:
     juce::String pendingName;
     double pendingSampleRate = 48000.0;
     int pendingBufferSize = 128;
+
+    ihub::settings::SettingsStore* settingsStore = nullptr;
+    Api::AudioRestoreState restoreState;
 
     std::atomic<int> chainLatencySamples { 0 };
     TimingMonitor* timingMonitor = nullptr;

@@ -64,6 +64,9 @@ public:
 
     bool openDevice (juce::String* errorMessage = nullptr);
 
+    bool openDevice (const SessionDeviceConfig& device,
+                     juce::String* errorMessage = nullptr);
+
     void closeDevice();
 
     void beginShutdown();

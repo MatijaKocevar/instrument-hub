@@ -1,5 +1,7 @@
 #pragma once
 
+#include "api/state/AudioState.h"
+
 #include <juce_core/juce_core.h>
 
 #include <functional>
@@ -27,6 +29,11 @@ namespace ihub::plugins
 class PluginInventory;
 }
 
+namespace ihub::settings
+{
+class SettingsStore;
+}
+
 namespace ihub::app
 {
 
@@ -42,7 +49,9 @@ public:
                 ihub::Session* session,
                 bool required,
                 const juce::File& projectFile,
-                std::function<void()> midiRestore = {});
+                std::function<void()> midiRestore = {},
+                ihub::settings::SettingsStore* settings = nullptr,
+                const Api::AudioRestoreState& audioRestore = {});
 
     void stopServer();
     void detachMidi();

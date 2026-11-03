@@ -32,6 +32,18 @@ void AudioSettingsBridge::setDeviceManager (DeviceManager* manager)
     }
 }
 
+void AudioSettingsBridge::setSettingsStore (ihub::settings::SettingsStore* store)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    settingsStore = store;
+}
+
+void AudioSettingsBridge::setRestoreState (const Api::AudioRestoreState& state)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    restoreState = state;
+}
+
 void AudioSettingsBridge::refreshDevices()
 {
     deviceTypeNames = liveManager().getDeviceTypeNames();

@@ -1,5 +1,7 @@
 #include "TestSupport.h"
 #include "audio_settings/DeviceBridge.h"
+#include "audio_settings/Persistence.h"
+#include "audio_settings/Restore.h"
 #include "audio_settings/Routes.h"
 
 #include <iostream>
@@ -7,6 +9,8 @@
 int main()
 {
     ApiTest::AudioSettings::runRoutes();
+    ApiTest::AudioSettings::runRestore();
+    ApiTest::AudioSettings::runPersistence();
     ApiTest::AudioSettings::runDeviceBridge();
 
     std::cout << (ApiTest::failures == 0 ? "audio-settings-test: PASS"

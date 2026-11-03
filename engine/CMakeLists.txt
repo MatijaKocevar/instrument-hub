@@ -169,10 +169,13 @@ target_sources(instrument-hub
         src/audio/RtGuard.cpp
         src/audio/rtguard/AllocatorInterposition.cpp
         src/audio/rtguard/LockInterposition.cpp
+        src/audio/settings/AudioDeviceRestore.cpp
+        src/audio/settings/AudioDeviceSelection.cpp
         src/audio/settings/AudioSettingsApply.cpp
         src/audio/settings/AudioSettingsChannels.cpp
         src/audio/settings/AudioSettingsMeasure.cpp
         src/audio/settings/AudioSettingsOpen.cpp
+        src/audio/settings/AudioSettingsPersistence.cpp
         src/audio/settings/AudioSettingsSnapshot.cpp
         src/audio/settings/LatencyBudget.cpp
         src/audio/Slot.cpp

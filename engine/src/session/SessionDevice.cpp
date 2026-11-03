@@ -44,6 +44,13 @@ bool Session::openDevice (juce::String* errorMessage)
     return true;
 }
 
+bool Session::openDevice (const SessionDeviceConfig& device,
+                          juce::String* errorMessage)
+{
+    config.device = device;
+    return openDevice (errorMessage);
+}
+
 void Session::closeDevice()
 {
     devices.close();

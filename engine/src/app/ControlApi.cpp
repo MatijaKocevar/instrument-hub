@@ -12,6 +12,7 @@
 #include "audio/AudioSettings.h"
 #include "plugins/PluginInventory.h"
 #include "project/Serializer.h"
+#include "settings/SettingsStore.h"
 
 #include <iostream>
 #include <utility>
@@ -34,7 +35,9 @@ bool ControlApi::start (const juce::String& commandLine,
                         ihub::Session* session,
                         bool required,
                         const juce::File& projectFile,
-                        std::function<void()> midiRestore)
+                        std::function<void()> midiRestore,
+                        ihub::settings::SettingsStore* settings,
+                        const Api::AudioRestoreState& audioRestore)
 {
     Api::Server::Options options;
 
@@ -85,6 +88,8 @@ bool ControlApi::start (const juce::String& commandLine,
         [this] (std::string& error) { return midiBridge->runPadTest (error); });
 
     audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
+    audioSettings->setSettingsStore (settings);
+    audioSettings->setRestoreState (audioRestore);
 
     if (session != nullptr)
     {

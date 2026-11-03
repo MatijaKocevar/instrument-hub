@@ -27,6 +27,11 @@ export const AUDIO: ControlAudioState = {
     chainMs: 5,
     totalMs: (128 * 1000) / 48000 + 1.33 + 5,
   },
+  restore: {
+    usedStoredDevice: true,
+    fallback: false,
+    reason: "",
+  },
   xruns: 2,
   deviceXruns: 1,
   callbackOverruns: 1,
