@@ -135,6 +135,7 @@ private:
     std::vector<DeviceInfo> getRawDevices();
     std::vector<DeviceInfo> getCardDevices();
     std::vector<DeviceInfo> getSystemDevice();
+    std::vector<DeviceInfo> getTypeDevices();
 
     bool probeListedDevice (const juce::String& friendlyName,
                             const juce::String& juceName,
