@@ -52,7 +52,7 @@ bool ControlApi::start (const juce::String& commandLine,
 
     const int apiSlots = session != nullptr ? session->getNumSlots()
                                             : ihub::Session::defaultLogicalSlots;
-    apiState = std::make_unique<Api::StateStore> (apiSlots);
+    apiState = std::make_unique<Api::StateStore> (apiSlots, settings);
     apiServer = std::make_unique<Api::Server> (*apiState, options);
     pluginInventory = std::make_unique<ihub::plugins::PluginInventory>();
     Api::attachPluginInventory (*apiServer, *pluginInventory);

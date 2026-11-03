@@ -39,6 +39,13 @@ set(IHUB_RT_GUARD_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/rtguard/LockInterposition.cpp"
 )
 
+set(IHUB_SETTINGS_STORE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
+)
+
 set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/AuthGuard.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MeterSampler.cpp"
@@ -48,10 +55,12 @@ set(IHUB_API_SERVER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePatchSource.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePatches.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSettings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSettingsPersistence.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTransport.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSnapshot.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreProject.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
+    ${IHUB_SETTINGS_STORE_SOURCES}
 )
 
 set(IHUB_PROJECT_SOURCES
@@ -316,10 +325,7 @@ target_sources(ihub-settings-store-test
         settings/UnknownKeys.cpp
         settings/AtomicReplace.cpp
         settings/NewerVersion.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
+        ${IHUB_SETTINGS_STORE_SOURCES}
 )
 
 target_include_directories(ihub-settings-store-test
@@ -2087,6 +2093,54 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+juce_add_console_app(ihub-app-settings-api-test
+    PRODUCT_NAME "ihub-app-settings-api-test"
+)
+
+target_sources(ihub-app-settings-api-test
+    PRIVATE
+        api/AppSettingsApiTest.cpp
+        api/JsonSupport.cpp
+        api/TestSupport.cpp
+        api/app_settings_api/Account.cpp
+        api/app_settings_api/Fixtures.cpp
+        api/app_settings_api/Mixer.cpp
+        ${IHUB_DISCOVERY_SOURCES}
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
+        ${IHUB_API_ROUTES_SOURCES}
+        ${IHUB_API_SERVER_SOURCES}
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
+)
+
+target_include_directories(ihub-app-settings-api-test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
+)
+
+target_link_libraries(ihub-app-settings-api-test
+    PRIVATE
+        Threads::Threads
+        ihub-httplib
+        juce::juce_core
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+set_target_properties(ihub-app-settings-api-test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_test(
+    NAME ihub-app-settings-api
+    COMMAND ihub-app-settings-api-test
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 juce_add_console_app(ihub-pairing-test
     PRODUCT_NAME "ihub-pairing-test"
 )
@@ -2221,10 +2275,6 @@ target_sources(ihub-audio-settings-test
         ${IHUB_DEVICE_MANAGER_SOURCES}
         ${IHUB_LATENCY_PROBE_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
 )
 
 target_include_directories(ihub-audio-settings-test

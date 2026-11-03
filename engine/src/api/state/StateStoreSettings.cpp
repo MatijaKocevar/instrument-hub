@@ -74,6 +74,9 @@ bool StateStore::updateSettings (const juce::var& patch, std::string& error)
             }
         }
 
+        if (! persistMixerSettings (next, error))
+            return false;
+
         settings = next;
     }
 

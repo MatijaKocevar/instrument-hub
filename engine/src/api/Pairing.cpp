@@ -93,25 +93,55 @@ std::string PairingManager::getAdvertisedAddress() const
     return advertisedAddress;
 }
 
-bool PairingManager::setLanEnabled (bool enabled)
+void PairingManager::setAccountChangeHandler (AccountChangeHandler handler)
 {
     const std::lock_guard<std::mutex> lock (mutex);
+    accountChangeHandler = std::move (handler);
+}
 
-    if (lanEnabled == enabled)
-        return false;
+void PairingManager::restoreToken (std::string token)
+{
+    if (token.empty())
+        return;
 
-    lanEnabled = enabled;
+    const std::lock_guard<std::mutex> lock (mutex);
+    pairingToken = token;
+    tokens[std::move (token)] = "restored";
+}
 
-    if (enabled)
+bool PairingManager::setLanEnabled (bool enabled)
+{
+    AccountChangeHandler handler;
+    bool lan = false;
+    std::string token;
+
     {
-        issueCodeLocked();
+        const std::lock_guard<std::mutex> lock (mutex);
+
+        if (lanEnabled == enabled)
+            return false;
+
+        lanEnabled = enabled;
+
+        if (enabled)
+        {
+            issueCodeLocked();
+        }
+        else
+        {
+            code.clear();
+            codeExpiry = {};
+            tokens.clear();
+            pairingToken.clear();
+        }
+
+        lan = lanEnabled;
+        token = pairingToken;
+        handler = accountChangeHandler;
     }
-    else
-    {
-        code.clear();
-        codeExpiry = {};
-        tokens.clear();
-    }
+
+    if (handler != nullptr)
+        handler (lan, token);
 
     return true;
 }
@@ -154,41 +184,52 @@ bool PairingManager::pair (const std::string& suppliedCode,
                            std::string clientName)
 {
     const auto normalized = trim (suppliedCode);
-    const std::lock_guard<std::mutex> lock (mutex);
+    AccountChangeHandler handler;
+    std::string issued;
 
-    if (! lanEnabled)
     {
-        error = "LAN mode is off";
-        return false;
-    }
+        const std::lock_guard<std::mutex> lock (mutex);
 
-    const auto now = std::chrono::steady_clock::now();
+        if (! lanEnabled)
+        {
+            error = "LAN mode is off";
+            return false;
+        }
 
-    if (code.empty() || now >= codeExpiry)
-    {
+        const auto now = std::chrono::steady_clock::now();
+
+        if (code.empty() || now >= codeExpiry)
+        {
+            issueCodeLocked();
+            error = "pairing code has expired; scan the new code";
+            return false;
+        }
+
+        if (! isValidCode (normalized))
+        {
+            error = "pairing code must be 6 digits";
+            return false;
+        }
+
+        if (! constantTimeEquals (normalized, code))
+        {
+            error = "invalid pairing code";
+            return false;
+        }
+
+        issued = randomToken();
+        tokens[issued] = std::move (clientName);
+        pairingToken = issued;
+
         issueCodeLocked();
-        error = "pairing code has expired; scan the new code";
-        return false;
+
+        token = issued;
+        handler = accountChangeHandler;
     }
 
-    if (! isValidCode (normalized))
-    {
-        error = "pairing code must be 6 digits";
-        return false;
-    }
+    if (handler != nullptr)
+        handler (true, issued);
 
-    if (! constantTimeEquals (normalized, code))
-    {
-        error = "invalid pairing code";
-        return false;
-    }
-
-    auto issued = randomToken();
-    tokens[issued] = std::move (clientName);
-
-    issueCodeLocked();
-
-    token = std::move (issued);
     return true;
 }
 
@@ -203,9 +244,22 @@ bool PairingManager::validateToken (const std::string& token) const
 
 std::size_t PairingManager::revokeAll()
 {
-    const std::lock_guard<std::mutex> lock (mutex);
-    const auto count = tokens.size();
-    tokens.clear();
+    AccountChangeHandler handler;
+    std::size_t count = 0;
+    bool lan = false;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        count = tokens.size();
+        tokens.clear();
+        pairingToken.clear();
+        lan = lanEnabled;
+        handler = accountChangeHandler;
+    }
+
+    if (handler != nullptr)
+        handler (lan, {});
+
     return count;
 }
 

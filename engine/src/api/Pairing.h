@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -31,9 +32,16 @@ public:
     static constexpr int codeDigits = 6;
     static constexpr std::chrono::minutes codeLifetime { 5 };
 
+    using AccountChangeHandler = std::function<void (bool lanEnabled,
+                                                     const std::string& pairingToken)>;
+
     explicit PairingManager (std::string advertisedAddress = {}, int port = 8080);
 
     void setEndpoint (std::string advertisedAddress, int port);
+
+    void setAccountChangeHandler (AccountChangeHandler handler);
+
+    void restoreToken (std::string token);
 
     std::string getAdvertisedAddress() const;
 
@@ -74,6 +82,9 @@ private:
     std::chrono::steady_clock::time_point codeExpiry;
 
     std::unordered_map<std::string, std::string> tokens;
+    std::string pairingToken;
+
+    AccountChangeHandler accountChangeHandler;
 };
 
 }

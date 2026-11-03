@@ -18,6 +18,11 @@
 #include <string>
 #include <vector>
 
+namespace ihub::settings
+{
+class SettingsStore;
+}
+
 namespace Api
 {
 
@@ -30,7 +35,8 @@ public:
         bool alive = true;
     };
 
-    explicit StateStore (int numSlots = 64);
+    explicit StateStore (int numSlots = 64,
+                         ihub::settings::SettingsStore* settingsStore = nullptr);
     ~StateStore();
 
     int getArmedSlot() const noexcept;
@@ -48,6 +54,10 @@ public:
 
     SettingsState getSettings() const;
     bool updateSettings (const juce::var& patch, std::string& error);
+
+    ihub::settings::SettingsStore* getSettingsStore() const noexcept;
+    bool persistAccountSettings (bool lanEnabled,
+                                 const std::string& pairingToken);
 
     TransportState getTransport() const;
     bool updateTransport (const juce::var& patch, std::string& error);
@@ -156,9 +166,13 @@ private:
                                       std::vector<float>& gains) const;
     void notifyEdited (const char* kind, int slot);
 
+    void loadStoredSettings();
+    bool persistMixerSettings (const SettingsState& next, std::string& error);
+
     mutable std::mutex mutex;
 
     const int numSlots;
+    ihub::settings::SettingsStore* const settingsStore;
     int armedSlot = -1;
     std::vector<std::string> slotNames;
     std::vector<std::string> slotFamilies;
