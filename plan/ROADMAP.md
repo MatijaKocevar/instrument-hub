@@ -20,8 +20,9 @@ edit.
 > explicit human request; see `plan/REFACTOR.md` for the rationale and
 > target structure. **T182** (Prettier for the UI), **T187** (native JACK
 > device type), **T188–T192** (settings persistence, design in
-> `plan/SETTINGS.md`) and **T193–T195** (device list, design in
-> `plan/DEVICES.md`) are likewise explicit human requests.
+> `plan/SETTINGS.md`), **T193–T195** (device list, design in
+> `plan/DEVICES.md`) and **T196–T203** (the human-reported bug list of
+> 2026-11-03) are likewise explicit human requests.
 
 ---
 
@@ -971,6 +972,70 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - files: `engine/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/device_manager/`, `docs/architecture.md`
 - accept: `scripts/test.sh` passes; `ihub-device-manager-test` prints both device types; `--list-devices` still lists the Loopback; the app still opens ALSA at 48 kHz/128 by default; no audio-thread changes.
 - note: no `jackd` runs on this machine, so the live JACK open path cannot be exercised. Record the untested path (start `jackd`, select JACK under `/audio`) in the result and in `docs/architecture.md`; do not block on it. The ALSA `jack` PCM that ALSA enumeration already probes is not the native JACK type, so both may appear in the ALSA device list.
+
+## Bug list 2026-11-03 (human-reported, UI and controller)
+
+Each task reproduces its bug first per `plan/REPRO.md` (Playwright for UI,
+LED capture for the controller) and records the verbatim evidence in
+`plan/BUGS.md` before touching source.
+
+## T196 · BUG-008 align grid rows with the Launchpad
+- depends: none
+- size: M
+- goal: Make the screen grid match the hardware: slot index 0 (pad note 11) is the bottom-left cell and the first family row is the bottom row. Reverse the render order in the grid model/view rather than remapping slots, keep column order and all slot-keyed callbacks unchanged, and update the snapshot fixtures.
+- files: `ui/src/features/grid/model.ts`, `ui/src/features/grid/GridView.tsx`, `ui/src/features/grid/GridTable.tsx`, `ui/src/testing/`
+- accept: with `/grid` open at 1200x800, the first rendered `grid-cell` row holds slots 57–64 and the last holds 0–7; clicking any cell still arms its own slot; the virtual-Launchpad capture for note 11 lights slot 0; `pnpm test:snapshot` passes.
+
+## T197 · BUG-009 reserve red for the armed patch
+- depends: none
+- size: M
+- goal: Remove red from the patch palette on both sides and keep the two palettes aligned, so only the armed patch is red. Replace the rose entries in `PATCH_COLOURS`, replace the red Launchpad velocities (including index 0's velocity 5) with non-red ones in the same order, and give empty cells a neutral gradient instead of the index-0 colour.
+- files: `ui/src/features/grid/colours.ts`, `ui/src/features/grid/GridCell.tsx`, `engine/src/controller/LaunchpadProtocol.h`, `engine/src/controller/LaunchpadLed.cpp`, `tests/controller/`, `tests/e2e/`
+- accept: a 16-index sweep produces no red velocity from `velocityForPatchColour`; after arming one pad the virtual-Launchpad capture contains exactly one red LED; the UI palette has no red hue and empty cells are neutral; `scripts/test.sh` and `pnpm test:snapshot` pass.
+
+## T198 · BUG-010 push armed-state changes to the UI
+- depends: none
+- size: L
+- goal: Stop making the UI wait for the 2 s poll. Broadcast the control-state revision over the existing WebSocket whenever the snapshot changes (arm, patch edit, warm state, device), apply it in the store, and keep polling as the fallback with the current backoff. Do not add a second socket.
+- files: `engine/src/api/WebSocketRoutes.cpp`, `engine/src/api/StateBroadcast.cpp`, `engine/src/api/state/`, `ui/src/state/store.ts`, `ui/src/state/pollLoop.ts`, `ui/src/features/shell/useShellData.ts`, `tests/api/`
+- accept: with `/grid` open, a `POST /arm` issued outside the browser moves `grid-cell[data-armed="true"]` within 250 ms; with the socket aborted the poll still applies it within 3 s; `scripts/test.sh` and `pnpm test:snapshot` pass.
+
+## T199 · BUG-011 write patch edits back to the set
+- depends: none
+- size: L
+- goal: Persist accepted patch and family edits. `Serializer::save` is currently called only by tests; wire a debounced, atomic save of the loaded set after each accepted change (volume, pan, mute, solo, colour, source, FX chain) and after a captured plug-in sound, keeping the loaded path. A failed save must surface as an error on the request instead of being dropped.
+- files: `engine/src/api/state/StateStorePatches.cpp`, `engine/src/api/StateStore.*`, `engine/src/project/Serializer.cpp`, `engine/src/Session.cpp`, `tests/api/patch/`, `tests/project/`
+- accept: an edit followed by a restart of the engine loads the edited value; a read-only set path returns a save error and leaves the file untouched; concurrent edits produce one valid file, not a partial one; `scripts/test.sh` passes.
+- note: if a set is loaded from a location the app may not write, keep running and report `persisted: false` rather than failing the edit.
+
+## T200 · BUG-012 keep audio alive while the plug-in editor changes sound
+- depends: none
+- size: L
+- goal: Reproduce the silence first and capture the log, then make editor-side sound changes reach the sandboxed audio instance without closing the editor. The editor mirror (T184) is the only path into the sandbox today, so either push parameter/state changes to it on edit or re-arm the slot in place; audio must never stop when a preset changes.
+- files: `engine/src/session/EditorHost.cpp`, `engine/src/plugins/`, `engine/src/session/SessionBuild.cpp`, `tests/plugins/`, `tests/e2e/`
+- accept: with a TestPlugin mirror, changing a parameter while the editor is open keeps the slot rendering above -40 dBFS and the new value is audible in the next render; the engine log shows no device close/reopen; `scripts/test.sh` passes. The real Analog Lab check is recorded for the human.
+- note: if the fix needs the real plug-in, prove the mechanism with TestPlugin and write `STATUS: partial` with the remaining human step rather than `done`.
+
+## T201 · BUG-013 stop arming from recolouring the other pads
+- depends: none
+- size: M
+- goal: Every pad keeps its patch colour; arming changes only the armed pad (static red). Show warming with a pulsing mode and error with a flashing red instead of replacing the colour of every pad that changes warm state.
+- files: `engine/src/app/ControllerSurface.cpp`, `engine/src/controller/LaunchpadLed.cpp`, `engine/src/controller/launchpad/LaunchpadDriverLeds.cpp`, `tests/controller/`, `tests/e2e/`
+- accept: a virtual-Launchpad capture taken before and after arming differs in exactly one pad's `(velocity, mode)`; all other pads keep their patch colour; an erroring pad still flashes; `scripts/test.sh` passes.
+
+## T202 · BUG-014 make the Grid page just the grid
+- depends: none
+- size: S
+- goal: `/grid` renders the grid only. Remove `SystemPanels` from `GridRoute`; if the three panels are used nowhere else, delete them with their dead tests and fixtures instead of leaving unused components behind.
+- files: `ui/src/features/shell/GridRoute.tsx`, `ui/src/features/shell/SystemPanels.tsx`, `ui/src/testing/`
+- accept: `/grid` contains `instrument-grid` and no `app__panels`; no unused panel component remains; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
+
+## T203 · BUG-015 move Audio & MIDI to the footer
+- depends: none
+- size: S
+- goal: Take Audio & MIDI out of the sidebar workspace and render it in the shell footer next to the status line; the sidebar keeps Grid, Instrument and Plugins. Keep the item in the narrow-layout bottom tabs so the route stays reachable.
+- files: `ui/src/features/shell/navigation.ts`, `ui/src/features/shell/Sidebar.tsx`, `ui/src/features/shell/ShellFooter.tsx`, `ui/src/features/shell/BottomTabs.tsx`, `ui/src/testing/`
+- accept: at 1200x800 `nav-audio` is inside `app-footer` and not inside `app-nav`, and clicking it opens `/audio`; at a narrow width the bottom tabs still show it; `pnpm typecheck` and `pnpm test:snapshot` pass.
 
 ## T188 · App settings store
 - depends: T187

@@ -71,6 +71,81 @@ reported by the human or reproduced on this machine.
 - evidence: launched 2026-11-01 17:08, found stuck at 17:21 (PID 61425, 14 min elapsed, 8 threads, `/proc/61425/task/61425/wchan` = `futex_wait_queue`, thread 61428 at 99.9%); `ss -ltnp` shows no 8080 listener; `xwininfo` reports the window `IsViewable` at 3840+24; a hand-sent `WM_DELETE_WINDOW` (`/tmp/opencode/xclose 0x560000c`) was ignored; `kill -TERM 61425` exited immediately; `/tmp/opencode/run-launchpad.log` stops at 17:11:00; `ihub-shutdown-test` now builds a session with a warm pooled patch and a live control API, stops both, and requires the whole teardown in < 2 s (15.4 ms); with the dispatch loop already stopped it starts a sandbox plugin load whose helper blocks in startup and requires shutdown in < 2 s (3.1 ms, slot reports `sandbox startup cancelled`); `scripts/test.sh` -> 67/67 passed
 - fix: T185 closes the shutdown path. `WarmPoolController::shutdown()` now cancels in-flight loads before draining, waits for the worker with a 1 s budget instead of `pumpMessages(2)` (which busy-spins once the quit message has been received), and abandons a worker that ignores the budget rather than joining it forever. `WarmPool::shutdown()` sets quit, joins only after the worker signals completion, and destroys the abandoned instances on the calling thread; the old destructor path could join a worker stuck in `SandboxHost::start()`. `SandboxHost` gained `shouldAbortStart`, polled every 2 ms, so a shutdown kills the helper instead of waiting out its 15 s startup timeout; `Session::beginShutdown()` sets that token and skips plugin-state capture while the session is tearing down. `Main::shutdown()` now calls it before `closeDevice()` and releases the audio bridge/server before the session. The original Analog Lab hang was not reproduced without the real plugin: the regression reproduces its shape (worker blocked in plugin startup, message loop already stopped) with a fake stalling sandbox helper. Remaining gap: an in-process editor mirror or a non-sandbox factory that blocks and ignores the token can still leave a worker behind; the controller abandons it instead of keeping the process alive, so any future blocking factory must honour the cancellation token before it can be considered shutdown-safe. The sandboxed audio path itself is unaffected.
 
+### BUG-015 · Audio & MIDI is a sidebar workspace item, not a footer entry
+- status: open
+- area: ui
+- steps: open any desktop route
+- expected: the sidebar lists Grid, Instrument and Plugins; Audio & MIDI sits in the footer with the status line
+- actual: `WORKSPACE_ITEMS` puts Audio & MIDI fourth in the sidebar
+- evidence: `ui/src/features/shell/navigation.ts:14`, `Sidebar.tsx:39`
+- fix: pending; T203
+
+### BUG-014 · Grid page opens with three engine cards above the grid
+- status: open
+- area: ui
+- steps: open `/grid`
+- expected: the page is the 8×8 grid only
+- actual: `EnginePanel`, `TransportPanel` and `SettingsPanel` render as a three-card band above it
+- evidence: `ui/src/features/shell/GridRoute.tsx:34` renders `SystemPanels`, which renders the three panels
+- fix: pending; T202
+
+### BUG-013 · Arming one pad recolours the other Launchpad pads
+- status: open
+- area: launchpad
+- steps: arm a patch from the controller and watch the grid LEDs
+- expected: only the armed pad changes (to red); every other pad keeps its patch colour
+- actual: other pads change colour as their warm state flips (`warming` paints every pad yellow, `error` red flashing)
+- evidence: `engine/src/app/ControllerSurface.cpp:147-151` derives the LED from the live warm state for all 64 pads; `LaunchpadLed.cpp:24-37` lets `warming`/`error` override the patch colour
+- fix: pending; T201
+
+### BUG-012 · Changing a sound in Analog Lab silences audio until the editor is closed
+- status: open
+- area: instrument
+- steps:
+  1. arm an Analog Lab patch and confirm it plays
+  2. open the plug-in editor and change the preset
+  3. play the Keystation
+- expected: the new sound plays immediately
+- actual: audio is silent for about a second and stays silent until the editor window is closed, then the new sound plays
+- evidence: reported 2026-11-03; root cause not yet captured — the sound reaches the sandboxed audio instance only through the editor mirror, which T184 introduced
+- fix: pending; T200 reproduces first and records the log
+
+### BUG-011 · Patch edits are never written to the set file
+- status: open
+- area: engine
+- steps: change volume, pan, colour or source on the Instrument page, then restart the app
+- expected: the values return
+- actual: every edit is lost; the set file on disk is unchanged
+- evidence: `ihub::project::Serializer::save` has no caller outside `tests/project/SetFileTest.cpp`; `StateStorePatches` mutates memory only
+- fix: pending; T199
+
+### BUG-010 · The grid's armed colour lags the Launchpad by up to two seconds
+- status: open
+- area: ui
+- steps: arm a patch from the Launchpad while looking at `/grid`
+- expected: the red cell follows the pad immediately
+- actual: the pad lights at once, the UI catches up on the next poll
+- evidence: `ui/src/state/options.ts:18` sets `pollIntervalMs: 2000`; state reaches the UI only through `PollLoop`, the WebSocket carries meters only
+- fix: pending; T198
+
+### BUG-009 · The patch palette starts with red, so a whole row is red
+- status: open
+- area: ui
+- steps: open `/grid`
+- expected: no red except the armed patch
+- actual: colour index 0 is `#f43f5e` in the UI and Launchpad velocity 5 (red) on the controller, so index-0 rows read as a red row; the rose at index 13 does the same
+- evidence: `ui/src/features/grid/colours.ts:2,14`; `engine/src/controller/LaunchpadProtocol.h:133-135`; `ARMED_COLOUR` is also red (`colours.ts:20`)
+- fix: pending; T197
+
+### BUG-008 · Grid rows are mirrored between the UI and the Launchpad
+- status: open
+- area: grid
+- steps: compare the first family row on `/grid` with the bottom-left row of the Launchpad
+- expected: the same slots in the same physical place
+- actual: slot 1 is the top-left cell on screen but the bottom-left pad (note 11) on the controller, so the first row reads red at the top on screen and at the bottom on the hardware
+- evidence: `LaunchpadGrid.h:15-24` maps pad index 0 to note 11 (bottom-left); `ui/src/features/grid/model.ts:45-77` puts slots 1–8 in the first rendered row
+- fix: pending; T196
+
 ### BUG-006 · Audio device and mixer settings are lost on every restart
 - status: open
 - area: audio
