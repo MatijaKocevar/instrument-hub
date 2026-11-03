@@ -42,10 +42,11 @@ std::map<int, LedHit> captureGridLeds (const Api::StateSnapshot& snapshot,
         }
 
         const auto& patch = *found->second;
+        const bool armed = pad == snapshot.armedSlot;
         driver.setPatchLed (pad,
                             patch.colorIndex,
-                            pad == snapshot.armedSlot,
-                            patch.warmState == "warming",
+                            armed,
+                            armed && patch.warmState == "warming",
                             patch.warmState == "error");
     }
 

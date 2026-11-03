@@ -1879,6 +1879,8 @@ target_sources(ihub-launchpad-driver-test
     PRIVATE
         controller/LaunchpadDriverTest.cpp
         controller/TestSupport.cpp
+        controller/driver/ArmingCapture.cpp
+        controller/driver/ArmingCaptureGrid.cpp
         controller/driver/Grid.cpp
         controller/driver/Handshake.cpp
         controller/driver/LedStream.cpp
