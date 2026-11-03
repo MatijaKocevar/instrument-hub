@@ -151,11 +151,15 @@ target_sources(instrument-hub
         src/audio/FxChain.cpp
         src/audio/FxRack.cpp
         src/audio/device/DeviceChannels.cpp
+        src/audio/device/DeviceCardList.cpp
+        src/audio/device/DeviceCardProbe.cpp
+        src/audio/device/DeviceCards.cpp
         src/audio/device/DeviceDescription.cpp
         src/audio/device/DeviceEnumeration.cpp
         src/audio/device/DeviceLatency.cpp
         src/audio/device/DeviceLookup.cpp
         src/audio/device/DeviceOpen.cpp
+        src/audio/device/DevicePcmHints.cpp
         src/audio/device/DeviceState.cpp
         src/audio/fx/FxInsertFactory.cpp
         src/audio/fx/FxInsertParameters.cpp

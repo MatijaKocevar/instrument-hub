@@ -20,6 +20,8 @@ struct AudioDeviceState
 {
     std::string type;
     std::string name;
+    bool available = true;
+    std::string reason;
 };
 
 struct AudioLatencyState

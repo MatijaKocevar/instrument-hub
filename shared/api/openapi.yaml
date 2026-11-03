@@ -1947,7 +1947,13 @@ components:
           example: ALSA
         name:
           type: string
-          example: Loopback
+          example: Steinberg UR22mkII
+        available:
+          type: boolean
+          description: Whether the device could be opened during enumeration.
+        reason:
+          type: string
+          description: Why an unavailable device cannot be opened.
 
     AudioLatency:
       type: object

@@ -90,7 +90,22 @@ bool DeviceManager::open (const DeviceSetup& setup, juce::String* errorMessage)
         deviceManager.setCurrentAudioDeviceType (typeName, true);
     }
 
-    return applyNativeSetup (makeNativeSetup (setup), errorMessage);
+    auto resolved = setup;
+    resolved.deviceTypeName = typeName;
+    resolved.outputDeviceName = resolveListedName (typeName, setup.outputDeviceName);
+
+    if (setup.inputDeviceName.isNotEmpty())
+        resolved.inputDeviceName = setup.inputDeviceName == setup.outputDeviceName
+                                       ? resolved.outputDeviceName
+                                       : resolveListedName (typeName, setup.inputDeviceName);
+
+    if (! applyNativeSetup (makeNativeSetup (resolved), errorMessage))
+        return false;
+
+    currentDisplayName = setup.outputDeviceName.isNotEmpty() ? setup.outputDeviceName
+                                                            : setup.inputDeviceName;
+    cardCacheValid = false;
+    return true;
 }
 
 bool DeviceManager::setDevice (const DeviceSetup& setup, juce::String* errorMessage)

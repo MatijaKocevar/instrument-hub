@@ -26,6 +26,12 @@ Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
     if (devices.empty())
         refreshDevices();
 
+    if (pendingName.isEmpty() && ! devices.empty())
+    {
+        pendingType = firstDeviceType();
+        pendingName = firstOutputDeviceOfType (pendingType);
+    }
+
     Api::AudioStateSnapshot result;
     result.open = manager.isOpen();
     result.restore = restoreState;
@@ -38,6 +44,8 @@ Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
         Api::AudioDeviceState entry;
         entry.type = toString (device.type);
         entry.name = toString (device.name);
+        entry.available = device.available;
+        entry.reason = toString (device.unavailableReason);
         result.devices.push_back (std::move (entry));
 
         const auto type = toString (device.type);

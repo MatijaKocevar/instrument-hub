@@ -53,26 +53,33 @@ juce::String DeviceManager::describeDevices()
                                  : typeNames.joinIntoString (", "))
          << "\n";
 
-    for (const auto& type : getDeviceTypes())
+    if (listOptions.raw)
     {
-        text << "\ndevice type: " << type.name << "\n"
-             << "  inputs : "
-             << (type.inputDeviceNames.isEmpty()
-                     ? juce::String ("none")
-                     : type.inputDeviceNames.joinIntoString (", "))
-             << "\n"
-             << "  outputs: "
-             << (type.outputDeviceNames.isEmpty()
-                     ? juce::String ("none")
-                     : type.outputDeviceNames.joinIntoString (", "))
-             << "\n";
+        for (const auto& type : getDeviceTypes())
+        {
+            text << "\ndevice type: " << type.name << "\n"
+                 << "  inputs : "
+                 << (type.inputDeviceNames.isEmpty()
+                         ? juce::String ("none")
+                         : type.inputDeviceNames.joinIntoString (", "))
+                 << "\n"
+                 << "  outputs: "
+                 << (type.outputDeviceNames.isEmpty()
+                         ? juce::String ("none")
+                         : type.outputDeviceNames.joinIntoString (", "))
+                 << "\n";
+        }
     }
 
     for (const auto& info : getDevices())
     {
         text << "\ndevice: " << info.name << "\n"
-             << "  type   : " << info.typeName << "\n"
-             << "  input  : " << (info.hasInput ? "yes" : "no");
+             << "  type   : " << info.typeName << "\n";
+
+        if (! info.available)
+            text << "  status : unavailable (" << info.unavailableReason << ")\n";
+
+        text << "  input  : " << (info.hasInput ? "yes" : "no");
 
         if (info.isDefaultInput)
             text << " (default)";
@@ -93,4 +100,4 @@ juce::String DeviceManager::describeDevices()
     return text;
 }
 
-}
+} // namespace AudioEngine

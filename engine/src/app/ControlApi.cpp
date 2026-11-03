@@ -89,6 +89,9 @@ bool ControlApi::start (const juce::String& commandLine,
         [this] (std::string& error) { return midiBridge->runPadTest (error); });
 
     audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
+    audioSettings->setShowTestDevices (commandLine.contains ("--show-test-devices")
+                                       || commandLine.contains ("--audio")
+                                       || commandLine.contains ("--audio-loopback"));
     audioSettings->setSettingsStore (settings);
     audioSettings->setRestoreState (audioRestore);
 

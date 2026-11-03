@@ -32,7 +32,7 @@ juce::String DeviceManager::getCurrentDeviceTypeName() const
 juce::String DeviceManager::getCurrentDeviceName() const
 {
     if (auto* device = deviceManager.getCurrentAudioDevice())
-        return device->getName();
+        return currentDisplayName.isNotEmpty() ? currentDisplayName : device->getName();
 
     return {};
 }

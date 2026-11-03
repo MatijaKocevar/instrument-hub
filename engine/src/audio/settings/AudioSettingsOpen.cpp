@@ -68,7 +68,7 @@ bool AudioSettingsBridge::openFirstOutput (juce::String* errorMessage)
     const CachedDevice* chosen = nullptr;
 
     for (const auto& device : devices)
-        if (device.hasOutput)
+        if (device.hasOutput && device.available)
         {
             chosen = &device;
             break;

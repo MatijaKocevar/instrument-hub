@@ -42,6 +42,26 @@ std::vector<DeviceInfo> DeviceManager::getDevices()
 {
     ensureInitialised();
 
+    if (listOptions.raw)
+        return getRawDevices();
+
+    if (! cardCacheValid)
+    {
+        cardCache = getCardDevices();
+
+        auto system = getSystemDevice();
+
+        for (auto& device : system)
+            cardCache.push_back (std::move (device));
+
+        cardCacheValid = true;
+    }
+
+    return cardCache;
+}
+
+std::vector<DeviceInfo> DeviceManager::getRawDevices()
+{
     std::vector<DeviceInfo> result;
 
     for (auto* type : deviceManager.getAvailableDeviceTypes())
@@ -61,7 +81,9 @@ std::vector<DeviceInfo> DeviceManager::getDevices()
 
         for (const auto& name : allNames)
         {
-            auto device = createDevice (type->getTypeName(), name);
+            auto device = createRawDevice (type->getTypeName(),
+                                           name,
+                                           name);
 
             if (device == nullptr)
                 continue;
@@ -69,6 +91,7 @@ std::vector<DeviceInfo> DeviceManager::getDevices()
             DeviceInfo info;
             info.typeName = type->getTypeName();
             info.name = name;
+            info.juceName = name;
             info.hasInput = inputNames.contains (name);
             info.hasOutput = outputNames.contains (name);
             info.isDefaultInput = info.hasInput && defaultInput >= 0
@@ -94,7 +117,9 @@ std::vector<DeviceInfo> DeviceManager::getDevices()
 juce::Array<double> DeviceManager::getAvailableSampleRates (const juce::String& typeName,
                                                             const juce::String& deviceName)
 {
-    if (auto device = createDevice (typeName, deviceName))
+    const auto name = resolveListedName (typeName, deviceName);
+
+    if (auto device = createRawDevice (typeName, name, name))
         return device->getAvailableSampleRates();
 
     return {};
@@ -103,10 +128,12 @@ juce::Array<double> DeviceManager::getAvailableSampleRates (const juce::String& 
 juce::Array<int> DeviceManager::getAvailableBufferSizes (const juce::String& typeName,
                                                          const juce::String& deviceName)
 {
-    if (auto device = createDevice (typeName, deviceName))
+    const auto name = resolveListedName (typeName, deviceName);
+
+    if (auto device = createRawDevice (typeName, name, name))
         return device->getAvailableBufferSizes();
 
     return {};
 }
 
-}
+} // namespace AudioEngine

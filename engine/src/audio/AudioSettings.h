@@ -29,6 +29,8 @@ public:
 
     void setDeviceManager (DeviceManager* manager);
 
+    void setShowTestDevices (bool show);
+
     void setSettingsStore (ihub::settings::SettingsStore* store);
 
     void setRestoreState (const Api::AudioRestoreState& state);
@@ -54,6 +56,8 @@ private:
     {
         juce::String type;
         juce::String name;
+        bool available = true;
+        juce::String unavailableReason;
         bool hasInput = false;
         bool hasOutput = false;
         juce::StringArray inputNames;

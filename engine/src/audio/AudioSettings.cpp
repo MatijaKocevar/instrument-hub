@@ -5,16 +5,7 @@
 namespace AudioEngine
 {
 
-AudioSettingsBridge::AudioSettingsBridge()
-{
-    refreshDevices();
-
-    if (devices.empty())
-        return;
-
-    pendingType = firstDeviceType();
-    pendingName = firstOutputDeviceOfType (pendingType);
-}
+AudioSettingsBridge::AudioSettingsBridge() = default;
 
 void AudioSettingsBridge::setDeviceManager (DeviceManager* manager)
 {
@@ -30,6 +21,14 @@ void AudioSettingsBridge::setDeviceManager (DeviceManager* manager)
         pendingType = firstDeviceType();
         pendingName = firstOutputDeviceOfType (pendingType);
     }
+}
+
+void AudioSettingsBridge::setShowTestDevices (bool show)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+
+    liveManager().setShowTestDevices (show);
+    refreshDevices();
 }
 
 void AudioSettingsBridge::setSettingsStore (ihub::settings::SettingsStore* store)
@@ -54,6 +53,8 @@ void AudioSettingsBridge::refreshDevices()
         CachedDevice cached;
         cached.type = info.typeName;
         cached.name = info.name;
+        cached.available = info.available;
+        cached.unavailableReason = info.unavailableReason;
         cached.hasInput = info.hasInput;
         cached.hasOutput = info.hasOutput;
         cached.inputNames = info.inputChannelNames;
@@ -87,11 +88,11 @@ juce::String AudioSettingsBridge::firstDeviceType() const
 juce::String AudioSettingsBridge::firstOutputDeviceOfType (const juce::String& type) const
 {
     for (const auto& device : devices)
-        if (device.type == type && device.hasOutput)
+        if (device.type == type && device.hasOutput && device.available)
             return device.name;
 
     for (const auto& device : devices)
-        if (device.hasOutput)
+        if (device.hasOutput && device.available)
             return device.name;
 
     return {};

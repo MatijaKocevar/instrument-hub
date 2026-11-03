@@ -11,7 +11,7 @@ int runPluginScan (const juce::String& commandLine);
 
 int runLatencyMeasurement();
 
-int runListDevices();
+int runListDevices (const juce::String& commandLine);
 
 int runDiagnostics (const juce::String& commandLine);
 
