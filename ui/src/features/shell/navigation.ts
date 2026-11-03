@@ -11,8 +11,13 @@ export const WORKSPACE_ITEMS: readonly NavItem[] = [
   { route: "grid", label: "Grid", shortLabel: "Grid" },
   { route: "instrument", label: "Instrument", shortLabel: "Instrument" },
   { route: "plugins", label: "Plugins", shortLabel: "Plugins" },
-  { route: "audio", label: "Audio & MIDI", shortLabel: "Audio" },
 ];
+
+export const AUDIO_ITEM: NavItem = {
+  route: "audio",
+  label: "Audio & MIDI",
+  shortLabel: "Audio",
+};
 
 export const SETTINGS_ITEM: NavItem = {
   route: "settings",
