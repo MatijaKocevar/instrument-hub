@@ -15,6 +15,8 @@ juce::File makeTemporaryDirectory();
 
 juce::File bundledMappingFile();
 
+juce::File bundledBlankSetFile();
+
 juce::File bundledPluginStateDirectory();
 
 juce::File bundledSourcesFile();

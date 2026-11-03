@@ -28,10 +28,10 @@ calls them.
 
 - `--project <path>` wins; otherwise the last opened project from app
   settings; otherwise `~/Music/Instrument Hub/Untitled.ihub`, created from
-  the bundled `shared/set.yaml` on first launch.
-- `shared/set.yaml` plus `shared/set.plugin-state/` become **import-only**:
-  the first open converts them into one `.ihub` and the app never writes
-  YAML again.
+  the blank template `shared/blank-set.yaml` on first launch.
+- `shared/set.yaml` plus `shared/set.plugin-state/` are the optional Starter
+  Set: **import-only**, converted into one `.ihub` when opened, and the app
+  never writes YAML again.
 - Recent projects (path + name) live in app settings, not in the project.
 
 ## Save rules

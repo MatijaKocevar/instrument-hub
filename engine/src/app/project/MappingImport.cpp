@@ -15,7 +15,9 @@ namespace
 void importInstrument (const Controller::InstrumentSpec& instrument,
                        project::SlotConfig& slot)
 {
-    slot.name = instrument.name.empty() ? instrument.id : instrument.name;
+    slot.name = instrument.name.empty() && instrument.kind != "empty"
+                    ? instrument.id
+                    : instrument.name;
     slot.setVolumeDb (instrument.volumeDb);
     slot.pan = instrument.pan;
     slot.muted = instrument.muted;

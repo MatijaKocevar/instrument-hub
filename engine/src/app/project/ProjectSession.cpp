@@ -29,7 +29,9 @@ void importMappingSlot (const Controller::InstrumentSpec& instrument,
     slot.family = binding.family;
     slot.patch = instrument.id;
     slot.patchName = instrument.name;
-    slot.name = instrument.name.empty() ? instrument.id : instrument.name;
+    slot.name = instrument.name.empty() && instrument.kind != "empty"
+                    ? instrument.id
+                    : instrument.name;
     slot.gain = instrument.volumeDb <= -60.0f
                     ? 0.0f
                     : std::pow (10.0f, instrument.volumeDb / 20.0f);
