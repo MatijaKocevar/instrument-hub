@@ -1,4 +1,5 @@
 #include "TestSupport.h"
+#include "patch/Autosave.h"
 #include "patch_state_capture_api/Capture.h"
 #include "patch_state_capture_api/Fixtures.h"
 #include "patch_state_capture_api/Restart.h"
@@ -42,9 +43,11 @@ int main()
     const bool restarted = ApiTest::PatchStateCaptureApi::runRestart (stateDirectory,
                                                                       bundlePath);
 
+    const bool autosaved = ApiTest::PatchAutosave::runAutosave (tempRoot, bundlePath);
+
     (void) tempRoot.deleteRecursively();
 
-    if (! restarted)
+    if (! restarted || ! autosaved)
         return 1;
 
     if (ApiTest::failures > 0)

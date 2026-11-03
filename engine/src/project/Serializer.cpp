@@ -72,6 +72,20 @@ bool Serializer::save (const SetFile& set, const juce::File& file, juce::String&
         }
     }
 
+    if (file.existsAsFile())
+    {
+        const auto backup = parent.getChildFile (file.getFileName() + ".bak");
+        backup.deleteFile();
+
+        if (! file.copyFileTo (backup))
+        {
+            error = "could not keep the previous .ihub as "
+                    + backup.getFullPathName();
+            temporary.deleteFile();
+            return false;
+        }
+    }
+
     if (! temporary.replaceFileIn (file))
     {
         error = "could not replace " + file.getFullPathName();

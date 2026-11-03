@@ -1,6 +1,8 @@
 #include "ControlApi.h"
 
 #include "CommandLine.h"
+#include "project/ProjectAutosave.h"
+#include "project/ProjectCapture.h"
 
 #include "Session.h"
 #include "api/MidiBridge.h"
@@ -9,9 +11,11 @@
 #include "api/SessionBridge.h"
 #include "audio/AudioSettings.h"
 #include "plugins/PluginInventory.h"
+#include "project/Serializer.h"
 
 #include <iostream>
 #include <utility>
+#include <vector>
 
 namespace ihub::app
 {
@@ -29,6 +33,7 @@ ControlApi::~ControlApi()
 bool ControlApi::start (const juce::String& commandLine,
                         ihub::Session* session,
                         bool required,
+                        const juce::File& projectFile,
                         std::function<void()> midiRestore)
 {
     Api::Server::Options options;
@@ -86,6 +91,66 @@ bool ControlApi::start (const juce::String& commandLine,
         audioSettings->setDeviceManager (&session->getDevices());
         Api::attachSession (*apiState, *apiServer, *session);
         audioSettings->setTimingMonitor (&session->getEngine().getTimingMonitor());
+
+        if (projectFile != juce::File())
+        {
+            auto base = std::make_shared<ihub::project::SetFile>();
+            juce::String projectError;
+
+            if (ihub::project::Serializer::load (projectFile, *base, projectError))
+            {
+                projectAutosave = std::make_unique<ProjectAutosave> (projectFile);
+
+                auto* autosave = projectAutosave.get();
+                auto* state = apiState.get();
+
+                projectAutosave->setCaptureHandler (
+                    [session, state, base] (ihub::project::SetFile& set,
+                                            const std::vector<int>& touchedSlots,
+                                            juce::String& error)
+                    {
+                        return captureProject (*session, *state, *base, touchedSlots,
+                                               set, error);
+                    });
+
+                projectAutosave->setStateChangedHandler ([state]
+                {
+                    state->notifyProjectStateChanged();
+                });
+
+                state->setEditHandler ([autosave] (const char* kind, int slot)
+                {
+                    autosave->noteEdit (kind, slot);
+                });
+
+                state->setProjectStateProvider ([autosave]
+                {
+                    return autosave->getState();
+                });
+
+                std::cout << "project: autosave targets "
+                          << projectFile.getFullPathName() << std::endl;
+            }
+            else
+            {
+                std::cerr << "project: autosave is off: "
+                          << projectError << std::endl;
+
+                const auto path = projectFile.getFullPathName().toStdString();
+                const auto name = projectFile.getFileNameWithoutExtension().toStdString();
+                const auto message = projectError.toStdString();
+
+                apiState->setProjectStateProvider ([path, name, message]
+                {
+                    Api::ProjectSaveState state;
+                    state.path = path;
+                    state.name = name;
+                    state.saved = false;
+                    state.error = message;
+                    return state;
+                });
+            }
+        }
     }
 
     if (session == nullptr
@@ -124,6 +189,14 @@ bool ControlApi::start (const juce::String& commandLine,
         apiServer.reset();
         midiBridge.reset();
         audioSettings.reset();
+
+        if (projectAutosave != nullptr)
+        {
+            projectAutosave.reset();
+            apiState->setEditHandler ({});
+            apiState->setProjectStateProvider ({});
+        }
+
         apiState.reset();
 
         if (! required)
@@ -164,8 +237,30 @@ void ControlApi::resetServer()
 
 void ControlApi::resetAudio()
 {
+    if (projectAutosave != nullptr)
+    {
+        projectAutosave.reset();
+
+        if (apiState != nullptr)
+        {
+            apiState->setEditHandler ({});
+            apiState->setProjectStateProvider ({});
+        }
+    }
+
     audioSettings.reset();
     apiState.reset();
+}
+
+void ControlApi::flushProject()
+{
+    if (projectAutosave == nullptr)
+        return;
+
+    juce::String error;
+
+    if (! projectAutosave->saveNow (&error) && error.isNotEmpty())
+        std::cerr << "project: could not save: " << error << std::endl;
 }
 
 }

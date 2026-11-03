@@ -44,6 +44,17 @@ bool Session::capturePluginState (int slot)
     return pluginState.storeState (slot, identity, state);
 }
 
+bool Session::copyPluginStateData (int slot, juce::MemoryBlock& data) const
+{
+    session::PluginStateIdentity identity;
+
+    if (! pluginIdentityForSlot (slot, identity))
+        return false;
+
+    data = pluginState.readState (slot, identity);
+    return data.getSize() > 0;
+}
+
 bool Session::hasPluginState (int slot) const noexcept
 {
     return pluginState.hasState (slot);

@@ -104,6 +104,7 @@ bool StateStore::updateTransport (const juce::var& patch, std::string& error)
     if (handler != nullptr)
         handler (next, patch);
 
+    notifyEdited ("transport", -1);
     notifyChanged ("transport", -1);
 
     return true;

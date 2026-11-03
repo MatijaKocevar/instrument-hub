@@ -10,6 +10,7 @@ StateSnapshot StateStore::snapshot() const
     StateSnapshot result;
     TransportProvider transportReader;
     SlotRuntimeProvider slotReader;
+    ProjectStateProvider projectReader;
     std::vector<PatchInstrumentState> instruments;
     std::vector<PatchMixState> mixes;
     std::vector<bool> editors;
@@ -47,6 +48,7 @@ StateSnapshot StateStore::snapshot() const
 
         transportReader = transportProvider;
         slotReader = slotRuntimeProvider;
+        projectReader = projectStateProvider;
     }
 
     if (transportReader != nullptr)
@@ -77,6 +79,17 @@ StateSnapshot StateStore::snapshot() const
             catch (...)
             {
             }
+        }
+    }
+
+    if (projectReader != nullptr)
+    {
+        try
+        {
+            result.project = projectReader();
+        }
+        catch (...)
+        {
         }
     }
 

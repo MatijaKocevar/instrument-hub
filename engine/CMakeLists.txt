@@ -110,6 +110,7 @@ target_sources(instrument-hub
         src/api/state/StateStoreSettings.cpp
         src/api/state/StateStoreTransport.cpp
         src/api/state/StateStoreSnapshot.cpp
+        src/api/state/StateStoreProject.cpp
         src/api/SessionBridge.cpp
         src/api/StateBroadcast.cpp
         src/api/WebSocketRoutes.cpp
@@ -118,6 +119,8 @@ target_sources(instrument-hub
         src/app/ControllerSurface.cpp
         src/app/Modes.cpp
         src/app/project/MappingImport.cpp
+        src/app/project/ProjectAutosave.cpp
+        src/app/project/ProjectCapture.cpp
         src/app/project/ProjectImport.cpp
         src/app/project/ProjectPaths.cpp
         src/app/project/ProjectSession.cpp

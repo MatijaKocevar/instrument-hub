@@ -83,7 +83,10 @@ bool StateStore::applyFxCommand (int slot,
     }
 
     if (applied)
+    {
+        notifyEdited ("patch", slot);
         notifyChanged ("patch", slot);
+    }
 
     return applied;
 }

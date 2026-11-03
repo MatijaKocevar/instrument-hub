@@ -91,6 +91,7 @@ bool StateStore::applyPatchSource (int slot,
         slotEditorOpen[static_cast<std::size_t> (slot)] = false;
     }
 
+    notifyEdited ("patch", slot);
     notifyChanged ("patch", slot);
 
     return true;
@@ -228,6 +229,10 @@ bool StateStore::capturePatchState (int slot,
     result.captured = true;
     capture = result;
     error.clear();
+
+    notifyEdited ("patch", slot);
+    notifyChanged ("patch", slot);
+
     return true;
 }
 

@@ -36,7 +36,8 @@ enum class SourceKind
     empty = 0,
     plugin,
     audioInput,
-    sampler
+    sampler,
+    initTone
 };
 
 const char* toString (SourceKind kind) noexcept;

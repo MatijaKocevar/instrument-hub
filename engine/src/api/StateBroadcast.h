@@ -28,7 +28,8 @@ enum class StateEventKind
     warm,
     device,
     midi,
-    pairing
+    pairing,
+    project
 };
 
 struct PadMirror
