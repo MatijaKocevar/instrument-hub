@@ -1561,6 +1561,8 @@ target_sources(ihub-patch-state-capture-api-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectCapture.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutSave.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutText.cpp"
         ${IHUB_PROJECT_SOURCES}
         ${IHUB_MAPPING_SOURCES}
         ${IHUB_SESSION_SOURCES}
@@ -3203,6 +3205,7 @@ target_sources(ihub-project-test
         project/project/Reload.cpp
         project/project/SessionDescription.cpp
         project/project/Support.cpp
+        project/project/TrackLayout.cpp
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectAutosave.cpp"
@@ -3211,6 +3214,8 @@ target_sources(ihub-project-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SourceImport.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutSave.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutText.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
         ${IHUB_BUS_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
@@ -4249,6 +4254,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             api/project/ProjectFixtures.cpp
             api/project/History.cpp
             api/project/ProjectLifecycle.cpp
+            api/project/TrackSetup.cpp
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectAutosave.cpp"
@@ -4261,6 +4267,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SourceImport.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutSave.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutText.cpp"
             ${IHUB_PROJECT_SOURCES}
             ${IHUB_MAPPING_SOURCES}
             ${IHUB_SESSION_SOURCES}

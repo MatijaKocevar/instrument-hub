@@ -2,6 +2,7 @@
 
 #include "PatchColours.h"
 #include "Session.h"
+#include "TrackLayoutSave.h"
 #include "api/StateStore.h"
 
 #include <algorithm>
@@ -43,6 +44,7 @@ project::FxConfig toFxConfig (const AudioEngine::FxInsertSnapshot& insert)
     fx.kind = insert.type == AudioEngine::FxInsertType::vst3
                   ? project::FxKind::plugin
                   : project::FxKind::builtin;
+    fx.type = AudioEngine::toString (insert.type);
     fx.id = insert.id;
     fx.name = insert.name;
     fx.bypassed = insert.bypassed;
@@ -78,6 +80,11 @@ bool captureProject (ihub::Session& session,
     set.name = base.name.empty() ? "Untitled Set" : base.name;
     set.notes = base.notes;
     set.mappingYaml = base.mappingYaml;
+
+    if (state.getLayout() == "tracks"
+        && ! saveTrackLayoutToMapping (base.mappingYaml, state.getTracks(),
+                                       set.mappingYaml, error))
+        return false;
 
     const auto sources = session.copySourceConfigs();
     const int numSlots = juce::jmin (static_cast<int> (sources.size()),

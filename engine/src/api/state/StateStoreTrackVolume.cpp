@@ -95,12 +95,14 @@ bool StateStore::setTrackVolumeStep (int index, int step, std::string& error)
 
         track.volumeStep = step;
         slot = track.slot;
+        slotMixes[static_cast<std::size_t> (slot)].volumeDb = trackDbForStep (step);
         handler = trackGainHandler;
     }
 
     if (handler != nullptr)
         handler (slot, static_cast<float> (trackGainForStep (step)));
 
+    notifyEdited ("track", slot);
     notifyChanged ("track", index);
     return true;
 }

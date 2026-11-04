@@ -143,6 +143,8 @@ target_sources(instrument-hub
         src/app/project/ProjectSession.cpp
         src/app/project/SessionSlotMapping.cpp
         src/app/project/SourceImport.cpp
+        src/app/project/TrackLayoutSave.cpp
+        src/app/project/TrackLayoutText.cpp
         src/app/SessionSetup.cpp
         src/app/SnapshotCapture.cpp
         src/app/SourcePersistence.cpp

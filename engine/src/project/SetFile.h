@@ -84,6 +84,8 @@ struct FxConfig
 {
     FxKind kind = FxKind::builtin;
 
+    std::string type;
+
     std::string id;
 
     std::string name;

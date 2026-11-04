@@ -42,6 +42,7 @@ var fxToVar (const FxConfig& fx)
     auto* object = value.getDynamicObject();
 
     object->setProperty ("kind", juce::String (toString (fx.kind)));
+    object->setProperty ("type", juce::String (fx.type));
     object->setProperty ("id", juce::String (fx.id));
     object->setProperty ("name", juce::String (fx.name));
     object->setProperty ("pluginState", juce::String (fx.pluginState));
@@ -113,7 +114,8 @@ bool parseFx (const var& value,
         return false;
     }
 
-    if (! readString (value, "id", context, fx.id, error)
+    if (! readString (value, "type", context, fx.type, error, false)
+        || ! readString (value, "id", context, fx.id, error)
         || ! readString (value, "name", context, fx.name, error, false)
         || ! readString (value, "pluginState", context, fx.pluginState, error, false)
         || ! readBool (value, "bypassed", context, fx.bypassed, error, false))

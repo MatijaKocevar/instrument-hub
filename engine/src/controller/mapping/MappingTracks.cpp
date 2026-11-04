@@ -86,8 +86,14 @@ bool decodeTracks (const YamlValue& root, SetMapping& out, MappingError& error)
             {
                 std::string fxId;
 
-                if (! readString (fxValue, fxId, error, "track hotFx insert id"))
+                if (! readString (fxValue, fxId, error, "track hotFx insert id", true))
                     return false;
+
+                if (fxId.empty())
+                {
+                    track.hotFx.push_back ({});
+                    continue;
+                }
 
                 if (std::find (track.hotFx.begin(), track.hotFx.end(), fxId)
                     != track.hotFx.end())
