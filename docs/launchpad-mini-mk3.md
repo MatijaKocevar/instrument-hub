@@ -4,7 +4,8 @@ Reference for the controller stack in `engine/src/controller/`:
 
 - `LaunchpadProtocol.{h,cpp}` — pure protocol data and frame builders.
 - `LaunchpadDriver.{h,cpp}` — MIDI I/O, handshake, pad/CC decoding, LEDs.
-- `Mapping.{h,cpp}` — `shared/set.yaml`, pad/scene/bank routing, hot reload.
+- `Mapping.{h,cpp}` — `shared/set.yaml` and `shared/tracks-set.yaml`,
+  pad/scene/bank routing, hot reload.
 
 Nothing here runs on the audio thread. The driver has no audio knowledge; a
 pad press becomes a slot number through the mapping, and the slot number is
@@ -114,6 +115,9 @@ palette colour even while the warm pool preloads it. The armed patch is
 bright red, pulses while it warms and stays static once it is active; a
 load error flashes red.
 
+This patch policy is for the legacy 64-patch family layout. A track project
+uses the row policy in the next section.
+
 | State | Colour | Velocity | When |
 | --- | --- | --- | --- |
 | `idle` | patch palette | yellow/green/teal/blue/purple/white/grey, never red | every unarmed patch |
@@ -131,19 +135,56 @@ surface after a reconnect without replaying controller history. The app polls
 `/state` at 10 Hz and repaints only changed LEDs, so an HTTP colour edit reaches
 the hardware without a reconnect.
 
+## Track layout (schema version 2)
+
+`shared/tracks-set.yaml` is the blank template imported by every new project.
+It declares `schemaVersion: 2`, `layout: tracks`, eight tracks on slots 0..7,
+and the pad roles below. Family, macro and encoder sections may be empty in
+this layout. The eight slots are also the explicit warm list, so all eight
+instruments stay resident and a track switch is a pointer hand-over plus the
+3 ms crossfade, never a load and never `warming`.
+
+Each column is one track. Rows are read from the bottom of the physical grid
+to the top; pad numbers are the Instrument Hub row-major indices:
+
+| Row | Pads | Role | Press action | LED |
+|---|---|---|---|---|
+| 7 (top) | 56..63 | `track` | arms the column's track slot | red when selected; instrument colour otherwise |
+| 6 | 48..55 | `fx`, `hot: 0` | toggles bypass on the track's first hot insert | green enabled, yellow bypassed, off unassigned |
+| 5 | 40..47 | `fx`, `hot: 1` | toggles bypass on the track's second hot insert | green enabled, yellow bypassed, off unassigned |
+| 4 | 32..39 | `volume`, `step: 4` | sets 100% (0 dB); pressing it again toggles +6 dB | blue at 100%, white at the over step |
+| 3 | 24..31 | `volume`, `step: 3` | sets 75% | blue when active, otherwise off |
+| 2 | 16..23 | `volume`, `step: 2` | sets 50% | blue when active, otherwise off |
+| 1 | 8..15 | `volume`, `step: 1` | sets 25% | blue when active, otherwise off |
+| 0 (bottom) | 0..7 | `volume`, `step: 0` | sets silence | blue when active, otherwise off |
+
+The over step is a toggle on the 100% pad only: the first press sets step 4,
+a second press sets step 5 (+6 dB) and a third returns to step 4. Pressing any
+other volume pad while over leaves the over state. There are no long-press
+behaviours in the track layout.
+
+The same actions are available over HTTP: `POST /tracks/{index}/select`,
+`POST /tracks/{index}/fx/{hot}/toggle`,
+`POST /tracks/{index}/fx/{hot}/assign` and
+`POST /tracks/{index}/volume`. The Grid page renders the same eight columns,
+and the Instrument page assigns the selected track's instrument and marks up
+to two inserts as hot FX. A hot-FX assignment is stored on the track layout;
+the instrument, full FX chain and volume are stored on the slot.
+
 ## Mapping and the composed session
 
-`shared/set.yaml` is hot-reloadable. A pad press resolves
-`pad -> family -> instrument -> slot`, and the `armSlot` listener publishes
-that slot to `Session::armSlot()`. The audio graph is never rewired: all slots
-are already wired in parallel and arming only changes which slot is faded up
-over 3 ms.
+`shared/set.yaml` and `shared/tracks-set.yaml` are hot-reloadable. A pad press
+resolves through the live mapping: in the family layout
+`pad -> family -> instrument -> slot`, in the track layout
+`pad -> role -> track -> slot`. The `armSlot` listener publishes that slot to
+`Session::armSlot()`. The audio graph is never rewired: all slots are already
+wired in parallel and arming only changes which slot is faded up over 3 ms.
 
-The shipped mapping declares 64 pads and 64 slots (8 families × 8 patches),
-and the composed application now builds all **64** logical slots. Every pad
-0..63 resolves to its own slot and arms audible audio; the warm pool keeps the
-armed slot plus its neighbours instantiated, so a cold pad reports `warming`
-before it crossfades in.
+The shipped Starter Set declares 64 pads and 64 slots (8 families × 8 patches),
+and the composed application builds all **64** logical slots for it. Its warm
+pool keeps the armed slot plus its neighbours instantiated, so a cold pad
+reports `warming` before it crossfades in. A new track project instead builds
+eight slots with all eight protected, so none of its track pads is ever cold.
 
 ### Grid page and the same-patch contract
 
@@ -170,10 +211,15 @@ the full pad → mapping → LED path are covered by:
 - `ihub-launchpad-protocol` — frame bytes, grid notes, palette.
 - `ihub-launchpad-mapping` — all 64 pads, CC 91..98 banks, CC 89..19 scenes.
 - `ihub-launchpad-driver` — scripted event sequence and the exact LED stream.
+- `ihub-launchpad-track` — v2 routing, the over step and the track LED policy.
 - `ihub-ui-pages` — Grid, Instrument, Plugins and Audio page snapshots.
 - `ihub-e2e` — Grid click plus pad event through the mapping into the composed
   session, non-silent audio rendered and captured on the ALSA Loopback, and
-  the armed-red / patch-colour LED stream.
+  the armed-red / patch-colour LED stream. Its track-grid pass creates a blank
+  track project, loads eight sandboxed TestPlugins, switches all eight tracks
+  from pads and the API with zero `warming` events, exercises hot FX and
+  volume, captures the track LED stream and records peak RSS in
+  `ihub-e2e-track-grid-record.txt`.
 
 Physical verification (programmer-mode entry, real LED colours, font/brightness,
 firmware quirks) is tracked in `plan/BLOCKERS.md` as **B009**.

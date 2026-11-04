@@ -3884,6 +3884,16 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             e2e/PadToAudio.cpp
             e2e/Check.cpp
             e2e/project/ProjectScenario.cpp
+            e2e/track_grid/Actions.cpp
+            e2e/track_grid/LedChecks.cpp
+            e2e/track_grid/Leds.cpp
+            e2e/track_grid/Memory.cpp
+            e2e/track_grid/Record.cpp
+            e2e/track_grid/Rig.cpp
+            e2e/track_grid/RigConfig.cpp
+            e2e/track_grid/RigInput.cpp
+            e2e/track_grid/Scenario.cpp
+            e2e/track_grid/Switches.cpp
             e2e/pad_audio/AlsaPcm.cpp
             e2e/pad_audio/GridLeds.cpp
             e2e/pad_audio/Loopback.cpp
@@ -3895,6 +3905,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             e2e/pad_audio/Records.cpp
             e2e/pad_audio/Render.cpp
             e2e/pad_audio/Rig.cpp
+            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/surface/TrackSurface.cpp"
             ${IHUB_SESSION_SOURCES}
             ${IHUB_PROJECT_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
@@ -3947,6 +3958,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             JUCE_MODAL_LOOPS_PERMITTED=1
             "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/e2e/set-init-tone.yaml\""
             "IHUB_SHARED_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
+            "IHUB_TRACKS_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/tracks-set.yaml\""
+            "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
+    )
+
+    add_dependencies(ihub-e2e-test
+        TestPlugin_VST3
+        ihub-sandbox
     )
 
     target_link_libraries(ihub-e2e-test
