@@ -91,6 +91,7 @@ target_sources(instrument-hub
         src/api/Routes.cpp
         src/api/routes/AudioRoutes.cpp
         src/api/routes/AudioSerialization.cpp
+        src/api/routes/AudioWizardSerialization.cpp
         src/api/routes/FxRoutes.cpp
         src/api/routes/Json.cpp
         src/api/routes/MeterSerialization.cpp
@@ -199,12 +200,16 @@ target_sources(instrument-hub
         src/audio/rtguard/LockInterposition.cpp
         src/audio/settings/AudioDeviceRestore.cpp
         src/audio/settings/AudioDeviceSelection.cpp
+        src/audio/settings/AudioProfiles.cpp
         src/audio/settings/AudioSettingsApply.cpp
         src/audio/settings/AudioSettingsChannels.cpp
         src/audio/settings/AudioSettingsMeasure.cpp
         src/audio/settings/AudioSettingsOpen.cpp
         src/audio/settings/AudioSettingsPersistence.cpp
         src/audio/settings/AudioSettingsSnapshot.cpp
+        src/audio/settings/AudioSetupApply.cpp
+        src/audio/settings/AudioSetupRecommendation.cpp
+        src/audio/settings/AudioSetupWizard.cpp
         src/audio/settings/LatencyBudget.cpp
         src/audio/Slot.cpp
         src/audio/SlotSwitcher.cpp
@@ -328,6 +333,7 @@ target_sources(instrument-hub
         src/settings/AtomicFileWrite.cpp
         src/settings/MidiInputNames.cpp
         src/settings/ProjectHistory.cpp
+        src/settings/SettingsJsonAudio.cpp
         src/settings/SettingsJsonRead.cpp
         src/settings/SettingsJsonWrite.cpp
         src/settings/SettingsStore.cpp

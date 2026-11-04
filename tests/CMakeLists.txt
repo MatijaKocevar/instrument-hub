@@ -2,6 +2,7 @@ set(IHUB_API_ROUTES_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioSerialization.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioWizardSerialization.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/FxRoutes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/Json.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/MeterSerialization.cpp"
@@ -48,6 +49,7 @@ set(IHUB_SETTINGS_STORE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/MidiInputNames.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/ProjectHistory.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonAudio.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
@@ -178,12 +180,16 @@ set(IHUB_AUDIO_SETTINGS_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioDeviceRestore.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioDeviceSelection.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioProfiles.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsApply.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsChannels.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsMeasure.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsOpen.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsPersistence.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsSnapshot.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSetupApply.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSetupRecommendation.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSetupWizard.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/LatencyBudget.cpp"
 )
 
@@ -2442,11 +2448,13 @@ target_sources(ihub-audio-settings-test
         api/audio_settings/DeviceSwitch.cpp
         api/audio_settings/Fixtures.cpp
         api/audio_settings/Persistence.cpp
+        api/audio_settings/Profiles.cpp
         api/audio_settings/Restore.cpp
         api/audio_settings/RestoreCli.cpp
         api/audio_settings/RestoreStored.cpp
         api/audio_settings/RestoreSupport.cpp
         api/audio_settings/Routes.cpp
+        api/audio_settings/Wizard.cpp
         ${IHUB_DISCOVERY_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
         ${IHUB_API_ROUTES_SOURCES}

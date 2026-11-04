@@ -5,6 +5,7 @@ import { sendJson } from "./http";
 import { handleArm } from "./routes/arm";
 import { handleAudio } from "./routes/audio";
 import { handleAudioMeasure } from "./routes/audioMeasure";
+import { handleAudioWizard } from "./routes/audioWizard";
 import { handleFxChain } from "./routes/fxChain";
 import { handleFxInsert } from "./routes/fxInsert";
 import { handleFxReorder } from "./routes/fxReorder";
@@ -39,6 +40,7 @@ const routes: readonly FixtureRoute[] = [
   handleTransport,
   handleAudio,
   handleAudioMeasure,
+  handleAudioWizard,
 ];
 
 export function routeFixtureRequest(

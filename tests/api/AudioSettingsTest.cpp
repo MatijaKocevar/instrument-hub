@@ -5,6 +5,7 @@
 #include "audio_settings/Persistence.h"
 #include "audio_settings/Restore.h"
 #include "audio_settings/Routes.h"
+#include "audio_settings/Wizard.h"
 
 #include <iostream>
 
@@ -16,6 +17,8 @@ int main()
     ApiTest::AudioSettings::runPersistence();
     ApiTest::AudioSettings::runDeviceSwitch();
     ApiTest::AudioSettings::runDeviceBridge();
+    ApiTest::AudioSettings::runWizardRecommendation();
+    ApiTest::AudioSettings::runWizardRoutes();
 
     std::cout << (ApiTest::failures == 0 ? "audio-settings-test: PASS"
                                          : "audio-settings-test: FAILED")

@@ -2,6 +2,7 @@ import {
   createControlApi,
   type ControlAudioMeasurement,
   type ControlAudioState,
+  type ControlAudioWizard,
   type ControlState,
   type ControlTransport,
 } from "../../api/client";
@@ -80,6 +81,12 @@ export async function backoffTest(): Promise<void> {
       throw new Error("connection refused");
     },
     measureLatency: async (): Promise<ControlAudioMeasurement> => {
+      throw new Error("connection refused");
+    },
+    recommendAudioSetup: async (): Promise<ControlAudioWizard> => {
+      throw new Error("connection refused");
+    },
+    applyAudioSetup: async (): Promise<ControlAudioState> => {
       throw new Error("connection refused");
     },
     getPairing: async () => {

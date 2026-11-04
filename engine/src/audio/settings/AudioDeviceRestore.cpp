@@ -1,6 +1,7 @@
 #include "audio/settings/AudioDeviceRestore.h"
 
 #include "audio/settings/AudioDeviceSelection.h"
+#include "audio/settings/AudioProfiles.h"
 
 namespace AudioEngine
 {
@@ -43,12 +44,20 @@ AudioRestoreOutcome restoreAudioDevice (const ihub::settings::AudioSettings& sto
     if (overrides.deviceName.has_value() && ! overrides.deviceType.has_value())
         wanted.deviceType.clear();
 
-    const double storedRate = stored.sampleRate > 0
-                                  ? static_cast<double> (stored.sampleRate)
-                                  : defaultAudioSampleRate;
-    const int storedBuffer = stored.bufferSize > 0
-                                 ? stored.bufferSize
-                                 : defaultAudioBufferSize;
+    const auto* profile = detail::findAudioProfile (stored.profiles,
+                                                    wanted.deviceType,
+                                                    wanted.deviceName);
+
+    const double storedRate = profile != nullptr && profile->sampleRate > 0
+                                  ? static_cast<double> (profile->sampleRate)
+                                  : stored.sampleRate > 0
+                                        ? static_cast<double> (stored.sampleRate)
+                                        : defaultAudioSampleRate;
+    const int storedBuffer = profile != nullptr && profile->bufferSize > 0
+                                 ? profile->bufferSize
+                                 : stored.bufferSize > 0
+                                       ? stored.bufferSize
+                                       : defaultAudioBufferSize;
 
     wanted.sampleRate = overrides.sampleRate.value_or (preferStored ? storedRate
                                                                    : defaultAudioSampleRate);

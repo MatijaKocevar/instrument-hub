@@ -1,6 +1,7 @@
 #include "audio/AudioSettings.h"
 
 #include "audio/settings/LatencyBudget.h"
+#include "settings/SettingsStore.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -99,6 +100,26 @@ Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
 
         for (const auto size : info->bufferSizes)
             result.bufferSizes.push_back (size);
+    }
+
+    if (settingsStore != nullptr)
+    {
+        for (const auto& profile : settingsStore->settings().audio.profiles)
+        {
+            Api::AudioProfileState entry;
+            entry.soundcardKey = profile.soundcardKey.toStdString();
+            entry.deviceType = profile.deviceType.toStdString();
+            entry.deviceName = profile.deviceName.toStdString();
+            entry.sampleRate = static_cast<double> (profile.sampleRate);
+            entry.bufferSize = profile.bufferSize;
+            entry.inputChannels = profile.inputChannels;
+            entry.outputChannels = profile.outputChannels;
+            entry.profile = profile.profile.toStdString();
+            entry.latencyMs = profile.latencyMs;
+            entry.measuredMs = profile.measuredMs;
+            entry.xruns = static_cast<std::uint64_t> (juce::jmax (0, profile.xruns));
+            result.profiles.push_back (std::move (entry));
+        }
     }
 
     const auto inputMask = result.open ? manager.getActiveInputChannels()

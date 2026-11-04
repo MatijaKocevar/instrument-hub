@@ -4,10 +4,12 @@ import type {
   ControlAudioMeasurement,
   ControlAudioPatch,
   ControlAudioState,
+  ControlAudioWizard,
 } from "../../api/client";
 import type { MeasurementSource } from "../../api/audio";
 import { AudioSettingsFooter } from "./AudioSettingsFooter";
 import { AudioSettingsHeader } from "./AudioSettingsHeader";
+import { AudioSetupControl } from "./AudioSetupControl";
 import { ChannelMaps } from "./ChannelMaps";
 import { DeviceControls } from "./DeviceControls";
 import { DevicePicker } from "./DevicePicker";
@@ -20,23 +22,35 @@ import "./audio-settings.css";
 export interface AudioSettingsPanelProps {
   readonly audio: ControlAudioState | null;
   readonly measurement?: ControlAudioMeasurement | null;
+  readonly wizard?: ControlAudioWizard | null;
   readonly error?: string | null;
   readonly measurementError?: string | null;
+  readonly wizardError?: string | null;
   readonly busy?: boolean;
+  readonly wizardBusy?: boolean;
   readonly loading?: boolean;
   readonly onChange?: (patch: ControlAudioPatch) => void;
   readonly onMeasure?: (source: MeasurementSource) => void;
+  readonly onRecommend?: () => void;
+  readonly onApplySetup?: () => void;
+  readonly onDismissSetup?: () => void;
 }
 
 export function AudioSettingsPanel({
   audio,
   measurement = null,
+  wizard = null,
   error = null,
   measurementError = null,
+  wizardError = null,
   busy = false,
+  wizardBusy = false,
   loading = false,
   onChange,
   onMeasure,
+  onRecommend,
+  onApplySetup,
+  onDismissSetup,
 }: AudioSettingsPanelProps): ReactElement {
   if (loading || audio === null) {
     return (
@@ -85,6 +99,15 @@ export function AudioSettingsPanel({
       <DevicePicker audio={audio} busy={busy} onChange={onChange} />
 
       <DeviceControls audio={audio} busy={busy} onChange={onChange} />
+
+      <AudioSetupControl
+        wizard={wizard}
+        busy={wizardBusy}
+        error={wizardError}
+        onRecommend={onRecommend}
+        onApply={onApplySetup}
+        onDismiss={onDismissSetup}
+      />
 
       <ChannelMaps
         inputChannels={audio.inputChannels}

@@ -124,7 +124,7 @@ struct Server::Impl
                 requestsInFlight.fetch_sub (1, std::memory_order_acq_rel);
         });
 
-        RouteContext context { state, {}, {}, {}, {}, {}, &pairing,
+        RouteContext context { state, {}, {}, {}, {}, {}, {}, {}, &pairing,
                                {}, {}, {}, {}, {}, {}, {}, {} };
 
         {
@@ -133,6 +133,8 @@ struct Server::Impl
             context.audioApply = audioApply;
             context.audioMeasure = audioMeasure;
             context.audioMeasureDevice = audioMeasureDevice;
+            context.audioWizard = audioWizard;
+            context.audioWizardApply = audioWizardApply;
             context.pluginProvider = pluginProvider;
             context.pluginRescan = pluginRescan;
             context.midiProvider = midiProvider;
@@ -287,6 +289,8 @@ struct Server::Impl
     AudioApplyHandler audioApply;
     AudioMeasureHandler audioMeasure;
     AudioMeasureHandler audioMeasureDevice;
+    AudioWizardHandler audioWizard;
+    AudioWizardApplyHandler audioWizardApply;
     PluginInventoryProvider pluginProvider;
     PluginRescanHandler pluginRescan;
     MidiStateProvider midiProvider;
@@ -429,6 +433,14 @@ void Server::setAudioHandlers (AudioStateProvider provider,
     impl->audioApply = std::move (apply);
     impl->audioMeasure = std::move (measure);
     impl->audioMeasureDevice = std::move (measureDevice);
+}
+
+void Server::setAudioWizardHandlers (AudioWizardHandler recommend,
+                                     AudioWizardApplyHandler apply)
+{
+    const std::lock_guard<std::mutex> lock (impl->configMutex);
+    impl->audioWizard = std::move (recommend);
+    impl->audioWizardApply = std::move (apply);
 }
 
 void Server::setPluginHandlers (PluginInventoryProvider provider,

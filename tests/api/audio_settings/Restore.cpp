@@ -1,5 +1,6 @@
 #include "Restore.h"
 
+#include "Profiles.h"
 #include "RestoreSupport.h"
 
 namespace ApiTest::AudioSettings
@@ -7,6 +8,7 @@ namespace ApiTest::AudioSettings
 
 void runRestore()
 {
+    runProfileRestore();
     runStoredDeviceRestart();
     runMissingStoredFallback();
     runFallbackOrder();

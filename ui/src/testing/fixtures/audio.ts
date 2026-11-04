@@ -1,4 +1,4 @@
-import type { ControlAudioState } from "../../api/client";
+import type { ControlAudioState, ControlAudioWizard } from "../../api/client";
 
 export const AUDIO: ControlAudioState = {
   open: true,
@@ -93,11 +93,69 @@ export const AUDIO: ControlAudioState = {
     fallback: false,
     reason: "",
   },
+  profiles: [],
   xruns: 2,
   deviceXruns: 1,
   callbackOverruns: 1,
   callbacks: 128000,
   loadPercent: 7.5,
+};
+
+export const AUDIO_WIZARD: ControlAudioWizard = {
+  valid: true,
+  error: "",
+  deviceType: "JACK",
+  deviceName: "Rubix22 Pro",
+  soundcard: "rubix22",
+  profile: "pro-audio",
+  sampleRate: 48000,
+  bufferSize: 96,
+  inputChannels: [0, 1],
+  outputChannels: [0, 1],
+  latencyMs: 7.29,
+  measuredMs: 7.29,
+  expectedMs: 4,
+  xruns: 0,
+  candidates: [
+    {
+      sampleRate: 48000,
+      bufferSize: 64,
+      latencyMs: 6.62,
+      measuredMs: 0,
+      expectedMs: 2.67,
+      xruns: 3,
+      opened: true,
+      stable: false,
+      recommended: false,
+      error: "",
+    },
+    {
+      sampleRate: 48000,
+      bufferSize: 96,
+      latencyMs: 7.29,
+      measuredMs: 7.29,
+      expectedMs: 4,
+      xruns: 0,
+      opened: true,
+      stable: true,
+      recommended: true,
+      error: "",
+    },
+    {
+      sampleRate: 48000,
+      bufferSize: 128,
+      latencyMs: 7.96,
+      measuredMs: 0,
+      expectedMs: 5.33,
+      xruns: 0,
+      opened: true,
+      stable: true,
+      recommended: false,
+      error: "",
+    },
+  ],
+  tradeoff:
+    "64 frames produced 3 xruns; 96 frames was the lowest buffer with none. The recommended round trip is 7.29 ms.",
 };
 
 export const AUDIO_FALLBACK: ControlAudioState = {

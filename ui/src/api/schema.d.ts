@@ -496,6 +496,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audio/wizard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe the selected soundcard and recommend a stable low-latency setup
+         * @description Opens the selected device at every available sample rate and at 64, 96 and
+         *     128 frames, records xruns and the latency budget, then restores the
+         *     original device. Blocks while it probes, so the audio drops out briefly.
+         *     Applying the returned recommendation is a separate request.
+         */
+        post: operations["recommendAudioSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audio/wizard/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply and store the last recommended setup
+         * @description Applies the recommendation returned by the most recent
+         *     `POST /audio/wizard` and stores it as the profile for that soundcard.
+         */
+        post: operations["applyAudioSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/meters": {
         parameters: {
             query?: never;
@@ -1256,6 +1300,8 @@ export interface components {
             outputChannels: components["schemas"]["AudioChannel"][];
             latency: components["schemas"]["AudioLatency"];
             restore: components["schemas"]["AudioRestore"];
+            /** @description Saved wizard profiles, one per soundcard. */
+            profiles: components["schemas"]["AudioProfile"][];
             /** @description Total xruns (device driver + callback overruns). */
             xruns: number;
             deviceXruns: number;
@@ -1272,6 +1318,53 @@ export interface components {
             inputChannels?: number[];
             /** @description Channel indices to activate on the output side. */
             outputChannels?: number[];
+        };
+        AudioProfile: {
+            /** @description Normalised interface name shared by its ALSA and JACK devices. */
+            soundcardKey: string;
+            deviceType: string;
+            deviceName: string;
+            sampleRate: number;
+            bufferSize: number;
+            inputChannels: number[];
+            outputChannels: number[];
+            /** @description `pro-audio` for JACK/Pro devices, otherwise `standard`. */
+            profile: string;
+            latencyMs: number;
+            measuredMs: number;
+            xruns: number;
+        };
+        AudioProbe: {
+            sampleRate: number;
+            bufferSize: number;
+            /** @description Buffer + device + chain latency budget for this setting. */
+            latencyMs: number;
+            /** @description Measured device round trip when the loopback is connected. */
+            measuredMs: number;
+            expectedMs: number;
+            xruns: number;
+            opened: boolean;
+            stable: boolean;
+            recommended: boolean;
+            error: string;
+        };
+        AudioWizard: {
+            valid: boolean;
+            error: string;
+            deviceType: string;
+            deviceName: string;
+            soundcard: string;
+            profile: string;
+            sampleRate: number;
+            bufferSize: number;
+            inputChannels: number[];
+            outputChannels: number[];
+            latencyMs: number;
+            measuredMs: number;
+            expectedMs: number;
+            xruns: number;
+            candidates: components["schemas"]["AudioProbe"][];
+            tradeoff: string;
         };
         AudioMeasurement: {
             valid: boolean;
@@ -2425,6 +2518,67 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             /** @description No audio backend is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    recommendAudioSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recommended setup and the measured tradeoff */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioWizard"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No audio backend or setup wizard is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    applyAudioSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio settings after the recommendation was applied */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioState"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No audio backend or setup wizard is attached */
             503: {
                 headers: {
                     [name: string]: unknown;

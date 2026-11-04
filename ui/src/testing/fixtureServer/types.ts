@@ -28,6 +28,8 @@ export interface FixtureServer {
   readonly audioRequests: readonly ControlAudioPatch[];
   readonly transportRequests: readonly ControlTransportPatch[];
   readonly measureRequests: number;
+  readonly wizardRequests: number;
+  readonly wizardApplyRequests: number;
   readonly audio: ControlAudioState;
   readonly pairing: ControlPairingState;
   readonly pairRequests: readonly string[];
@@ -81,6 +83,8 @@ export interface FixtureContext {
 
   stateRequests: number;
   measureRequests: number;
+  wizardRequests: number;
+  wizardApplyRequests: number;
   padTestRequests: number;
 
   readonly armRequests: { slot: number | null }[];

@@ -1,6 +1,7 @@
 import type {
   ControlAudioMeasurement,
   ControlAudioState,
+  ControlAudioWizard,
   ControlFxChain,
   ControlMidiState,
   ControlPairingState,
@@ -21,6 +22,9 @@ export interface AppSnapshot {
   audioError: string | null;
   measurement: ControlAudioMeasurement | null;
   measurementError: string | null;
+  audioWizard: ControlAudioWizard | null;
+  audioWizardBusy: boolean;
+  audioWizardError: string | null;
   audioBusy: boolean;
   fxChain: ControlFxChain | null;
   fxSlot: number;
@@ -63,6 +67,9 @@ export function initialSnapshot(): AppSnapshot {
     audioError: null,
     measurement: null,
     measurementError: null,
+    audioWizard: null,
+    audioWizardBusy: false,
+    audioWizardError: null,
     audioBusy: false,
     fxChain: null,
     fxSlot: -1,

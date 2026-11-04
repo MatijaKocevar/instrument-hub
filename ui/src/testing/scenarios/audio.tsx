@@ -134,6 +134,59 @@ export async function audioSettingsTest(): Promise<void> {
       "the panel surfaces the engine rejection",
     );
 
+    const recommended = await store.recommendAudioSetup();
+    const wizard = store.getSnapshot().audioWizard;
+
+    check(
+      recommended && wizard?.valid === true,
+      "Test & recommend returns a valid setup",
+    );
+    check(
+      server.wizardRequests === 1,
+      "the Test & recommend action called POST /audio/wizard",
+    );
+    check(
+      wizard?.bufferSize === 96 && wizard.sampleRate === 48000,
+      "the recommendation is 96 frames at 48 kHz",
+    );
+    check(
+      wizard?.candidates.some(
+        (candidate) => !candidate.stable && candidate.xruns > 0,
+      ) === true,
+      "the recommendation reports the unstable 64-frame probe",
+    );
+
+    const wizardHtml = renderApp(store, "/audio");
+
+    check(
+      wizardHtml.includes('data-testid="audio-wizard"') &&
+        wizardHtml.includes('data-valid="true"'),
+      "the dialog renders the recommendation",
+    );
+    check(
+      wizardHtml.includes('data-testid="audio-wizard-candidate"'),
+      "the dialog lists the probed settings",
+    );
+    check(
+      wizardHtml.includes("64 frames produced 3 xruns"),
+      "the dialog explains the latency and xrun tradeoff",
+    );
+
+    const applied = await store.applyAudioSetup();
+
+    check(
+      applied && store.getSnapshot().audioWizard === null,
+      "Apply closes the dialog",
+    );
+    check(
+      server.wizardApplyRequests === 1,
+      "Apply called POST /audio/wizard/apply",
+    );
+    check(
+      store.getSnapshot().audio?.bufferSize === 96,
+      "Apply adopts the recommended buffer size",
+    );
+
     const loadingHtml = renderToStaticMarkup(
       <AudioSettingsPanel audio={null} loading />,
     );
@@ -221,6 +274,10 @@ export function assertSnapshotAudio(audioHtml: string): void {
   check(
     audioHtml.includes('data-testid="measure-button"'),
     "panel shows the Measure button",
+  );
+  check(
+    audioHtml.includes('data-testid="audio-wizard-button"'),
+    "panel shows the Test & recommend button",
   );
   check(
     audioHtml.includes('data-open="true"'),

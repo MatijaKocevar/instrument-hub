@@ -6,6 +6,7 @@ import type {
   ControlAudioMeasurement,
   ControlAudioPatch,
   ControlAudioState,
+  ControlAudioWizard,
 } from "./types";
 
 export type MeasurementSource = "loopback" | "device";
@@ -22,6 +23,14 @@ export interface AudioEndpoints {
     signal?: AbortSignal;
     source?: MeasurementSource;
   }): Promise<ControlAudioMeasurement>;
+
+  recommendAudioSetup(options?: {
+    signal?: AbortSignal;
+  }): Promise<ControlAudioWizard>;
+
+  applyAudioSetup(options?: {
+    signal?: AbortSignal;
+  }): Promise<ControlAudioState>;
 }
 
 function isAudioState(value: unknown): value is ControlAudioState {
@@ -45,7 +54,33 @@ function isAudioState(value: unknown): value is ControlAudioState {
     typeof candidate.latency?.deviceMs === "number" &&
     typeof candidate.latency?.chainMs === "number" &&
     typeof candidate.latency?.totalMs === "number" &&
+    Array.isArray(candidate.profiles) &&
     typeof candidate.xruns === "number"
+  );
+}
+
+function isAudioWizard(value: unknown): value is ControlAudioWizard {
+  if (value === null || typeof value !== "object") return false;
+
+  const candidate = value as Partial<ControlAudioWizard>;
+
+  return (
+    typeof candidate.valid === "boolean" &&
+    typeof candidate.error === "string" &&
+    typeof candidate.deviceType === "string" &&
+    typeof candidate.deviceName === "string" &&
+    typeof candidate.soundcard === "string" &&
+    typeof candidate.profile === "string" &&
+    typeof candidate.sampleRate === "number" &&
+    typeof candidate.bufferSize === "number" &&
+    Array.isArray(candidate.inputChannels) &&
+    Array.isArray(candidate.outputChannels) &&
+    typeof candidate.latencyMs === "number" &&
+    typeof candidate.measuredMs === "number" &&
+    typeof candidate.expectedMs === "number" &&
+    typeof candidate.xruns === "number" &&
+    Array.isArray(candidate.candidates) &&
+    typeof candidate.tradeoff === "string"
   );
 }
 
@@ -86,6 +121,18 @@ function requireAudioMeasurement(
   what: string,
 ): ControlAudioMeasurement {
   if (data !== undefined && isAudioMeasurement(data)) return data;
+
+  return guard.fail(error, status, what);
+}
+
+function requireAudioWizard(
+  guard: RequestGuard,
+  data: ControlAudioWizard | undefined,
+  error: unknown,
+  status: number,
+  what: string,
+): ControlAudioWizard {
+  if (data !== undefined && isAudioWizard(data)) return data;
 
   return guard.fail(error, status, what);
 }
@@ -148,6 +195,41 @@ export function createAudioEndpoints(
         error,
         response.status,
         "POST /audio/measure",
+      );
+    },
+
+    async recommendAudioSetup(requestOptions) {
+      const { data, error, response } = await client.POST("/audio/wizard", {
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
+
+      return requireAudioWizard(
+        guard,
+        data,
+        error,
+        response.status,
+        "POST /audio/wizard",
+      );
+    },
+
+    async applyAudioSetup(requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/audio/wizard/apply",
+        {
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
+        },
+      );
+
+      return requireAudioState(
+        guard,
+        data,
+        error,
+        response.status,
+        "POST /audio/wizard/apply",
       );
     },
   };

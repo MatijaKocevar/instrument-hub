@@ -256,6 +256,13 @@ export class AppStore {
     source: "loopback" | "device" = "loopback",
   ): Promise<boolean> => this.audio.measureLatency(source);
 
+  recommendAudioSetup = (): Promise<boolean> =>
+    this.audio.recommendAudioSetup();
+
+  applyAudioSetup = (): Promise<boolean> => this.audio.applyAudioSetup();
+
+  dismissAudioWizard = (): void => this.audio.dismissAudioWizard();
+
   toggleLan = (enabled: boolean): Promise<boolean> =>
     this.pairing.toggleLan(enabled);
 

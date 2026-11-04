@@ -140,6 +140,18 @@ bool ControlApi::start (const juce::String& commandLine,
         }
     }
 
+    const auto measureDevice = [session]
+    {
+        if (session != nullptr && session->getDevices().isOpen())
+            return session->measureLatency();
+
+        Api::AudioMeasurementState measurement;
+        measurement.error = "the audio device is not open";
+        return measurement;
+    };
+
+    audioSettings->setDeviceMeasureHandler (measureDevice);
+
     apiServer->setAudioHandlers (
         [this] { return audioSettings->snapshot(); },
         [this] (const Api::AudioSettingsPatch& patch, std::string& error)
@@ -147,14 +159,13 @@ bool ControlApi::start (const juce::String& commandLine,
             return audioSettings->apply (patch, error);
         },
         [this] { return audioSettings->measure(); },
-        [session]
-        {
-            if (session != nullptr && session->getDevices().isOpen())
-                return session->measureLatency();
+        measureDevice);
 
-            Api::AudioMeasurementState measurement;
-            measurement.error = "the audio device is not open";
-            return measurement;
+    apiServer->setAudioWizardHandlers (
+        [this] { return audioSettings->recommendSetup(); },
+        [this] (std::string& error)
+        {
+            return audioSettings->applyRecommendation (error);
         });
 
     if (! apiServer->start())
