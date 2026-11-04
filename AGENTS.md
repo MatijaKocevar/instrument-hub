@@ -13,22 +13,20 @@ toolchain, opencode auth, `IH_REPO`, how to stop a run cleanly).
 
 ## Working with the developer
 
-The human on this machine is a developer working interactively, not an
-autopilot. They start and stop the app and the dev server themselves
-(`scripts/dev.sh`; Vite on :5173, engine API on `127.0.0.1:8080`).
+The human on this machine is a developer working interactively. They expect
+changes to be built and the running app restarted so they can see them.
 
-- Never start the app, `scripts/dev.sh`, Vite, or any other long-lived
-  server yourself, and never leave one running when your turn ends. Use the
-  instance the developer already has open, or ask them to start one.
+- After a change, build the affected target and restart the running app
+  (engine, Vite, or both) without asking. Reuse the command line of the
+  running instance, launch detached (`setsid`; add `pw-jack` when the
+  current instance needs JACK), and leave it running for the developer.
+- Do not run the full `scripts/test.sh` after every change. Use targeted
+  builds/tests while working; run the full suite only when the developer
+  asks for it or a release check needs it.
 - Single-run diagnostics (`--selftest`, `--snapshot`, a test harness on its
   own port) are fine when they shut down before you report back.
-- Ask before any build, test run, dependency install, or other long-running
-  command. Time is the developer's call: never start one automatically, and
-  never background it to avoid asking. A short build needed to verify a
-  change is still an ask.
-- Do not build or test after every edit. Make the change first; build only
-  when the developer has approved it and a binary is actually needed. No
-  rebuild loops.
+- Do not build or test after every edit just for the sake of it. Build when
+  the change is ready to run, then restart the app once.
 
 ---
 
@@ -100,8 +98,8 @@ on the work is **bug fixing plus the explicitly requested refactors
 - Reproduce first: exact steps, expected vs actual, and the log or
   screenshot. Record it in `plan/BUGS.md`. Use the developer's running
   instance; do not start a dev server to reproduce.
-- Add a regression test where practical. Run `scripts/test.sh` once when
-  the fix is complete, not after every edit.
+- Add a regression test where practical. Run targeted tests while working;
+  run `scripts/test.sh` only when the developer asks for the full suite.
 - One bug per commit; update the entry's status and evidence.
 - Keep the audio-thread contract and the Launchpad/Linux assumptions.
 - Launch the app detached (desktop entry, `setsid`, or a long-lived
@@ -165,10 +163,11 @@ queried once per load, not per block.
 loopback for audio, a virtual Launchpad on the ALSA sequencer for MIDI,
 an in-repo `TestPlugin` VST3, and snapshots taken inside JUCE.
 
-Verification is on demand. Ask the developer before running a build, the
-acceptance check, or the test suite; they decide when a run is worth the
-time. When they say go, run it once when the change is finished and record
-its output. The developer verifies interactively.
+Verification is continuous but lightweight: build the affected target and
+restart the app after a change so the developer can inspect it. Run the full
+test suite only when the developer asks. Targeted tests are appropriate while
+working; record their output when you run them. The developer verifies the
+live app interactively.
 
 When you do run it, use `scripts/test.sh` (or `ctest --timeout 120`). A
 deadlocked test must fail within two minutes; never leave a test or test
