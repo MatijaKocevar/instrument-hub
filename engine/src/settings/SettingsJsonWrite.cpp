@@ -39,6 +39,32 @@ void writeMidi (juce::DynamicObject& object, const MidiSettings& midi)
     }
 
     object.setProperty ("enabledInputs", juce::var (inputs));
+
+    juce::Array<juce::var> gridInputs;
+
+    for (const auto& input : midi.gridInputs)
+    {
+        auto* entry = new juce::DynamicObject();
+        entry->setProperty ("client", input.client);
+        entry->setProperty ("port", input.port);
+
+        if (input.noteBase >= 0)
+            entry->setProperty ("noteBase", input.noteBase);
+
+        if (! input.notes.empty())
+        {
+            juce::Array<juce::var> notes;
+
+            for (const int note : input.notes)
+                notes.add (note);
+
+            entry->setProperty ("notes", juce::var (notes));
+        }
+
+        gridInputs.add (juce::var (entry));
+    }
+
+    object.setProperty ("gridInputs", juce::var (gridInputs));
 }
 
 void writeAccount (juce::DynamicObject& object, const AccountSettings& account)

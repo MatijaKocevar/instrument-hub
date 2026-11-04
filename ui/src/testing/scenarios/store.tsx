@@ -140,6 +140,9 @@ export async function backoffTest(): Promise<void> {
     getMidi: async () => {
       throw new Error("connection refused");
     },
+    updateMidiInput: async () => {
+      throw new Error("connection refused");
+    },
     setMidiInput: async () => {
       throw new Error("connection refused");
     },

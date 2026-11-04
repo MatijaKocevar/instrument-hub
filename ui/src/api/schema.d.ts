@@ -788,12 +788,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List MIDI inputs and controller status
-         * @description Returns the ALSA MIDI inputs JUCE can see, each with the user's enable
-         *     switch, plus the status of the Launchpad Mini MK3 (pads and LEDs on the
-         *     **MI** port) and an optional Keystation keyboard. `padTest` reports the
-         *     most recent grid test. This endpoint only enumerates devices; enabling
-         *     a generic input opens it through the engine.
+         * List MIDI inputs and controller roles
+         * @description Returns the MIDI inputs JUCE can see with the user's enable switch and
+         *     the role the engine gives each one. Any non-Launchpad input is a
+         *     keyboard by default and plays the armed slot. An input can be switched
+         *     to the `grid` role to drive the 8x8 pad grid through a note base or a
+         *     64-pad learn. Only the Launchpad Mini MK3 on its **MI** port reports
+         *     LED output. `padTest` reports the most recent grid test.
          */
         get: operations["getMidi"];
         put?: never;
@@ -814,14 +815,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Enable or disable one MIDI input
-         * @description Opens or closes one input. The Launchpad row is owned by its driver:
-         *     enabling it connects the controller to the MI port, disabling it
-         *     disconnects. Every other input is opened by the control engine and its
-         *     messages are counted for the page. The response is the complete MIDI
-         *     state after the change.
+         * Enable, disable or configure one MIDI input
+         * @description Opens or closes one input and changes its role or generic pad mapping.
+         *     The Launchpad row is owned by its driver: enabling it connects the
+         *     controller to the MI port, disabling it disconnects, and it cannot take
+         *     the generic grid role. Every other input is opened by the control
+         *     engine. `role` is `keyboard` (plays the armed slot) or `grid` (drives
+         *     the pad grid). A grid maps notes either from `noteBase` (note base +
+         *     pad index, bottom-left first) or from a completed `learn` of 64 pads.
+         *     The response is the complete MIDI state after the change.
          */
-        post: operations["setMidiInput"];
+        post: operations["updateMidiInput"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1482,35 +1486,42 @@ export interface components {
              */
             name: string;
             /**
-             * @description What the engine uses this input for.
+             * @description What the engine uses this input for. `keyboard` plays the armed
+             *     slot, `grid` drives the 8x8 pad grid, and `launchpad` is the
+             *     device-specific programmer-mode protocol.
              * @enum {string}
              */
-            role: "launchpad" | "keystation" | "input";
+            role: "launchpad" | "keyboard" | "grid";
             /** @description Short port label (`MI`, `DA`, `USB`), empty when the name has none. */
             port: string;
             /** @description The user's switch for this input. */
             enabled: boolean;
             /** @description True while the engine owns the port. */
             open: boolean;
+            /**
+             * @description True once a protocol handshake completed. Only the Launchpad
+             *     reports this, through its programmer-mode echo.
+             */
+            handshake: boolean;
+            /** @description True only when this protocol can drive pad LEDs. */
+            leds: boolean;
+            /**
+             * @description First note of a sequential 64-pad map, or -1 when the input uses a
+             *     learned note map instead.
+             */
+            noteBase: number;
+            /** @description Number of distinct notes captured by the last learn. */
+            learnedNotes: number;
+            /** @description True while the engine is capturing pads for this grid. */
+            learnActive: boolean;
             /** @description MIDI messages received since the input was opened. */
             events: number;
             /** @description A human-readable summary of the last message, empty when none. */
             lastEvent: string;
-        };
-        MidiPort: {
-            /** @description Device name, empty when not present. */
-            name: string;
-            /** @description Short port label (`MI`, `DA` or `USB`). */
-            port: string;
-            /** @description True when the controller is open. */
-            connected: boolean;
-            /** @description True once the controller echoed its mode frame. */
-            handshake: boolean;
-            /** @description Open input name, empty when disconnected. */
-            inputName: string;
-            /** @description Open output name, empty when disconnected. */
-            outputName: string;
-            /** @description Last connection error, empty on success. */
+            /**
+             * @description A readable reason when the input cannot be used as configured,
+             *     empty when it is usable.
+             */
             error: string;
         };
         MidiPadTest: {
@@ -1525,8 +1536,6 @@ export interface components {
             inputs: components["schemas"]["MidiInput"][];
             /** @description Number of MIDI inputs in this snapshot. */
             inputCount: number;
-            launchpad: components["schemas"]["MidiPort"];
-            keystation: components["schemas"]["MidiPort"];
             padTest: components["schemas"]["MidiPadTest"];
             /** @description Enumeration error, empty on success. */
             error: string;
@@ -1535,7 +1544,24 @@ export interface components {
             /** @description Identifier from `GET /midi`. */
             id: string;
             /** @description Desired switch state. */
-            enabled: boolean;
+            enabled?: boolean;
+            /**
+             * @description `keyboard` plays the armed slot. `grid` drives the 8x8 pad grid
+             *     and disables keyboard forwarding for this input.
+             * @enum {string}
+             */
+            role?: "keyboard" | "grid";
+            /**
+             * @description First note of a sequential 64-pad map; -1 clears it. The value is
+             *     rejected unless the input already has the `grid` role.
+             */
+            noteBase?: number;
+            /**
+             * @description True starts a 64-pad learn on a grid input. The first 64 distinct
+             *     note-ons are stored in press order as pads 0-63. False cancels a
+             *     partial learn.
+             */
+            learn?: boolean;
         };
     };
     responses: {
@@ -2851,7 +2877,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
-    setMidiInput: {
+    updateMidiInput: {
         parameters: {
             query?: never;
             header?: never;

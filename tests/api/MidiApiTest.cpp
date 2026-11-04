@@ -1,5 +1,6 @@
 #include "TestSupport.h"
 #include "midi_api/DeviceEnumeration.h"
+#include "midi_api/GenericGrid.h"
 #include "midi_api/PadTest.h"
 #include "midi_api/Persistence.h"
 #include "midi_api/Routes.h"
@@ -12,6 +13,8 @@ int main()
     ApiTest::MidiApi::runDeviceEnumeration();
     ApiTest::MidiApi::runPadTestStream();
     ApiTest::MidiApi::runPersistence();
+    ApiTest::MidiApi::runGenericGridRouting();
+    ApiTest::MidiApi::runGridLearnPersistence();
 
     if (ApiTest::failures > 0)
     {

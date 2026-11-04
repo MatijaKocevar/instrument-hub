@@ -11,7 +11,9 @@ Nothing here runs on the audio thread. The driver has no audio knowledge; a
 pad press becomes a slot number through the mapping, and the slot number is
 published to the session with a lock-free arm request.
 
-This is the only controller stack in the tree; there is no second device path.
+The Launchpad has the only device-specific protocol stack. Every other MIDI
+input is handled generically by `api/MidiBridge` and feeds the same mapping,
+either as a keyboard or as a learned pad grid.
 
 ## Sources
 
@@ -39,6 +41,41 @@ the `DA` port. There is no virtual Launchpad on the ALSA sequencer: the tests
 inject MIDI bytes into `LaunchpadDriver::injectMidiMessage()` and capture LED
 bytes with `setMessageSink()`, which uses the same decoder and encoder as the
 MIDI thread.
+
+## Generic MIDI controllers
+
+`GET /midi` lists every JUCE MIDI input with a role, enable switch and protocol
+status. A non-Launchpad input defaults to `keyboard`: every note and controller
+message is forwarded to `Session::pushMidi()`, so any USB keyboard plays the
+armed slot without a device-specific name match. The obsolete `keystation` and
+`input` roles are gone; a device name no longer decides whether it can play.
+
+`POST /midi/inputs` changes the enable switch or the role:
+
+```json
+{ "id": "ALSA:2:0", "role": "grid", "enabled": true }
+{ "id": "ALSA:2:0", "noteBase": 36 }
+{ "id": "ALSA:2:0", "learn": true }
+```
+
+A `grid` input no longer forwards notes to the instrument. It maps note-ons and
+note-offs onto the same `Controller::Mapping::handlePad()` path as the
+Launchpad, so arming, track selection, FX and volume actions are identical.
+There are two ways to build the 64-note map:
+
+- `noteBase`: note `base + pad` maps to pad `0..63` in the bottom-left to
+  top-right order. `base` must be 0..64 so all 64 notes fit in MIDI 0..127.
+- `learn: true`: the first 64 distinct note-ons are stored in press order as
+  pads 0..63. The operator presses the pads from bottom-left to top-right. The
+  learn expires after 10 s without a note and reports how many pads arrived.
+  `learn: false` cancels a partial learn.
+
+The role, note base and learned notes persist in `settings.json` under
+`midi.gridInputs`, keyed by ALSA client and port name. A learned map survives a
+restart even if the numeric ALSA identifier changes. Only the Launchpad reports
+LED output (`leds: true`); generic grids never receive LED messages. A DA port,
+an unconfigured grid, an unknown identifier and a failed open all answer with a
+readable reason in the row `error` and in the HTTP error body.
 
 ## SysEx envelope and programmer mode
 

@@ -81,9 +81,9 @@ bool ControlApi::start (const juce::String& commandLine,
 
     apiServer->setMidiHandlers (
         [this] { return midiBridge->snapshot(); },
-        [this] (const std::string& id, bool enabled, std::string& error)
+        [this] (const Api::MidiInputPatch& patch, std::string& error)
         {
-            return midiBridge->setInputEnabled (id, enabled, error);
+            return midiBridge->updateInput (patch, error);
         },
         [this] (std::string& error) { return midiBridge->runPadTest (error); });
 

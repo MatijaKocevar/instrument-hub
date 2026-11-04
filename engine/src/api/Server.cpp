@@ -138,7 +138,7 @@ struct Server::Impl
             context.pluginProvider = pluginProvider;
             context.pluginRescan = pluginRescan;
             context.midiProvider = midiProvider;
-            context.midiEnableInput = midiEnableInput;
+            context.midiUpdateInput = midiUpdateInput;
             context.midiPadTest = midiPadTest;
             context.projectProvider = projectProvider;
             context.projectCommand = projectCommand;
@@ -294,7 +294,7 @@ struct Server::Impl
     PluginInventoryProvider pluginProvider;
     PluginRescanHandler pluginRescan;
     MidiStateProvider midiProvider;
-    MidiInputHandler midiEnableInput;
+    MidiInputHandler midiUpdateInput;
     MidiPadTestHandler midiPadTest;
     ProjectOverviewProvider projectProvider;
     ProjectCommandHandler projectCommand;
@@ -452,12 +452,12 @@ void Server::setPluginHandlers (PluginInventoryProvider provider,
 }
 
 void Server::setMidiHandlers (MidiStateProvider provider,
-                              MidiInputHandler enableInput,
+                              MidiInputHandler updateInput,
                               MidiPadTestHandler padTest)
 {
     const std::lock_guard<std::mutex> lock (impl->configMutex);
     impl->midiProvider = std::move (provider);
-    impl->midiEnableInput = std::move (enableInput);
+    impl->midiUpdateInput = std::move (updateInput);
     impl->midiPadTest = std::move (padTest);
 }
 

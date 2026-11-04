@@ -280,8 +280,8 @@ public:
 
         controlApi.stopServer();
         controlApi.flushProject();
-        controlApi.detachMidi();
         controller.shutdown();
+        controlApi.detachMidi();
         controlApi.resetServer();
         controlApi.resetAudio();
 

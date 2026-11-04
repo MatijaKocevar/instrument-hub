@@ -188,11 +188,16 @@ knows what a `Session` is.
 - [PluginBridge.h](../engine/src/api/PluginBridge.h) /
   [PluginBridge.cpp](../engine/src/api/PluginBridge.cpp) — installs the VST3
   inventory and rescan handlers behind `/plugins`.
-- [MidiBridge.h](../engine/src/api/MidiBridge.h) /
-  [MidiBridge.cpp](../engine/src/api/MidiBridge.cpp) — MIDI input enumeration,
-  input enable/disable and the `MidiSink` that feeds `Session::pushMidi()`.
-  The Launchpad 64-pad test animation is a separate translation unit in
-  [midi/MidiPadTest.cpp](../engine/src/api/midi/MidiPadTest.cpp).
+- [MidiBridge.h](../engine/src/api/MidiBridge.h) — MIDI input enumeration and
+  the public bridge surface. The implementation is split by concern under
+  [midi/](../engine/src/api/midi/): input enable/disable and the role/note-base
+  update path in `MidiBridgeInputs.cpp`, keyboard/grid message routing in
+  `MidiBridgeMessages.cpp`, the `/midi` snapshot in `MidiBridgeState.cpp`, the
+  generic 64-pad map in `MidiGridMap.{h,cpp}`, settings persistence in
+  `MidiInputPersistence.cpp`, and the Launchpad pad test in `MidiPadTest.cpp`.
+  Any non-Launchpad input is a keyboard by default and feeds
+  `Session::pushMidi()`; a grid-role input feeds the same
+  `Controller::Mapping::handlePad()` path as the Launchpad.
 - [Pairing.h](../engine/src/api/Pairing.h) / [Pairing.cpp](../engine/src/api/Pairing.cpp)
   — 6-digit pairing codes, token storage/revocation and LAN-mode state.
 - [Discovery.h](../engine/src/api/Discovery.h) / [Discovery.cpp](../engine/src/api/Discovery.cpp)

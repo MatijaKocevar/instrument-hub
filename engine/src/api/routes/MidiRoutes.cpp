@@ -3,6 +3,11 @@
 namespace Api::Routes
 {
 
+namespace
+{
+constexpr int highestNoteBase = 127 - MidiInputState::gridPadCount + 1;
+}
+
 void registerMidiRoutes (httplib::Server& server, const RouteContext& context)
 {
 
@@ -33,7 +38,7 @@ void registerMidiRoutes (httplib::Server& server, const RouteContext& context)
     server.Post ("/midi/inputs", [context, readMidiState] (const httplib::Request& request,
                                                           httplib::Response& response)
     {
-        if (context.midiEnableInput == nullptr)
+        if (context.midiUpdateInput == nullptr)
         {
             setError (response, 503, "MIDI inputs are not available");
             return;
@@ -56,29 +61,74 @@ void registerMidiRoutes (httplib::Server& server, const RouteContext& context)
             return;
         }
 
-        if (! object->hasProperty ("enabled"))
-        {
-            setError (response, 400, "body must contain \"enabled\" (boolean)");
-            return;
-        }
+        MidiInputPatch patch;
 
-        std::string id;
-
-        if (! readString (object->getProperty ("id"), "id", id, error))
+        if (! readString (object->getProperty ("id"), "id", patch.id, error))
         {
             setError (response, 400, error);
             return;
         }
 
-        bool enabled = false;
-
-        if (! detail::readBool (object->getProperty ("enabled"), "enabled", enabled, error))
+        if (object->hasProperty ("enabled"))
         {
-            setError (response, 400, error);
+            patch.hasEnabled = true;
+
+            if (! detail::readBool (object->getProperty ("enabled"), "enabled",
+                                    patch.enabled, error))
+            {
+                setError (response, 400, error);
+                return;
+            }
+        }
+
+        if (object->hasProperty ("role"))
+        {
+            patch.hasRole = true;
+
+            if (! readString (object->getProperty ("role"), "role", patch.role, error))
+            {
+                setError (response, 400, error);
+                return;
+            }
+        }
+
+        if (object->hasProperty ("noteBase"))
+        {
+            patch.hasNoteBase = true;
+            std::int64_t noteBase = -1;
+
+            if (! detail::readInteger (object->getProperty ("noteBase"),
+                                       "noteBase", -1, highestNoteBase,
+                                       noteBase, error))
+            {
+                setError (response, 400, error);
+                return;
+            }
+
+            patch.noteBase = static_cast<int> (noteBase);
+        }
+
+        if (object->hasProperty ("learn"))
+        {
+            patch.hasLearn = true;
+
+            if (! detail::readBool (object->getProperty ("learn"), "learn",
+                                    patch.learn, error))
+            {
+                setError (response, 400, error);
+                return;
+            }
+        }
+
+        if (! patch.hasEnabled && ! patch.hasRole && ! patch.hasNoteBase
+            && ! patch.hasLearn)
+        {
+            setError (response, 400,
+                      "body must contain enabled, role, noteBase or learn");
             return;
         }
 
-        if (! context.midiEnableInput (id, enabled, error))
+        if (! context.midiUpdateInput (patch, error))
         {
             const int status = error.find ("unknown MIDI input") != std::string::npos
                                    ? 404

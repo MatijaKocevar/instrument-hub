@@ -2,10 +2,19 @@ import type { Client } from "openapi-fetch";
 
 import type { RequestGuard } from "./client";
 import type { paths } from "./schema";
-import type { ControlMidiPort, ControlMidiState } from "./types";
+import type {
+  ControlMidiInput,
+  ControlMidiInputUpdate,
+  ControlMidiState,
+} from "./types";
 
 export interface MidiEndpoints {
   getMidi(options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
+
+  updateMidiInput(
+    patch: ControlMidiInputUpdate,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlMidiState>;
 
   setMidiInput(
     id: string,
@@ -16,40 +25,40 @@ export interface MidiEndpoints {
   runMidiPadTest(options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
 }
 
+function isMidiInput(value: unknown): value is ControlMidiInput {
+  if (value === null || typeof value !== "object") return false;
+
+  const input = value as Partial<ControlMidiInput>;
+
+  return (
+    typeof input.id === "string" &&
+    typeof input.name === "string" &&
+    (input.role === "launchpad" ||
+      input.role === "keyboard" ||
+      input.role === "grid") &&
+    typeof input.port === "string" &&
+    typeof input.enabled === "boolean" &&
+    typeof input.open === "boolean" &&
+    typeof input.handshake === "boolean" &&
+    typeof input.leds === "boolean" &&
+    typeof input.noteBase === "number" &&
+    typeof input.learnedNotes === "number" &&
+    typeof input.learnActive === "boolean" &&
+    typeof input.events === "number" &&
+    typeof input.lastEvent === "string" &&
+    typeof input.error === "string"
+  );
+}
+
 function isMidiState(value: unknown): value is ControlMidiState {
   if (value === null || typeof value !== "object") return false;
 
   const candidate = value as Partial<ControlMidiState>;
 
-  const isPort = (port: ControlMidiPort | undefined): boolean =>
-    port !== null &&
-    port !== undefined &&
-    typeof port.name === "string" &&
-    typeof port.port === "string" &&
-    typeof port.connected === "boolean" &&
-    typeof port.handshake === "boolean" &&
-    typeof port.inputName === "string" &&
-    typeof port.outputName === "string" &&
-    typeof port.error === "string";
-
   return (
     Array.isArray(candidate.inputs) &&
+    candidate.inputs.every(isMidiInput) &&
     typeof candidate.inputCount === "number" &&
-    candidate.inputs.every(
-      (input) =>
-        input !== null &&
-        typeof input === "object" &&
-        typeof input.id === "string" &&
-        typeof input.name === "string" &&
-        typeof input.role === "string" &&
-        typeof input.port === "string" &&
-        typeof input.enabled === "boolean" &&
-        typeof input.open === "boolean" &&
-        typeof input.events === "number" &&
-        typeof input.lastEvent === "string",
-    ) &&
-    isPort(candidate.launchpad) &&
-    isPort(candidate.keystation) &&
     candidate.padTest !== null &&
     candidate.padTest !== undefined &&
     typeof candidate.padTest.active === "boolean" &&
@@ -84,6 +93,23 @@ export function createMidiEndpoints(
       });
 
       return requireMidiState(guard, data, error, response.status, "GET /midi");
+    },
+
+    async updateMidiInput(patch, requestOptions) {
+      const { data, error, response } = await client.POST("/midi/inputs", {
+        body: patch,
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
+
+      return requireMidiState(
+        guard,
+        data,
+        error,
+        response.status,
+        "POST /midi/inputs",
+      );
     },
 
     async setMidiInput(id, enabled, requestOptions) {

@@ -1,10 +1,13 @@
 import type { ReactElement } from "react";
 
-import type { ControlMidiState } from "../../api/client";
-import { midiInputSummary } from "./model";
+import type {
+  ControlMidiInputUpdate,
+  ControlMidiState,
+} from "../../api/client";
 import { MidiInputList } from "./MidiInputList";
-import { MidiPortStatus } from "./MidiPortStatus";
+import { midiInputSummary, midiLaunchpadSummary } from "./model";
 import { PadTestPanel } from "./PadTestPanel";
+import { useMidiLearnPolling } from "./useMidiLearnPolling";
 import "./midi.css";
 
 export interface MidiPanelProps {
@@ -14,7 +17,9 @@ export interface MidiPanelProps {
   readonly padTestBusy?: boolean;
   readonly padTestError?: string | null;
   readonly loading?: boolean;
-  readonly onToggleInput?: (id: string, enabled: boolean) => void;
+  readonly onChangeInput?:
+    ((patch: ControlMidiInputUpdate) => void) | undefined;
+  readonly onRefreshMidi?: (() => void) | undefined;
   readonly onPadTest?: () => void;
 }
 
@@ -25,9 +30,14 @@ export function MidiPanel({
   padTestBusy = false,
   padTestError = null,
   loading = false,
-  onToggleInput,
+  onChangeInput,
+  onRefreshMidi,
   onPadTest,
 }: MidiPanelProps): ReactElement {
+  const learning = midi?.inputs.some((input) => input.learnActive) ?? false;
+
+  useMidiLearnPolling(learning, onRefreshMidi);
+
   if (loading || midi === null) {
     return (
       <section
@@ -69,12 +79,12 @@ export function MidiPanel({
           <p className="midi__eyebrow">Controllers</p>
           <h2 className="midi__title">MIDI</h2>
           <p className="midi__lede">
-            Inputs the engine can see through ALSA. Enable the ones you want
-            open; the Launchpad keeps its MI port for pads and LEDs.
+            Any keyboard plays the armed slot. Switch a controller to Pad grid
+            to map its notes onto the 8×8 grid; only the Launchpad drives LEDs.
           </p>
         </div>
         <span className="midi__summary" data-testid="midi-summary">
-          {midiInputSummary(midi.inputs)}
+          {midiInputSummary(midi.inputs)} · {midiLaunchpadSummary(midi.inputs)}
         </span>
       </header>
 
@@ -93,10 +103,8 @@ export function MidiPanel({
       <MidiInputList
         inputs={midi.inputs}
         busy={busy}
-        onToggle={onToggleInput}
+        onChange={onChangeInput}
       />
-
-      <MidiPortStatus midi={midi} />
 
       <PadTestPanel
         midi={midi}

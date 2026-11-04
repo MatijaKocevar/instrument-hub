@@ -24,6 +24,16 @@ void runRoundTripChecks()
         { "Keystation Mini 32 MK3", "Keystation Mini 32 MK3 MIDI 1" },
         { "Launchpad Mini MK3", "Launchpad Mini MK3 MIDI 1" }
     };
+
+    std::vector<int> learnedNotes;
+
+    for (int note = 40; note < 104; ++note)
+        learnedNotes.push_back (note);
+
+    store.settings().midi.gridInputs = {
+        { "Nano PAD", "Nano PAD USB MIDI", -1, learnedNotes },
+        { "Pad Base", "Pad Base MIDI", 36, {} }
+    };
     store.settings().account = { true, "pairing-token-123" };
 
     check (store.save(), "the settings save: " + store.getLastError().toStdString());
@@ -69,6 +79,14 @@ void runRoundTripChecks()
                && loaded.midi.enabledInputs[1].client == "Launchpad Mini MK3"
                && loaded.midi.enabledInputs[1].port == "Launchpad Mini MK3 MIDI 1",
            "the enabled MIDI inputs round-trip as names");
+    check (loaded.midi.gridInputs.size() == 2
+               && loaded.midi.gridInputs[0].client == "Nano PAD"
+               && loaded.midi.gridInputs[0].port == "Nano PAD USB MIDI"
+               && loaded.midi.gridInputs[0].noteBase == -1
+               && loaded.midi.gridInputs[0].notes == learnedNotes
+               && loaded.midi.gridInputs[1].noteBase == 36
+               && loaded.midi.gridInputs[1].notes.empty(),
+           "the generic grid roles and learned notes round-trip");
     check (loaded.account.lanEnabled && loaded.account.pairingToken == "pairing-token-123",
            "the account settings round-trip");
 

@@ -4,6 +4,7 @@ import type {
   ControlAudioPatch,
   ControlAudioState,
   ControlFxChain,
+  ControlMidiInputUpdate,
   ControlMidiState,
   ControlPairingState,
   ControlPlugin,
@@ -51,7 +52,7 @@ export interface FixtureServer {
   readonly editorRequests: readonly { slot: number; open: boolean }[];
   readonly stateCaptureRequests: readonly { slot: number }[];
   readonly pluginRequests: readonly string[];
-  readonly midiRequests: readonly { id: string; enabled: boolean }[];
+  readonly midiRequests: readonly ControlMidiInputUpdate[];
   readonly padTestRequests: number;
   readonly midi: ControlMidiState;
   readonly chain: ControlFxChain;
@@ -104,7 +105,7 @@ export interface FixtureContext {
   readonly editorRequests: { slot: number; open: boolean }[];
   readonly stateCaptureRequests: { slot: number }[];
   readonly pluginRequests: string[];
-  readonly midiRequests: { id: string; enabled: boolean }[];
+  readonly midiRequests: ControlMidiInputUpdate[];
 
   readonly projectRequests: { action: string; path: string }[];
 

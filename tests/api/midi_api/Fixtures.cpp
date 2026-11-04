@@ -18,9 +18,15 @@ Api::MidiInputState makeInput (const std::string& id,
     input.open = enabled;
 
     if (role == "launchpad")
+    {
         input.port = name.find ("MI") != std::string::npos ? "MI" : "DA";
-    else if (role == "keystation")
+        input.leds = input.port == "MI";
+        input.handshake = enabled && input.port == "MI";
+    }
+    else if (name.find ("USB") != std::string::npos)
+    {
         input.port = "USB";
+    }
 
     return input;
 }
@@ -37,47 +43,62 @@ Api::MidiStateSnapshot makeFakeMidi()
                                       "launchpad", false));
     midi.inputs.push_back (makeInput ("ALSA:5:0",
                                       "Keystation Mini 32 MK3 USB Audio",
-                                      "keystation", false));
+                                      "keyboard", false));
     midi.inputs.push_back (makeInput ("ALSA:2:0",
                                       "Steinberg UR22mkII MIDI 1",
-                                      "input", false));
+                                      "keyboard", false));
 
-    midi.launchpad.name = "Launchpad Mini MK3 LPMiniMK3 MI";
-    midi.launchpad.port = "MI";
-    midi.launchpad.connected = true;
-    midi.launchpad.handshake = true;
-    midi.launchpad.inputName = midi.launchpad.name;
-    midi.launchpad.outputName = midi.launchpad.name;
-
-    midi.keystation.name = "Keystation Mini 32 MK3 USB Audio";
-    midi.keystation.port = "USB";
+    midi.inputs[1].error = "the DA port carries no pads or LEDs; the grid uses the MI port";
 
     midi.padTest.durationMs = Api::MidiBridge::padTestDurationMs;
     return midi;
 }
 
-bool FakeBackend::setInput (const std::string& id, bool enabled, std::string& error)
+bool FakeBackend::setInput (const Api::MidiInputPatch& patch, std::string& error)
 {
     const auto input = std::find_if (midi.inputs.begin(), midi.inputs.end(),
-                                     [&id] (const Api::MidiInputState& candidate)
+                                     [&patch] (const Api::MidiInputState& candidate)
                                      {
-                                         return candidate.id == id;
+                                         return candidate.id == patch.id;
                                      });
 
     if (input == midi.inputs.end())
     {
-        error = "unknown MIDI input: " + id;
+        error = "unknown MIDI input: " + patch.id;
         return false;
     }
 
-    input->enabled = enabled;
-    input->open = enabled;
+    if (patch.hasEnabled)
+    {
+        input->enabled = patch.enabled;
+        input->open = patch.enabled;
 
-    if (input->role == "launchpad")
-        midi.launchpad.connected = enabled;
+        if (input->role == "launchpad")
+            input->handshake = patch.enabled;
+    }
 
-    if (input->role == "keystation")
-        midi.keystation.connected = enabled;
+    if (patch.hasRole)
+    {
+        if (patch.role != "keyboard" && patch.role != "grid")
+        {
+            error = "role must be \"keyboard\" or \"grid\"";
+            return false;
+        }
+
+        input->role = patch.role;
+        input->noteBase = -1;
+        input->learnedNotes = 0;
+        input->learnActive = false;
+        input->error = patch.role == "grid"
+                           ? "set a note base or learn all 64 pads before using this grid"
+                           : "";
+    }
+
+    if (patch.hasNoteBase)
+        input->noteBase = patch.noteBase;
+
+    if (patch.hasLearn)
+        input->learnActive = patch.learn;
 
     return true;
 }
@@ -94,9 +115,9 @@ void FakeBackend::attach (Api::Server& server)
 {
     server.setMidiHandlers (
         [this] { return midi; },
-        [this] (const std::string& id, bool enabled, std::string& error)
+        [this] (const Api::MidiInputPatch& patch, std::string& error)
         {
-            return setInput (id, enabled, error);
+            return setInput (patch, error);
         },
         [this] (std::string& error)
         {

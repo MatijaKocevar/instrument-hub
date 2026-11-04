@@ -62,9 +62,22 @@ struct MidiInput
     juce::String port;
 };
 
+struct MidiGridInput
+{
+    static constexpr int padCount = 64;
+    static constexpr int highestNote = 127;
+    static constexpr int highestNoteBase = highestNote - padCount + 1;
+
+    juce::String client;
+    juce::String port;
+    int noteBase = -1;
+    std::vector<int> notes;
+};
+
 struct MidiSettings
 {
     std::vector<MidiInput> enabledInputs;
+    std::vector<MidiGridInput> gridInputs;
 };
 
 struct AccountSettings

@@ -26,9 +26,8 @@ void runDeviceEnumeration()
            "the bridge lists every MIDI input JUCE reports");
 
     bool sawLaunchpad = false;
-    bool sawKeystation = false;
+    bool sawKeyboard = false;
     bool launchpadMi = false;
-    bool keystationUsb = false;
 
     for (const auto& input : inputs)
     {
@@ -42,31 +41,20 @@ void runDeviceEnumeration()
             if (Api::MidiBridge::portForName (juce::String (input.name)) == "MI")
                 launchpadMi = true;
         }
-
-        if (input.role == "keystation")
+        else
         {
-            sawKeystation = true;
-            keystationUsb = Api::MidiBridge::portForName (juce::String (input.name)) == "USB";
+            sawKeyboard = true;
+            check (input.role == "keyboard",
+                   "every generic input is available as a keyboard");
         }
     }
 
-    check (inputs.size() == 0 || sawLaunchpad || sawKeystation
-               || std::none_of (inputs.begin(), inputs.end(),
-                                [] (const Api::MidiInputState& input)
-                                {
-                                    return input.role != "input";
-                                }),
-           "unrecognised inputs are classified as plain MIDI inputs");
-
     std::cout << "midi-api-test: ALSA inputs=" << inputs.size()
               << " launchpad=" << (sawLaunchpad ? "yes" : "no")
-              << " keystation=" << (sawKeystation ? "yes" : "no") << std::endl;
+              << " keyboard=" << (sawKeyboard ? "yes" : "no") << std::endl;
 
     if (sawLaunchpad)
         check (launchpadMi, "the Launchpad's MI port is identified");
-
-    if (sawKeystation)
-        check (keystationUsb, "the Keystation's USB port is identified");
 
     Api::MidiBridge bridge;
     const auto state = bridge.snapshot();
@@ -74,17 +62,31 @@ void runDeviceEnumeration()
     check (state.inputs.size() == inputs.size(),
            "GET /midi mirrors the enumerated ALSA inputs");
 
-    if (sawLaunchpad)
+    const auto launchpad = std::find_if (state.inputs.begin(), state.inputs.end(),
+                                         [] (const Api::MidiInputState& input)
+                                         {
+                                             return input.role == "launchpad"
+                                                    && input.port == "MI";
+                                         });
+
+    if (launchpad != state.inputs.end())
     {
-        check (state.launchpad.port == "MI", "the idle bridge still names the MI port");
-        check (! state.launchpad.connected, "the idle bridge reports no Launchpad driver");
+        check (! launchpad->open,
+               "the idle bridge reports no Launchpad driver");
+        check (launchpad->leds,
+               "the Launchpad MI row advertises LED output");
     }
 
-    if (sawKeystation)
-    {
-        check (state.keystation.port == "USB", "the idle bridge names the Keystation USB port");
-        check (! state.keystation.connected, "the Keystation starts closed");
-    }
+    const auto launchpadDa = std::find_if (state.inputs.begin(), state.inputs.end(),
+                                           [] (const Api::MidiInputState& input)
+                                           {
+                                               return input.role == "launchpad"
+                                                      && input.port == "DA";
+                                           });
+
+    if (launchpadDa != state.inputs.end())
+        check (! launchpadDa->leds,
+               "the Launchpad DA row advertises no LED output");
 }
 
 }

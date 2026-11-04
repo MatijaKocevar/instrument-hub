@@ -82,6 +82,12 @@ target_sources(instrument-hub
         src/api/discovery/MdnsSocket.cpp
         src/api/MidiBridge.cpp
         src/api/midi/JuceMidiInputBackend.cpp
+        src/api/midi/MidiBridgeGridSettings.cpp
+        src/api/midi/MidiBridgeInputs.cpp
+        src/api/midi/MidiBridgeUpdate.cpp
+        src/api/midi/MidiBridgeMessages.cpp
+        src/api/midi/MidiBridgeState.cpp
+        src/api/midi/MidiGridMap.cpp
         src/api/midi/MidiInputPersistence.cpp
         src/api/midi/MidiPadTest.cpp
         src/api/Pairing.cpp

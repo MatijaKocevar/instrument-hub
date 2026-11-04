@@ -1,20 +1,21 @@
 import type {
   ControlMidiInput,
   ControlMidiPadTest,
-  ControlMidiPort,
   ControlMidiState,
 } from "../../api/client";
 
-export type MidiInputRole = "launchpad" | "keystation" | "input";
+export type MidiInputRole = "launchpad" | "keyboard" | "grid";
+
+export const midiGridPadCount = 64;
 
 export function midiRoleLabel(role: string): string {
   switch (role) {
     case "launchpad":
       return "Launchpad";
-    case "keystation":
-      return "Keyboard";
+    case "grid":
+      return "Pad grid";
     default:
-      return "MIDI input";
+      return "Keyboard";
   }
 }
 
@@ -22,6 +23,31 @@ export function midiInputState(input: ControlMidiInput): string {
   if (!input.enabled) return "Off";
 
   return input.open ? "Open" : "Enabled";
+}
+
+export function midiHandshakeLabel(input: ControlMidiInput): string {
+  if (input.role === "launchpad")
+    return input.handshake ? "Programmer mode" : "No handshake";
+
+  if (input.role === "grid") return input.leds ? "LEDs" : "No LED output";
+
+  return "—";
+}
+
+export function midiGridLabel(input: ControlMidiInput): string {
+  if (input.learnActive)
+    return `Learning ${String(input.learnedNotes)} of ${String(midiGridPadCount)} pads`;
+
+  if (input.learnedNotes >= midiGridPadCount) return "64 pads learned";
+
+  if (input.noteBase >= 0)
+    return `Notes ${String(input.noteBase)}–${String(input.noteBase + midiGridPadCount - 1)}`;
+
+  return "Not configured";
+}
+
+export function midiGridConfigured(input: ControlMidiInput): boolean {
+  return input.learnedNotes >= midiGridPadCount || input.noteBase >= 0;
 }
 
 export function midiInputSummary(inputs: readonly ControlMidiInput[]): string {
@@ -33,16 +59,22 @@ export function midiInputSummary(inputs: readonly ControlMidiInput[]): string {
   return `${String(inputs.length)} ${noun} · ${String(enabled)} enabled`;
 }
 
-export function midiPortLabel(port: string): string {
-  return port.trim().length > 0 ? port : "—";
+export function midiLaunchpadSummary(
+  inputs: readonly ControlMidiInput[],
+): string {
+  const launchpad =
+    inputs.find((input) => input.role === "launchpad" && input.port === "MI") ??
+    inputs.find((input) => input.role === "launchpad");
+
+  if (launchpad === undefined) return "No Launchpad";
+
+  if (!launchpad.open) return "Launchpad offline";
+
+  return launchpad.handshake ? "Launchpad ready" : "Launchpad handshake…";
 }
 
-export function midiPortState(port: ControlMidiPort, present: boolean): string {
-  if (port.connected) return "Connected";
-
-  if (present || port.name.length > 0) return "Detected · not connected";
-
-  return "Not detected";
+export function midiPortLabel(port: string): string {
+  return port.trim().length > 0 ? port : "—";
 }
 
 export function isLaunchpadDaInput(input: ControlMidiInput): boolean {
@@ -72,5 +104,8 @@ export function padTestLabel(
 }
 
 export function canRunPadTest(midi: ControlMidiState | null): boolean {
-  return midi?.launchpad.connected === true;
+  return (
+    midi?.inputs.some((input) => input.role === "launchpad" && input.open) ===
+    true
+  );
 }

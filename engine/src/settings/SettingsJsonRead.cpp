@@ -96,6 +96,52 @@ void readInputs (const juce::var& value, MidiSettings& midi)
     }
 }
 
+void readGridInputs (const juce::var& value, MidiSettings& midi)
+{
+    const auto* array = value.getArray();
+
+    if (array == nullptr)
+        return;
+
+    midi.gridInputs.clear();
+
+    for (const auto& item : *array)
+    {
+        const auto* object = item.getDynamicObject();
+
+        if (object == nullptr)
+            continue;
+
+        MidiGridInput input;
+
+        if (! readString (object->getProperty ("client"), input.client)
+            || ! readString (object->getProperty ("port"), input.port))
+            continue;
+
+        if (input.client.isEmpty() || input.port.isEmpty())
+            continue;
+
+        readInteger (object->getProperty ("noteBase"),
+                     -1,
+                     MidiGridInput::highestNoteBase,
+                     input.noteBase);
+
+        if (const auto* notes = object->getProperty ("notes").getArray())
+        {
+            for (const auto& note : *notes)
+            {
+                int parsed = 0;
+
+                if (readInteger (note, 0, MidiGridInput::highestNote, parsed)
+                    && input.notes.size() < static_cast<std::size_t> (MidiGridInput::padCount))
+                    input.notes.push_back (parsed);
+            }
+        }
+
+        midi.gridInputs.push_back (std::move (input));
+    }
+}
+
 void readRecentProjects (const juce::var& value, ProjectSettings& project)
 {
     const auto* array = value.getArray();
@@ -180,7 +226,10 @@ void applyDocument (const juce::var& document, Settings& settings)
     const auto midi = root->getProperty ("midi");
 
     if (const auto* midiObject = midi.getDynamicObject())
+    {
         readInputs (midiObject->getProperty ("enabledInputs"), settings.midi);
+        readGridInputs (midiObject->getProperty ("gridInputs"), settings.midi);
+    }
 
     readAccount (root->getProperty ("account"), settings.account);
     readProject (root->getProperty ("project"), settings.project);
