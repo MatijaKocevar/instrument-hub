@@ -52,3 +52,13 @@ export function sourceRequestForInitTone(
 export function sourceRequestForEmpty(): ControlPatchSourceRequest {
   return { kind: "empty" };
 }
+
+export function sourceRequestForAudioInput(
+  inputChannel: number,
+): ControlPatchSourceRequest {
+  return {
+    kind: "audio-input",
+    name: "Live audio input",
+    inputChannel,
+  };
+}

@@ -482,10 +482,12 @@ export interface paths {
         put?: never;
         /**
          * Run the round-trip latency probe
-         * @description Plays an impulse through the ALSA Loopback, captures it and
+         * @description Plays an impulse through the selected loopback, captures it and
          *     cross-correlates the two. Blocks for a few hundred milliseconds.
-         *     A failed measurement is still `200`, with `valid: false` and `error`
-         *     set, so the UI can show the reason next to the readout.
+         *     `source=loopback` uses the internal ALSA Loopback; `source=device`
+         *     uses the selected audio device and needs a physical output-to-input
+         *     cable. A failed measurement is still `200`, with `valid: false` and
+         *     `error` set, so the UI can show the reason next to the readout.
          */
         post: operations["measureAudioLatency"];
         delete?: never;
@@ -2402,7 +2404,10 @@ export interface operations {
     };
     measureAudioLatency: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Which loopback to measure. */
+                source?: "loopback" | "device";
+            };
             header?: never;
             path?: never;
             cookie?: never;

@@ -23,8 +23,8 @@ export function AudioRoute({
         onChange={(patch) => {
           void store.updateAudio(patch);
         }}
-        onMeasure={() => {
-          void store.measureLatency();
+        onMeasure={(source) => {
+          void store.measureLatency(source);
         }}
       />
 

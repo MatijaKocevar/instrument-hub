@@ -76,6 +76,10 @@ public:
 
     bool setParameters (const std::vector<ParameterEdit>& edits);
 
+    bool openEditor (juce::String& error);
+    bool closeEditor (juce::String& error);
+    bool isEditorOpen() const noexcept;
+
     int getChildProcessId() const noexcept;
 
     void prepare (double sampleRate, int maximumBlockSize) override;

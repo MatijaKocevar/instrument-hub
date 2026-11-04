@@ -32,6 +32,8 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     if (editorHost != nullptr)
         editorHost->closeAll();
 
+    closeSandboxEditors (-1);
+
     if (mirrorSync != nullptr)
         mirrorSync->clear();
 
@@ -189,6 +191,13 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     for (int index = 0; index < slotCount; ++index)
     {
         const auto& slotConfig = config.slots[static_cast<std::size_t> (index)];
+
+        if (config.layout == SessionLayout::tracks
+            && slotConfig.kind == SessionSlotKind::empty)
+        {
+            warmPool.setRequest (index, {});
+            continue;
+        }
 
         warmPool.setRequest (index,
                              juce::String (index) + ":" + toString (slotConfig.kind)
@@ -359,6 +368,14 @@ void Session::prepare (double newSampleRate, int newMaximumBlockSize, int newNum
 
     renderBuffer.setSize (numChannels, maximumBlockSize, false, true, true);
     renderBuffer.clear();
+
+    latencyProbeActive.store (false, std::memory_order_relaxed);
+    latencyProbeRequested.store (false, std::memory_order_relaxed);
+    latencyProbeEmit.store (false, std::memory_order_relaxed);
+    latencyProbeComplete.store (true, std::memory_order_relaxed);
+    latencyProbePosition.store (0, std::memory_order_relaxed);
+    latencyProbeInputChannels.store (0, std::memory_order_relaxed);
+    latencyProbeInput.assign (latencyProbeCaptureSamples, 0.0f);
 
     midi.prepare();
 

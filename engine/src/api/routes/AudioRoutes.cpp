@@ -188,9 +188,24 @@ void registerAudioRoutes (httplib::Server& server, const RouteContext& context)
         setJson (response, 200, audioStateToVar (audio));
     });
 
-    server.Post ("/audio/measure", [context] (const httplib::Request&,
+    server.Post ("/audio/measure", [context] (const httplib::Request& request,
                                              httplib::Response& response)
     {
+        const auto source = request.get_param_value ("source");
+
+        if (source == "device")
+        {
+            if (context.audioMeasureDevice == nullptr)
+            {
+                setError (response, 503, "selected-device measurement is unavailable");
+                return;
+            }
+
+            decorate (context, response);
+            setJson (response, 200, audioMeasurementToVar (context.audioMeasureDevice()));
+            return;
+        }
+
         if (context.audioMeasure == nullptr)
         {
             setError (response, 503, "no audio backend is attached");

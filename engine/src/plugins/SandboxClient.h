@@ -14,7 +14,7 @@ namespace sandbox
 {
 
 inline constexpr std::uint32_t sharedMemoryMagic = 0x49485553u;
-inline constexpr std::uint32_t sharedMemoryVersion = 2;
+inline constexpr std::uint32_t sharedMemoryVersion = 3;
 
 inline constexpr int requestRingSize = 8;
 inline constexpr int replyRingSize = 8;
@@ -40,7 +40,9 @@ enum class ControlCommand : std::int32_t
     none = 0,
     applyState = 1,
     captureState = 2,
-    applyParameters = 3
+    applyParameters = 3,
+    openEditor = 4,
+    closeEditor = 5
 };
 
 enum class ControlStatus : std::int32_t
@@ -98,6 +100,7 @@ struct SharedMemory
     std::int32_t childProcessId;
     std::int32_t latencySamples;
     std::uint32_t heartbeat;
+    std::int32_t editorOpen;
 
     std::uint64_t requestPublished;
     std::uint64_t requestConsumed;

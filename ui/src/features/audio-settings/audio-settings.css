@@ -453,6 +453,17 @@
   opacity: 0.55;
 }
 
+.audio-settings__measure-source {
+  min-height: 44px;
+  border: 1px solid #2a2d3a;
+  border-radius: 10px;
+  padding: 0 0.7rem;
+  background: #161821;
+  color: #cfd5e6;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
 .audio-settings__measure-result {
   display: flex;
   flex-direction: column;

@@ -212,3 +212,51 @@ reported by the human or reproduced on this machine.
 - actual: the palette stepped through `9,13,17,21,25,29,33,37`, so the bottom row was salmon/red-orange and five rows were green/teal shades; slot 0's `colorIndex: 1` override also made the bottom-left pad differ from its row
 - evidence: 2026-11-03 photo of the Launchpad shows the salmon bottom row and the miscoloured bottom-left pad. The palette is now `13,21,29,37,45,49,3,1,17,25,33,41,48,8,2,12` (yellow/green/teal/blue/purple/white/grey, no red or near-red), the piano override is removed, and the UI palette follows the same order. `ihub-launchpad-protocol`, `ihub-launchpad-driver` and `ihub-launchpad-mapping` pass; `pnpm test:snapshot`, `pnpm typecheck` and `pnpm format:check` pass.
 - fix: the new palette replaces the contiguous ramp with widely spaced hues, removes the patch-level colour override from the Starter Set, and aligns the UI palette with the Launchpad order.
+
+### BUG-019 · Opening a Wine-hosted plugin editor aborts the engine
+- status: fixed (containment); process isolation still missing
+- area: plugins/editor
+- steps:
+  1. start the app with an Analog Lab V patch (vstbridge/Wine) armed
+  2. open the Instrument page and press "Open editor"
+- expected: the plugin editor opens; if the Wine host dies the slot reports an error and the engine keeps running
+- actual: the editor mirror loads a second vstbridge instance in the engine process; when the Wine host dies, vstbridge's asio reader throws `std::system_error: write: Broken pipe` on a background thread, nothing catches it, and `std::terminate` aborts the whole app
+- evidence: 2026-11-04 20:28:39 dev build, `POST /patches/0/editor`; `/tmp/opencode/dev.log` ends with `terminate called after throwing an instance of 'std::system_error'`, `what(): write: Broken pipe` and `Aborted (core dumped)`. GDB on `build-debug/engine/instrument-hub` stopped in `std::terminate` with the throwing thread in `asio::detail::do_throw_error` / `asio::read<...local::stream_protocol...>` inside `libvstbridge-vst3.so`; the Wine log immediately before it says `WARNING: The native plugin host seems to have died`. This is the remaining gap recorded in BUG-005: the editor mirror is still an in-process crash surface.
+- fix: `SessionPluginMirror` refuses to create an in-process mirror when the plugin bundle path contains `vstbridge`, so the editor API returns "the editor is unavailable for Wine-hosted plugins: the vstbridge host aborts the engine" instead of aborting the engine. Native plugins and the TestPlugin editor path are unchanged.
+- remaining: host the editor in the sandbox process (the instance that already owns the audio) or in a dedicated editor helper, so a dead Wine host only fails that process. The sandbox currently links the headless processor module, which cannot create editors.
+
+### BUG-020 · Empty track slots are warmed
+- status: fixed
+- area: session/warm pool
+- steps:
+  1. open a blank eight-track project (`shared/tracks-set.yaml`) with no instruments assigned
+  2. read `GET /state`
+- expected: unassigned tracks stay cold; only assigned tracks are warmed
+- actual: all eight track slots show `warmState: "warm"` even though every slot is `kind: empty`, because `SessionBuild` gives every track a warm request and `preloadAll` warms every protected slot
+- evidence: 2026-11-04, `track-check.ihub` with only Track 1 assigned, `GET /state` reported `warmState: "warm"` for every unassigned track slot; `SessionBuild.cpp` builds a request for every slot and `ProjectSession.cpp` puts all eight track slots in `warmSlots`
+- fix: for the tracks layout, `SessionBuild` clears the warm request for `SessionSlotKind::empty` slots and `Session::setSlotSource` clears it when a track is assigned back to empty, so `preloadAll` skips them. Assigning an instrument sets a valid request again and the slot warms normally.
+- verified: 2026-11-04 debug build with `track-check.ihub` (Tracks 1-3 assigned, 4-8 empty): `GET /state` reports `warmState: "warm"`/`active` for slots 0-2 and `cold` for slots 3-7.
+
+### BUG-021 · Clicking a track pad opens the instrument instead of arming
+- status: fixed
+- area: UI/track grid
+- steps:
+  1. open the Grid page in a tracks project
+  2. click a track cell in row 08 with the mouse
+- expected: a single click arms that track (same as pressing its Launchpad pad) and the grid stays visible; a double click opens the Instrument page for it
+- actual: `GridRoute.selectTrack` called `router.navigate("/instrument")` immediately, so the grid disappeared. In dev the arm also failed because `ui/vite.config.ts` did not proxy `/tracks` to the engine, so the `POST /tracks/{index}/select` went to Vite and rolled back
+- evidence: 2026-11-04 reported on the dev app; Playwright on `http://localhost:5173/` showed a single click leaving `data-armed-slot` unchanged, and the old route jumped to `/instrument`
+- fix: single click calls `selectTrack` only; double click calls `openTrack` (`selectTrack` plus navigation to `/instrument`). `ui/vite.config.ts` now proxies `/tracks`, `/project` and `/settings` to `127.0.0.1:8080`, so arm/new/save/settings calls work in dev.
+- verified: Playwright single click on Track 3 -> URL stayed `/`, `data-armed-slot` became `2`; double click on Track 3 -> URL became `/instrument`; `GET /state` reported `armedSlot: 2` and Track 3 selected.
+
+### BUG-022 · Browser UI routes return API JSON on reload
+- status: fixed
+- area: UI/dev server
+- steps:
+  1. run the UI through Vite (`http://localhost:5173/`) and open the Audio & MIDI page
+  2. reload the page, or open `http://localhost:5173/audio` directly
+- expected: the Audio & MIDI page renders with its device controls
+- actual: `/audio`, `/plugins` and `/settings` are both UI routes and API endpoints, and the Vite proxy forwarded the browser navigation to the engine, so the tab showed raw JSON instead of the app
+- evidence: 2026-11-04, `curl -H 'Accept: text/html' http://localhost:5173/audio` returned the engine's `AudioState` JSON; client-side clicks worked, reloads and direct links did not
+- fix: a Vite `configureServer` middleware rewrites HTML navigations for `/audio`, `/plugins` and `/settings` to `/` before the proxy runs, while API fetches (`Accept: application/json`/`*/*`) still go to `127.0.0.1:8080`. The proxy now also forwards `/tracks`, `/project` and `/settings`.
+- verified: `Accept: text/html /audio` returns `index.html`; `Accept: application/json /audio` returns the device state; Playwright loads `/audio` directly and finds `audio-page` with 3 device cards.

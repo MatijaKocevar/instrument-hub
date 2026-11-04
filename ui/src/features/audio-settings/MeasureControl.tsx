@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { ReactElement } from "react";
 
 import type { ControlAudioMeasurement } from "../../api/client";
+import type { MeasurementSource } from "../../api/audio";
 import { formatMs } from "./model";
 
 function Measurement({
@@ -67,7 +69,7 @@ interface MeasureControlProps {
   readonly measurement: ControlAudioMeasurement | null | undefined;
   readonly error: string | null | undefined;
   readonly busy: boolean;
-  readonly onMeasure?: (() => void) | undefined;
+  readonly onMeasure?: ((source: MeasurementSource) => void) | undefined;
 }
 
 export function MeasureControl({
@@ -76,14 +78,29 @@ export function MeasureControl({
   busy,
   onMeasure,
 }: MeasureControlProps): ReactElement {
+  const [source, setSource] = useState<MeasurementSource>("device");
+
   return (
     <div className="audio-settings__measure">
+      <select
+        className="audio-settings__measure-source"
+        data-testid="measure-source"
+        aria-label="Latency measurement loopback"
+        value={source}
+        disabled={busy}
+        onChange={(event) => {
+          setSource(event.target.value as MeasurementSource);
+        }}
+      >
+        <option value="device">Selected device (cable)</option>
+        <option value="loopback">ALSA loopback (internal)</option>
+      </select>
       <button
         type="button"
         data-testid="measure-button"
         disabled={busy || onMeasure === undefined}
         onClick={() => {
-          onMeasure?.();
+          onMeasure?.(source);
         }}
       >
         {busy ? "Working…" : "Measure"}

@@ -20,6 +20,7 @@ export interface GridViewProps {
     colorIndex: number,
   ) => void;
   readonly onSelectTrack?: (index: number) => void;
+  readonly onOpenTrack?: (index: number) => void;
   readonly onToggleTrackFx?: (index: number, hot: number) => void;
   readonly onSetTrackVolume?: (index: number, step: number) => void;
 }
@@ -32,6 +33,7 @@ export function GridView({
   onColourChange,
   onFamilyColourChange,
   onSelectTrack,
+  onOpenTrack,
   onToggleTrackFx,
   onSetTrackVolume,
 }: GridViewProps): ReactElement {
@@ -63,6 +65,7 @@ export function GridView({
         <TrackGridTable
           model={model}
           {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
+          {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
           {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
           {...(onSetTrackVolume !== undefined ? { onSetTrackVolume } : {})}
         />

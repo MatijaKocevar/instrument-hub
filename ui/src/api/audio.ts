@@ -8,6 +8,8 @@ import type {
   ControlAudioState,
 } from "./types";
 
+export type MeasurementSource = "loopback" | "device";
+
 export interface AudioEndpoints {
   getAudio(options?: { signal?: AbortSignal }): Promise<ControlAudioState>;
 
@@ -18,6 +20,7 @@ export interface AudioEndpoints {
 
   measureLatency(options?: {
     signal?: AbortSignal;
+    source?: MeasurementSource;
   }): Promise<ControlAudioMeasurement>;
 }
 
@@ -127,6 +130,13 @@ export function createAudioEndpoints(
 
     async measureLatency(requestOptions) {
       const { data, error, response } = await client.POST("/audio/measure", {
+        ...(requestOptions?.source !== undefined
+          ? {
+              params: {
+                query: { source: requestOptions.source },
+              },
+            }
+          : {}),
         ...(requestOptions?.signal !== undefined
           ? { signal: requestOptions.signal }
           : {}),

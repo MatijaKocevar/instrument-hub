@@ -8,6 +8,7 @@ import "./trackGrid.css";
 
 export interface TrackGridActions {
   readonly onSelectTrack?: (index: number) => void;
+  readonly onOpenTrack?: (index: number) => void;
   readonly onToggleTrackFx?: (index: number, hot: number) => void;
   readonly onSetTrackVolume?: (index: number, step: number) => void;
 }
@@ -19,6 +20,7 @@ export interface TrackGridTableProps extends TrackGridActions {
 export function TrackGridTable({
   model,
   onSelectTrack,
+  onOpenTrack,
   onToggleTrackFx,
   onSetTrackVolume,
 }: TrackGridTableProps): ReactElement {
@@ -56,6 +58,7 @@ export function TrackGridTable({
             row={row}
             model={model}
             {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
+            {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
             {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
             {...(onSetTrackVolume !== undefined ? { onSetTrackVolume } : {})}
           />

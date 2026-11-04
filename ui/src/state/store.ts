@@ -252,7 +252,9 @@ export class AppStore {
   updateAudio = (patch: ControlAudioPatch): Promise<boolean> =>
     this.audio.updateAudio(patch);
 
-  measureLatency = (): Promise<boolean> => this.audio.measureLatency();
+  measureLatency = (
+    source: "loopback" | "device" = "loopback",
+  ): Promise<boolean> => this.audio.measureLatency(source);
 
   toggleLan = (enabled: boolean): Promise<boolean> =>
     this.pairing.toggleLan(enabled);

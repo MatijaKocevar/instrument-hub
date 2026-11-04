@@ -48,7 +48,8 @@ public:
 
     void setAudioHandlers (AudioStateProvider provider,
                            AudioApplyHandler apply,
-                           AudioMeasureHandler measure);
+                           AudioMeasureHandler measure,
+                           AudioMeasureHandler measureDevice = {});
 
     void setPluginHandlers (PluginInventoryProvider provider,
                             PluginRescanHandler rescan);
