@@ -51,6 +51,9 @@ public:
                            AudioMeasureHandler measure,
                            AudioMeasureHandler measureDevice = {});
 
+    void setAudioWizardHandlers (AudioWizardHandler recommend,
+                                 AudioWizardApplyHandler apply);
+
     void setPluginHandlers (PluginInventoryProvider provider,
                             PluginRescanHandler rescan);
 

@@ -1,5 +1,7 @@
 #include "settings/SettingsJson.h"
 
+#include "settings/SettingsJsonAudio.h"
+
 namespace ihub::settings::detail
 {
 namespace
@@ -14,14 +16,6 @@ juce::DynamicObject& objectFor (juce::DynamicObject& parent, const juce::Identif
 
     parent.setProperty (name, juce::var (new juce::DynamicObject()));
     return *parent.getProperty (name).getDynamicObject();
-}
-
-void writeAudio (juce::DynamicObject& object, const AudioSettings& audio)
-{
-    object.setProperty ("deviceType", audio.deviceType);
-    object.setProperty ("deviceName", audio.deviceName);
-    object.setProperty ("sampleRate", audio.sampleRate);
-    object.setProperty ("bufferSize", audio.bufferSize);
 }
 
 void writeMixer (juce::DynamicObject& object, const MixerSettings& mixer)
@@ -86,7 +80,7 @@ juce::var buildDocument (const juce::var& preserved, const Settings& settings)
     auto* rootObject = root.getDynamicObject();
     rootObject->setProperty ("version", schemaVersion);
 
-    writeAudio (objectFor (*rootObject, "audio"), settings.audio);
+    writeAudioSettings (objectFor (*rootObject, "audio"), settings.audio);
     writeMixer (objectFor (*rootObject, "mixer"), settings.mixer);
     writeMidi (objectFor (*rootObject, "midi"), settings.midi);
     writeAccount (objectFor (*rootObject, "account"), settings.account);

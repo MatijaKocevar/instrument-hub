@@ -47,6 +47,12 @@ public:
 
     Api::AudioMeasurementState measure();
 
+    Api::AudioWizardState recommendSetup();
+
+    bool applyRecommendation (std::string& error);
+
+    void setDeviceMeasureHandler (Api::AudioMeasureHandler handler);
+
     void setChainLatencySamples (int samples) noexcept;
 
     void setTimingMonitor (TimingMonitor* monitor) noexcept;
@@ -104,6 +110,9 @@ private:
 
     std::atomic<int> chainLatencySamples { 0 };
     TimingMonitor* timingMonitor = nullptr;
+
+    Api::AudioMeasureHandler deviceMeasure;
+    Api::AudioWizardState lastRecommendation;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioSettingsBridge)
 };

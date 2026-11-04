@@ -107,6 +107,8 @@ export function createFixtureContext(
     pluginPendingScan: false,
     stateRequests: 0,
     measureRequests: 0,
+    wizardRequests: 0,
+    wizardApplyRequests: 0,
     padTestRequests: 0,
     armRequests: [],
     trackRequests: [],

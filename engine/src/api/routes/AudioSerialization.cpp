@@ -112,6 +112,7 @@ juce::var audioStateToVar (const AudioStateSnapshot& audio)
     restore.getDynamicObject()->setProperty ("reason",
                                              juce::String (audio.restore.reason));
     object->setProperty ("restore", restore);
+    object->setProperty ("profiles", audioProfilesToVar (audio.profiles));
 
     return root;
 }

@@ -26,6 +26,61 @@ export class AudioActions {
     }
   };
 
+  recommendAudioSetup = async (): Promise<boolean> => {
+    this.patch({ audioWizardBusy: true, audioWizardError: null });
+
+    try {
+      const audioWizard = await this.context.api.recommendAudioSetup();
+
+      this.patch({
+        audioWizard,
+        audioWizardBusy: false,
+        audioWizardError: audioWizard.valid
+          ? null
+          : audioWizard.error.length > 0
+            ? audioWizard.error
+            : "no stable audio setting was found",
+      });
+
+      return audioWizard.valid;
+    } catch (error) {
+      this.patch({
+        audioWizardBusy: false,
+        audioWizardError: messageOf(error),
+      });
+      return false;
+    }
+  };
+
+  applyAudioSetup = async (): Promise<boolean> => {
+    this.patch({ audioWizardBusy: true, audioWizardError: null });
+
+    try {
+      const audio = await this.context.api.applyAudioSetup();
+
+      this.patch({
+        audio,
+        audioWizard: null,
+        audioWizardBusy: false,
+        audioWizardError: null,
+        measurement: null,
+        measurementError: null,
+      });
+
+      return true;
+    } catch (error) {
+      this.patch({
+        audioWizardBusy: false,
+        audioWizardError: messageOf(error),
+      });
+      return false;
+    }
+  };
+
+  dismissAudioWizard = (): void => {
+    this.patch({ audioWizard: null, audioWizardError: null });
+  };
+
   measureLatency = async (source: "loopback" | "device"): Promise<boolean> => {
     this.patch({ measurementError: null });
 

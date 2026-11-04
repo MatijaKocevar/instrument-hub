@@ -16,15 +16,27 @@ export function AudioRoute({
       <AudioSettingsPanel
         audio={app.audio}
         measurement={app.measurement}
+        wizard={app.audioWizard}
         error={app.audioError}
         measurementError={app.measurementError}
+        wizardError={app.audioWizardError}
         busy={app.audioBusy}
+        wizardBusy={app.audioWizardBusy}
         loading={state === null && app.audio === null}
         onChange={(patch) => {
           void store.updateAudio(patch);
         }}
         onMeasure={(source) => {
           void store.measureLatency(source);
+        }}
+        onRecommend={() => {
+          void store.recommendAudioSetup();
+        }}
+        onApplySetup={() => {
+          void store.applyAudioSetup();
+        }}
+        onDismissSetup={() => {
+          store.dismissAudioWizard();
         }}
       />
 

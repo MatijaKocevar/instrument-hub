@@ -11,12 +11,41 @@ namespace ihub::settings
 
 constexpr int schemaVersion = 1;
 
-struct AudioSettings
+struct AudioProfile
 {
+    juce::String soundcardKey;
     juce::String deviceType;
     juce::String deviceName;
     int sampleRate = 0;
     int bufferSize = 0;
+    std::vector<int> inputChannels;
+    std::vector<int> outputChannels;
+    juce::String profile;
+    double latencyMs = 0.0;
+    double measuredMs = 0.0;
+    int xruns = 0;
+};
+
+struct AudioSettings
+{
+    AudioSettings() = default;
+
+    AudioSettings (const juce::String& type,
+                   const juce::String& name,
+                   int rate,
+                   int buffer)
+        : deviceType (type),
+          deviceName (name),
+          sampleRate (rate),
+          bufferSize (buffer)
+    {
+    }
+
+    juce::String deviceType;
+    juce::String deviceName;
+    int sampleRate = 0;
+    int bufferSize = 0;
+    std::vector<AudioProfile> profiles;
 };
 
 struct MixerSettings

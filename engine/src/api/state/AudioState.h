@@ -40,6 +40,62 @@ struct AudioRestoreState
     std::string reason;
 };
 
+struct AudioProfileState
+{
+    std::string soundcardKey;
+    std::string deviceType;
+    std::string deviceName;
+    double sampleRate = 0.0;
+    int bufferSize = 0;
+    std::vector<int> inputChannels;
+    std::vector<int> outputChannels;
+    std::string profile;
+    double latencyMs = 0.0;
+    double measuredMs = 0.0;
+    std::uint64_t xruns = 0;
+};
+
+struct AudioProbeState
+{
+    double sampleRate = 0.0;
+    int bufferSize = 0;
+
+    double latencyMs = 0.0;
+    double measuredMs = 0.0;
+    double expectedMs = 0.0;
+
+    std::uint64_t xruns = 0;
+    bool opened = false;
+    bool stable = false;
+    bool recommended = false;
+    std::string error;
+};
+
+struct AudioWizardState
+{
+    bool valid = false;
+    std::string error;
+
+    std::string deviceType;
+    std::string deviceName;
+    std::string soundcard;
+    std::string profile;
+
+    double sampleRate = 0.0;
+    int bufferSize = 0;
+
+    std::vector<int> inputChannels;
+    std::vector<int> outputChannels;
+
+    double latencyMs = 0.0;
+    double measuredMs = 0.0;
+    double expectedMs = 0.0;
+    std::uint64_t xruns = 0;
+
+    std::vector<AudioProbeState> candidates;
+    std::string tradeoff;
+};
+
 struct AudioStateSnapshot
 {
     bool open = false;
@@ -63,6 +119,8 @@ struct AudioStateSnapshot
     AudioLatencyState latency;
 
     AudioRestoreState restore;
+
+    std::vector<AudioProfileState> profiles;
 
     std::uint64_t deviceXruns = 0;
     std::uint64_t callbackOverruns = 0;
@@ -99,5 +157,9 @@ using AudioStateProvider = std::function<AudioStateSnapshot()>;
 using AudioApplyHandler = std::function<bool (const AudioSettingsPatch&, std::string&)>;
 
 using AudioMeasureHandler = std::function<AudioMeasurementState()>;
+
+using AudioWizardHandler = std::function<AudioWizardState()>;
+
+using AudioWizardApplyHandler = std::function<bool (std::string&)>;
 
 }

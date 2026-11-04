@@ -1,9 +1,11 @@
 #include "audio/AudioSettings.h"
 
 #include "audio/device/DeviceErrors.h"
+#include "audio/settings/AudioProfiles.h"
 #include "audio/settings/AudioSettingsChannels.h"
 #include "audio/settings/AudioSettingsPersistence.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace AudioEngine
@@ -18,6 +20,7 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
 {
     const std::lock_guard<std::mutex> lock (mutex);
 
+    Api::AudioSettingsPatch request = patch;
     auto& manager = liveManager();
 
     if (devices.empty())
@@ -33,18 +36,18 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     const auto currentType = wasOpen ? manager.getCurrentDeviceTypeName() : pendingType;
     const auto currentName = wasOpen ? manager.getCurrentDeviceName() : pendingName;
 
-    auto targetType = patch.deviceType.has_value()
-                          ? juce::String (*patch.deviceType)
+    auto targetType = request.deviceType.has_value()
+                          ? juce::String (*request.deviceType)
                           : currentType;
 
     if (targetType.isEmpty())
         targetType = firstDeviceType();
 
-    auto targetName = patch.deviceName.has_value()
-                          ? juce::String (*patch.deviceName)
+    auto targetName = request.deviceName.has_value()
+                          ? juce::String (*request.deviceName)
                           : currentName;
 
-    if ((! patch.deviceName.has_value() && targetType != currentType)
+    if ((! request.deviceName.has_value() && targetType != currentType)
         || targetName.isEmpty())
     {
         if (findDevice (targetType, targetName) == nullptr)
@@ -54,7 +57,7 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     const CachedDevice* info = findDevice (targetType, targetName);
     CachedDevice rawDevice;
 
-    if (info == nullptr && patch.deviceName.has_value())
+    if (info == nullptr && request.deviceName.has_value())
     {
         for (const auto& raw : manager.getRawPcmDevices())
         {
@@ -92,25 +95,69 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
         return false;
     }
 
+    const bool selectingDevice = request.deviceType.has_value()
+                                 || request.deviceName.has_value();
+    const bool explicitFormat = request.sampleRate.has_value()
+                                || request.bufferSize.has_value()
+                                || request.inputChannels.has_value()
+                                || request.outputChannels.has_value();
+
+    if (selectingDevice && ! explicitFormat && settingsStore != nullptr)
+    {
+        const auto& profiles = settingsStore->settings().audio.profiles;
+
+        if (const auto* profile = detail::findAudioProfile (profiles,
+                                                            targetType,
+                                                            targetName);
+            profile != nullptr)
+        {
+            if (profile->sampleRate > 0)
+                request.sampleRate = static_cast<double> (profile->sampleRate);
+
+            if (profile->bufferSize > 0)
+                request.bufferSize = profile->bufferSize;
+
+            const auto channelsFit = [] (const std::vector<int>& channels,
+                                         int available)
+            {
+                if (channels.empty() || available <= 0)
+                    return false;
+
+                return std::all_of (channels.begin(),
+                                    channels.end(),
+                                    [available] (int channel)
+                                    {
+                                        return channel >= 0 && channel < available;
+                                    });
+            };
+
+            if (channelsFit (profile->inputChannels, info->inputNames.size()))
+                request.inputChannels = profile->inputChannels;
+
+            if (channelsFit (profile->outputChannels, info->outputNames.size()))
+                request.outputChannels = profile->outputChannels;
+        }
+    }
+
     const bool deviceChanged = ! wasOpen
                                || targetType != currentType
                                || targetName != currentName;
-    const bool channelChange = patch.inputChannels.has_value()
-                               || patch.outputChannels.has_value();
+    const bool channelChange = request.inputChannels.has_value()
+                               || request.outputChannels.has_value();
 
     if (channelChange)
     {
-        if (patch.outputChannels.has_value()
-            && ! detail::validateChannels (*patch.outputChannels,
+        if (request.outputChannels.has_value()
+            && ! detail::validateChannels (*request.outputChannels,
                                            info->outputNames.size(),
                                            "outputChannels", error))
         {
             return false;
         }
 
-        if (patch.inputChannels.has_value()
-            && ! patch.inputChannels->empty()
-            && ! detail::validateChannels (*patch.inputChannels,
+        if (request.inputChannels.has_value()
+            && ! request.inputChannels->empty()
+            && ! detail::validateChannels (*request.inputChannels,
                                            info->inputNames.size(),
                                            "inputChannels", error))
         {
@@ -122,9 +169,9 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     setup.deviceTypeName = targetType;
     setup.outputDeviceName = targetName;
     setup.inputDeviceName = info->hasInput ? targetName : juce::String();
-    setup.sampleRate = patch.sampleRate.value_or (wasOpen ? manager.getCurrentSampleRate()
+    setup.sampleRate = request.sampleRate.value_or (wasOpen ? manager.getCurrentSampleRate()
                                                           : 48000.0);
-    setup.bufferSize = patch.bufferSize.value_or (wasOpen ? manager.getCurrentBufferSize()
+    setup.bufferSize = request.bufferSize.value_or (wasOpen ? manager.getCurrentBufferSize()
                                                           : 128);
 
     const int availableOutputs = info->outputNames.size();
@@ -133,7 +180,7 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
                                      || (info->hasInput && info->inputNames.isEmpty());
 
     const auto outputMap = detail::resolveChannelMap (
-        patch.outputChannels,
+        request.outputChannels,
         setup.outputChannels,
         availableOutputs,
         2,
@@ -143,7 +190,7 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     setup.numOutputChannels = outputMap.count;
 
     const auto inputMap = detail::resolveChannelMap (
-        patch.inputChannels,
+        request.inputChannels,
         setup.inputChannels,
         availableInputs,
         availableInputs,
@@ -152,7 +199,7 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     setup.inputChannels = inputMap.mask;
     setup.numInputChannels = inputMap.count;
 
-    if (patch.outputChannels.has_value() && setup.numOutputChannels <= 0)
+    if (request.outputChannels.has_value() && setup.numOutputChannels <= 0)
     {
         error = "outputChannels must select at least one channel";
         return false;
@@ -176,31 +223,31 @@ bool AudioSettingsBridge::apply (const Api::AudioSettingsPatch& patch, std::stri
     {
         juce::String changeError;
 
-        if (patch.sampleRate.has_value()
-            && ! manager.setSampleRate (*patch.sampleRate, &changeError))
+        if (request.sampleRate.has_value()
+            && ! manager.setSampleRate (*request.sampleRate, &changeError))
         {
             error = changeError.toStdString();
             return false;
         }
 
-        if (patch.bufferSize.has_value()
-            && ! manager.setBufferSize (*patch.bufferSize, &changeError))
+        if (request.bufferSize.has_value()
+            && ! manager.setBufferSize (*request.bufferSize, &changeError))
         {
             error = changeError.toStdString();
             return false;
         }
     }
 
-    if (patch.sampleRate.has_value()
-        && std::abs (manager.getCurrentSampleRate() - *patch.sampleRate)
+    if (request.sampleRate.has_value()
+        && std::abs (manager.getCurrentSampleRate() - *request.sampleRate)
                >= kLatencyEpsilon)
     {
         error = "the device did not accept the requested sample rate";
         return false;
     }
 
-    if (patch.bufferSize.has_value()
-        && manager.getCurrentBufferSize() != *patch.bufferSize)
+    if (request.bufferSize.has_value()
+        && manager.getCurrentBufferSize() != *request.bufferSize)
     {
         error = "the device did not accept the requested buffer size";
         return false;

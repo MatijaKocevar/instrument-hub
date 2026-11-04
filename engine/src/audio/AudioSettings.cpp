@@ -109,4 +109,11 @@ void AudioSettingsBridge::setTimingMonitor (TimingMonitor* monitor) noexcept
     timingMonitor = monitor;
 }
 
+void AudioSettingsBridge::setDeviceMeasureHandler (Api::AudioMeasureHandler handler)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+
+    deviceMeasure = std::move (handler);
+}
+
 }

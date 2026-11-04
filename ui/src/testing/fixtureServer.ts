@@ -38,6 +38,12 @@ export async function startFixtureServer(
     get measureRequests() {
       return context.measureRequests;
     },
+    get wizardRequests() {
+      return context.wizardRequests;
+    },
+    get wizardApplyRequests() {
+      return context.wizardApplyRequests;
+    },
     get audio() {
       return context.audio;
     },

@@ -56,6 +56,8 @@ juce::var meterFrameToVar (const MeterFrame& frame);
 
 juce::var audioStateToVar (const AudioStateSnapshot& audio);
 juce::var audioMeasurementToVar (const AudioMeasurementState& measurement);
+juce::var audioProfilesToVar (const std::vector<AudioProfileState>& profiles);
+juce::var audioWizardToVar (const AudioWizardState& wizard);
 
 juce::var pairingToVar (const PairingSnapshot& pairing);
 
@@ -73,6 +75,8 @@ struct RouteContext
     AudioApplyHandler audioApply;
     AudioMeasureHandler audioMeasure;
     AudioMeasureHandler audioMeasureDevice;
+    AudioWizardHandler audioWizard;
+    AudioWizardApplyHandler audioWizardApply;
 
     PairingManager* pairing = nullptr;
 

@@ -15,6 +15,10 @@ void runRoundTripChecks()
            "the round trip starts from a missing file");
 
     store.settings().audio = { "ALSA", "Steinberg UR22mkII", 48000, 128 };
+    store.settings().audio.profiles = {
+        { "rubix22", "JACK", "Rubix22 Pro", 48000, 96, { 0, 1 }, { 0, 1 },
+          "pro-audio", 7.29, 7.29, 0 }
+    };
     store.settings().mixer = { 0.65, 1.25, 7, true };
     store.settings().midi.enabledInputs = {
         { "Keystation Mini 32 MK3", "Keystation Mini 32 MK3 MIDI 1" },
@@ -39,6 +43,21 @@ void runRoundTripChecks()
                && loaded.audio.sampleRate == 48000
                && loaded.audio.bufferSize == 128,
            "the audio device settings round-trip");
+    check (loaded.audio.profiles.size() == 1
+               && loaded.audio.profiles[0].soundcardKey == "rubix22"
+               && loaded.audio.profiles[0].deviceType == "JACK"
+               && loaded.audio.profiles[0].deviceName == "Rubix22 Pro"
+               && loaded.audio.profiles[0].sampleRate == 48000
+               && loaded.audio.profiles[0].bufferSize == 96
+               && loaded.audio.profiles[0].inputChannels
+                      == std::vector<int> { 0, 1 }
+               && loaded.audio.profiles[0].outputChannels
+                      == std::vector<int> { 0, 1 }
+               && loaded.audio.profiles[0].profile == "pro-audio"
+               && nearlyEqual (loaded.audio.profiles[0].latencyMs, 7.29)
+               && nearlyEqual (loaded.audio.profiles[0].measuredMs, 7.29)
+               && loaded.audio.profiles[0].xruns == 0,
+           "the per-soundcard profile round-trips");
     check (nearlyEqual (loaded.mixer.masterGain, 0.65)
                && nearlyEqual (loaded.mixer.inputGain, 1.25)
                && loaded.mixer.midiChannel == 7

@@ -215,6 +215,48 @@ void registerAudioRoutes (httplib::Server& server, const RouteContext& context)
         decorate (context, response);
         setJson (response, 200, audioMeasurementToVar (context.audioMeasure()));
     });
+
+    server.Post ("/audio/wizard", [context] (const httplib::Request&,
+                                             httplib::Response& response)
+    {
+        if (context.audioWizard == nullptr)
+        {
+            setError (response, 503, "the audio setup wizard is unavailable");
+            return;
+        }
+
+        decorate (context, response);
+        setJson (response, 200, audioWizardToVar (context.audioWizard()));
+    });
+
+    server.Post ("/audio/wizard/apply", [context] (const httplib::Request&,
+                                                   httplib::Response& response)
+    {
+        if (context.audioWizardApply == nullptr)
+        {
+            setError (response, 503, "the audio setup wizard is unavailable");
+            return;
+        }
+
+        std::string error;
+
+        if (! context.audioWizardApply (error))
+        {
+            setError (response, 400,
+                      error.empty() ? "could not apply the recommended setup" : error);
+            return;
+        }
+
+        context.state.notifyChanged ("device", -1);
+
+        decorate (context, response);
+
+        const auto audio = context.audioProvider != nullptr
+                               ? context.audioProvider()
+                               : AudioStateSnapshot {};
+
+        setJson (response, 200, audioStateToVar (audio));
+    });
 }
 
 }

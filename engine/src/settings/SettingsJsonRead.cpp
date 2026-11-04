@@ -1,6 +1,7 @@
 #include "settings/SettingsJson.h"
 
 #include "settings/ProjectHistory.h"
+#include "settings/SettingsJsonAudio.h"
 
 #include <algorithm>
 #include <cmath>
@@ -49,19 +50,6 @@ bool readString (const juce::var& value, juce::String& destination)
 
     destination = value.toString();
     return true;
-}
-
-void readAudio (const juce::var& value, AudioSettings& audio)
-{
-    const auto* object = value.getDynamicObject();
-
-    if (object == nullptr)
-        return;
-
-    readString (object->getProperty ("deviceType"), audio.deviceType);
-    readString (object->getProperty ("deviceName"), audio.deviceName);
-    readInteger (object->getProperty ("sampleRate"), 1, 768000, audio.sampleRate);
-    readInteger (object->getProperty ("bufferSize"), 1, 32768, audio.bufferSize);
 }
 
 void readMixer (const juce::var& value, MixerSettings& mixer)
@@ -186,7 +174,7 @@ void applyDocument (const juce::var& document, Settings& settings)
     if (root == nullptr)
         return;
 
-    readAudio (root->getProperty ("audio"), settings.audio);
+    readAudioSettings (root->getProperty ("audio"), settings.audio);
     readMixer (root->getProperty ("mixer"), settings.mixer);
 
     const auto midi = root->getProperty ("midi");

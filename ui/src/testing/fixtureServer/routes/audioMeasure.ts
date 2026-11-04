@@ -6,7 +6,10 @@ export const handleAudioMeasure: FixtureRoute = (
   request,
   response,
 ) => {
-  if (request.method !== "POST" || request.url !== "/audio/measure")
+  if (
+    request.method !== "POST" ||
+    request.url?.split("?")[0] !== "/audio/measure"
+  )
     return false;
 
   context.measureRequests += 1;
