@@ -1529,13 +1529,14 @@ paths:
     get:
       tags: [midi]
       operationId: getMidi
-      summary: List MIDI inputs and controller status
+      summary: List MIDI inputs and controller roles
       description: |
-        Returns the ALSA MIDI inputs JUCE can see, each with the user's enable
-        switch, plus the status of the Launchpad Mini MK3 (pads and LEDs on the
-        **MI** port) and an optional Keystation keyboard. `padTest` reports the
-        most recent grid test. This endpoint only enumerates devices; enabling
-        a generic input opens it through the engine.
+        Returns the MIDI inputs JUCE can see with the user's enable switch and
+        the role the engine gives each one. Any non-Launchpad input is a
+        keyboard by default and plays the armed slot. An input can be switched
+        to the `grid` role to drive the 8x8 pad grid through a note base or a
+        64-pad learn. Only the Launchpad Mini MK3 on its **MI** port reports
+        LED output. `padTest` reports the most recent grid test.
       security:
         - tokenHeader: []
         - bearerAuth: []
@@ -1553,14 +1554,17 @@ paths:
   /midi/inputs:
     post:
       tags: [control]
-      operationId: setMidiInput
-      summary: Enable or disable one MIDI input
+      operationId: updateMidiInput
+      summary: Enable, disable or configure one MIDI input
       description: |
-        Opens or closes one input. The Launchpad row is owned by its driver:
-        enabling it connects the controller to the MI port, disabling it
-        disconnects. Every other input is opened by the control engine and its
-        messages are counted for the page. The response is the complete MIDI
-        state after the change.
+        Opens or closes one input and changes its role or generic pad mapping.
+        The Launchpad row is owned by its driver: enabling it connects the
+        controller to the MI port, disabling it disconnects, and it cannot take
+        the generic grid role. Every other input is opened by the control
+        engine. `role` is `keyboard` (plays the armed slot) or `grid` (drives
+        the pad grid). A grid maps notes either from `noteBase` (note base +
+        pad index, bottom-left first) or from a completed `learn` of 64 pads.
+        The response is the complete MIDI state after the change.
       security:
         - tokenHeader: []
         - bearerAuth: []
@@ -1572,8 +1576,12 @@ paths:
             schema:
               $ref: "#/components/schemas/MidiInputUpdate"
             examples:
-              enableKeystation:
+              enableKeyboard:
                 value: { id: "ALSA:5:0", enabled: true }
+              useAsGrid:
+                value: { id: "ALSA:2:0", role: "grid", noteBase: 36 }
+              learnPads:
+                value: { id: "ALSA:2:0", learn: true }
       responses:
         "200":
           description: MIDI state after the change
@@ -2951,7 +2959,9 @@ components:
 
     MidiInput:
       type: object
-      required: [id, name, role, port, enabled, open, events, lastEvent]
+      required:
+        [id, name, role, port, enabled, open, handshake, leds, noteBase,
+         learnedNotes, learnActive, events, lastEvent, error]
       additionalProperties: false
       properties:
         id:
@@ -2964,8 +2974,11 @@ components:
           example: "Keystation Mini 32 MK3 USB Audio"
         role:
           type: string
-          enum: [launchpad, keystation, input]
-          description: What the engine uses this input for.
+          enum: [launchpad, keyboard, grid]
+          description: |
+            What the engine uses this input for. `keyboard` plays the armed
+            slot, `grid` drives the 8x8 pad grid, and `launchpad` is the
+            device-specific programmer-mode protocol.
         port:
           type: string
           description: Short port label (`MI`, `DA`, `USB`), empty when the name has none.
@@ -2975,6 +2988,29 @@ components:
         open:
           type: boolean
           description: True while the engine owns the port.
+        handshake:
+          type: boolean
+          description: |
+            True once a protocol handshake completed. Only the Launchpad
+            reports this, through its programmer-mode echo.
+        leds:
+          type: boolean
+          description: True only when this protocol can drive pad LEDs.
+        noteBase:
+          type: integer
+          minimum: -1
+          maximum: 64
+          description: |
+            First note of a sequential 64-pad map, or -1 when the input uses a
+            learned note map instead.
+        learnedNotes:
+          type: integer
+          minimum: 0
+          maximum: 64
+          description: Number of distinct notes captured by the last learn.
+        learnActive:
+          type: boolean
+          description: True while the engine is capturing pads for this grid.
         events:
           type: integer
           minimum: 0
@@ -2982,33 +3018,11 @@ components:
         lastEvent:
           type: string
           description: A human-readable summary of the last message, empty when none.
-
-    MidiPort:
-      type: object
-      required: [name, port, connected, handshake, inputName, outputName, error]
-      additionalProperties: false
-      properties:
-        name:
-          type: string
-          description: Device name, empty when not present.
-        port:
-          type: string
-          description: Short port label (`MI`, `DA` or `USB`).
-        connected:
-          type: boolean
-          description: True when the controller is open.
-        handshake:
-          type: boolean
-          description: True once the controller echoed its mode frame.
-        inputName:
-          type: string
-          description: Open input name, empty when disconnected.
-        outputName:
-          type: string
-          description: Open output name, empty when disconnected.
         error:
           type: string
-          description: Last connection error, empty on success.
+          description: |
+            A readable reason when the input cannot be used as configured,
+            empty when it is usable.
 
     MidiPadTest:
       type: object
@@ -3029,7 +3043,7 @@ components:
 
     MidiState:
       type: object
-      required: [inputs, inputCount, launchpad, keystation, padTest, error]
+      required: [inputs, inputCount, padTest, error]
       additionalProperties: false
       properties:
         inputs:
@@ -3040,10 +3054,6 @@ components:
           type: integer
           minimum: 0
           description: Number of MIDI inputs in this snapshot.
-        launchpad:
-          $ref: "#/components/schemas/MidiPort"
-        keystation:
-          $ref: "#/components/schemas/MidiPort"
         padTest:
           $ref: "#/components/schemas/MidiPadTest"
         error:
@@ -3052,7 +3062,7 @@ components:
 
     MidiInputUpdate:
       type: object
-      required: [id, enabled]
+      required: [id]
       additionalProperties: false
       properties:
         id:
@@ -3061,3 +3071,22 @@ components:
         enabled:
           type: boolean
           description: Desired switch state.
+        role:
+          type: string
+          enum: [keyboard, grid]
+          description: |
+            `keyboard` plays the armed slot. `grid` drives the 8x8 pad grid
+            and disables keyboard forwarding for this input.
+        noteBase:
+          type: integer
+          minimum: -1
+          maximum: 64
+          description: |
+            First note of a sequential 64-pad map; -1 clears it. The value is
+            rejected unless the input already has the `grid` role.
+        learn:
+          type: boolean
+          description: |
+            True starts a 64-pad learn on a grid input. The first 64 distinct
+            note-ons are stored in press order as pads 0-63. False cancels a
+            partial learn.

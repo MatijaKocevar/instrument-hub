@@ -292,12 +292,14 @@ export function assertSnapshotAudio(audioHtml: string): void {
     "the MIDI panel has a pad test",
   );
   check(
-    audioHtml.includes('data-testid="launchpad-status"'),
-    "the MIDI panel shows the Launchpad status",
+    audioHtml.includes('data-testid="midi-input" data-id="ALSA:4:1"'),
+    "the MIDI panel lists the Launchpad input",
   );
   check(
-    audioHtml.includes('data-testid="keystation-status"'),
-    "the MIDI panel shows the Keystation status",
+    audioHtml.includes(
+      'data-testid="midi-input-handshake" data-handshake="true"',
+    ),
+    "the MIDI list carries the Launchpad handshake",
   );
 }
 

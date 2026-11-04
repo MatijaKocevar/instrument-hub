@@ -86,7 +86,7 @@ struct RouteContext
     PluginRescanHandler pluginRescan;
 
     MidiStateProvider midiProvider;
-    MidiInputHandler midiEnableInput;
+    MidiInputHandler midiUpdateInput;
     MidiPadTestHandler midiPadTest;
 
     ProjectOverviewProvider projectProvider;

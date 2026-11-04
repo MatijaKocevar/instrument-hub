@@ -47,8 +47,11 @@ export function AudioRoute({
         padTestBusy={app.padTestBusy}
         padTestError={app.padTestError}
         loading={app.midi === null}
-        onToggleInput={(id, enabled) => {
-          void store.toggleMidiInput(id, enabled);
+        onChangeInput={(patch) => {
+          void store.updateMidiInput(patch);
+        }}
+        onRefreshMidi={() => {
+          void store.refreshMidi();
         }}
         onPadTest={() => {
           void store.runPadTest();

@@ -25,7 +25,6 @@ export type {
   ControlMidiInput,
   ControlMidiInputUpdate,
   ControlMidiPadTest,
-  ControlMidiPort,
   ControlMidiState,
   ControlPairResponse,
   ControlPairingState,

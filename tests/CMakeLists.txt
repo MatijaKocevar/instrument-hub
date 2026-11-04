@@ -30,6 +30,12 @@ set(IHUB_DISCOVERY_SOURCES
 set(IHUB_MIDI_BRIDGE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/JuceMidiInputBackend.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeGridSettings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeInputs.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeUpdate.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeMessages.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeState.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiGridMap.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiInputPersistence.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiPadTest.cpp"
 )
@@ -2512,6 +2518,8 @@ target_sources(ihub-midi-api-test
         api/TestSupport.cpp
         api/midi_api/DeviceEnumeration.cpp
         api/midi_api/Fixtures.cpp
+        api/midi_api/GenericGridRouting.cpp
+        api/midi_api/GridLearnPersistence.cpp
         api/midi_api/PadTest.cpp
         api/midi_api/Persistence.cpp
         api/midi_api/Routes.cpp

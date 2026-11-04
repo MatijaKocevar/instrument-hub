@@ -23,31 +23,19 @@ juce::var midiStateToVar (const MidiStateSnapshot& midi)
         itemObject->setProperty ("port", juce::String (input.port));
         itemObject->setProperty ("enabled", input.enabled);
         itemObject->setProperty ("open", input.open);
+        itemObject->setProperty ("handshake", input.handshake);
+        itemObject->setProperty ("leds", input.leds);
+        itemObject->setProperty ("noteBase", input.noteBase);
+        itemObject->setProperty ("learnedNotes", input.learnedNotes);
+        itemObject->setProperty ("learnActive", input.learnActive);
         itemObject->setProperty ("events", static_cast<juce::int64> (input.events));
         itemObject->setProperty ("lastEvent", juce::String (input.lastEvent));
+        itemObject->setProperty ("error", juce::String (input.error));
         inputs.add (item);
     }
 
     object->setProperty ("inputs", juce::var (inputs));
     object->setProperty ("inputCount", static_cast<int> (midi.inputs.size()));
-
-    const auto portToVar = [] (const MidiPortState& port)
-    {
-        auto item = Routes::makeObject();
-        auto* itemObject = item.getDynamicObject();
-
-        itemObject->setProperty ("name", juce::String (port.name));
-        itemObject->setProperty ("port", juce::String (port.port));
-        itemObject->setProperty ("connected", port.connected);
-        itemObject->setProperty ("handshake", port.handshake);
-        itemObject->setProperty ("inputName", juce::String (port.inputName));
-        itemObject->setProperty ("outputName", juce::String (port.outputName));
-        itemObject->setProperty ("error", juce::String (port.error));
-        return item;
-    };
-
-    object->setProperty ("launchpad", portToVar (midi.launchpad));
-    object->setProperty ("keystation", portToVar (midi.keystation));
 
     auto padTest = Routes::makeObject();
     padTest.getDynamicObject()->setProperty ("active", midi.padTest.active);

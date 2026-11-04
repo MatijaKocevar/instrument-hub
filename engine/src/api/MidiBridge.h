@@ -1,11 +1,13 @@
 #pragma once
 
 #include "Server.h"
+#include "api/midi/MidiGridMap.h"
 #include "api/midi/MidiInputBackend.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -32,6 +34,7 @@ class MidiBridge final : private juce::MidiInputCallback
 {
 public:
     static constexpr int padTestDurationMs = 900;
+    static constexpr int learnTimeoutMs = 10000;
 
     MidiBridge();
     explicit MidiBridge (std::unique_ptr<MidiInputBackend> backend);
@@ -43,13 +46,21 @@ public:
 
     void setMidiSink (std::function<bool (const juce::MidiMessage&)> sink);
 
+    void setPadSink (std::function<bool (int pad, bool pressed)> sink);
+
     bool forwardMidiMessage (const juce::String& deviceName,
+                             const juce::MidiMessage& message);
+
+    bool processMidiMessage (const std::string& deviceId,
+                             const juce::String& deviceName,
                              const juce::MidiMessage& message);
 
     using RestoreHandler = std::function<void()>;
     void setRestoreHandler (RestoreHandler handler);
 
     MidiStateSnapshot snapshot();
+
+    bool updateInput (const MidiInputPatch& patch, std::string& error);
 
     bool setInputEnabled (const std::string& id, bool enabled, std::string& error);
 
@@ -71,6 +82,16 @@ private:
         std::string lastEvent;
     };
 
+    struct GridEntry
+    {
+        MidiGridMap map;
+        juce::String client;
+        juce::String port;
+        std::string error;
+        bool dirty = false;
+        std::chrono::steady_clock::time_point learnDeadline {};
+    };
+
     void handleIncomingMidiMessage (juce::MidiInput* source,
                                     const juce::MidiMessage& message) override;
 
@@ -79,6 +100,13 @@ private:
     void restoreStoredInputs();
     void rememberInput (const MidiInputDevice& device);
     void forgetInput (const MidiInputDevice& device);
+
+    MidiInputState makeState (const MidiInputDevice& device) const;
+    bool routeGridMessage (const std::string& id, const juce::MidiMessage& message);
+    void restoreGridConfigs();
+    void persistGridSettings();
+    void removeGridSetting (const juce::String& client, const juce::String& port);
+    void expireLearnTimeouts();
 
     void paintPadTestFrame (int frame);
     void runPadTestAnimation (std::uint64_t generation);
@@ -94,10 +122,18 @@ private:
     mutable std::mutex sinkMutex;
     std::function<bool (const juce::MidiMessage&)> midiSink;
 
+    mutable std::mutex padSinkMutex;
+    std::function<bool (int pad, bool pressed)> padSink;
+
     std::mutex forwardMutex;
 
     mutable std::mutex monitorMutex;
     std::map<std::string, Monitor> monitors;
+
+    mutable std::mutex gridMutex;
+    std::map<std::string, GridEntry> grids;
+
+    mutable std::mutex settingsMutex;
 
     std::mutex padTestMutex;
     std::thread padTestThread;

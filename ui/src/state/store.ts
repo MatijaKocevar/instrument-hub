@@ -3,6 +3,7 @@ import type {
   ControlAudioPatch,
   ControlFxInsertRequest,
   ControlFxInsertUpdate,
+  ControlMidiInputUpdate,
   ControlPatchSourceRequest,
   ControlPatchUpdate,
   ControlState,
@@ -238,6 +239,11 @@ export class AppStore {
   rescanPlugins = (): Promise<boolean> => this.plugins.rescanPlugins();
 
   loadMidi = (): Promise<boolean> => this.midi.loadMidi();
+
+  refreshMidi = (): Promise<boolean> => this.midi.refreshMidi();
+
+  updateMidiInput = (patch: ControlMidiInputUpdate): Promise<boolean> =>
+    this.midi.updateMidiInput(patch);
 
   toggleMidiInput = (id: string, enabled: boolean): Promise<boolean> =>
     this.midi.toggleMidiInput(id, enabled);

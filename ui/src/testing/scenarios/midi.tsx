@@ -5,11 +5,14 @@ import {
   MidiPanel,
   canRunPadTest,
   isLaunchpadDaInput,
+  midiGridConfigured,
+  midiGridLabel,
+  midiHandshakeLabel,
   midiInputForRole,
   midiInputState,
   midiInputSummary,
+  midiLaunchpadSummary,
   midiPortLabel,
-  midiPortState,
   midiRoleLabel,
   padTestLabel,
 } from "../../features/midi";
@@ -24,16 +27,16 @@ export function midiModelTest(): void {
     "the Launchpad role has a label",
   );
   check(
-    midiRoleLabel("keystation") === "Keyboard",
-    "the Keystation is shown as a keyboard",
+    midiRoleLabel("keyboard") === "Keyboard",
+    "any keyboard input has a keyboard label",
   );
   check(
-    midiRoleLabel("input") === "MIDI input",
-    "any other port is a MIDI input",
+    midiRoleLabel("grid") === "Pad grid",
+    "a generic pad controller has a grid label",
   );
 
   check(
-    midiInputSummary(MIDI.inputs) === "4 inputs · 1 enabled",
+    midiInputSummary(MIDI.inputs) === "5 inputs · 1 enabled",
     "the summary counts inputs and enabled switches",
   );
   check(
@@ -43,6 +46,10 @@ export function midiModelTest(): void {
   check(
     midiInputSummary([]) === "No MIDI inputs",
     "an empty device list is explained",
+  );
+  check(
+    midiLaunchpadSummary(MIDI.inputs) === "Launchpad ready",
+    "the Launchpad summary reports a completed handshake",
   );
 
   check(
@@ -59,12 +66,29 @@ export function midiModelTest(): void {
     "the port label falls back to a dash",
   );
   check(
-    midiPortState(MIDI.launchpad, true) === "Connected",
-    "a connected port says Connected",
+    midiHandshakeLabel(MIDI.inputs[0]!) === "Programmer mode",
+    "the Launchpad shows its programmer-mode handshake",
   );
   check(
-    midiPortState(MIDI.keystation, true) === "Detected · not connected",
-    "a detected but closed port says so",
+    midiHandshakeLabel(MIDI.inputs[1]!) === "No handshake",
+    "an offline Launchpad shows the missing handshake",
+  );
+  check(
+    midiHandshakeLabel(MIDI.inputs[2]!) === "—",
+    "a keyboard has no handshake to report",
+  );
+  check(
+    midiHandshakeLabel(MIDI.inputs[4]!) === "No LED output",
+    "a generic grid says that its protocol has no LEDs",
+  );
+
+  check(
+    midiGridLabel(MIDI.inputs[4]!) === "Notes 36–99",
+    "a note-base grid names its note range",
+  );
+  check(
+    midiGridConfigured(MIDI.inputs[4]!),
+    "a note-base grid counts as configured",
   );
 
   check(
@@ -73,17 +97,16 @@ export function midiModelTest(): void {
   );
 
   check(
-    midiInputForRole(MIDI.inputs, "keystation")?.id === "ALSA:5:0",
-    "the Keystation row is found by role",
+    midiInputForRole(MIDI.inputs, "keyboard")?.id === "ALSA:5:0",
+    "the first keyboard row is found by role",
   );
   check(
     midiInputForRole(MIDI.inputs, "launchpad")?.id === "ALSA:4:1",
     "the Launchpad row prefers the MI port",
   );
   check(
-    midiInputForRole(MIDI.inputs, "input")?.name ===
-      "Steinberg UR22mkII MIDI 1",
-    "a plain input is found by role",
+    midiInputForRole(MIDI.inputs, "grid")?.id === "ALSA:6:0",
+    "the grid row is found by role",
   );
 
   check(
@@ -108,9 +131,9 @@ export function midiModelTest(): void {
   check(
     !canRunPadTest({
       ...MIDI,
-      launchpad: { ...MIDI.launchpad, connected: false },
+      inputs: MIDI.inputs.map((input) => ({ ...input, open: false })),
     }),
-    "the pad test is unavailable without a Launchpad",
+    "the pad test is unavailable without an open Launchpad",
   );
 }
 
@@ -124,12 +147,8 @@ export async function midiPageTest(): Promise<void> {
 
     check(await store.refresh(), "the MIDI fixture loads GET /midi");
     check(
-      store.getSnapshot().midi?.inputs.length === 4,
-      "the store holds all four ALSA inputs",
-    );
-    check(
-      store.getSnapshot().midi?.launchpad.port === "MI",
-      "the Launchpad is reported on the MI port",
+      store.getSnapshot().midi?.inputs.length === 5,
+      "the store holds all five MIDI inputs",
     );
 
     const initial = renderApp(store, "/audio");
@@ -141,25 +160,60 @@ export async function midiPageTest(): Promise<void> {
       "the /audio page renders the MIDI panel",
     );
     check(
-      countOf(initial, 'data-testid="midi-input"') === 4,
-      "the panel lists every ALSA input",
+      countOf(initial, 'data-testid="midi-input"') === 5,
+      "the panel lists every MIDI input",
     );
     check(
       initial.includes('data-testid="midi-input" data-id="ALSA:4:1"'),
       "the Launchpad MI input is listed",
     );
     check(
-      initial.includes('data-testid="midi-input" data-id="ALSA:4:1"') &&
-        initial.includes('data-role="launchpad"'),
+      initial.includes(
+        'data-id="ALSA:4:1" data-name="Launchpad Mini MK3 LPMiniMK3 MI" data-role="launchpad"',
+      ),
       "the Launchpad input carries its role",
     );
     check(
-      initial.includes('data-testid="midi-input" data-id="ALSA:5:0"'),
-      "the Keystation input is listed",
+      initial.includes(
+        'data-testid="midi-input-handshake" data-handshake="true"',
+      ),
+      "the Launchpad row shows the programmer-mode handshake",
     );
     check(
-      initial.includes('data-id="ALSA:4:0"') && initial.includes("MI only"),
-      "the inert DA port is shown as MI-only",
+      initial.includes("Launchpad ready"),
+      "the summary names the ready Launchpad",
+    );
+    check(
+      initial.includes(
+        'data-id="ALSA:5:0" data-name="Keystation Mini 32 MK3 USB Audio" data-role="keyboard"',
+      ),
+      "a generic keyboard is listed as a keyboard",
+    );
+    check(
+      initial.includes('data-testid="midi-input-role" data-id="ALSA:5:0"'),
+      "a generic input offers the keyboard/grid role switch",
+    );
+    check(
+      initial.includes('data-testid="midi-input" data-id="ALSA:6:0"'),
+      "the generic pad controller is listed",
+    );
+    check(
+      initial.includes('data-testid="midi-grid-controls" data-id="ALSA:6:0"'),
+      "the grid row shows its note-base and learn controls",
+    );
+    check(initial.includes("Notes 36–99"), "the grid row names its note range");
+    check(
+      initial.includes('data-testid="midi-grid-learn"'),
+      "the grid row offers a learn action",
+    );
+    check(
+      initial.includes("No LED output"),
+      "the generic grid reports that its LEDs are unsupported",
+    );
+    check(
+      initial.includes('data-id="ALSA:4:0"') &&
+        initial.includes("DA port carries no pads or LEDs"),
+      "the unusable DA port explains itself",
     );
     check(
       /data-testid="midi-input-toggle" data-id="ALSA:4:0"[^>]*disabled/.test(
@@ -168,34 +222,9 @@ export async function midiPageTest(): Promise<void> {
       "the DA checkbox cannot be switched on",
     );
     check(
-      initial.includes(
-        'data-testid="launchpad-status" data-connected="true" data-port="MI"',
-      ),
-      "the Launchpad status names the MI port",
-    );
-    check(
-      initial.includes('data-testid="launchpad-port" data-port="MI">MI<'),
-      "the Launchpad port pill reads MI",
-    );
-    check(
-      initial.includes("LPMiniMK3 MI"),
-      "the Launchpad device name is visible",
-    );
-    check(
-      initial.includes(
-        'data-testid="launchpad-handshake" data-handshake="true"',
-      ),
-      "the programmer-mode echo is shown",
-    );
-    check(
-      initial.includes(
-        'data-testid="keystation-status" data-connected="false" data-port="USB"',
-      ),
-      "the Keystation is detected but not connected",
-    );
-    check(
-      initial.includes('data-testid="keystation-port" data-port="USB">USB<'),
-      "the Keystation port pill reads USB",
+      !initial.includes('data-testid="launchpad-status"') &&
+        !initial.includes('data-testid="keystation-status"'),
+      "the large Launchpad and Keystation cards are gone",
     );
     check(
       initial.includes('data-testid="pad-test"'),
@@ -213,8 +242,8 @@ export async function midiPageTest(): Promise<void> {
     );
 
     check(
-      await store.toggleMidiInput("ALSA:5:0", true),
-      "enabling the Keystation succeeds",
+      await store.updateMidiInput({ id: "ALSA:5:0", enabled: true }),
+      "enabling the generic keyboard succeeds",
     );
     check(
       server.midiRequests.length === 1 &&
@@ -223,13 +252,9 @@ export async function midiPageTest(): Promise<void> {
       "the UI sent { id, enabled: true } to POST /midi/inputs",
     );
     check(
-      store.getSnapshot().midi?.keystation.connected === true,
-      "the store adopts the opened Keystation",
-    );
-    check(
       store.getSnapshot().midi?.inputs.find((input) => input.id === "ALSA:5:0")
         ?.enabled === true,
-      "the Keystation row is switched on",
+      "the keyboard row is switched on",
     );
 
     const enabled = renderApp(store, "/audio");
@@ -238,17 +263,87 @@ export async function midiPageTest(): Promise<void> {
       /data-testid="midi-input" data-id="ALSA:5:0"[^>]*data-enabled="true"/.test(
         enabled,
       ),
-      "the Keystation row renders as enabled",
+      "the keyboard row renders as enabled",
     );
     check(
       /data-testid="midi-input-toggle" data-id="ALSA:5:0"[^>]*checked/.test(
         enabled,
       ),
-      "the Keystation checkbox is checked",
+      "the keyboard checkbox is checked",
     );
     check(
       enabled.includes("2 enabled"),
       "the summary follows the second switch",
+    );
+
+    check(
+      await store.updateMidiInput({
+        id: "ALSA:2:0",
+        role: "grid",
+        enabled: true,
+      }),
+      "moving a generic input to the grid role succeeds",
+    );
+    check(
+      server.midiRequests[1]?.role === "grid",
+      "the UI sent the grid role to POST /midi/inputs",
+    );
+    check(
+      store.getSnapshot().midi?.inputs.find((input) => input.id === "ALSA:2:0")
+        ?.role === "grid",
+      "the input becomes a grid in the store",
+    );
+
+    const gridRole = renderApp(store, "/audio");
+
+    check(
+      gridRole.includes('data-testid="midi-grid-controls" data-id="ALSA:2:0"'),
+      "the new grid row grows its controls",
+    );
+
+    check(
+      await store.updateMidiInput({ id: "ALSA:2:0", noteBase: 48 }),
+      "setting a grid note base succeeds",
+    );
+    check(
+      store.getSnapshot().midi?.inputs.find((input) => input.id === "ALSA:2:0")
+        ?.noteBase === 48,
+      "the store adopts the note base",
+    );
+
+    check(
+      await store.updateMidiInput({ id: "ALSA:2:0", learn: true }),
+      "starting a 64-pad learn succeeds",
+    );
+    check(
+      server.midiRequests[3]?.learn === true,
+      "the UI asked the engine to learn",
+    );
+    check(
+      store.getSnapshot().midi?.inputs.find((input) => input.id === "ALSA:2:0")
+        ?.learnActive === true,
+      "the store reports the running learn",
+    );
+
+    const learning = renderApp(store, "/audio");
+
+    check(
+      learning.includes('data-testid="midi-grid-hint"'),
+      "the learning row tells the user which order to press",
+    );
+    check(
+      learning.includes("Learning 0 of 64 pads"),
+      "the learning row reports its progress",
+    );
+
+    check(
+      await store.updateMidiInput({ id: "ALSA:2:0", learn: false }),
+      "cancelling the learn succeeds",
+    );
+    check(
+      store.getSnapshot().midi?.inputs.find((input) => input.id === "ALSA:2:0")
+        ?.learnActive === false,
+      "the cancelled learn stops",
     );
 
     check(await store.runPadTest(), "POST /midi/pad-test starts the grid test");
@@ -276,10 +371,6 @@ export async function midiPageTest(): Promise<void> {
       "the result names the 64 lit pads",
     );
     check(testing.includes("64 pads lit"), "the result is readable");
-    check(
-      testing.includes("Lighting…"),
-      "the button shows the test is running",
-    );
 
     const failing = new AppStore(
       createControlApi({ baseUrl: "http://127.0.0.1:1" }),
@@ -325,38 +416,26 @@ export function assertSnapshotMidi(
   if (!fromFixture) return;
 
   check(
-    countOf(audioHtml, 'data-testid="midi-input"') === 4,
-    "the MIDI panel lists every ALSA input",
+    countOf(audioHtml, 'data-testid="midi-input"') === 5,
+    "the MIDI panel lists every MIDI input",
   );
   check(
     audioHtml.includes('data-testid="midi-input" data-id="ALSA:4:1"'),
     "the Launchpad MI input is listed",
   );
   check(
+    audioHtml.includes(
+      'data-testid="midi-input-handshake" data-handshake="true"',
+    ),
+    "the Launchpad programming handshake is shown in its row",
+  );
+  check(
     audioHtml.includes('data-testid="midi-input" data-id="ALSA:5:0"'),
-    "the Keystation input is listed",
+    "the generic keyboard input is listed",
   );
   check(
-    audioHtml.includes(
-      'data-testid="launchpad-status" data-connected="true" data-port="MI"',
-    ),
-    "the Launchpad status names the MI port",
-  );
-  check(
-    audioHtml.includes('data-testid="launchpad-port" data-port="MI">MI<'),
-    "the Launchpad port pill reads MI",
-  );
-  check(
-    audioHtml.includes(
-      'data-testid="launchpad-handshake" data-handshake="true"',
-    ),
-    "the Launchpad programming handshake is shown",
-  );
-  check(
-    audioHtml.includes(
-      'data-testid="keystation-status" data-connected="false" data-port="USB"',
-    ),
-    "the Keystation is detected on its USB port",
+    audioHtml.includes('data-testid="midi-grid-controls" data-id="ALSA:6:0"'),
+    "the generic grid row keeps its controls",
   );
   check(
     audioHtml.includes(

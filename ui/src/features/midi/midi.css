@@ -69,7 +69,7 @@
 
 .midi__inputs {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.4rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -82,7 +82,7 @@
   align-items: center;
   border: 1px solid #2a2d3a;
   border-radius: 12px;
-  padding: 0.6rem 0.8rem;
+  padding: 0.55rem 0.8rem;
   background: #101116;
 }
 
@@ -104,7 +104,6 @@
   align-items: flex-start;
   gap: 0.65rem;
   min-width: 0;
-  cursor: pointer;
 }
 
 .midi__input-label input {
@@ -126,6 +125,7 @@
   color: #e6e8f0;
   font-size: 0.88rem;
   overflow-wrap: anywhere;
+  cursor: pointer;
 }
 
 .midi__input-meta {
@@ -137,12 +137,27 @@
   font-size: 0.72rem;
 }
 
-.midi__role {
+.midi__role,
+.midi__role-select {
   border: 1px solid #333849;
   border-radius: 999px;
   padding: 0.05rem 0.45rem;
   color: #b9bfd0;
+  font: inherit;
+  font-size: 0.72rem;
   letter-spacing: 0.02em;
+  background: #171820;
+}
+
+.midi__role-select {
+  cursor: pointer;
+  color: #d8cbff;
+  border-color: rgba(168, 130, 255, 0.45);
+}
+
+.midi__role-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .midi__input-id {
@@ -154,7 +169,7 @@
 .midi__input-side {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   justify-self: end;
 }
 
@@ -174,10 +189,113 @@
   color: #6ee7c8;
 }
 
+.midi__handshake,
+.midi__leds {
+  border: 1px solid #333849;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  color: #7d8599;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.midi__handshake--ok {
+  border-color: rgba(110, 231, 200, 0.5);
+  color: #6ee7c8;
+}
+
+.midi__leds {
+  border-color: rgba(168, 130, 255, 0.45);
+  color: #c8b6ff;
+}
+
 .midi__events {
   color: #8b93a7;
   font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
+}
+
+.midi__grid {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  margin-top: 0.15rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #242734;
+}
+
+.midi__grid-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #8b93a7;
+  font-size: 0.72rem;
+}
+
+.midi__grid-field input {
+  width: 4.4rem;
+  min-height: 32px;
+  border: 1px solid #333849;
+  border-radius: 8px;
+  padding: 0 0.45rem;
+  background: #171820;
+  color: #eceef4;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.midi__mini {
+  min-height: 32px;
+  border: 1px solid #333849;
+  border-radius: 8px;
+  padding: 0 0.65rem;
+  background: #171820;
+  color: #c8cede;
+  font: inherit;
+  font-size: 0.74rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.midi__mini--accent {
+  border-color: rgba(168, 130, 255, 0.55);
+  background: rgba(168, 130, 255, 0.14);
+  color: #e2d9ff;
+}
+
+.midi__mini:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.midi__mini:focus-visible,
+.midi__button:focus-visible,
+.midi__role-select:focus-visible,
+.midi__grid-field input:focus-visible {
+  outline: 2px solid #a882ff;
+  outline-offset: 2px;
+}
+
+.midi__grid-status {
+  color: #c8b6ff;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.midi__grid-hint {
+  flex-basis: 100%;
+  color: #7d8599;
+  font-size: 0.72rem;
+}
+
+.midi__input-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #ff8d8d;
+  font-size: 0.74rem;
+  line-height: 1.4;
 }
 
 .midi__last {
@@ -185,103 +303,6 @@
   color: #c8b6ff;
   font-size: 0.7rem;
   padding-left: 1.7rem;
-}
-
-.midi__ports {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 1rem;
-}
-
-.midi__port {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  border: 1px solid #2a2d3a;
-  border-radius: 14px;
-  padding: 0.85rem 1rem;
-  background: #101116;
-}
-
-.midi__port--connected {
-  border-color: rgba(110, 231, 200, 0.4);
-}
-
-.midi__port-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.midi__port-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.midi__port-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0;
-  color: #c8cede;
-  font-size: 0.78rem;
-}
-
-.midi__port-caption {
-  color: #8b93a7;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.midi__badge {
-  min-width: 2.2rem;
-  text-align: center;
-  border: 1px solid rgba(168, 130, 255, 0.5);
-  border-radius: 8px;
-  padding: 0.1rem 0.4rem;
-  background: rgba(168, 130, 255, 0.12);
-  color: #d8cbff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.midi__port-device {
-  color: #9aa2b5;
-  overflow-wrap: anywhere;
-}
-
-.midi__port-line--muted {
-  color: #7d8599;
-  font-size: 0.72rem;
-}
-
-.midi__port-line--muted code {
-  color: #9aa2b5;
-  overflow-wrap: anywhere;
-}
-
-.midi__port-hint--ok {
-  color: #6ee7c8;
-  font-size: 0.72rem;
-}
-
-.midi__port-error {
-  margin: 0;
-  color: #ff8d8d;
-  font-size: 0.75rem;
-}
-
-.midi__port-hint {
-  margin: 0;
-  color: #7d8599;
-  font-size: 0.72rem;
-  line-height: 1.4;
 }
 
 .midi__test {
@@ -329,11 +350,6 @@
   opacity: 0.5;
 }
 
-.midi__button:focus-visible {
-  outline: 2px solid #a882ff;
-  outline-offset: 2px;
-}
-
 .midi__test-result {
   color: #c8b6ff;
   font-size: 0.78rem;
@@ -357,6 +373,10 @@
 
   .midi__input-side {
     justify-self: start;
+    padding-left: 1.7rem;
+  }
+
+  .midi__input-error {
     padding-left: 1.7rem;
   }
 }

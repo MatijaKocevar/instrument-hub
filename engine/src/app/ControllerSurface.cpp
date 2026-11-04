@@ -51,6 +51,12 @@ void ControllerSurface::start (Api::StateStore* state,
 
     launchpad->setListeners (std::move (driverListeners));
 
+    if (midiBridge != nullptr)
+        midiBridge->setPadSink ([this] (int pad, bool pressed)
+        {
+            return mapping != nullptr && mapping->handlePad (pad, pressed);
+        });
+
     if (! launchpad->connect())
         std::cerr << "controller: " << launchpad->getLastError() << std::endl;
     else
@@ -133,16 +139,24 @@ void ControllerSurface::createMapping()
 
 void ControllerSurface::resetMapping()
 {
+    if (midiBridge != nullptr)
+        midiBridge->setPadSink (nullptr);
+
     mapping.reset();
 }
 
 void ControllerSurface::shutdown()
 {
+    if (midiBridge != nullptr)
+        midiBridge->setPadSink (nullptr);
+
     if (launchpad != nullptr)
     {
         launchpad->disconnect();
         launchpad.reset();
     }
+
+    midiBridge = nullptr;
 }
 
 }

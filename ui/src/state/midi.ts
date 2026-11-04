@@ -1,3 +1,4 @@
+import type { ControlMidiInputUpdate } from "../api/client";
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
 
@@ -18,11 +19,23 @@ export class MidiActions {
     }
   };
 
-  toggleMidiInput = async (id: string, enabled: boolean): Promise<boolean> => {
+  refreshMidi = async (): Promise<boolean> => {
+    try {
+      const midi = await this.context.api.getMidi();
+
+      this.patch({ midi, midiError: null });
+      return true;
+    } catch (error) {
+      this.patch({ midiError: messageOf(error) });
+      return false;
+    }
+  };
+
+  updateMidiInput = async (patch: ControlMidiInputUpdate): Promise<boolean> => {
     this.patch({ midiBusy: true, midiError: null });
 
     try {
-      const midi = await this.context.api.setMidiInput(id, enabled);
+      const midi = await this.context.api.updateMidiInput(patch);
 
       this.patch({ midi, midiBusy: false, midiError: null });
       return true;
@@ -30,6 +43,10 @@ export class MidiActions {
       this.patch({ midiBusy: false, midiError: messageOf(error) });
       return false;
     }
+  };
+
+  toggleMidiInput = async (id: string, enabled: boolean): Promise<boolean> => {
+    return this.updateMidiInput({ id, enabled });
   };
 
   runPadTest = async (): Promise<boolean> => {

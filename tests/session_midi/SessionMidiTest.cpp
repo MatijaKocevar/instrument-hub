@@ -146,8 +146,10 @@ int main()
 
     check (Api::MidiBridge::roleForName ("Launchpad Mini MK3 MI") == "launchpad",
            "the Launchpad MI port is classified as a controller");
-    check (Api::MidiBridge::roleForName ("Keystation Mini 32 USB") == "keystation",
-           "the Keystation is classified as a keyboard input");
+    check (Api::MidiBridge::roleForName ("Keystation Mini 32 USB") == "keyboard",
+           "the Keystation is classified as a generic keyboard input");
+    check (Api::MidiBridge::roleForName ("Alesis Q49 USB") == "keyboard",
+           "an unrecognised keyboard is classified as a generic keyboard input");
 
     check (! bridge.forwardMidiMessage ("Launchpad Mini MK3 MI",
                                         juce::MidiMessage::noteOn (1, 60,
@@ -176,6 +178,19 @@ int main()
     (void) renderBlocksPeak (session, buffer, 8);
     check (renderBlocksPeak (session, buffer, 8) == 0.0f,
            "the forwarded note-off stops the patch");
+
+    check (bridge.forwardMidiMessage ("Alesis Q49 USB",
+                                      juce::MidiMessage::noteOn (1, 67,
+                                                                 static_cast<juce::uint8> (100))),
+           "a generic keyboard note is forwarded into the session queue");
+    check (renderBlocksPeak (session, buffer, 8) > 0.05f,
+           "the generic keyboard note plays the armed patch");
+    check (bridge.forwardMidiMessage ("Alesis Q49 USB",
+                                      juce::MidiMessage::noteOff (1, 67, 0.0f)),
+           "the generic keyboard note-off enters the session queue");
+    (void) renderBlocksPeak (session, buffer, 8);
+    check (renderBlocksPeak (session, buffer, 8) == 0.0f,
+           "the generic keyboard note-off stops the patch");
 
     bridge.setMidiSink (nullptr);
 

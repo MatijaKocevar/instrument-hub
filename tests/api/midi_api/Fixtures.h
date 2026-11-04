@@ -20,7 +20,7 @@ struct FakeBackend
     Api::MidiStateSnapshot midi = makeFakeMidi();
     int padTests = 0;
 
-    bool setInput (const std::string& id, bool enabled, std::string& error);
+    bool setInput (const Api::MidiInputPatch& patch, std::string& error);
 
     bool runPadTest (std::string& error);
 

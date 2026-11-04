@@ -3,6 +3,8 @@
 #include "settings/MidiInputNames.h"
 #include "settings/SettingsStore.h"
 
+#include <vector>
+
 namespace Api
 {
 namespace
@@ -21,16 +23,26 @@ ihub::settings::MidiInput identityFor (const MidiInputDevice& device)
 
 void MidiBridge::setSettingsStore (ihub::settings::SettingsStore* store)
 {
-    settingsStore = store;
+    {
+        const std::lock_guard<std::mutex> lock (settingsMutex);
+        settingsStore = store;
+    }
+
     restoreStoredInputs();
 }
 
 void MidiBridge::restoreStoredInputs()
 {
-    if (settingsStore == nullptr)
-        return;
+    std::vector<ihub::settings::MidiInput> stored;
 
-    const auto stored = settingsStore->settings().midi.enabledInputs;
+    {
+        const std::lock_guard<std::mutex> lock (settingsMutex);
+
+        if (settingsStore == nullptr)
+            return;
+
+        stored = settingsStore->settings().midi.enabledInputs;
+    }
 
     if (stored.empty())
         return;
@@ -58,6 +70,8 @@ void MidiBridge::restoreStoredInputs()
 
 void MidiBridge::rememberInput (const MidiInputDevice& device)
 {
+    const std::lock_guard<std::mutex> lock (settingsMutex);
+
     if (settingsStore == nullptr)
         return;
 
@@ -73,6 +87,8 @@ void MidiBridge::rememberInput (const MidiInputDevice& device)
 
 void MidiBridge::forgetInput (const MidiInputDevice& device)
 {
+    const std::lock_guard<std::mutex> lock (settingsMutex);
+
     if (settingsStore == nullptr)
         return;
 

@@ -49,29 +49,33 @@ void runRoutes()
         if (inputs != nullptr && inputs->size() == 4)
         {
             const auto& launchpad = (*inputs)[0];
-            const auto& keystation = (*inputs)[2];
+            const auto& keyboard = (*inputs)[2];
+            const auto& grid = (*inputs)[3];
 
             check (stringProperty (launchpad, "role") == "launchpad",
                    "the first input is the Launchpad");
             check (stringProperty (launchpad, "port") == "MI",
                    "the Launchpad input names its MI port");
             check (boolProperty (launchpad, "enabled"), "the Launchpad starts enabled");
-            check (stringProperty (keystation, "role") == "keystation",
-                   "the third input is the Keystation");
-            check (! boolProperty (keystation, "enabled"), "the Keystation starts off");
+            check (boolProperty (launchpad, "handshake"),
+                   "the Launchpad row carries the programmer-mode handshake");
+            check (boolProperty (launchpad, "leds"),
+                   "the Launchpad row reports LED output");
+            check (stringProperty (keyboard, "role") == "keyboard",
+                   "a generic keyboard carries the keyboard role");
+            check (! boolProperty (keyboard, "enabled"), "the keyboard starts off");
+            check (! boolProperty (grid, "leds"),
+                   "a generic input reports no LED output");
+            check (stringProperty ((*inputs)[1], "error").find ("DA port")
+                       != std::string::npos,
+                   "the unusable DA port explains itself");
         }
 
-        const auto launchpad = property (body, "launchpad");
-        const auto keystation = property (body, "keystation");
+        check (! property (body, "keystation").isObject(),
+               "the state no longer carries a Keystation card");
+
         const auto padTest = property (body, "padTest");
 
-        check (stringProperty (launchpad, "port") == "MI",
-               "the Launchpad reports the MI port");
-        check (boolProperty (launchpad, "connected"), "the Launchpad is connected");
-        check (boolProperty (launchpad, "handshake"),
-               "the Launchpad reports its programmer-mode echo");
-        check (stringProperty (keystation, "port") == "USB",
-               "the Keystation reports its USB port");
         check (! boolProperty (padTest, "active"), "no pad test has run yet");
         check (intProperty (padTest, "durationMs") == Api::MidiBridge::padTestDurationMs,
                "the pad-test duration is published");
@@ -85,19 +89,78 @@ void runRoutes()
     if (response && response->status == 200)
     {
         const auto body = parseJson (response->body);
-        const auto keystation = property (body, "keystation");
-
-        check (boolProperty (keystation, "connected"),
-               "the response reports the opened Keystation");
-
         const auto* inputs = property (body, "inputs").getArray();
 
         if (inputs != nullptr && inputs->size() == 4)
         {
             const auto& row = (*inputs)[2];
             check (boolProperty (row, "enabled") && boolProperty (row, "open"),
-                   "the Keystation row is enabled and open");
+                   "the keyboard row is enabled and open");
         }
+    }
+
+    response = client.Post ("/midi/inputs",
+                            R"({"id":"ALSA:2:0","role":"grid","enabled":true})",
+                            "application/json");
+    check (response && response->status == 200,
+           "POST /midi/inputs assigns the generic grid role");
+
+    if (response && response->status == 200)
+    {
+        const auto body = parseJson (response->body);
+        const auto* inputs = property (body, "inputs").getArray();
+
+        if (inputs != nullptr && inputs->size() == 4)
+            check (stringProperty ((*inputs)[3], "role") == "grid",
+                   "the generic input reports the grid role");
+    }
+
+    response = client.Post ("/midi/inputs",
+                            R"({"id":"ALSA:2:0","noteBase":36})",
+                            "application/json");
+    check (response && response->status == 200,
+           "POST /midi/inputs accepts a grid note base");
+
+    if (response && response->status == 200)
+    {
+        const auto body = parseJson (response->body);
+        const auto* inputs = property (body, "inputs").getArray();
+
+        if (inputs != nullptr && inputs->size() == 4)
+            check (intProperty ((*inputs)[3], "noteBase") == 36,
+                   "the grid row reports the note base");
+    }
+
+    response = client.Post ("/midi/inputs",
+                            R"({"id":"ALSA:2:0","learn":true})",
+                            "application/json");
+    check (response && response->status == 200,
+           "POST /midi/inputs starts a grid learn");
+
+    if (response && response->status == 200)
+    {
+        const auto body = parseJson (response->body);
+        const auto* inputs = property (body, "inputs").getArray();
+
+        if (inputs != nullptr && inputs->size() == 4)
+            check (boolProperty ((*inputs)[3], "learnActive"),
+                   "the grid row reports the running learn");
+    }
+
+    response = client.Post ("/midi/inputs",
+                            R"({"id":"ALSA:2:0","role":"keyboard"})",
+                            "application/json");
+    check (response && response->status == 200,
+           "POST /midi/inputs switches a grid back to a keyboard");
+
+    if (response && response->status == 200)
+    {
+        const auto body = parseJson (response->body);
+        const auto* inputs = property (body, "inputs").getArray();
+
+        if (inputs != nullptr && inputs->size() == 4)
+            check (stringProperty ((*inputs)[3], "role") == "keyboard",
+                   "the generic input reports the keyboard role again");
     }
 
     response = client.Post ("/midi/inputs", R"({"id":"ALSA:9:9","enabled":true})",
@@ -106,11 +169,16 @@ void runRoutes()
            "an unknown input identifier is rejected with 404");
 
     response = client.Post ("/midi/inputs", R"({"id":"ALSA:5:0"})", "application/json");
-    check (response && response->status == 400, "a missing enabled field is rejected");
+    check (response && response->status == 400,
+           "a body without a change is rejected");
 
     response = client.Post ("/midi/inputs", R"({"id":"ALSA:5:0","enabled":"yes"})",
                             "application/json");
     check (response && response->status == 400, "a non-boolean enabled field is rejected");
+
+    response = client.Post ("/midi/inputs", R"({"id":"ALSA:5:0","noteBase":99})",
+                            "application/json");
+    check (response && response->status == 400, "a note base past 64 is rejected");
 
     response = client.Post ("/midi/pad-test", "", "application/json");
     check (response && response->status == 200, "POST /midi/pad-test returns 200");
