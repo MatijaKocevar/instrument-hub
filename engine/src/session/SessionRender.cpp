@@ -146,6 +146,46 @@ void Session::audioDeviceIOCallbackWithContext (const float* const* inputChannel
 
     const int samples = juce::jmin (numSamples, maximumBlockSize);
 
+    const bool probeStarted = latencyProbeRequested.exchange (false, std::memory_order_acq_rel);
+
+    if (probeStarted)
+    {
+        const bool canProbe = inputChannelData != nullptr
+                           && inputChannelData[0] != nullptr
+                           && numInputChannels > 0
+                           && latencyProbeInput.size() >= latencyProbeCaptureSamples;
+
+        latencyProbePosition.store (0, std::memory_order_relaxed);
+        latencyProbeInputChannels.store (inputChannelData != nullptr && inputChannelData[0] != nullptr
+                                             ? numInputChannels
+                                             : 0,
+                                         std::memory_order_relaxed);
+        latencyProbeActive.store (canProbe, std::memory_order_release);
+        latencyProbeEmit.store (canProbe, std::memory_order_relaxed);
+        latencyProbeComplete.store (! canProbe, std::memory_order_release);
+    }
+
+    if (latencyProbeActive.load (std::memory_order_acquire))
+    {
+        const int position = latencyProbePosition.load (std::memory_order_relaxed);
+        const int remaining = latencyProbeCaptureSamples - position;
+        const int copySamples = juce::jmin (samples, remaining);
+
+        if (copySamples > 0 && inputChannelData != nullptr && inputChannelData[0] != nullptr)
+        {
+            juce::FloatVectorOperations::copy (latencyProbeInput.data() + position,
+                                               inputChannelData[0],
+                                               copySamples);
+            latencyProbePosition.store (position + copySamples, std::memory_order_relaxed);
+        }
+
+        if (position + copySamples >= latencyProbeCaptureSamples)
+        {
+            latencyProbeActive.store (false, std::memory_order_release);
+            latencyProbeComplete.store (true, std::memory_order_release);
+        }
+    }
+
     for (int slot = 0; slot < engine->getNumSlots(); ++slot)
         engine->getSlot (slot).feedDeviceInput (inputChannelData, numInputChannels);
 
@@ -159,6 +199,13 @@ void Session::audioDeviceIOCallbackWithContext (const float* const* inputChannel
             if (outputChannelData[channel] != nullptr)
                 juce::FloatVectorOperations::clear (outputChannelData[channel] + samples,
                                                     numSamples - samples);
+
+    if (latencyProbeEmit.exchange (false, std::memory_order_acq_rel)
+        && outputChannelData != nullptr
+        && numOutputChannels > 0
+        && outputChannelData[0] != nullptr)
+        outputChannelData[0][0] = juce::jlimit (-1.0f, 1.0f,
+                                                outputChannelData[0][0] + 0.25f);
 
     engine->getTimingMonitor().endCallback (timingToken, samples);
 }

@@ -5,6 +5,7 @@ import type {
   ControlAudioPatch,
   ControlAudioState,
 } from "../../api/client";
+import type { MeasurementSource } from "../../api/audio";
 import { AudioSettingsFooter } from "./AudioSettingsFooter";
 import { AudioSettingsHeader } from "./AudioSettingsHeader";
 import { ChannelMaps } from "./ChannelMaps";
@@ -24,7 +25,7 @@ export interface AudioSettingsPanelProps {
   readonly busy?: boolean;
   readonly loading?: boolean;
   readonly onChange?: (patch: ControlAudioPatch) => void;
-  readonly onMeasure?: () => void;
+  readonly onMeasure?: (source: MeasurementSource) => void;
 }
 
 export function AudioSettingsPanel({

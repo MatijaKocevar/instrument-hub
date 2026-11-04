@@ -115,7 +115,8 @@ void captureState (sandbox::SharedMemory& shared, PluginInstrument* plugin)
 
 void handleControl (sandbox::SharedMemory& shared,
                     PluginInstrument* plugin,
-                    std::uint32_t& lastSequence)
+                    std::uint32_t& lastSequence,
+                    EditorControl editorControl)
 {
     const auto sequence = sandbox::loadAcquire (shared.control.sequence);
 
@@ -139,6 +140,26 @@ void handleControl (sandbox::SharedMemory& shared,
         case sandbox::ControlCommand::applyParameters:
             applyParameters (shared, plugin);
             return;
+
+        case sandbox::ControlCommand::openEditor:
+        case sandbox::ControlCommand::closeEditor:
+        {
+            if (! editorControl)
+            {
+                setControlStatus (shared, sandbox::ControlStatus::failed);
+                return;
+            }
+
+            juce::String error;
+            const bool open = sandbox::loadRelaxed (shared.control.command)
+                              == static_cast<std::int32_t> (sandbox::ControlCommand::openEditor);
+
+            setControlStatus (shared,
+                              editorControl (open, error)
+                                  ? sandbox::ControlStatus::done
+                                  : sandbox::ControlStatus::failed);
+            return;
+        }
 
         case sandbox::ControlCommand::none:
             break;

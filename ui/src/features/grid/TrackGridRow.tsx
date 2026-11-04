@@ -11,10 +11,12 @@ function TrackSelectCell({
   track,
   armedSlot,
   onSelectTrack,
+  onOpenTrack,
 }: {
   readonly track: GridTrack;
   readonly armedSlot: number;
   readonly onSelectTrack: ((index: number) => void) | undefined;
+  readonly onOpenTrack: ((index: number) => void) | undefined;
 }): ReactElement {
   const selected = track.selected || track.slot === armedSlot;
   const colour = colourForIndex(track.colorIndex);
@@ -49,6 +51,13 @@ function TrackSelectCell({
             ? undefined
             : () => {
                 onSelectTrack(track.index);
+              }
+        }
+        onDoubleClick={
+          onOpenTrack === undefined
+            ? undefined
+            : () => {
+                onOpenTrack(track.index);
               }
         }
       >
@@ -204,6 +213,7 @@ export function TrackGridRow({
   row,
   model,
   onSelectTrack,
+  onOpenTrack,
   onToggleTrackFx,
   onSetTrackVolume,
 }: TrackGridRowProps): ReactElement {
@@ -229,6 +239,7 @@ export function TrackGridRow({
           row={row}
           armedSlot={model.armedSlot}
           {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
+          {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
           {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
           {...(onSetTrackVolume !== undefined ? { onSetTrackVolume } : {})}
         />
@@ -242,6 +253,7 @@ function TrackGridCell({
   row,
   armedSlot,
   onSelectTrack,
+  onOpenTrack,
   onToggleTrackFx,
   onSetTrackVolume,
 }: TrackGridActions & {
@@ -255,6 +267,7 @@ function TrackGridCell({
         track={track}
         armedSlot={armedSlot}
         onSelectTrack={onSelectTrack}
+        onOpenTrack={onOpenTrack}
       />
     );
 

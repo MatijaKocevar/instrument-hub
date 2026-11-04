@@ -66,6 +66,12 @@ bool Session::ensurePluginMirrorNow (int slot, std::string& error)
         return false;
     }
 
+    if (identity.pluginPath.containsIgnoreCase ("vstbridge"))
+    {
+        error = "the editor is unavailable for Wine-hosted plugins: the vstbridge host aborts the engine";
+        return false;
+    }
+
     if (pluginFormats == nullptr)
     {
         error = "the plugin formats are not available";

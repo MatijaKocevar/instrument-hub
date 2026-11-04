@@ -26,11 +26,11 @@ export class AudioActions {
     }
   };
 
-  measureLatency = async (): Promise<boolean> => {
+  measureLatency = async (source: "loopback" | "device"): Promise<boolean> => {
     this.patch({ measurementError: null });
 
     try {
-      const measurement = await this.context.api.measureLatency();
+      const measurement = await this.context.api.measureLatency({ source });
 
       this.patch({ measurement, measurementError: null });
       return true;

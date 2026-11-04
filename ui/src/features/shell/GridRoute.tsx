@@ -30,6 +30,10 @@ export function GridRoute({
 
   const selectTrack = (index: number): void => {
     void store.selectTrack(index);
+  };
+
+  const openTrack = (index: number): void => {
+    void store.selectTrack(index);
     router.navigate("/instrument");
   };
 
@@ -44,6 +48,7 @@ export function GridRoute({
         void store.updateFamilyColour(familyId, colorIndex);
       }}
       onSelectTrack={selectTrack}
+      onOpenTrack={openTrack}
       onToggleTrackFx={(index, hot) => {
         void store.toggleTrackFx(index, hot);
       }}

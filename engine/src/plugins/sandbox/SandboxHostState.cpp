@@ -128,6 +128,8 @@ bool SandboxHost::runControlCommand (sandbox::ControlCommand command,
 
     return completed && (command == sandbox::ControlCommand::applyState
                          || command == sandbox::ControlCommand::applyParameters
+                         || command == sandbox::ControlCommand::openEditor
+                         || command == sandbox::ControlCommand::closeEditor
                          || output.getSize() > 0);
 }
 

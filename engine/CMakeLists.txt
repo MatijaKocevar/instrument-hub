@@ -146,6 +146,7 @@ target_sources(instrument-hub
         src/app/project/TrackLayoutSave.cpp
         src/app/project/TrackLayoutText.cpp
         src/app/SessionSetup.cpp
+        src/app/StartupWindow.cpp
         src/app/SnapshotCapture.cpp
         src/app/SourcePersistence.cpp
         src/app/UiModes.cpp
@@ -280,6 +281,7 @@ target_sources(instrument-hub
         src/plugins/sandbox/SandboxHostParameters.cpp
         src/plugins/sandbox/SandboxHostProcess.cpp
         src/plugins/sandbox/SandboxHostState.cpp
+        src/plugins/sandbox/SandboxHostEditor.cpp
         src/plugins/sandbox/SandboxHostStatus.cpp
         src/plugins/sandbox/SandboxHostStop.cpp
         src/plugins/sandbox/SandboxHostTransport.cpp
@@ -311,6 +313,7 @@ target_sources(instrument-hub
         src/session/SessionDevice.cpp
         src/session/SessionFx.cpp
         src/session/SessionMeasure.cpp
+        src/session/SessionMeasureLatency.cpp
         src/session/SessionPluginMirror.cpp
         src/session/SessionPluginSandbox.cpp
         src/session/SessionPluginState.cpp
@@ -473,6 +476,9 @@ target_sources(ihub-sandbox
     PRIVATE
         src/plugins/sandbox_main.cpp
         src/plugins/SandboxClient.cpp
+        src/plugins/PluginWindow.cpp
+        src/plugins/window/PluginEditorWindow.cpp
+        src/plugins/window/PluginWindowEditor.cpp
         src/plugins/sandbox/FakeToneInstrument.cpp
         src/plugins/sandbox/SandboxClientArguments.cpp
         src/plugins/sandbox/SandboxClientControl.cpp
@@ -498,7 +504,7 @@ target_compile_definitions(ihub-sandbox
 
 target_link_libraries(ihub-sandbox
     PRIVATE
-        juce::juce_audio_processors_headless
+        juce::juce_audio_processors
         juce::juce_events
     PUBLIC
         juce::juce_recommended_config_flags

@@ -1,17 +1,19 @@
 #include "SandboxClient.h"
 
 #include "PluginInstrument.h"
+#include "PluginWindow.h"
 #include "sandbox/FakeToneInstrument.h"
 #include "sandbox/SandboxClientArguments.h"
 #include "sandbox/SandboxClientControl.h"
 
-#include <juce_audio_processors_headless/juce_audio_processors_headless.h>
+#include <juce_gui_basics/juce_gui_basics.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <thread>
 
 #if JUCE_LINUX || JUCE_MAC
  #include <unistd.h>
@@ -52,6 +54,12 @@ bool hostIsAlive (const sandbox::SharedMemory& shared) noexcept
     juce::ignoreUnused (shared);
     return true;
    #endif
+}
+
+bool hasDisplay()
+{
+    return juce::SystemStats::getEnvironmentVariable ("DISPLAY", {}).isNotEmpty()
+        || juce::SystemStats::getEnvironmentVariable ("WAYLAND_DISPLAY", {}).isNotEmpty();
 }
 }
 
@@ -99,6 +107,11 @@ int SandboxClient::run (const juce::StringArray& commandLine)
     const auto numChannels = juce::jlimit (1, sandbox::maximumChannels,
                                            static_cast<int> (shared.numChannels));
 
+    std::unique_ptr<juce::ScopedJuceInitialiser_GUI> gui;
+
+    if (hasDisplay())
+        gui = std::make_unique<juce::ScopedJuceInitialiser_GUI>();
+
     std::unique_ptr<PluginInstrument> plugin;
     std::unique_ptr<sandbox_client::FakeToneInstrument> fake;
 
@@ -109,7 +122,7 @@ int SandboxClient::run (const juce::StringArray& commandLine)
         if (arguments.pluginBundle != juce::File())
         {
             juce::AudioPluginFormatManager formatManager;
-            juce::addHeadlessDefaultFormatsToManager (formatManager);
+            juce::addDefaultFormatsToManager (formatManager);
 
             plugin = std::make_unique<PluginInstrument>();
 
@@ -153,109 +166,220 @@ int SandboxClient::run (const juce::StringArray& commandLine)
         return fail (shared, "unknown exception while loading the plugin", 4);
     }
 
+    std::unique_ptr<PluginWindow> editorWindow;
+
+    const auto editorControl = [&] (bool open, juce::String& error) -> bool
+    {
+        if (gui == nullptr)
+        {
+            error = "no display is available for the plugin editor";
+            return false;
+        }
+
+        if (plugin == nullptr)
+        {
+            error = "this sandbox has no plugin editor";
+            return false;
+        }
+
+        const auto result = juce::MessageManager::callSync ([&] () -> bool
+        {
+            if (open)
+            {
+                if (editorWindow != nullptr && editorWindow->isOpen())
+                {
+                    if (auto* component = editorWindow->getWindowComponent())
+                        component->toFront (true);
+
+                    return true;
+                }
+
+                if (editorWindow == nullptr)
+                    editorWindow = std::make_unique<PluginWindow>();
+
+                editorWindow->onClose = [&shared]
+                {
+                    sandbox::storeRelaxed (shared.editorOpen, 0);
+                };
+
+                juce::String openError;
+
+                try
+                {
+                    if (! editorWindow->open (*plugin, {}, nullptr, &openError))
+                    {
+                        error = openError.isNotEmpty()
+                                    ? openError
+                                    : juce::String ("the plugin did not create an editor");
+                        editorWindow.reset();
+                        return false;
+                    }
+                }
+                catch (const std::exception& exception)
+                {
+                    error = juce::String ("the plugin editor failed: ") + exception.what();
+                    editorWindow.reset();
+                    return false;
+                }
+
+                sandbox::storeRelaxed (shared.editorOpen, 1);
+                return true;
+            }
+
+            if (editorWindow != nullptr)
+            {
+                editorWindow->close();
+                editorWindow.reset();
+            }
+
+            sandbox::storeRelaxed (shared.editorOpen, 0);
+            return true;
+        });
+
+        if (! result.has_value())
+        {
+            error = "the sandbox message loop is not running";
+            return false;
+        }
+
+        return *result;
+    };
+
     sandbox::storeRelaxed (shared.latencySamples, static_cast<std::int32_t> (reportedLatency));
     setState (shared, sandbox::ProcessState::ready);
 
-    juce::AudioBuffer<float> renderBuffer (numChannels, maximumBlockSize);
-    juce::AudioBuffer<float> view;
-    juce::MidiBuffer midi;
-
-    std::uint64_t nextRequest = 0;
-    std::uint64_t heartbeat = 0;
-    std::uint32_t lastControlSequence = sandbox::loadAcquire (shared.control.sequence);
-    double lastParentCheckMs = juce::Time::getMillisecondCounterHiRes();
-
-    for (;;)
+    const auto runAudioLoop = [&] () -> int
     {
-        if (sandbox::loadAcquire (shared.state) == static_cast<std::int32_t> (sandbox::ProcessState::stopping))
-            break;
-
-        sandbox_client::handleControl (shared, plugin.get(), lastControlSequence);
-
-        const auto now = juce::Time::getMillisecondCounterHiRes();
-
-        if (now - lastParentCheckMs >= 250.0)
+        const auto stopDispatch = juce::ScopeGuard ([&gui]
         {
-            lastParentCheckMs = now;
+            if (gui != nullptr)
+                juce::MessageManager::getInstance()->stopDispatchLoop();
+        });
 
-            if (! hostIsAlive (shared))
+        juce::ignoreUnused (stopDispatch);
+
+        juce::AudioBuffer<float> renderBuffer (numChannels, maximumBlockSize);
+        juce::AudioBuffer<float> view;
+        juce::MidiBuffer midi;
+
+        std::uint64_t nextRequest = 0;
+        std::uint64_t heartbeat = 0;
+        std::uint32_t lastControlSequence = sandbox::loadAcquire (shared.control.sequence);
+        double lastParentCheckMs = juce::Time::getMillisecondCounterHiRes();
+
+        for (;;)
+        {
+            if (sandbox::loadAcquire (shared.state)
+                == static_cast<std::int32_t> (sandbox::ProcessState::stopping))
                 break;
-        }
 
-        const auto published = sandbox::loadAcquire (shared.requestPublished);
+            sandbox_client::handleControl (shared,
+                                           plugin.get(),
+                                           lastControlSequence,
+                                           editorControl);
 
-        if (published <= nextRequest)
-        {
-            juce::Thread::sleep (1);
-            continue;
-        }
+            const auto now = juce::Time::getMillisecondCounterHiRes();
 
-        auto& request = shared.requests[nextRequest % sandbox::requestRingSize];
+            if (now - lastParentCheckMs >= 250.0)
+            {
+                lastParentCheckMs = now;
 
-        if (request.sequence != static_cast<std::uint32_t> (nextRequest))
-        {
-            return fail (shared, "request ring out of sequence", 5);
-        }
+                if (! hostIsAlive (shared))
+                    break;
+            }
 
-        const auto numSamples = juce::jlimit (0, maximumBlockSize,
-                                              static_cast<int> (request.numSamples));
+            const auto published = sandbox::loadAcquire (shared.requestPublished);
 
-        view.setDataToReferTo (renderBuffer.getArrayOfWritePointers(),
-                               numChannels, numSamples);
-        view.clear();
-        midi.clear();
-
-        const auto eventCount = juce::jmin (static_cast<int> (request.numMidiEvents),
-                                            sandbox::maximumMidiEvents);
-
-        for (int event = 0; event < eventCount; ++event)
-        {
-            const auto& entry = request.midi[event];
-
-            if (entry.numBytes == 0 || entry.numBytes > 3)
+            if (published <= nextRequest)
+            {
+                juce::Thread::sleep (1);
                 continue;
+            }
 
-            midi.addEvent (entry.bytes, entry.numBytes,
-                           juce::jlimit (0, juce::jmax (0, numSamples - 1),
-                                         static_cast<int> (entry.sampleOffset)));
+            auto& request = shared.requests[nextRequest % sandbox::requestRingSize];
+
+            if (request.sequence != static_cast<std::uint32_t> (nextRequest))
+                return fail (shared, "request ring out of sequence", 5);
+
+            const auto numSamples = juce::jlimit (0, maximumBlockSize,
+                                                  static_cast<int> (request.numSamples));
+
+            view.setDataToReferTo (renderBuffer.getArrayOfWritePointers(),
+                                   numChannels, numSamples);
+            view.clear();
+            midi.clear();
+
+            const auto eventCount = juce::jmin (static_cast<int> (request.numMidiEvents),
+                                                sandbox::maximumMidiEvents);
+
+            for (int event = 0; event < eventCount; ++event)
+            {
+                const auto& entry = request.midi[event];
+
+                if (entry.numBytes == 0 || entry.numBytes > 3)
+                    continue;
+
+                midi.addEvent (entry.bytes, entry.numBytes,
+                               juce::jlimit (0, juce::jmax (0, numSamples - 1),
+                                             static_cast<int> (entry.sampleOffset)));
+            }
+
+            try
+            {
+                if (plugin != nullptr)
+                    plugin->process (view, midi);
+                else if (fake != nullptr)
+                    fake->process (view, midi);
+            }
+            catch (const std::exception& exception)
+            {
+                return fail (shared,
+                             juce::String ("exception in the plugin: ") + exception.what(),
+                             5);
+            }
+            catch (...)
+            {
+                return fail (shared, "unknown exception in the plugin", 5);
+            }
+
+            auto& reply = shared.replies[nextRequest % sandbox::replyRingSize];
+            reply.sequence = static_cast<std::uint32_t> (nextRequest);
+            reply.numSamples = numSamples;
+            reply.latencySamples = reportedLatency;
+            reply.flags = 0;
+
+            for (int channel = 0; channel < numChannels; ++channel)
+                juce::FloatVectorOperations::copy (reply.audio[channel],
+                                                   view.getReadPointer (channel),
+                                                   numSamples);
+
+            sandbox::storeRelease (shared.replyPublished, nextRequest + 1);
+            sandbox::storeRelease (shared.requestConsumed, nextRequest + 1);
+
+            ++nextRequest;
+            ++heartbeat;
+            sandbox::storeRelaxed (shared.heartbeat,
+                                   static_cast<std::uint32_t> (heartbeat));
         }
 
-        try
-        {
-            if (plugin != nullptr)
-                plugin->process (view, midi);
-            else if (fake != nullptr)
-                fake->process (view, midi);
-        }
-        catch (const std::exception& exception)
-        {
-            return fail (shared, juce::String ("exception in the plugin: ") + exception.what(), 5);
-        }
-        catch (...)
-        {
-            return fail (shared, "unknown exception in the plugin", 5);
-        }
+        setState (shared, sandbox::ProcessState::stopping);
+        return 0;
+    };
 
-        auto& reply = shared.replies[nextRequest % sandbox::replyRingSize];
-        reply.sequence = static_cast<std::uint32_t> (nextRequest);
-        reply.numSamples = numSamples;
-        reply.latencySamples = reportedLatency;
-        reply.flags = 0;
+    if (gui == nullptr)
+        return runAudioLoop();
 
-        for (int channel = 0; channel < numChannels; ++channel)
-            juce::FloatVectorOperations::copy (reply.audio[channel],
-                                               view.getReadPointer (channel),
-                                               numSamples);
+    std::thread audioThread (runAudioLoop);
+    juce::MessageManager::getInstance()->runDispatchLoop();
+    audioThread.join();
 
-        sandbox::storeRelease (shared.replyPublished, nextRequest + 1);
-        sandbox::storeRelease (shared.requestConsumed, nextRequest + 1);
-
-        ++nextRequest;
-        ++heartbeat;
-        sandbox::storeRelaxed (shared.heartbeat, static_cast<std::uint32_t> (heartbeat));
+    if (editorWindow != nullptr)
+    {
+        editorWindow->close();
+        editorWindow.reset();
     }
 
-    setState (shared, sandbox::ProcessState::stopping);
+    sandbox::storeRelaxed (shared.editorOpen, 0);
     return 0;
 }
 

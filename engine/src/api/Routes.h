@@ -72,6 +72,7 @@ struct RouteContext
     AudioStateProvider audioProvider;
     AudioApplyHandler audioApply;
     AudioMeasureHandler audioMeasure;
+    AudioMeasureHandler audioMeasureDevice;
 
     PairingManager* pairing = nullptr;
 

@@ -14,6 +14,7 @@
 #include "session/WarmPoolController.h"
 #include "SessionConfig.h"
 #include "SessionSwitchReport.h"
+#include "api/state/AudioState.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
@@ -205,6 +206,7 @@ public:
     std::uint64_t getWarmEvictionCount() const noexcept;
 
     AudioEngine::WarmPool::PreloadReport preloadAll();
+    Api::AudioMeasurementState measureLatency();
     bool waitForWarmIdle (int timeoutMs = 10000);
 
     int getPeakInstrumentCount() const noexcept;
@@ -280,6 +282,8 @@ private:
                               const session::PluginStateIdentity& identity);
     void unregisterSandboxSlot (plugins::SandboxHost& host);
     plugins::SandboxHost* sandboxForSlot (int slot) const noexcept;
+    void closeSandboxEditors (int keepSlot);
+    bool isWineHostedSlot (int slot) const;
 
     void setSlotError (int slot, const juce::String& error);
     void clearSlotError (int slot);
@@ -338,6 +342,16 @@ private:
     bool prepared = false;
     std::atomic<bool> shuttingDown { false };
     std::shared_ptr<std::atomic<bool>> loadAbort;
+
+    static constexpr int latencyProbeCaptureSamples = 16384;
+    std::vector<float> latencyProbeInput;
+    std::atomic<bool> latencyProbeRequested { false };
+    std::atomic<bool> latencyProbeActive { false };
+    std::atomic<bool> latencyProbeComplete { false };
+    std::atomic<bool> latencyProbeEmit { false };
+    std::atomic<bool> latencyProbeBusy { false };
+    std::atomic<int> latencyProbePosition { 0 };
+    std::atomic<int> latencyProbeInputChannels { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Session)
 };

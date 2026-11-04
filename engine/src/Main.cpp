@@ -8,6 +8,7 @@
 #include "app/Modes.h"
 #include "app/ProjectSetup.h"
 #include "app/SessionSetup.h"
+#include "app/StartupWindow.h"
 #include "app/UiModes.h"
 #include "diag/CrashDump.h"
 #include "diag/Diagnostics.h"
@@ -52,7 +53,9 @@ private:
 class MainWindow final : public juce::DocumentWindow
 {
 public:
-    MainWindow (const juce::String& name, WebView::PageLoadedCallback onPageLoaded)
+    MainWindow (const juce::String& name,
+                WebView::PageLoadedCallback onPageLoaded,
+                bool startMaximisedOnLeftDisplay)
         : juce::DocumentWindow (name,
                                 juce::Colour (0xff101014),
                                 juce::DocumentWindow::allButtons)
@@ -64,8 +67,13 @@ public:
         setResizeLimits (480, 320, 8192, 8192);
 
         setContentComponentSize (ihub::app::kWindowWidth, ihub::app::kWindowHeight);
-        centreWithSize (getWidth(), getHeight());
         setVisible (true);
+
+        if (startMaximisedOnLeftDisplay
+            && ihub::app::startMaximisedOnLeftDisplay (*this))
+            return;
+
+        centreWithSize (getWidth(), getHeight());
     }
 
     MainComponent& getMainComponent() noexcept
@@ -213,16 +221,18 @@ public:
             }
         }
 
-        if (mode == ihub::app::AppMode::serve)
-        {
-            std::cout << "serve: control API is running, press Ctrl-C to stop" << std::endl;
-            return;
-        }
-
-        if (mode == ihub::app::AppMode::gui)
+        if (mode == ihub::app::AppMode::gui || mode == ihub::app::AppMode::serve)
             controller.start (controlApi.getState(),
                               controlApi.getMidiBridge(),
                               projectFile);
+
+        if (mode == ihub::app::AppMode::serve)
+        {
+            ledPollMode = true;
+            startTimer (100);
+            std::cout << "serve: control API is running, press Ctrl-C to stop" << std::endl;
+            return;
+        }
 
         mainWindow = std::make_unique<MainWindow> (getApplicationName(),
             [this] (const juce::String& url)
@@ -231,7 +241,8 @@ public:
                     uiMode->pageLoaded (url);
 
                 std::cout << "webview: loaded " << url << std::endl;
-            });
+            },
+            mode == ihub::app::AppMode::gui);
 
         if (mode == ihub::app::AppMode::snapshot
             || mode == ihub::app::AppMode::uiCheck

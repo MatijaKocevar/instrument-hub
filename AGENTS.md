@@ -22,9 +22,13 @@ autopilot. They start and stop the app and the dev server themselves
   instance the developer already has open, or ask them to start one.
 - Single-run diagnostics (`--selftest`, `--snapshot`, a test harness on its
   own port) are fine when they shut down before you report back.
+- Ask before any build, test run, dependency install, or other long-running
+  command. Time is the developer's call: never start one automatically, and
+  never background it to avoid asking. A short build needed to verify a
+  change is still an ask.
 - Do not build or test after every edit. Make the change first; build only
-  when a binary is actually needed, and run the test suite once when the
-  change is finished (or when the developer asks). No rebuild loops.
+  when the developer has approved it and a binary is actually needed. No
+  rebuild loops.
 
 ---
 
@@ -161,9 +165,10 @@ queried once per load, not per block.
 loopback for audio, a virtual Launchpad on the ALSA sequencer for MIDI,
 an in-repo `TestPlugin` VST3, and snapshots taken inside JUCE.
 
-Verification is on demand. Run the acceptance check once when a change is
-finished — not after each edit — and record its output. The developer
-verifies interactively and decides when a full run is worth the time.
+Verification is on demand. Ask the developer before running a build, the
+acceptance check, or the test suite; they decide when a run is worth the
+time. When they say go, run it once when the change is finished and record
+its output. The developer verifies interactively.
 
 When you do run it, use `scripts/test.sh` (or `ctest --timeout 120`). A
 deadlocked test must fail within two minutes; never leave a test or test

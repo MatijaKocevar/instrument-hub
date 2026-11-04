@@ -146,7 +146,16 @@ bool ControlApi::start (const juce::String& commandLine,
         {
             return audioSettings->apply (patch, error);
         },
-        [this] { return audioSettings->measure(); });
+        [this] { return audioSettings->measure(); },
+        [session]
+        {
+            if (session != nullptr && session->getDevices().isOpen())
+                return session->measureLatency();
+
+            Api::AudioMeasurementState measurement;
+            measurement.error = "the audio device is not open";
+            return measurement;
+        });
 
     if (! apiServer->start())
     {

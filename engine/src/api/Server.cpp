@@ -124,7 +124,7 @@ struct Server::Impl
                 requestsInFlight.fetch_sub (1, std::memory_order_acq_rel);
         });
 
-        RouteContext context { state, {}, {}, {}, {}, &pairing,
+        RouteContext context { state, {}, {}, {}, {}, {}, &pairing,
                                {}, {}, {}, {}, {}, {}, {}, {} };
 
         {
@@ -132,6 +132,7 @@ struct Server::Impl
             context.audioProvider = audioProvider;
             context.audioApply = audioApply;
             context.audioMeasure = audioMeasure;
+            context.audioMeasureDevice = audioMeasureDevice;
             context.pluginProvider = pluginProvider;
             context.pluginRescan = pluginRescan;
             context.midiProvider = midiProvider;
@@ -285,6 +286,7 @@ struct Server::Impl
     AudioStateProvider audioProvider;
     AudioApplyHandler audioApply;
     AudioMeasureHandler audioMeasure;
+    AudioMeasureHandler audioMeasureDevice;
     PluginInventoryProvider pluginProvider;
     PluginRescanHandler pluginRescan;
     MidiStateProvider midiProvider;
@@ -419,12 +421,14 @@ void Server::setMeterProvider (MeterProvider provider)
 
 void Server::setAudioHandlers (AudioStateProvider provider,
                                AudioApplyHandler apply,
-                               AudioMeasureHandler measure)
+                               AudioMeasureHandler measure,
+                               AudioMeasureHandler measureDevice)
 {
     const std::lock_guard<std::mutex> lock (impl->configMutex);
     impl->audioProvider = std::move (provider);
     impl->audioApply = std::move (apply);
     impl->audioMeasure = std::move (measure);
+    impl->audioMeasureDevice = std::move (measureDevice);
 }
 
 void Server::setPluginHandlers (PluginInventoryProvider provider,

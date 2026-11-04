@@ -1,8 +1,10 @@
 #include "Session.h"
 
+#include "plugins/SandboxHost.h"
 #include "session/EditorHost.h"
 
 #include <utility>
+#include <vector>
 
 namespace ihub
 {
@@ -31,6 +33,8 @@ bool Session::setSlotSource (int slot,
         std::string closeError;
         (void) editorHost->close (slot, closeError);
     }
+
+    closeSandboxEditors (-1);
 
     releasePluginMirror (slot);
 
@@ -73,7 +77,11 @@ bool Session::setSlotSource (int slot,
                          + current.path + ":" + juce::String (current.frequency) + ":"
                          + juce::String (++sourceRevision);
 
-    warmPool.replaceRequest (slot, requestId, wasActive, wasRequested);
+    if (config.layout == SessionLayout::tracks
+        && current.kind == SessionSlotKind::empty)
+        warmPool.setRequest (slot, {});
+    else
+        warmPool.replaceRequest (slot, requestId, wasActive, wasRequested);
 
     SourceAssignedHook hook;
 
@@ -104,6 +112,24 @@ bool Session::openEditor (int slot, std::string& error)
         return false;
     }
 
+    if (isWineHostedSlot (slot))
+    {
+        if (auto* sandbox = sandboxForSlot (slot))
+        {
+            juce::String editorError;
+
+            if (! sandbox->openEditor (editorError))
+            {
+                error = editorError.isNotEmpty()
+                            ? editorError.toStdString()
+                            : "the plugin host could not open the editor";
+                return false;
+            }
+
+            return true;
+        }
+    }
+
     if (editorHost == nullptr)
     {
         error = "no audio session is attached";
@@ -132,6 +158,25 @@ bool Session::closeEditor (int slot, std::string& error)
         return false;
     }
 
+    if (isWineHostedSlot (slot))
+    {
+        if (auto* sandbox = sandboxForSlot (slot))
+        {
+            juce::String editorError;
+
+            if (! sandbox->closeEditor (editorError))
+            {
+                error = editorError.isNotEmpty()
+                            ? editorError.toStdString()
+                            : "the plugin host could not close the editor";
+                return false;
+            }
+
+            (void) capturePluginState (slot);
+            return true;
+        }
+    }
+
     if (editorHost == nullptr)
     {
         error = "no audio session is attached";
@@ -143,12 +188,52 @@ bool Session::closeEditor (int slot, std::string& error)
 
 bool Session::isEditorOpen (int slot) const noexcept
 {
+    if (isWineHostedSlot (slot))
+        if (auto* sandbox = sandboxForSlot (slot); sandbox != nullptr)
+            return sandbox->isEditorOpen();
+
     return editorHost != nullptr && editorHost->isOpen (slot);
 }
 
 int Session::getOpenEditorCount() const noexcept
 {
-    return editorHost != nullptr ? editorHost->openCount() : 0;
+    int count = editorHost != nullptr ? editorHost->openCount() : 0;
+
+    const std::lock_guard<std::mutex> lock (sandboxMutex);
+
+    for (const auto& entry : sandboxSlots)
+        if (entry.host != nullptr && entry.host->isEditorOpen())
+            ++count;
+
+    return count;
+}
+
+bool Session::isWineHostedSlot (int slot) const
+{
+    session::PluginStateIdentity identity;
+
+    return pluginIdentityForSlot (slot, identity)
+        && identity.pluginPath.containsIgnoreCase ("vstbridge");
+}
+
+void Session::closeSandboxEditors (int keepSlot)
+{
+    std::vector<plugins::SandboxHost*> hosts;
+
+    {
+        const std::lock_guard<std::mutex> lock (sandboxMutex);
+
+        for (const auto& entry : sandboxSlots)
+            if (entry.slot != keepSlot && entry.host != nullptr
+                && entry.host->isEditorOpen())
+                hosts.push_back (entry.host);
+    }
+
+    for (auto* host : hosts)
+    {
+        juce::String error;
+        (void) host->closeEditor (error);
+    }
 }
 
 void Session::armSlot (int slot)
@@ -166,6 +251,8 @@ void Session::armSlot (int slot)
         if (editorHost != nullptr)
             editorHost->closeEditorsExcept (-1);
 
+        closeSandboxEditors (-1);
+
         warmPool.disarm();
         return;
     }
@@ -180,6 +267,8 @@ void Session::armSlot (int slot)
 
     if (editorHost != nullptr)
         editorHost->closeEditorsExcept (slot);
+
+    closeSandboxEditors (slot);
 
     warmPool.arm (slot);
 }

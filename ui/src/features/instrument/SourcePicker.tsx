@@ -7,6 +7,7 @@ import type {
 } from "../../api/client";
 import { instrumentPlugins } from "./selection";
 import {
+  sourceRequestForAudioInput,
   sourceRequestForEmpty,
   sourceRequestForInitTone,
   sourceRequestForPlugin,
@@ -44,6 +45,14 @@ export function SourcePicker({
       return;
     }
 
+    if (selection === "audio-input-0" || selection === "audio-input-1") {
+      onSourceChange?.(
+        patch.slot,
+        sourceRequestForAudioInput(Number(selection.slice(-1))),
+      );
+      return;
+    }
+
     const plugin = assignable.find((candidate) => candidate.path === selection);
 
     if (plugin !== undefined)
@@ -68,6 +77,8 @@ export function SourcePicker({
             <option value="">Choose a source…</option>
             <option value="empty">Unassigned (silent)</option>
             <option value="init-tone">Built-in tone</option>
+            <option value="audio-input-0">Live audio input · Input 1</option>
+            <option value="audio-input-1">Live audio input · Input 2</option>
             {assignable.map((plugin) => (
               <option key={plugin.id} value={plugin.path}>
                 {plugin.name} · {plugin.vendor}
