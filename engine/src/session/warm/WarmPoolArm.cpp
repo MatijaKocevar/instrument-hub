@@ -33,6 +33,12 @@ void WarmPoolController::arm (int slot)
         }
     }
 
+    if (! warmPool->hasRequest (slot))
+    {
+        (void) finishArmLocked (slot, nullptr);
+        return;
+    }
+
     if (pinnedPreviousSlot >= 0 && pinnedPreviousSlot != slot)
     {
         warmPool->release (pinnedPreviousSlot);
@@ -132,7 +138,7 @@ void WarmPoolController::warmCallback (int slot)
 bool WarmPoolController::finishArmLocked (int slot,
                                           AudioEngine::SlotSource* pinnedInstance)
 {
-    if (warmPool == nullptr || switcher == nullptr || pinnedInstance == nullptr)
+    if (warmPool == nullptr || switcher == nullptr)
         return false;
 
     if (beforeArmHook)
