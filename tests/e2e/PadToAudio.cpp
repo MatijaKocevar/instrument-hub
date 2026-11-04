@@ -6,6 +6,7 @@
 #include "pad_audio/PagesScenario.h"
 #include "pad_audio/Records.h"
 #include "project/ProjectScenario.h"
+#include "track_grid/Scenario.h"
 
 #include <juce_events/juce_events.h>
 
@@ -19,6 +20,8 @@ int main()
               << "  block=" << PadAudio::kBlockSize
               << " sample_rate=" << PadAudio::kSampleRate
               << " slots=" << PadAudio::kDefaultSlots << std::endl;
+
+    TrackGridE2E::runTrackGridScenario();
 
     PadAudio::runMappingScenario();
     PadAudio::runProjectScenario();
