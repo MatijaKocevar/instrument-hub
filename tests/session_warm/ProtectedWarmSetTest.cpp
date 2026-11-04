@@ -12,6 +12,7 @@ int main()
 
     ProtectedWarmTest::runWarmPoolScenario();
     ProtectedWarmTest::runSessionScenario();
+    ProtectedWarmTest::runEmptyTrackScenario();
 
     std::cout << (ProtectedWarmTest::failures == 0 ? "\nPASS" : "\nFAIL")
               << ": " << ProtectedWarmTest::failures << " failed check(s)" << std::endl;

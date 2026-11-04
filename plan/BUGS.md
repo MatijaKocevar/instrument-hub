@@ -260,3 +260,15 @@ reported by the human or reproduced on this machine.
 - evidence: 2026-11-04, `curl -H 'Accept: text/html' http://localhost:5173/audio` returned the engine's `AudioState` JSON; client-side clicks worked, reloads and direct links did not
 - fix: a Vite `configureServer` middleware rewrites HTML navigations for `/audio`, `/plugins` and `/settings` to `/` before the proxy runs, while API fetches (`Accept: application/json`/`*/*`) still go to `127.0.0.1:8080`. The proxy now also forwards `/tracks`, `/project` and `/settings`.
 - verified: `Accept: text/html /audio` returns `index.html`; `Accept: application/json /audio` returns the device state; Playwright loads `/audio` directly and finds `audio-page` with 3 device cards.
+
+### BUG-023 · Arming an empty track leaves the previous instrument playing
+- status: fixed
+- area: session/tracks
+- steps:
+  1. open a tracks project with instruments on Tracks 1–3 and empty instruments on Tracks 4–8 (`/tmp/opencode/track-check.ihub`)
+  2. arm Track 4, which has no instrument, from the Launchpad or the Grid
+- expected: the previous instrument stops and the armed empty track produces silence
+- actual: `armedSlot` changes to 3 and Track 4 is selected, but slot 2 remains active and its Analog Lab keeps sounding; slot 3 stays `warming`/`idle` instead of becoming active
+- evidence: 2026-11-04 running `--serve` with `track-check.ihub`; after arming Track 4, `GET /state` reported `armedSlot: 3`, `slots[2] = {warmState:"active", state:"active"}` and `slots[3] = {warmState:"warming", state:"idle"}`. `WarmPoolController::arm` only called `finishArmLocked` from `warmCallback`; an empty track has no warm request, so `SlotSwitcher::armSlot(3)` was never called and the switcher kept rendering slot 2. `ihub-session-warm-protected` now builds a tracks session with instruments on slots 0–2 and empty slots 3–7, arms slot 2, then arms empty slot 3 and checks: requested slot 3, `warmState(3) == "active"`, switcher armed slot 3, slot 2 no longer active, post-fade output RMS < 1e-6, slot 3 gain > 0.99, slot 2 gain <= 0 and slot 2 state `idle`; `ctest -R '^ihub-session-warm-protected$'` -> 1/1 passed.
+- fix: `WarmPoolController::arm` completes the arm directly when the target slot has no warm request: `finishArmLocked(slot, nullptr)` clears the voice, arms the switcher, clears `pendingArmSlot`, records the slot as active and keeps the previous slot pinned for the fade-out. `finishArmLocked` now accepts a null instance for empty slots.
+

@@ -53,4 +53,6 @@ void runWarmPoolScenario();
 
 void runSessionScenario();
 
+void runEmptyTrackScenario();
+
 }

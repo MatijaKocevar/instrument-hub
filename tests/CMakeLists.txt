@@ -1833,6 +1833,7 @@ target_sources(ihub-session-warm-protected-test
         session_warm/ProtectedWarmFixtures.cpp
         session_warm/WarmPoolProtectedTest.cpp
         session_warm/SessionProtectedTest.cpp
+        session_warm/EmptyTrackArmTest.cpp
         ${IHUB_SESSION_WARM_TEST_SOURCES}
 )
 
