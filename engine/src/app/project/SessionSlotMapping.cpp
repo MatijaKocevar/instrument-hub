@@ -75,6 +75,11 @@ void applyProjectSlot (const project::SlotConfig& source,
             fx.type = AudioEngine::FxInsertType::vst3;
             fx.path = sourceFx.id;
         }
+        else if (! sourceFx.type.empty())
+        {
+            if (! AudioEngine::fxInsertTypeFromString (sourceFx.type, fx.type))
+                continue;
+        }
         else if (! AudioEngine::fxInsertTypeFromString (sourceFx.id, fx.type))
         {
             continue;

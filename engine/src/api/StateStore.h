@@ -89,6 +89,7 @@ public:
     void setLayout (std::string newLayout);
     std::string getLayout () const;
     void setTracks (std::vector<TrackConfig> tracks);
+    std::vector<TrackConfig> getTracks() const;
 
     bool selectTrack (int index, std::string& error);
     bool setTrackVolumeStep (int index, int step, std::string& error);

@@ -3,6 +3,7 @@
 #include "project/Reload.h"
 #include "project/SessionDescription.h"
 #include "project/Support.h"
+#include "project/TrackLayout.h"
 
 #include <juce_events/juce_events.h>
 
@@ -24,6 +25,7 @@ int main()
     ProjectTest::runImportChecks();
     ProjectTest::runSessionDescriptionChecks();
     ProjectTest::runReloadChecks();
+    ProjectTest::runTrackLayoutChecks();
     ProjectTest::runAutosaveChecks();
 
     std::cout << (ProjectTest::failures == 0 ? "\nPASS" : "\nFAIL")

@@ -83,7 +83,7 @@ bool StateStore::assignTrackFx (int index,
         }
     }
 
-    notifyEdited ("track", index);
+    notifyEdited ("track", slot);
     notifyChanged ("track", index);
     return true;
 }

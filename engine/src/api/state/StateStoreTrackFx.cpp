@@ -83,6 +83,7 @@ bool StateStore::toggleTrackFx (int index, int hot, std::string& error)
     if (! applied)
         return false;
 
+    notifyEdited ("track", slot);
     notifyChanged ("track", index);
     return true;
 }

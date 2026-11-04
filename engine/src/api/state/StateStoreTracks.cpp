@@ -31,6 +31,12 @@ void StateStore::setTracks (std::vector<TrackConfig> next)
     notifyChanged ("track", -1);
 }
 
+std::vector<TrackConfig> StateStore::getTracks() const
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    return tracks;
+}
+
 bool StateStore::selectTrack (int index, std::string& error)
 {
     int slot = -1;

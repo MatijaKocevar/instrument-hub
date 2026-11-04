@@ -1,4 +1,5 @@
 #include "project/ProjectLifecycle.h"
+#include "project/TrackSetup.h"
 
 #include "TestSupport.h"
 
@@ -19,6 +20,7 @@ int main()
 
     ApiTest::ProjectLifecycle::runLifecycle (root);
     ApiTest::ProjectLifecycle::runHistory (root);
+    ApiTest::ProjectLifecycle::runTrackSetup (root);
 
     std::cout << (ApiTest::failures == 0 ? "\nPASS" : "\nFAIL")
               << ": " << ApiTest::failures << " failed check(s)" << std::endl;
