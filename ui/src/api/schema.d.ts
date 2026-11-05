@@ -51,6 +51,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tracks/{index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Rename a performance track
+         * @description Sets the display name for track `index` (0-7). The name is trimmed
+         *     and must not be empty. The slot, family and patch display names follow
+         *     the track so the instrument page shows the same label. Emits a `track`
+         *     state event and is written to the project mapping on autosave.
+         */
+        patch: operations["renameTrack"];
+        trace?: never;
+    };
     "/tracks/{index}/select": {
         parameters: {
             query?: never;
@@ -938,6 +961,11 @@ export interface components {
             latencyMs: number;
             /** @description True while this slot's native plugin editor window is open. */
             editorOpen?: boolean;
+            /**
+             * @description Warm-pool state of the slot.
+             * @enum {string}
+             */
+            warmState?: "cold" | "warming" | "warm" | "active" | "fading";
             /** @description The slot-local plugin failure, empty when the slot is healthy. */
             error?: string;
         };
@@ -1256,6 +1284,10 @@ export interface components {
             gain: number;
             /** @description The two hot-FX slots for this track. */
             hotFx: components["schemas"]["TrackHotFx"][];
+        };
+        TrackUpdate: {
+            /** @description Trimmed display name for the track. */
+            name: string;
         };
         TrackHotFx: {
             index: number;
@@ -1731,6 +1763,52 @@ export interface operations {
             };
             /** @description The server has no audio session attached */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    renameTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Track index, 0-7. */
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackUpdate"];
+            };
+        };
+        responses: {
+            /** @description The control state after the rename */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            /** @description The name is missing, empty or too long */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The track index is out of range */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -35,7 +35,43 @@ function selectTrack(context: FixtureContext, index: number): boolean {
 }
 
 export const handleTracks: FixtureRoute = (context, request, response) => {
-  if (request.method !== "POST" || request.url === undefined) return false;
+  if (request.url === undefined) return false;
+
+  if (request.method === "PATCH") {
+    const rename = /^\/tracks\/(\d+)$/.exec(request.url);
+
+    if (rename === null) return false;
+
+    const index = Number(rename[1]);
+
+    readJsonObject(request, response, (body) => {
+      const track = context.state.tracks?.find(
+        (candidate) => candidate.index === index,
+      );
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+
+      if (track === undefined) {
+        sendJson(response, 404, { error: "track index is out of range" });
+        return;
+      }
+
+      if (name.length === 0) {
+        sendJson(response, 400, { error: "track name must not be empty" });
+        return;
+      }
+
+      track.name = name;
+      context.state.slots = context.state.slots.map((slot) =>
+        slot.index === track.slot ? { ...slot, name } : slot,
+      );
+      context.trackRequests.push({ kind: "rename", index, name });
+      sendJson(response, 200, context.state);
+    });
+
+    return true;
+  }
+
+  if (request.method !== "POST") return false;
 
   const select = /^\/tracks\/(\d+)\/select$/.exec(request.url);
 

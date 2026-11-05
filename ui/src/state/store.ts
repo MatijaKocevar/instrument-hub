@@ -159,6 +159,9 @@ export class AppStore {
   selectTrack = (index: number): Promise<boolean> =>
     this.track.selectTrack(index);
 
+  renameTrack = (index: number, name: string): Promise<boolean> =>
+    this.track.renameTrack(index, name);
+
   toggleTrackFx = (index: number, hot: number): Promise<boolean> =>
     this.track.toggleTrackFx(index, hot);
 

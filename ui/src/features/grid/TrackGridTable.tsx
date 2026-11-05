@@ -1,8 +1,7 @@
 import type { ReactElement } from "react";
 
 import type { GridModel } from "./model";
-import { TrackGridRow } from "./TrackGridRow";
-import { TRACK_GRID_ROWS } from "./trackModel";
+import { TrackGridColumn } from "./TrackGridColumn";
 import "./trackGrid.css";
 
 export interface TrackGridActions {
@@ -10,6 +9,7 @@ export interface TrackGridActions {
   readonly onOpenTrack?: (index: number) => void;
   readonly onToggleTrackFx?: (index: number, hot: number) => void;
   readonly onSetTrackVolume?: (index: number, step: number) => void;
+  readonly onRenameTrack?: (index: number, name: string) => void;
 }
 
 export interface TrackGridTableProps extends TrackGridActions {
@@ -22,26 +22,27 @@ export function TrackGridTable({
   onOpenTrack,
   onToggleTrackFx,
   onSetTrackVolume,
+  onRenameTrack,
 }: TrackGridTableProps): ReactElement {
   return (
     <div className="grid__scroll">
       <div
-        className="grid__table track-grid__table"
+        className="track-grid__table"
         role="grid"
         aria-label="Performance tracks and rows"
-        aria-rowcount={TRACK_GRID_ROWS.length}
-        aria-colcount={model.tracks.length}
+        aria-rowcount={model.tracks.length}
+        aria-colcount={8}
         data-testid="track-grid-table"
       >
-        {TRACK_GRID_ROWS.map((row) => (
-          <TrackGridRow
-            key={`row-${String(row.row)}`}
-            row={row}
-            model={model}
+        {model.tracks.map((track) => (
+          <TrackGridColumn
+            key={track.id}
+            track={track}
             {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
             {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
             {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
             {...(onSetTrackVolume !== undefined ? { onSetTrackVolume } : {})}
+            {...(onRenameTrack !== undefined ? { onRenameTrack } : {})}
           />
         ))}
       </div>

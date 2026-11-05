@@ -24,6 +24,7 @@ export interface GridViewProps {
   readonly onOpenTrack?: (index: number) => void;
   readonly onToggleTrackFx?: (index: number, hot: number) => void;
   readonly onSetTrackVolume?: (index: number, step: number) => void;
+  readonly onRenameTrack?: (index: number, name: string) => void;
 }
 
 export function GridView({
@@ -37,6 +38,7 @@ export function GridView({
   onOpenTrack,
   onToggleTrackFx,
   onSetTrackVolume,
+  onRenameTrack,
 }: GridViewProps): ReactElement {
   const empty =
     model.layout === "tracks"
@@ -75,6 +77,7 @@ export function GridView({
           {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
           {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
           {...(onSetTrackVolume !== undefined ? { onSetTrackVolume } : {})}
+          {...(onRenameTrack !== undefined ? { onRenameTrack } : {})}
         />
       ) : (
         <GridTable

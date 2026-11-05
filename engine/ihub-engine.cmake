@@ -50,6 +50,7 @@ set(IHUB_ENGINE_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/src/api/state/StateStoreSnapshot.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/state/StateStoreProject.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/state/StateStoreTracks.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/src/api/state/StateStoreTrackRename.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/state/StateStoreTrackFx.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/state/StateStoreTrackFxAssign.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/state/StateStoreTrackVolume.cpp"

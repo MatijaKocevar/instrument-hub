@@ -45,6 +45,7 @@ export type {
   ControlTrack,
   ControlTrackFxAssignRequest,
   ControlTrackHotFx,
+  ControlTrackUpdate,
   ControlTransport,
   ControlTransportPatch,
 } from "./types";

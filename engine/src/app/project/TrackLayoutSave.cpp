@@ -14,6 +14,42 @@ namespace ihub::app
 namespace
 {
 
+bool mappingHasTrackName (const std::string& yaml,
+                          const Api::TrackConfig& track,
+                          juce::String& error)
+{
+    Controller::SetMapping mapping;
+    Controller::MappingError mappingError;
+
+    if (! Controller::parseSetMappingYaml (yaml, mapping, mappingError))
+    {
+        error = "track layout: line " + juce::String (mappingError.line) + ": "
+                + juce::String (mappingError.message);
+        return false;
+    }
+
+    const auto found = std::find_if (mapping.tracks.begin(), mapping.tracks.end(),
+                                     [&track] (const Controller::TrackSpec& candidate)
+                                     {
+                                         return candidate.id == track.id;
+                                     });
+
+    if (found == mapping.tracks.end())
+    {
+        error = "track layout does not contain \"" + juce::String (track.id) + "\"";
+        return false;
+    }
+
+    if (! track.name.empty() && found->name != track.name)
+    {
+        error = "track \"" + juce::String (track.id)
+                + "\" could not persist its name";
+        return false;
+    }
+
+    return true;
+}
+
 bool mappingHasTrackHotFx (const std::string& yaml,
                            const Api::TrackConfig& track,
                            juce::String& error)
@@ -68,21 +104,26 @@ bool saveTrackLayoutToMapping (const std::string& mappingYaml,
     destination = mappingYaml;
     error.clear();
 
-    std::vector<TrackHotFxUpdate> updates;
+    std::vector<TrackLayoutUpdate> updates;
     updates.reserve (tracks.size());
 
     for (const auto& track : tracks)
-        updates.push_back ({ track.id, track.hotFx });
+        updates.push_back ({ track.id, track.name, track.hotFx });
 
-    if (! rewriteTrackHotFx (mappingYaml, updates, destination))
+    if (! rewriteTrackLayout (mappingYaml, updates, destination))
     {
         error = "track layout has no tracks section";
         return false;
     }
 
     for (const auto& track : tracks)
+    {
+        if (! mappingHasTrackName (destination, track, error))
+            return false;
+
         if (! mappingHasTrackHotFx (destination, track, error))
             return false;
+    }
 
     return true;
 }

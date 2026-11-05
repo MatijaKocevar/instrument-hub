@@ -7,29 +7,13 @@ import { startFixtureServer } from "../fixtureServer";
 import { FIXTURE, TRACK_FIXTURE } from "../fixtures";
 import { check, countOf, renderApp, writeArtifact } from "../harness";
 
-const TRACK_ROLES = [
-  "track",
-  "fx",
-  "fx",
-  "volume",
-  "volume",
-  "volume",
-  "volume",
-  "volume",
-] as const;
-
-function rowRoles(html: string): string[] {
+function columnIndices(html: string): number[] {
   return html
-    .split('data-testid="track-row"')
+    .split('data-testid="track-column"')
     .slice(1)
-    .map((markup) => /data-role="([^"]+)"/.exec(markup)?.[1] ?? "");
-}
-
-function rowNumbers(html: string): number[] {
-  return html
-    .split('data-testid="track-row"')
-    .slice(1)
-    .map((markup) => Number(/data-row="(\d+)"/.exec(markup)?.[1] ?? -1));
+    .map((markup) =>
+      Number(/data-track-index="(\d+)"/.exec(markup)?.[1] ?? -1),
+    );
 }
 
 export function trackGridModelTest(): void {
@@ -61,20 +45,23 @@ export function trackGridModelTest(): void {
     "the track grid renders no page title, column labels or row labels",
   );
   check(
-    countOf(html, 'data-testid="track-row"') === 8,
-    "the track grid shows eight hardware rows",
+    countOf(html, 'data-testid="track-row"') === 0,
+    "the track grid renders one column per track, not row wrappers",
   );
   check(
-    rowNumbers(html).join(",") === "7,6,5,4,3,2,1,0",
-    "track rows are numbered top-down from row 7 to row 0",
-  );
-  check(
-    rowRoles(html).join(",") === TRACK_ROLES.join(","),
-    "row 7 selects a track, rows 6/5 are hot FX and rows 4-0 are volume steps",
+    countOf(html, 'data-testid="track-column"') === 8 &&
+      columnIndices(html).join(",") === "0,1,2,3,4,5,6,7",
+    "eight track columns render in track order",
   );
   check(
     countOf(html, 'data-testid="track-cell"') === 64,
     "the track grid is eight tracks by eight rows",
+  );
+  check(
+    countOf(html, 'data-testid="track-status"') === 8 &&
+      countOf(html, 'data-testid="track-status" data-status="ok"') === 7 &&
+      countOf(html, 'data-testid="track-status" data-status="empty"') === 1,
+    "every track carries a status dot and the empty track stays idle",
   );
   check(
     countOf(html, 'data-testid="track-select"') === 8,
@@ -91,13 +78,20 @@ export function trackGridModelTest(): void {
   check(
     countOf(html, 'data-testid="track-select" data-track-index="2"') === 1 &&
       html.includes(
-        'data-testid="track-cell" data-track-index="2" data-track-id="track-3" data-row="7" data-role="track" data-slot="2" data-selected="true"',
+        'data-testid="track-select" data-track-index="2" data-slot="2" aria-pressed="true"',
       ),
-    "the selected track is marked on row 7",
+    "the selected track is marked in its selector",
   );
+  const selectedColumns =
+    html.match(
+      /data-testid="track-column" data-track-index="\d+" data-track-id="[^"]+" data-selected="true"/g,
+    ) ?? [];
+
   check(
-    countOf(html, 'data-selected="true"') === 1,
-    "exactly one track is selected",
+    html.includes(
+      'data-testid="track-column" data-track-index="2" data-track-id="track-3" data-selected="true"',
+    ) && selectedColumns.length === 1,
+    "the armed track gets one border for the whole column",
   );
   check(
     html.includes('data-hot="0" data-assigned="true"') &&
@@ -247,6 +241,43 @@ export function trackGridModelTest(): void {
     ),
     "the selected track stays highlighted during page recovery",
   );
+  check(
+    countOf(
+      recoveringHtml,
+      'data-testid="track-status" data-status="warming"',
+    ) === 7,
+    "page recovery turns each loaded track's status dot amber",
+  );
+
+  const warming = gridFromState({
+    ...TRACK_FIXTURE,
+    slots: TRACK_FIXTURE.slots.map((slot) =>
+      slot.index === 0 ? { ...slot, warmState: "warming" } : slot,
+    ),
+  });
+  const warmingHtml = renderToStaticMarkup(
+    <GridView model={warming} onSelectTrack={() => {}} />,
+  );
+
+  check(
+    warmingHtml.includes('data-testid="track-status" data-status="warming"'),
+    "a warming track shows an amber status dot",
+  );
+
+  const failed = gridFromState({
+    ...TRACK_FIXTURE,
+    slots: TRACK_FIXTURE.slots.map((slot) =>
+      slot.index === 1 ? { ...slot, error: "the plugin crashed" } : slot,
+    ),
+  });
+  const failedHtml = renderToStaticMarkup(
+    <GridView model={failed} onSelectTrack={() => {}} />,
+  );
+
+  check(
+    failedHtml.includes('data-testid="track-status" data-status="error"'),
+    "a track with a slot error shows a red status dot",
+  );
 
   const legacy = gridFromState(FIXTURE);
   const legacyHtml = renderToStaticMarkup(
@@ -290,6 +321,32 @@ export async function trackGridInteractionTest(): Promise<void> {
       !initial.includes('data-testid="track-grid-head"') &&
         countOf(initial, 'data-testid="track-cell"') === 64,
       "the live track grid renders the full 8x8 surface without labels",
+    );
+    check(
+      countOf(initial, 'data-testid="track-status"') === 8,
+      "the live track grid gives every track a status dot",
+    );
+
+    check(
+      await store.renameTrack(2, "  Lead Synth  "),
+      "renaming a track succeeds",
+    );
+    check(
+      server.trackRequests.at(-1)?.kind === "rename" &&
+        server.trackRequests.at(-1)?.index === 2 &&
+        server.trackRequests.at(-1)?.name === "Lead Synth",
+      "the track rename reaches PATCH /tracks/2",
+    );
+
+    const renamed = renderApp(store, "/grid");
+
+    check(
+      renamed.includes('data-testid="track-select" data-track-index="2"') &&
+        renamed.includes(">Lead Synth<") &&
+        renamed.includes(
+          'data-testid="track-column" data-track-index="2" data-track-id="track-3" data-selected="true"',
+        ),
+      "the grid shows the renamed track without losing its selection",
     );
 
     check(await store.selectTrack(5), "selecting a track succeeds");
@@ -358,9 +415,9 @@ export async function trackGridInteractionTest(): Promise<void> {
       "the instrument page opens the selected track's slot",
     );
     check(
-      instrument.includes('data-testid="instrument-name">Track 3<') &&
+      instrument.includes('data-testid="instrument-name">Lead Synth<') &&
         instrument.includes('data-name="Drawbar Organ"'),
-      "the selected track's instrument reaches the instrument page",
+      "the renamed track reaches the instrument page",
     );
     check(
       instrument.includes('data-testid="source-change"'),

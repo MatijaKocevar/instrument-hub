@@ -27,6 +27,7 @@ export type ControlProjectOverview = components["schemas"]["ProjectOverview"];
 export type ControlProjectCommand = components["schemas"]["ProjectCommand"];
 export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
 export type ControlTrack = components["schemas"]["Track"];
+export type ControlTrackUpdate = components["schemas"]["TrackUpdate"];
 export type ControlTrackHotFx = components["schemas"]["TrackHotFx"];
 export type ControlTrackFxAssignRequest =
   components["schemas"]["TrackFxAssignRequest"];

@@ -1,25 +1,54 @@
-import type { ReactElement } from "react";
+import { useRef, useState, type ReactElement } from "react";
 
 import { EMPTY_COLOUR, trackColourForIndex } from "./colours";
 import { pad2 } from "./format";
-import type { GridTrack } from "./trackModel";
+import type { GridTrack, TrackStatus } from "./trackModel";
 
 interface TrackSelectCellProps {
   readonly track: GridTrack;
-  readonly armedSlot: number;
   readonly onSelectTrack: ((index: number) => void) | undefined;
   readonly onOpenTrack: ((index: number) => void) | undefined;
+  readonly onRenameTrack: ((index: number, name: string) => void) | undefined;
 }
+
+const STATUS_LABELS: Record<TrackStatus, string> = {
+  ok: "Ready",
+  warming: "Warming",
+  error: "Error",
+  empty: "No instrument",
+};
 
 export function TrackSelectCell({
   track,
-  armedSlot,
   onSelectTrack,
   onOpenTrack,
+  onRenameTrack,
 }: TrackSelectCellProps): ReactElement {
-  const selected = track.selected || track.slot === armedSlot;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(track.name);
+  const finished = useRef(false);
+  const selected = track.selected;
   const colour = trackColourForIndex(track.index);
   const empty = !track.hasInstrument;
+  const statusLabel = STATUS_LABELS[track.status];
+
+  const startRename = (): void => {
+    finished.current = false;
+    setDraft(track.name);
+    setEditing(true);
+  };
+
+  const finishRename = (save: boolean): void => {
+    if (finished.current) return;
+
+    finished.current = true;
+    const next = draft.trim();
+
+    if (save && next.length > 0 && next !== track.name)
+      onRenameTrack?.(track.index, next);
+
+    setEditing(false);
+  };
 
   return (
     <div
@@ -32,6 +61,7 @@ export function TrackSelectCell({
       data-role="track"
       data-slot={track.slot}
       data-selected={selected ? "true" : "false"}
+      data-status={track.status}
       data-colour-index={track.colorIndex}
       style={{
         background: empty
@@ -39,45 +69,99 @@ export function TrackSelectCell({
           : `linear-gradient(150deg, ${colour}88 0%, #1c1d28 70%)`,
       }}
     >
-      <button
-        className="grid__cell-main track-grid__selector-button"
-        type="button"
-        data-testid="track-select"
-        data-track-index={track.index}
-        data-slot={track.slot}
-        aria-pressed={selected}
-        onClick={
-          onSelectTrack === undefined
-            ? undefined
-            : () => {
-                onSelectTrack(track.index);
-              }
-        }
-        onDoubleClick={
-          onOpenTrack === undefined
-            ? undefined
-            : () => {
-                onOpenTrack(track.index);
-              }
-        }
-      >
-        <span className="track-grid__selector-head">
-          <span className="grid__cell-slot">T{pad2(track.index + 1)}</span>
-          <span
-            className={`track-grid__selector-state${selected ? " track-grid__selector-state--selected" : ""}`}
+      <span className="track-grid__selector-top">
+        <span
+          className="track-grid__status"
+          data-testid="track-status"
+          data-status={track.status}
+          role="img"
+          aria-label={`Track status: ${statusLabel}`}
+          title={statusLabel}
+        />
+        <span className="grid__cell-slot">T{pad2(track.index + 1)}</span>
+        <span
+          className={`track-grid__selector-state${selected ? " track-grid__selector-state--selected" : ""}`}
+        >
+          {selected ? "Selected" : empty ? "Empty" : "Ready"}
+        </span>
+        {onRenameTrack === undefined ? null : (
+          <button
+            className="track-grid__rename-button"
+            type="button"
+            data-testid="track-rename"
+            data-track-index={track.index}
+            title={`Rename ${track.name}`}
+            aria-label={`Rename ${track.name}`}
+            onClick={startRename}
           >
-            {selected ? "Selected" : empty ? "Empty" : "Ready"}
+            ✎
+          </button>
+        )}
+      </span>
+
+      {editing ? (
+        <form
+          className="track-grid__rename"
+          onSubmit={(event) => {
+            event.preventDefault();
+            finishRename(true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+
+            event.preventDefault();
+            finishRename(false);
+          }}
+        >
+          <input
+            className="track-grid__rename-input"
+            data-testid="track-rename-input"
+            data-track-index={track.index}
+            value={draft}
+            maxLength={80}
+            autoFocus
+            aria-label={`Track name for ${track.name}`}
+            onChange={(event) => {
+              setDraft(event.target.value);
+            }}
+            onBlur={() => {
+              finishRename(true);
+            }}
+          />
+        </form>
+      ) : (
+        <button
+          className="grid__cell-main track-grid__selector-button"
+          type="button"
+          data-testid="track-select"
+          data-track-index={track.index}
+          data-slot={track.slot}
+          aria-pressed={selected}
+          onClick={
+            onSelectTrack === undefined
+              ? undefined
+              : () => {
+                  onSelectTrack(track.index);
+                }
+          }
+          onDoubleClick={
+            onOpenTrack === undefined
+              ? undefined
+              : () => {
+                  onOpenTrack(track.index);
+                }
+          }
+        >
+          <span className="grid__cell-name">{track.name}</span>
+          <span className="track-grid__sub">
+            {empty
+              ? "No instrument"
+              : track.instrument.name.length > 0
+                ? track.instrument.name
+                : "No instrument"}
           </span>
-        </span>
-        <span className="grid__cell-name">{track.name}</span>
-        <span className="track-grid__sub">
-          {empty
-            ? "No instrument"
-            : track.instrument.name.length > 0
-              ? track.instrument.name
-              : "No instrument"}
-        </span>
-      </button>
+        </button>
+      )}
     </div>
   );
 }

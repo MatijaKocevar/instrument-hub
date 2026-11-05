@@ -69,12 +69,6 @@
   color: #cbd5e1;
 }
 
-.instrument__badge--colour {
-  color: #10121a;
-  font-weight: 600;
-  border-color: transparent;
-}
-
 .instrument__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

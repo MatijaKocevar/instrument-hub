@@ -59,6 +59,26 @@ function withToggledHotFx(
   };
 }
 
+function withTrackName(
+  state: ControlState,
+  index: number,
+  name: string,
+): ControlState {
+  const track = trackAt(state, index);
+
+  if (track === null) return state;
+
+  return {
+    ...state,
+    slots: state.slots.map((slot) =>
+      slot.index === track.slot ? { ...slot, name } : slot,
+    ),
+    tracks: (state.tracks ?? []).map((candidate) =>
+      candidate.index === index ? { ...candidate, name } : candidate,
+    ),
+  };
+}
+
 function withTrackVolume(
   state: ControlState,
   index: number,
@@ -128,6 +148,19 @@ export class TrackActions {
     return this.run(
       (state) => withSelectedTrack(state, index),
       () => this.context.api.selectTrack(index),
+    );
+  };
+
+  renameTrack = async (index: number, name: string): Promise<boolean> => {
+    const next = name.trim();
+    const track = trackAt(this.snapshot.state, index);
+
+    if (track === null || next.length === 0 || next === track.name)
+      return false;
+
+    return this.run(
+      (state) => withTrackName(state, index, next),
+      () => this.context.api.renameTrack(index, next),
     );
   };
 

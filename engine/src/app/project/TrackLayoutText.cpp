@@ -227,6 +227,33 @@ std::vector<std::string> hotFxLines (const std::vector<std::string>& hotFx,
     return lines;
 }
 
+void replaceName (std::vector<std::string>& lines,
+                  TrackBlock& block,
+                  const std::string& name)
+{
+    if (name.empty())
+        return;
+
+    const std::string indent (block.keyIndent, ' ');
+    const std::string replacement = indent + "name: " + scalarText (name);
+
+    for (std::size_t index = block.entryLine; index < block.endLine; ++index)
+    {
+        if (leadingSpaces (lines[index]) != block.keyIndent)
+            continue;
+
+        if (trim (lines[index]).rfind ("name:", 0) != 0)
+            continue;
+
+        lines[index] = replacement;
+        return;
+    }
+
+    lines.insert (lines.begin() + static_cast<std::ptrdiff_t> (block.entryLine + 1),
+                  replacement);
+    ++block.endLine;
+}
+
 void replaceHotFx (std::vector<std::string>& lines,
                    const TrackBlock& block,
                    const std::vector<std::string>& replacement)
@@ -281,9 +308,9 @@ void replaceHotFx (std::vector<std::string>& lines,
 
 }
 
-bool rewriteTrackHotFx (const std::string& mappingYaml,
-                        const std::vector<TrackHotFxUpdate>& updates,
-                        std::string& destination)
+bool rewriteTrackLayout (const std::string& mappingYaml,
+                         const std::vector<TrackLayoutUpdate>& updates,
+                         std::string& destination)
 {
     destination = mappingYaml;
 
@@ -324,7 +351,7 @@ bool rewriteTrackHotFx (const std::string& mappingYaml,
     for (auto block = blocks.rbegin(); block != blocks.rend(); ++block)
     {
         const auto update = std::find_if (updates.begin(), updates.end(),
-                                          [&block] (const TrackHotFxUpdate& candidate)
+                                          [&block] (const TrackLayoutUpdate& candidate)
                                           {
                                               return candidate.trackId == block->id;
                                           });
@@ -332,6 +359,7 @@ bool rewriteTrackHotFx (const std::string& mappingYaml,
         if (update == updates.end())
             continue;
 
+        replaceName (lines, *block, update->name);
         replaceHotFx (lines, *block, hotFxLines (update->hotFx, block->keyIndent));
     }
 

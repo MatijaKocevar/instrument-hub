@@ -34,6 +34,7 @@ export {
   type TrackGridRole,
   type TrackGridRow,
   type TrackGridTrackInput,
+  type TrackStatus,
 } from "./trackModel";
 export {
   clampTrackVolumeStep,

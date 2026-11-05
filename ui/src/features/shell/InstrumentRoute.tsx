@@ -18,10 +18,6 @@ export function InstrumentRoute({
     track,
   } = shell;
 
-  const changeColour = (slot: number, colorIndex: number): void => {
-    void store.updatePatch(slot, { colorIndex });
-  };
-
   const slotError =
     instrumentPatch?.error !== undefined && instrumentPatch.error.length > 0
       ? instrumentPatch.error
@@ -51,7 +47,6 @@ export function InstrumentRoute({
       pluginError={app.pluginError}
       track={track}
       loading={state === null}
-      onColourChange={changeColour}
       onVolumeChange={(slot, volumeDb) => {
         void store.updatePatch(slot, { volumeDb });
       }}

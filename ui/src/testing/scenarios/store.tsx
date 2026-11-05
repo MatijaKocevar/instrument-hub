@@ -59,6 +59,9 @@ export async function backoffTest(): Promise<void> {
     selectTrack: async (): Promise<ControlState> => {
       throw new Error("connection refused");
     },
+    renameTrack: async (): Promise<ControlState> => {
+      throw new Error("connection refused");
+    },
     toggleTrackFx: async (): Promise<ControlState> => {
       throw new Error("connection refused");
     },

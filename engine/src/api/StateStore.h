@@ -93,6 +93,7 @@ public:
     std::vector<TrackConfig> getTracks() const;
 
     bool selectTrack (int index, std::string& error);
+    bool renameTrack (int index, const std::string& name, std::string& error);
     bool setTrackVolumeStep (int index, int step, std::string& error);
     bool toggleTrackFx (int index, int hot, std::string& error);
     bool assignTrackFx (int index,

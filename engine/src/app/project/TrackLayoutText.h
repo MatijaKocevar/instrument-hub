@@ -6,14 +6,15 @@
 namespace ihub::app
 {
 
-struct TrackHotFxUpdate
+struct TrackLayoutUpdate
 {
     std::string trackId;
+    std::string name;
     std::vector<std::string> hotFx;
 };
 
-bool rewriteTrackHotFx (const std::string& mappingYaml,
-                        const std::vector<TrackHotFxUpdate>& updates,
-                        std::string& destination);
+bool rewriteTrackLayout (const std::string& mappingYaml,
+                         const std::vector<TrackLayoutUpdate>& updates,
+                         std::string& destination);
 
 }
