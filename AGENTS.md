@@ -20,14 +20,19 @@ changes to be built and the running app restarted so they can see them.
   (engine, Vite, or both) without asking. Reuse the command line of the
   running instance, launch detached (`setsid`; add `pw-jack` when the
   current instance needs JACK), and leave it running for the developer.
+- Do not build or run any C++ test target or the UI snapshot test while
+  developing. Build and run tests only when the human explicitly says a
+  milestone is finished or asks for tests. Then build one runner at a time,
+  scoped to the change.
 - Never run a build without an explicit target. `cmake --build <dir>`,
   bare `ninja`, and `scripts/build.sh` build the whole tree. Always pass
   `--target` (or use `scripts/build-tests.sh` with a runner name).
 - The C++ test suite is opt-in (`-DIHUB_BUILD_TESTS=ON`) and is not part of
-  the default build. Do not enable it or build all tests for a normal change.
-- Do not run the full `scripts/test.sh` after every change. Use targeted
-  builds/tests while working; run the full suite only when the developer
-  asks for it explicitly.
+  the default build. Do not enable it, build it, or run it for a normal
+  change; wait for an explicit milestone or a request from the human.
+- Do not run the full `scripts/test.sh` during development. Use the app
+  build, typecheck and live app for verification; run tests only when the
+  human declares a milestone or asks.
 - Never add engine or JUCE `.cpp` files to a test target. Test targets link
   `ihub-test-engine`, `ihub-test-engine-rt` or `ihub-test-engine-gui`
   from `tests/TestEngine.cmake`; see `tests/Runner.cmake` for scenario
@@ -41,6 +46,8 @@ changes to be built and the running app restarted so they can see them.
 
 Hard limits, not aspirations:
 
+- An incremental app rebuild after a normal source change must stay under
+  one minute; stop and fix the build graph if it does not.
 - A cold `IHUB_BUILD_TESTS=ON` build must stay in minutes, not hours.
   A full `scripts/test.sh` run must stay under three minutes.
 - If a change makes either slower, stop and fix the build graph before
@@ -124,8 +131,8 @@ on the work is **bug fixing plus the explicitly requested refactors
 - Reproduce first: exact steps, expected vs actual, and the log or
   screenshot. Record it in `plan/BUGS.md`. Use the developer's running
   instance; do not start a dev server to reproduce.
-- Add a regression test where practical. Run targeted tests while working;
-  run `scripts/test.sh` only when the developer asks for the full suite.
+- Add a regression test where practical, but do not build or run the C++
+  test suite until the human declares a milestone or asks for tests.
 - One bug per commit; update the entry's status and evidence.
 - Keep the audio-thread contract and the Launchpad/Linux assumptions.
 - Launch the app detached (desktop entry, `setsid`, or a long-lived
@@ -189,13 +196,13 @@ queried once per load, not per block.
 loopback for audio, a virtual Launchpad on the ALSA sequencer for MIDI,
 an in-repo `TestPlugin` VST3, and snapshots taken inside JUCE.
 
-Verification is continuous but lightweight: build the affected target and
-restart the app after a change so the developer can inspect it. Run the full
-test suite only when the developer asks. Targeted tests are appropriate while
-working; record their output when you run them. The developer verifies the
-live app interactively.
+Verification while developing is the app build, typecheck and the live app:
+build the affected target and restart it after a change so the developer can
+inspect it. Do not build or run C++ tests until the human declares a
+milestone or explicitly asks; then build only the runner or isolated test
+scoped to the change.
 
-When you do run it, build only the runner or isolated test you changed
+When you do run tests, build one runner or isolated test at a time
 (`scripts/build-tests.sh ihub-runner-api`), then use `scripts/test.sh`
 (or `ctest --timeout 120`). A deadlocked test must fail within two minutes;
 never leave a test or test wrapper unbounded, and never treat "the command
