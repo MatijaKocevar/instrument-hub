@@ -15,7 +15,20 @@ bool PluginWindow::showEditor (juce::AudioProcessor& processorToShow,
 
     if (window != nullptr && processor == &processorToShow)
     {
+        window->resetCloseRequested();
+
+        if (lastPosition != juce::Point<int>())
+            window->setTopLeftPosition (lastPosition);
+
+        window->setVisible (true);
         window->toFront (true);
+
+        if (! openState)
+        {
+            openState = true;
+            openWindowCount.fetch_add (1, std::memory_order_relaxed);
+        }
+
         return true;
     }
 
@@ -79,11 +92,23 @@ bool PluginWindow::showEditor (juce::AudioProcessor& processorToShow,
     window->setVisible (true);
     window->toFront (true);
 
+    if (! openState)
+    {
+        openState = true;
+        openWindowCount.fetch_add (1, std::memory_order_relaxed);
+    }
+
     return true;
 }
 
 void PluginWindow::destroyWindow()
 {
+    if (openState)
+    {
+        openState = false;
+        openWindowCount.fetch_sub (1, std::memory_order_relaxed);
+    }
+
     if (window == nullptr)
     {
         processor = nullptr;

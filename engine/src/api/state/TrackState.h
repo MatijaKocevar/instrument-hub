@@ -9,8 +9,8 @@ namespace Api
 {
 
 inline constexpr int trackVolumeMinimumStep = 0;
-inline constexpr int trackVolumeMaximumStep = 5;
-inline constexpr int trackVolumeDefaultStep = 4;
+inline constexpr int trackVolumeMaximumStep = 4;
+inline constexpr int trackVolumeDefaultStep = 3;
 
 struct TrackHotFxState
 {

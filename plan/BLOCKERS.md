@@ -120,3 +120,12 @@ Status legend: `open` · `resolved`
 - verified: the app launched through `scripts/run.sh` (which wraps the binary in `pw-jack`) lists 11 JACK devices including `Steinberg UR22mkII  Pro`; `POST /audio` switched to it and the app reports `open: true`, 48 kHz / 128 frames, 6.67 ms, 0 new xruns over 12 s (5 at start-up) and 0.33% load; `pw-link` shows the `JUCEJack` client wired to the UR22 playback ports.
 - note: PipeWire's default quantum is 1024, so without `pw-metadata -n settings 0 clock.force-quantum 128` the app opens at 1024 frames / 53 ms. That setting is runtime-only; persist `default.clock.quantum = 128` under `~/.config/pipewire/pipewire.conf.d/` to keep it across restarts.
 - workaround: ALSA stays the default fallback and remains playable; `ihub-device-manager-test` covers the no-server path, and T206 lists a running server's clients as device cards.
+
+## B013 · Eight real Analog Lab V instances and editors
+- task: T207
+- severity: soft
+- status: open
+- what: The concurrent-instance regression covers eight sandboxed TestPlugin instances, editor open/close state capture, single-slot reload and restart under `DISPLAY=:0`. Wine-hosted Analog Lab V editors were exercised once through the API test (open, close, state capture), but eight real instances with eight different sounds and a save/restart have not been verified.
+- why: A full eight-instance Analog Lab pass needs a licensed desktop session and enough time to choose eight presets; it cannot be scripted without driving the plug-in UI.
+- human must: open `track-check.ihub` (eight Analog Lab V tracks), open each track's editor, choose a distinct preset in each, close every native window, then save and restart the project. Confirm all eight tracks keep their own sound, use `Reload plugin` on one track and confirm only that track restarts, and record the result in `docs/manual-analog-lab-64.md`.
+- workaround: `ihub-session-concurrent-instances` proves the eight-instance lifecycle with TestPlugin; `ihub-plugin-editor-api` proves a real Analog Lab V editor close captures its state.

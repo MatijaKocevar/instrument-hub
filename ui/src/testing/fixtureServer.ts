@@ -68,6 +68,9 @@ export async function startFixtureServer(
     get editorRequests() {
       return context.editorRequests;
     },
+    get reloadRequests() {
+      return context.reloadRequests;
+    },
     get stateCaptureRequests() {
       return context.stateCaptureRequests;
     },

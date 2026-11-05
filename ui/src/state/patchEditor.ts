@@ -16,11 +16,15 @@ export class PatchEditorActions {
       this.context.api.closePatchEditor(slotToClose),
     );
 
+  clearInstrumentError = (): void => {
+    this.patch({ editorError: null, editorErrorSlot: -1 });
+  };
+
   private async runEditor(
     slot: number,
     request: (slot: number) => Promise<ControlPatchEditor>,
   ): Promise<boolean> {
-    this.patch({ editorBusy: true, editorError: null });
+    this.patch({ editorBusy: true, editorError: null, editorErrorSlot: -1 });
 
     try {
       const result = await request(slot);
@@ -33,6 +37,7 @@ export class PatchEditorActions {
         editorOpenSlot: result.open ? slot : -1,
         editorBusy: false,
         editorError: null,
+        editorErrorSlot: -1,
         error: null,
         failedAttempts: 0,
         updatedAt: this.context.now(),
@@ -40,7 +45,11 @@ export class PatchEditorActions {
 
       return true;
     } catch (error) {
-      this.patch({ editorBusy: false, editorError: messageOf(error) });
+      this.patch({
+        editorBusy: false,
+        editorError: messageOf(error),
+        editorErrorSlot: slot,
+      });
       return false;
     }
   }

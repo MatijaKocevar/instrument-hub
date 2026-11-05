@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PatchState.h"
+#include "PluginPageState.h"
 #include "ProjectState.h"
 #include "TrackState.h"
 #include "TransportState.h"
@@ -21,6 +22,7 @@ struct SlotRuntimeState
     std::string warmState = "cold";
     bool warm = false;
     bool editorOpen = false;
+    std::string error;
 };
 
 using SlotRuntimeProvider = std::function<SlotRuntimeState (int slot)>;
@@ -39,6 +41,7 @@ struct StateSnapshot
     int armedSlot = -1;
     std::vector<SlotSnapshot> slots;
     std::vector<TrackState> tracks;
+    std::vector<PluginPageStatus> pages;
 
     std::vector<FamilyState> families;
 

@@ -96,3 +96,28 @@ Current state for context:
 - accept: a fresh login/PipeWire restart can start the app at the Rubix22 96-frame
   setting with one command; no `~/.config` edits without the developer’s explicit
   approval; ask before builds/tests.
+
+## T313 · Shared plugin host per instrument page
+
+- depends: BUG-024, T307
+- size: XL
+- goal: Host every plugin instrument on a track page in one shared
+  `ihub-sandbox`/Wine process instead of one sandbox per slot. All instruments
+  on the page stay warm; switching is still only the 2–5 ms gain ramp. Add a
+  page-level watchdog and automatic recovery: if the shared host dies or hangs,
+  mute the page, restart the host, restore every slot’s committed plugin state,
+  re-arm the active track and fade back in without crashing or blocking the
+  audio thread. Design the host for N slots/page so future instrument pages can
+  switch as a group; do not hard-code eight.
+- files: `engine/src/plugins/SandboxClient.*`,
+  `engine/src/plugins/sandbox/`, `engine/src/plugins/sandbox_main.cpp`,
+  `engine/src/session/SessionBuild.cpp`, `engine/src/session/WarmPoolController.*`,
+  `engine/src/audio/warm/`, `engine/src/api/state/`,
+  `ui/src/features/grid/`, `tests/plugins/sandbox/`, `tests/plugin_state/`,
+  `docs/architecture.md`
+- accept: eight Analog Lab V tracks warm in one host process; switching all
+  eight produces no loads/warming and no xruns; `kill -9` the host recovers all
+  eight states and re-arms the active track without crashing or leaving orphan
+  Wine processes; RSS is materially lower than eight separate hosts; targeted
+  tests pass.
+- full brief: `plan/T313-SHARED-PLUGIN-HOST.md`

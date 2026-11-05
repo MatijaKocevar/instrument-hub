@@ -20,8 +20,7 @@ namespace ihub::app
 
 int trackIndexForSlot (const Api::StateSnapshot& snapshot, int slot) noexcept;
 
-Controller::TrackLedSnapshot trackLedSnapshotFor (const Api::StateSnapshot& snapshot,
-                                                  const Api::StateStore& state);
+Controller::TrackLedSnapshot trackLedSnapshotFor (const Api::StateSnapshot& snapshot);
 
 void applyTrackPadAction (Api::StateStore& state,
                           const Controller::PadBinding& binding);

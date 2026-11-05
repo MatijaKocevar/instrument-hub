@@ -19,7 +19,7 @@ constexpr int kHot0PadBase = 48;
 constexpr int kHot1PadBase = 40;
 constexpr int kVolumeRowStride = 8;
 
-constexpr int kVolumeOverStep = 5;
+constexpr int kVolumeBoostStep = 4;
 constexpr double kMinimumRmsDbfs = -50.0;
 constexpr double kMaximumBlockMs = 1000.0 * kBlockSize / kSampleRate;
 

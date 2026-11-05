@@ -15,6 +15,19 @@ constexpr PatchLed colourLed (Launchpad::Colour colour)
 {
     return { Launchpad::velocityFor (colour), Launchpad::LedMode::Static };
 }
+
+constexpr std::uint8_t volumeVelocity (int step) noexcept
+{
+    switch (step)
+    {
+        case 0:
+        case 1:  return 0x13;
+        case 2:  return 0x11;
+        case 3:  return 0x18;
+        case 4:  return 0x20;
+        default: return 0x13;
+    }
+}
 }
 
 const TrackLedState* TrackLedSnapshot::trackForSlot (int slot) const noexcept
@@ -38,13 +51,19 @@ PatchLed launchpadLedForTrackPad (const PadBinding& binding,
     {
         case PadRole::patch:
         case PadRole::track:
+            if (! track->hasInstrument)
+                return offLed();
+
             if (track->selected || track->slot == snapshot.armedSlot)
                 return colourLed (Launchpad::Colour::Red);
 
-            return { Launchpad::velocityForPatchColour (track->colorIndex),
+            return { Launchpad::velocityForTrackColour (track->colorIndex),
                      Launchpad::LedMode::Static };
 
         case PadRole::fx:
+            if (! track->hasInstrument)
+                return offLed();
+
             if (binding.hot < 0 || binding.hot >= SetMapping::maximumHotFx)
                 return offLed();
 
@@ -59,14 +78,10 @@ PatchLed launchpadLedForTrackPad (const PadBinding& binding,
             }
 
         case PadRole::volume:
-            if (binding.step == SetMapping::maximumVolumeStep
-                && track->volumeStep == SetMapping::maximumVolumeStep + 1)
-                return colourLed (Launchpad::Colour::White);
+            if (! track->hasInstrument || binding.step > track->volumeStep)
+                return offLed();
 
-            if (binding.step == track->volumeStep)
-                return colourLed (Launchpad::Colour::Blue);
-
-            return offLed();
+            return { volumeVelocity (binding.step), Launchpad::LedMode::Static };
     }
 
     return offLed();

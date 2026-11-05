@@ -146,6 +146,28 @@ reported by the human or reproduced on this machine.
 - evidence: Playwright before the fix read `data-row="0"` first with `data-slot` 0–7; after the fix the first rendered family row is `data-row="7"` with `data-slot` 56–63 and the last is `data-row="0"` with 0–7 (screenshots `tests/artifacts/ui-grid-before-T196.png`, `ui-grid-after-T196.png`); clicking the top row's slot 60 opened `/instrument?slot=60` and `GET /state` reported `armedSlot: 60`, clicking the bottom row's slot 3 reported `armedSlot: 3`; `ihub-launchpad-protocol-test` -> `ok : note 11 maps back to pad 0`, `ihub-launchpad-driver-test` captures the note-11 LED as pad 0, `ihub-e2e` -> `pad 0 arms slot 0` and `PASS`; `cd ui && pnpm test:snapshot` -> `ui-snapshot: all checks passed` including `PASS the top rendered row holds slots 57–64`; `scripts/test.sh` -> 100% tests passed, 0 failed out of 68
 - fix: T196 adds `gridRows()` in `ui/src/features/grid/model.ts`, which reverses the family order for rendering only; `GridTable` renders top-down while slot indexes, column order and all slot-keyed callbacks stay unchanged, and `data-row` keeps the hardware row (0 = bottom), so the rendered rows are numbered 08 at the top to 01 at the bottom. Snapshot assertions moved to `ui/src/testing/scenarios/gridSnapshot.tsx` with new top-down row checks against the 64-slot fixture.
 
+### BUG-026 · Every track pad reads red in the track-grid e2e
+- status: reproduced
+- area: launchpad, ui
+- steps:
+  1. run `ihub-e2e-test` on the current tree
+  2. inspect the track-grid LED checks
+- expected: one red selected track pad, the other seven keep their RGB instrument colours, and the API volume step lights its pad green
+- actual: `exactly one track pad is red (8 found)`; the unselected track colour and API-volume checks also fail. The e2e still renders audio and switches all eight tracks correctly.
+- evidence: 2026-11-05 `ihub-e2e-test` -> `FAIL: 3 failed check(s)`; the same three checks fail with `IHUB_SHARED_PLUGIN_HOST=0`, so this is independent of T313. The snapshot passed to the LED painter has `armedSlot=0` and only track 0 selected, but `paintTrackLeds()` calls `driver.setPadRgb()` for the other tracks while the test reads `driver.getPadLed()`; `setPadRgb()` writes `padRgb` and does not update the `padLeds` snapshot that `getPadLed()` returns. The uncommitted track-LED work (`TrackSurface.cpp`, `TrackPadLeds.cpp`) is the likely source.
+- fix: pending; do not mix this into T313.
+
+### BUG-025 · Engine SIGTERM leaves a Wine launcher behind
+- status: reproduced
+- area: plugins/sandbox, engine shutdown
+- steps:
+  1. run the shared-page build with eight Analog Lab V tracks and let the page reach `ready`
+  2. `kill -TERM` the engine process
+- expected: the page helper, the vstbridge group host and its Wine launcher all exit
+- actual: the helper exits because it is now set to die with its parent (`PR_SET_PDEATHSIG`); the group host exits too and becomes a zombie, but its `start.exe` launcher (about 17 MB) survives under init. The engine has no SIGTERM handler, so `PageHost::shutdown` and the process-tree killer never run on this path.
+- evidence: 2026-11-05, shared page `ready` with pid 415531, helper 415549 and group host 415583; after `kill -TERM 415531`, the helper disappeared within 250 ms and the group host became `[vstbridge-host.] <defunct>`, while `start.exe /exec .../vstbridge-host.exe.so group` remained with ppid 1850 and 17.2 MB RSS.
+- fix: pending. Normal window shutdown and `PageHost::restart` already use the full process-tree cleanup; this is only the abrupt-engine-death path. A signal handler in `Main` or a launcher-side parent-death signal would close it.
+
 ### BUG-006 · Audio device and mixer settings are lost on every restart
 - status: open
 - area: audio
@@ -271,4 +293,15 @@ reported by the human or reproduced on this machine.
 - actual: `armedSlot` changes to 3 and Track 4 is selected, but slot 2 remains active and its Analog Lab keeps sounding; slot 3 stays `warming`/`idle` instead of becoming active
 - evidence: 2026-11-04 running `--serve` with `track-check.ihub`; after arming Track 4, `GET /state` reported `armedSlot: 3`, `slots[2] = {warmState:"active", state:"active"}` and `slots[3] = {warmState:"warming", state:"idle"}`. `WarmPoolController::arm` only called `finishArmLocked` from `warmCallback`; an empty track has no warm request, so `SlotSwitcher::armSlot(3)` was never called and the switcher kept rendering slot 2. `ihub-session-warm-protected` now builds a tracks session with instruments on slots 0–2 and empty slots 3–7, arms slot 2, then arms empty slot 3 and checks: requested slot 3, `warmState(3) == "active"`, switcher armed slot 3, slot 2 no longer active, post-fade output RMS < 1e-6, slot 3 gain > 0.99, slot 2 gain <= 0 and slot 2 state `idle`; `ctest -R '^ihub-session-warm-protected$'` -> 1/1 passed.
 - fix: `WarmPoolController::arm` completes the arm directly when the target slot has no warm request: `finishArmLocked(slot, nullptr)` clears the voice, arms the switcher, clears `pendingArmSlot`, records the slot as active and keeps the previous slot pinned for the fade-out. `finishArmLocked` now accepts a null instance for empty slots.
+
+### BUG-024 · Eighth Analog Lab track is silent; its sandbox deadlocks in applyState
+- status: fixed
+- area: plugins/sandbox, session/warm pool
+- steps:
+  1. open `/tmp/opencode/track-check.ihub` (eight tracks, each hosting Analog Lab V through vstbridge/Wine)
+  2. let all eight slots warm, then arm Track 8 (`slot 7`) from the Grid or `POST /arm {"slot":7}`
+- expected: Track 8 sounds and `GET /state` reports `warm: true`, `state: "active"`, `error: ""`
+- actual: before the fix the slot became active but produced no audio; after a few seconds `GET /state` reported `error: "sandbox stopped responding"`. Seven `vstbridge-host` processes remained; the eighth was killed by the watchdog. A healthy slot (Track 1) produced a meter peak around 0.21 with the same MIDI note, Track 8 stayed at 0.
+- evidence: 2026-11-05 debug build, Windows-style MIDI note sent through VirMIDI to the armed slot. The failed slot's shared memory (`/tmp/ihub-sandbox-*.ihubshm`) showed `requestPublished=8`, `requestConsumed=0`, `replyPublished=0` and `control = { command: 0, status: 1 (pending), stateBytes: 102891 }`: the Wine host never consumed the `applyState` command. All eight `plugin-state/slot-*.bin` files in the project were byte-identical, so the state contents were not the difference. Raising `defaultControlTimeoutMs` 3000 -> 15000 and `hangTimeoutMs` 5000 -> 20000 delayed the failure but did not fix it. After T313 the same project reports one `ihub-sandbox` page host and one `vstbridge-host.exe.so group` process; all eight slots are `warm` with empty errors; arming all eight performs no load/warming (`ihub-session-concurrent-instances-test`). `kill -9` of the group host reported `recovering` on the next poll, muted the page, restarted the host, restored all eight committed states and returned `ready` with `activeSlot: 7`; the old host tree was reaped. Manual `POST /pages/tracks/restart` returns through the same path. `ihub-sandbox-test` covers a 3-slot page and crash/manual recovery; `ihub-session-concurrent-instances-test` covers the legacy per-slot path and the 8-slot shared page. Memory on this machine with the same eight Analog Lab V tracks: eight separate hosts = 9,962 MB (8 × 1.15-1.19 GB vstbridge + 8 × 20-26 MB helpers + 8 × 17 MB start.exe + engine/WebKit) at ~211% CPU; one shared host = 2,187 MB (1.83 GB group host + 85 MB helper + 17 MB start.exe + engine/WebKit) at ~88% CPU. Remaining manual check: play Track 8 on the physical Keystation and confirm sound/meter movement; the process/state/recovery evidence above is from the running app.
+- fix: T313 replaces the per-slot host with a page-scoped `PageHost`/`PageHostSlot` and `SharedPage` transport. The helper loads every plugin on the page once, one worker thread per slot, and exposes per-slot audio/control/heartbeats. A Wine page gets a temporary mirrored bundle view with a `vstbridge.toml` group, so all instances share one `vstbridge-host`. The watchdog kills the whole process tree (descendants and processes whose command line names a helper pid) and runs bounded recovery that captures healthy states, restarts the host, reapplies committed states, re-arms the previously active slot, and returns to `ready`. The old per-slot path stays behind `IHUB_SHARED_PLUGIN_HOST=0` / `SessionConfig::sharedPluginHost`. `GET /state` now carries `pages[]`, and `POST /pages/{page}/restart` is the manual recovery entry point.
 

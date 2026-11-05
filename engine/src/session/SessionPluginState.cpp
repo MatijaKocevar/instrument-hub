@@ -2,6 +2,7 @@
 
 #include "plugins/PluginInstrument.h"
 #include "plugins/SandboxHost.h"
+#include "plugins/SandboxSlotControl.h"
 
 namespace ihub
 {
@@ -31,12 +32,19 @@ bool Session::capturePluginState (int slot)
     if (pluginState.getInstrument (slot) != nullptr)
         return pluginState.capture (slot, identity);
 
-    auto* sandbox = sandboxForSlot (slot);
+    auto* sandbox = getSandboxSlotControl (slot);
 
     if (sandbox == nullptr)
         return false;
 
-    const auto state = sandbox->getStateInformation();
+    (void) sandbox->flushPublishedState();
+
+    auto state = sandbox->isRunning() && ! sandbox->isFailed()
+                     ? sandbox->getStateInformation()
+                     : juce::MemoryBlock();
+
+    if (state.getSize() == 0)
+        state = sandbox->getLastCommittedState();
 
     if (state.getSize() == 0)
         return false;

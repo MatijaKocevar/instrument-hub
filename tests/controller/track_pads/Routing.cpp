@@ -17,7 +17,7 @@ void runRoutingChecks()
     track.role = Controller::PadRole::track;
     track.slot = 3;
 
-    auto action = Controller::trackPadActionFor (track, 4);
+    auto action = Controller::trackPadActionFor (track);
     check (action.has_value()
                && action->kind == Controller::TrackPadActionKind::arm
                && action->slot == 3,
@@ -28,7 +28,7 @@ void runRoutingChecks()
     fx.slot = 5;
     fx.hot = 1;
 
-    action = Controller::trackPadActionFor (fx, 4);
+    action = Controller::trackPadActionFor (fx);
     check (action.has_value()
                && action->kind == Controller::TrackPadActionKind::toggleFx
                && action->slot == 5
@@ -36,7 +36,7 @@ void runRoutingChecks()
            "an fx pad toggles its hot insert");
 
     fx.hot = 2;
-    check (! Controller::trackPadActionFor (fx, 4).has_value(),
+    check (! Controller::trackPadActionFor (fx).has_value(),
            "an fx pad without a valid hot index is ignored");
 
     Controller::PadBinding volume;
@@ -44,7 +44,7 @@ void runRoutingChecks()
     volume.slot = 2;
     volume.step = 2;
 
-    action = Controller::trackPadActionFor (volume, 4);
+    action = Controller::trackPadActionFor (volume);
     check (action.has_value()
                && action->kind == Controller::TrackPadActionKind::setVolume
                && action->slot == 2
@@ -53,22 +53,20 @@ void runRoutingChecks()
 
     volume.step = 4;
 
-    action = Controller::trackPadActionFor (volume, 1);
+    action = Controller::trackPadActionFor (volume);
     check (action.has_value() && action->step == 4,
-           "the 100% pad sets 100% from a lower step");
+           "the +3 dB pad sets the boost step");
 
-    action = Controller::trackPadActionFor (volume, 4);
-    check (action.has_value() && action->step == 5,
-           "pressing the 100% pad again applies the over step");
+    volume.step = 3;
 
-    action = Controller::trackPadActionFor (volume, 5);
-    check (action.has_value() && action->step == 4,
-           "pressing the over pad returns to 100%");
+    action = Controller::trackPadActionFor (volume);
+    check (action.has_value() && action->step == 3,
+           "the 100% pad sets the unity step");
 
     volume.step = 0;
-    action = Controller::trackPadActionFor (volume, 5);
+    action = Controller::trackPadActionFor (volume);
     check (action.has_value() && action->step == 0,
-           "a non-100% pad leaves the over state");
+           "the 0% pad sets silence");
 
     Controller::PadBinding patch;
     patch.role = Controller::PadRole::patch;

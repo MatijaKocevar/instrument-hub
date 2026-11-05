@@ -8,8 +8,7 @@ bool padRoleArms (PadRole role) noexcept
     return role == PadRole::patch || role == PadRole::track;
 }
 
-std::optional<TrackPadAction> trackPadActionFor (const PadBinding& binding,
-                                                 int currentVolumeStep) noexcept
+std::optional<TrackPadAction> trackPadActionFor (const PadBinding& binding) noexcept
 {
     if (binding.slot < 0)
         return std::nullopt;
@@ -38,15 +37,6 @@ std::optional<TrackPadAction> trackPadActionFor (const PadBinding& binding,
 
             action.kind = TrackPadActionKind::setVolume;
             action.step = binding.step;
-
-            if (binding.step == SetMapping::maximumVolumeStep)
-            {
-                if (currentVolumeStep == SetMapping::maximumVolumeStep)
-                    action.step = SetMapping::maximumVolumeStep + 1;
-                else if (currentVolumeStep == SetMapping::maximumVolumeStep + 1)
-                    action.step = SetMapping::maximumVolumeStep;
-            }
-
             return action;
     }
 

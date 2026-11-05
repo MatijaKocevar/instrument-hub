@@ -1,25 +1,107 @@
-.track-grid__table {
-  min-width: 50rem;
+.grid__table.track-grid__table {
+  min-width: 32rem;
+  height: 100%;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows:
+    minmax(4.4rem, auto)
+    minmax(3.6rem, auto)
+    minmax(3.6rem, auto)
+    repeat(5, minmax(3.2rem, 1fr));
+  column-gap: 0.45rem;
+  row-gap: 0;
 }
 
-.track-grid__row-head {
-  min-height: 3.6rem;
+.app[data-route="grid"] {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.track-grid__cell {
+.app[data-route="grid"] .app__footer {
+  display: none;
+}
+
+.app[data-route="grid"] .app__route,
+.app[data-route="grid"] .grid,
+.app[data-route="grid"] .grid__scroll {
+  min-height: 0;
+}
+
+.app[data-route="grid"] .app__route,
+.app[data-route="grid"] .grid {
+  flex: 1 1 auto;
+}
+
+.app[data-route="grid"] .grid__scroll {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.grid__row:not([data-role="volume"]) > * {
+  margin-bottom: 0.45rem;
+}
+
+.grid__row[data-role="track"] > * {
+  margin-bottom: 1.1rem;
+}
+
+.grid__row[data-row="6"] > * {
+  margin-bottom: 0.5rem;
+}
+
+.grid__row[data-row="5"] > * {
+  margin-bottom: 1.1rem;
+}
+
+.grid__cell.track-grid__cell {
   justify-content: stretch;
   min-height: 3.6rem;
 }
 
-.track-grid__cell--track {
+.grid__cell.track-grid__cell--track {
   min-height: 4.4rem;
+  overflow: hidden;
 }
 
-.track-grid__cell--track .grid__cell-main {
-  min-height: 4.4rem;
+.track-grid__selector--selected {
+  border-color: #ff4d55;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 77, 85, 0.75),
+    0 0 1rem rgba(255, 77, 85, 0.22);
 }
 
-.track-grid__cell--fx:not(.track-grid__cell--assigned) {
+.track-grid__selector-button {
+  min-height: 4.4rem;
+  gap: 0.3rem;
+  padding: 0.45rem 0.55rem;
+}
+
+.track-grid__selector-head,
+.track-grid__fx-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+.track-grid__selector-state {
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #8d95aa;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.track-grid__selector-state--selected {
+  background: rgba(0, 0, 0, 0.28);
+  color: #ffffff;
+}
+
+.grid__cell.track-grid__cell--fx:not(.track-grid__cell--assigned) {
   border-style: dashed;
   border-color: #242633;
   background: #161821;
@@ -29,34 +111,294 @@
   cursor: default;
 }
 
-.track-grid__cell--assigned {
+.grid__cell.track-grid__cell--assigned {
   border-color: #3d4a3f;
   background: linear-gradient(150deg, #1d2a22 0%, #151a1b 75%);
 }
 
-.track-grid__cell--enabled {
+.grid__cell.track-grid__cell--enabled {
   border-color: #38bdf8;
   background: linear-gradient(150deg, #123244 0%, #151a22 75%);
 }
 
-.track-grid__cell--volume {
-  background: #191b24;
+.track-grid__fx-button {
+  gap: 0.25rem;
+  padding: 0.4rem 0.5rem;
 }
 
-.track-grid__cell--volume:hover {
-  border-color: #474b63;
+.track-grid__fx-button:disabled {
+  opacity: 0.72;
 }
 
-.track-grid__cell--volume-active {
-  border-color: #3b82f6;
-  background: linear-gradient(150deg, #1d2c55 0%, #171b28 80%);
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.38);
+.track-grid__selector--empty .grid__cell-name {
+  color: #8d95aa;
 }
 
-.track-grid__cell--over {
-  border-color: #f59e0b;
-  background: linear-gradient(150deg, #4a3308 0%, #1f1a12 82%);
-  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.45);
+.grid__cell.track-grid__cell--inactive {
+  background: #14151c;
+}
+
+.grid__cell.track-grid__cell--inactive .grid__cell-main {
+  cursor: default;
+}
+
+.grid__cell.track-grid__cell--inactive .grid__cell-name {
+  color: #6b7280;
+}
+
+.grid__cell.track-grid__cell--inactive .track-grid__fader-rail {
+  background: #1c1d24;
+}
+
+.grid__cell.track-grid__cell--inactive .track-grid__fader-label,
+.grid__cell.track-grid__cell--inactive .track-grid__fader-db {
+  color: #4f566b;
+}
+
+.grid__cell.track-grid__cell--inactive .track-grid__switch {
+  opacity: 0.25;
+}
+
+.track-grid__switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  width: 1.45rem;
+  height: 0.78rem;
+  padding: 0.1rem;
+  border: 1px solid #3a3d50;
+  border-radius: 999px;
+  background: #2b2d3b;
+  transition:
+    background-color 90ms ease,
+    border-color 90ms ease;
+}
+
+.track-grid__switch-thumb {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #7d8499;
+  transition:
+    background-color 90ms ease,
+    transform 90ms ease;
+}
+
+.track-grid__switch--on {
+  border-color: #38bdf8;
+  background: #0e4f6b;
+}
+
+.track-grid__switch--on .track-grid__switch-thumb {
+  background: #7dd3fc;
+  transform: translateX(0.65rem);
+}
+
+.track-grid__switch--empty {
+  opacity: 0.45;
+}
+
+.grid__cell.track-grid__cell--volume {
+  min-height: 3.2rem;
+  overflow: visible;
+  border-width: 0 1px;
+  border-color: #262836;
+  border-radius: 0;
+  background: #14151c;
+}
+
+.grid__cell.track-grid__cell--volume[data-row="4"] {
+  border-top-width: 1px;
+  border-radius: 0.7rem 0.7rem 0 0;
+}
+
+.grid__cell.track-grid__cell--volume[data-row="0"] {
+  border-bottom-width: 1px;
+  border-radius: 0 0 0.7rem 0.7rem;
+}
+
+.grid__cell.track-grid__cell--volume:hover {
+  border-color: #3a3d50;
+}
+
+.grid__cell.track-grid__cell--volume:hover .track-grid__fader-rail {
+  background: #2c3042;
+}
+
+.grid__cell.track-grid__cell--volume-active .track-grid__fader-label {
+  color: #dfe4ef;
+}
+
+.grid__cell.track-grid__cell--over .track-grid__fader-label {
+  color: #fbbf24;
+}
+
+.grid__cell.track-grid__cell--volume[data-step="0"] {
+  --fader-fill: #137337;
+  --fader-cap-top: #149345;
+  --fader-cap-bottom: #1fb155;
+  --fader-cap-border: #43c873;
+  --fader-glow: rgba(34, 197, 94, 0.36);
+}
+
+.grid__cell.track-grid__cell--volume[data-step="1"] {
+  --fader-fill: #137337;
+  --fader-cap-top: #149345;
+  --fader-cap-bottom: #1fb155;
+  --fader-cap-border: #43c873;
+  --fader-glow: rgba(34, 197, 94, 0.36);
+}
+
+.grid__cell.track-grid__cell--volume[data-step="2"] {
+  --fader-fill: #15803d;
+  --fader-cap-top: #16a34a;
+  --fader-cap-bottom: #22c55e;
+  --fader-cap-border: #4ade80;
+  --fader-glow: rgba(34, 197, 94, 0.4);
+}
+
+.grid__cell.track-grid__cell--volume[data-step="3"] {
+  --fader-fill: #22c55e;
+  --fader-cap-top: #4ade80;
+  --fader-cap-bottom: #22c55e;
+  --fader-cap-border: #86efac;
+  --fader-glow: rgba(74, 222, 128, 0.5);
+}
+
+.grid__cell.track-grid__cell--volume[data-step="4"] {
+  --fader-fill: #86efac;
+  --fader-cap-top: #bbf7d0;
+  --fader-cap-bottom: #86efac;
+  --fader-cap-border: #d9f99d;
+  --fader-glow: rgba(134, 239, 172, 0.6);
+}
+
+.track-grid__cell--volume .track-grid__fader {
+  position: relative;
+  display: block;
+  height: 100%;
+  min-height: 3.2rem;
+  padding: 0;
+}
+
+.grid__cell.track-grid__cell--volume[data-step="4"] .track-grid__fader-rail {
+  border-radius: 999px 999px 0 0;
+}
+
+.grid__cell.track-grid__cell--volume[data-step="0"] .track-grid__fader-rail {
+  border-radius: 0 0 999px 999px;
+}
+
+.track-grid__fader-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0.42rem;
+  overflow: hidden;
+  border-radius: 0;
+  background: #242634;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transform: translateX(-50%);
+}
+
+.track-grid__fader-fill {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 0;
+  background: var(--fader-fill, #38bdf8);
+}
+
+.track-grid__fader-cap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1.55rem;
+  height: 0.5rem;
+  border: 1px solid var(--fader-cap-border, #bae6fd);
+  border-radius: 0.3rem;
+  background: linear-gradient(
+    180deg,
+    var(--fader-cap-top, #e0f2fe) 0%,
+    var(--fader-cap-bottom, #7dd3fc) 100%
+  );
+  box-shadow: 0 0 0.45rem var(--fader-glow, rgba(56, 189, 248, 0.55));
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.track-grid__cell--fader-cap-bottom .track-grid__fader-cap {
+  top: auto;
+  bottom: 0;
+  transform: translate(-50%, -50%);
+}
+
+.track-grid__fader-tick {
+  position: absolute;
+  top: 0;
+  right: 12%;
+  left: 12%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #3a3d50 12%,
+    #3a3d50 40%,
+    transparent 40%,
+    transparent 60%,
+    #3a3d50 60%,
+    #3a3d50 88%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.grid__cell.track-grid__cell--volume[data-row="0"] .track-grid__fader-tick {
+  top: auto;
+  bottom: 0;
+}
+
+.track-grid__fader-label {
+  position: absolute;
+  top: 0.18rem;
+  left: 0.35rem;
+  color: #8d95aa;
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.grid__cell.track-grid__cell--volume[data-row="0"] .track-grid__fader-label {
+  top: auto;
+  bottom: 0.15rem;
+}
+
+.track-grid__fader-readout {
+  position: absolute;
+  top: 0.12rem;
+  right: 0.3rem;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  line-height: 1;
+  text-align: right;
+  pointer-events: none;
+}
+
+.track-grid__fader-db {
+  color: #86efac;
+  font-size: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.track-grid__cell--over .track-grid__fader-db {
+  color: #bbf7d0;
 }
 
 .track-grid__sub {
@@ -72,31 +414,15 @@
   color: #ffd7d8;
 }
 
-.track-grid__state {
-  margin-left: auto;
-  padding: 0.05rem 0.35rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.3);
-  color: #c7cede;
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.track-grid__fx-button:disabled {
-  opacity: 0.72;
-}
-
-.track-grid__cell--volume .grid__cell-main,
-.track-grid__cell--fx .grid__cell-main {
-  padding: 0.4rem 0.5rem;
-}
-
 @media (pointer: coarse) {
-  .track-grid__cell,
-  .track-grid__cell--track,
-  .track-grid__cell--track .grid__cell-main {
+  .grid__cell.track-grid__cell,
+  .grid__cell.track-grid__cell--track,
+  .track-grid__cell--track .track-grid__selector-button {
     min-height: 4rem;
+  }
+
+  .grid__cell.track-grid__cell--volume,
+  .track-grid__cell--volume .track-grid__fader {
+    min-height: 3.6rem;
   }
 }

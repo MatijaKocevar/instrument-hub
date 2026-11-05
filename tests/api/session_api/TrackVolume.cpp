@@ -19,7 +19,7 @@ void runTrackVolume (SessionRig& rig,
     auto& session = rig.session();
     auto& client = rig.client();
 
-    for (int step = 0; step <= 5; ++step)
+    for (int step = 0; step <= 4; ++step)
     {
         auto response = client.Post ("/tracks/2/volume",
                                      "{\"step\":" + std::to_string (step) + "}",
@@ -60,14 +60,14 @@ void runTrackVolume (SessionRig& rig,
     const auto state = response ? parseJson (response->body) : juce::var {};
 
     check (response && response->status == 200, "GET /state returns 200 after volume");
-    check (intProperty (trackAt (state, kTrack), "volumeStep") == 5
-               && std::abs (numberProperty (trackAt (state, kTrack), "volumeDb") - 6.0)
+    check (intProperty (trackAt (state, kTrack), "volumeStep") == 4
+               && std::abs (numberProperty (trackAt (state, kTrack), "volumeDb") - 3.0)
                       < 1.0e-6,
-           "the over step persists as +6 dB across GET /state");
+           "the +3 dB step persists across GET /state");
 
-    response = client.Post ("/tracks/2/volume", "{\"step\":6}", "application/json");
+    response = client.Post ("/tracks/2/volume", "{\"step\":5}", "application/json");
     check (response && response->status == 400,
-           "the volume command rejects step 6");
+           "the volume command rejects step 5");
 
     response = client.Post ("/tracks/2/volume", "{}", "application/json");
     check (response && response->status == 400,

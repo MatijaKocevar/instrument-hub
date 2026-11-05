@@ -22,6 +22,13 @@ export function InstrumentRoute({
     void store.updatePatch(slot, { colorIndex });
   };
 
+  const slotError =
+    instrumentPatch?.error !== undefined && instrumentPatch.error.length > 0
+      ? instrumentPatch.error
+      : null;
+  const actionError =
+    app.editorErrorSlot === instrumentSlot ? app.editorError : null;
+
   return (
     <InstrumentPage
       patch={instrumentPatch}
@@ -33,7 +40,8 @@ export function InstrumentRoute({
       sourceBusy={app.sourceBusy}
       editorOpen={instrumentPatch?.editorOpen === true}
       editorBusy={app.editorBusy}
-      editorError={app.editorError}
+      editorError={actionError ?? slotError}
+      reloadBusy={app.reloadBusy && app.reloadSlot === instrumentSlot}
       captureBusy={app.captureBusy}
       capture={app.captureSlot === instrumentSlot ? app.capture : null}
       captureError={
@@ -62,8 +70,8 @@ export function InstrumentRoute({
       onOpenEditor={(slot) => {
         void store.openInstrumentEditor(slot);
       }}
-      onCloseEditor={(slot) => {
-        void store.closeInstrumentEditor(slot);
+      onReloadPlugin={(slot) => {
+        void store.reloadInstrumentPlugin(slot);
       }}
       onCaptureState={(slot) => {
         void store.savePatchSound(slot);

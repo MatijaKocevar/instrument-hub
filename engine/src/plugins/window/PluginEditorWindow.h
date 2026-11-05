@@ -16,6 +16,8 @@ public:
     void closeButtonPressed() override;
     void userTriedToCloseWindow() override;
 
+    void resetCloseRequested() noexcept { closeAlreadyRequested = false; }
+
     static int getLiveWindowCount() noexcept;
 
 private:

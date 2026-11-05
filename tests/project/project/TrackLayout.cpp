@@ -25,7 +25,7 @@ std::vector<Api::TrackConfig> makeTracks()
         track.id = "track-" + std::to_string (index + 1);
         track.name = "Track " + std::to_string (index + 1);
         track.slot = index;
-        track.volumeStep = index % 6;
+        track.volumeStep = index % 5;
         tracks.push_back (std::move (track));
     }
 

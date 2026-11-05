@@ -42,6 +42,10 @@ export function useShellData(router: RouterState) {
         );
 
   useEffect(() => {
+    store.clearInstrumentError();
+  }, [instrumentSlot, store]);
+
+  useEffect(() => {
     if (router.route !== "instrument" && router.route !== "plugins") return;
 
     if (router.route === "instrument" && instrumentSlot !== null)

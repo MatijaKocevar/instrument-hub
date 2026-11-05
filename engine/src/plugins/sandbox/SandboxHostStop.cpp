@@ -14,11 +14,19 @@ void SandboxHost::closeSharedMemory() noexcept
         sharedMemoryFile.deleteFile();
         sharedMemoryFile = juce::File();
     }
+
+    if (editorStateFile != juce::File())
+    {
+        editorStateFile.deleteFile();
+        editorStateFile = juce::File();
+    }
 }
 
 void SandboxHost::stop()
 {
     const juce::ScopedLock lock (controlLock);
+
+    (void) flushPublishedState();
 
     if (watchdog != nullptr)
     {

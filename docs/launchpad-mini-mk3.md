@@ -186,19 +186,18 @@ to the top; pad numbers are the Instrument Hub row-major indices:
 
 | Row | Pads | Role | Press action | LED |
 |---|---|---|---|---|
-| 7 (top) | 56..63 | `track` | arms the column's track slot | red when selected; instrument colour otherwise |
+| 7 (top) | 56..63 | `track` | arms the column's track slot | red when selected; track palette colour otherwise |
 | 6 | 48..55 | `fx`, `hot: 0` | toggles bypass on the track's first hot insert | green enabled, yellow bypassed, off unassigned |
 | 5 | 40..47 | `fx`, `hot: 1` | toggles bypass on the track's second hot insert | green enabled, yellow bypassed, off unassigned |
-| 4 | 32..39 | `volume`, `step: 4` | sets 100% (0 dB); pressing it again toggles +6 dB | blue at 100%, white at the over step |
-| 3 | 24..31 | `volume`, `step: 3` | sets 75% | blue when active, otherwise off |
-| 2 | 16..23 | `volume`, `step: 2` | sets 50% | blue when active, otherwise off |
-| 1 | 8..15 | `volume`, `step: 1` | sets 25% | blue when active, otherwise off |
-| 0 (bottom) | 0..7 | `volume`, `step: 0` | sets silence | blue when active, otherwise off |
+| 4 | 32..39 | `volume`, `step: 4` | sets +3 dB | lightest green when active |
+| 3 | 24..31 | `volume`, `step: 3` | sets 100% (0 dB) | green at or below the current level |
+| 2 | 16..23 | `volume`, `step: 2` | sets 75% | green at or below the current level |
+| 1 | 8..15 | `volume`, `step: 1` | sets 50% | green at or below the current level |
+| 0 (bottom) | 0..7 | `volume`, `step: 0` | sets silence | darkest green at or below the current level |
 
-The over step is a toggle on the 100% pad only: the first press sets step 4,
-a second press sets step 5 (+6 dB) and a third returns to step 4. Pressing any
-other volume pad while over leaves the over state. There are no long-press
-behaviours in the track layout.
+Each volume pad sets its own step; the +3 dB pad is the fifth and top volume
+row, and the default is 100%. There are no long-press behaviours in the track
+layout.
 
 The same actions are available over HTTP: `POST /tracks/{index}/select`,
 `POST /tracks/{index}/fx/{hot}/toggle`,
@@ -248,7 +247,7 @@ the full pad → mapping → LED path are covered by:
 - `ihub-launchpad-protocol` — frame bytes, grid notes, palette.
 - `ihub-launchpad-mapping` — all 64 pads, CC 91..98 banks, CC 89..19 scenes.
 - `ihub-launchpad-driver` — scripted event sequence and the exact LED stream.
-- `ihub-launchpad-track` — v2 routing, the over step and the track LED policy.
+- `ihub-launchpad-track` — v2 routing, the five volume steps and the track LED policy.
 - `ihub-ui-pages` — Grid, Instrument, Plugins and Audio page snapshots.
 - `ihub-e2e` — Grid click plus pad event through the mapping into the composed
   session, non-silent audio rendered and captured on the ALSA Loopback, and

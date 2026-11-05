@@ -580,8 +580,28 @@ export async function instrumentPageTest(): Promise<void> {
       "the page reflects the open editor",
     );
     check(
-      openedPage.includes('data-testid="source-close-editor"'),
-      "an open editor offers a close control",
+      !openedPage.includes('data-testid="source-close-editor"'),
+      "an open editor has no explicit close control",
+    );
+    check(
+      openedPage.includes('data-testid="source-reload"'),
+      "an open editor keeps the plugin reload control",
+    );
+
+    check(
+      await store.reloadInstrumentPlugin(3),
+      "the reload action restarts the plugin",
+    );
+    check(
+      server.reloadRequests.at(-1)?.slot === 3,
+      "POST /patches/3/reload restarts only that slot",
+    );
+    check(
+      store
+        .getSnapshot()
+        .state?.families.flatMap((family) => family.patches)
+        .find((patch) => patch.slot === 3)?.editorOpen === false,
+      "the reload closes that slot's editor",
     );
 
     check(
@@ -686,6 +706,21 @@ export async function instrumentPageTest(): Promise<void> {
       failing.getSnapshot().captureError !== null,
       "the page can show the save-sound error",
     );
+    check(
+      !(await failing.reloadInstrumentPlugin(3)),
+      "a reload failure is reported",
+    );
+    check(
+      failing.getSnapshot().editorError !== null &&
+        failing.getSnapshot().editorErrorSlot === 3,
+      "the reload error is tied to the slot that failed",
+    );
+    failing.clearInstrumentError();
+    check(
+      failing.getSnapshot().editorError === null &&
+        failing.getSnapshot().editorErrorSlot === -1,
+      "changing the selected track clears the slot error",
+    );
   } finally {
     await server.close();
   }
@@ -750,6 +785,39 @@ export function instrumentPluginEditorTest(): void {
   check(
     html.includes("native window on the engine desktop"),
     "the plugin editor offers the native window",
+  );
+
+  const brokenHtml = renderToStaticMarkup(
+    <InstrumentPage
+      patch={{ ...pluginPatch, error: "the plugin host is not running" }}
+      armedSlot={2}
+      following={false}
+      chain={null}
+      plugins={PLUGIN_FIXTURE.plugins}
+      onCaptureState={() => {}}
+    />,
+  );
+
+  check(
+    brokenHtml.includes('data-testid="source-editor-error"') &&
+      brokenHtml.includes("the plugin host is not running"),
+    "a slot-local engine error is shown on that slot's page",
+  );
+
+  const healthyHtml = renderToStaticMarkup(
+    <InstrumentPage
+      patch={{ ...pluginPatch, error: "" }}
+      armedSlot={2}
+      following={false}
+      chain={null}
+      plugins={PLUGIN_FIXTURE.plugins}
+      onCaptureState={() => {}}
+    />,
+  );
+
+  check(
+    !healthyHtml.includes('data-testid="source-editor-error"'),
+    "a healthy slot shows no stale error",
   );
   check(
     html.includes('data-testid="fx-loading"') &&

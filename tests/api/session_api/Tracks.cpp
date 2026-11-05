@@ -54,7 +54,7 @@ void runTracks()
                                   && property (track, "selected").isBool()
                                   && instrument.isObject()
                                   && property (instrument, "name").isString()
-                                  && intProperty (track, "volumeStep") == 4
+                                  && intProperty (track, "volumeStep") == 3
                                   && hot != nullptr && hot->size() == 2;
         }
 

@@ -171,7 +171,7 @@ void Fixture::release (int pad)
 
 Controller::TrackLedSnapshot Fixture::leds() const
 {
-    return ihub::app::trackLedSnapshotFor (state->snapshot(), *state);
+    return ihub::app::trackLedSnapshotFor (state->snapshot());
 }
 
 void Fixture::paint()

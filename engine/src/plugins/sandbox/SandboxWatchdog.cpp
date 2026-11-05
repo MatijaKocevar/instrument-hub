@@ -2,6 +2,10 @@
 
 #include "../SandboxHost.h"
 
+#if JUCE_LINUX || JUCE_MAC
+ #include <sys/wait.h>
+#endif
+
 namespace ihub::plugins
 {
 SandboxWatchdog::SandboxWatchdog (SandboxHost& hostToWatch, int timeoutMs)
@@ -28,9 +32,38 @@ void SandboxWatchdog::run()
         if (threadShouldExit() || host.shared == nullptr || host.childProcess == nullptr)
             return;
 
-        if (! host.childProcess->isRunning())
+        (void) host.flushPublishedState();
+
+        int childStatus = 0;
+        bool reaped = false;
+
+       #if JUCE_LINUX || JUCE_MAC
+        const auto childPid = host.getChildProcessId();
+
+        if (childPid > 0)
         {
-            host.markFailed ("sandbox process exited unexpectedly");
+            const auto reapedPid = waitpid (childPid, &childStatus, WNOHANG);
+
+            if (reapedPid == childPid)
+                reaped = true;
+        }
+       #endif
+
+        if (reaped || ! host.childProcess->isRunning())
+        {
+            juce::String reason = "sandbox process exited unexpectedly";
+
+           #if JUCE_LINUX || JUCE_MAC
+            if (reaped)
+            {
+                if (WIFSIGNALED (childStatus))
+                    reason << " (signal " << WTERMSIG (childStatus) << ")";
+                else if (WIFEXITED (childStatus))
+                    reason << " (exit " << WEXITSTATUS (childStatus) << ")";
+            }
+           #endif
+
+            host.markFailed (reason);
             return;
         }
 

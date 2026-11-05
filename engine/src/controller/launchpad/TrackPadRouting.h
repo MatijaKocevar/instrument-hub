@@ -24,7 +24,6 @@ struct TrackPadAction
 
 bool padRoleArms (PadRole role) noexcept;
 
-std::optional<TrackPadAction> trackPadActionFor (const PadBinding& binding,
-                                                 int currentVolumeStep) noexcept;
+std::optional<TrackPadAction> trackPadActionFor (const PadBinding& binding) noexcept;
 
 }

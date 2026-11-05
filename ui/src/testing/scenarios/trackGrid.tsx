@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { createControlApi } from "../../api/client";
-import { GridView, gridFromState } from "../../features/grid";
+import { GridView, gridFromState, volumeStepForRow } from "../../features/grid";
 import { AppStore } from "../../state/store";
 import { startFixtureServer } from "../fixtureServer";
 import { FIXTURE, TRACK_FIXTURE } from "../fixtures";
@@ -55,8 +55,10 @@ export function trackGridModelTest(): void {
     "the track grid does not render the legacy family rows",
   );
   check(
-    countOf(html, 'data-testid="track-column"') === 8,
-    "the track grid shows eight track columns",
+    countOf(html, 'data-testid="track-grid-head"') === 0 &&
+      countOf(html, "track-grid__row-head") === 0 &&
+      !html.includes('class="grid__header"'),
+    "the track grid renders no page title, column labels or row labels",
   );
   check(
     countOf(html, 'data-testid="track-row"') === 8,
@@ -108,12 +110,142 @@ export function trackGridModelTest(): void {
     "unassigned hot FX stay dark",
   );
   check(
-    countOf(html, 'data-over="true"') === 2 && html.includes(">+6 dB<"),
-    "the over step renders when a track is above 100%",
+    countOf(html, 'data-over="true"') === 2 && html.includes(">+3 dB<"),
+    "the +3 dB step renders on the top volume row",
+  );
+  check(
+    countOf(html, "track-grid__fader-rail") === 40 &&
+      countOf(html, "track-grid__fader-tick") === 40,
+    "every track has five rail segments and five tick marks",
+  );
+  check(
+    countOf(html, 'data-testid="track-fader-readout"') === 8 &&
+      countOf(html, "track-grid__fader-cap") === 8,
+    "every track has one level readout and one fader cap",
+  );
+  check(
+    html.includes(
+      'data-testid="track-cell" data-track-index="4" data-row="4" data-role="volume" data-step="4" data-active="true" data-over="true" data-volume-step="4" data-filled="true" data-cap="true"',
+    ),
+    "the +3 dB track fills the fader and marks its cap as boosted",
   );
   check(
     html.includes("Drawbar Organ") && html.includes("Analog Lab V"),
     "track instruments are visible in the selector",
+  );
+
+  const partialModel = gridFromState({
+    ...TRACK_FIXTURE,
+    tracks: (TRACK_FIXTURE.tracks ?? []).map((track, index) =>
+      index === 0
+        ? { ...track, volumeStep: 2, volumeDb: -2.5, gain: 0.75 }
+        : track,
+    ),
+  });
+  const partialHtml = renderToStaticMarkup(
+    <GridView
+      model={partialModel}
+      onSelectTrack={() => {}}
+      onToggleTrackFx={() => {}}
+      onSetTrackVolume={() => {}}
+    />,
+  );
+
+  check(
+    partialHtml.includes(
+      'data-testid="track-cell" data-track-index="0" data-row="4" data-role="volume" data-step="4" data-active="false" data-over="false" data-volume-step="2" data-filled="false" data-cap="false"',
+    ) &&
+      partialHtml.includes(
+        'data-testid="track-cell" data-track-index="0" data-row="3" data-role="volume" data-step="3" data-active="false" data-over="false" data-volume-step="2" data-filled="false" data-cap="false"',
+      ),
+    "segments above the current level stay unfilled",
+  );
+  check(
+    partialHtml.includes(
+      'data-testid="track-cell" data-track-index="0" data-row="2" data-role="volume" data-step="2" data-active="true" data-over="false" data-volume-step="2" data-filled="true" data-cap="true"',
+    ) &&
+      partialHtml.includes(
+        'data-testid="track-cell" data-track-index="0" data-row="0" data-role="volume" data-step="0" data-active="false" data-over="false" data-volume-step="2" data-filled="true" data-cap="false"',
+      ),
+    "the fill reaches from the bottom to the active detent",
+  );
+  const quarterModel = gridFromState({
+    ...TRACK_FIXTURE,
+    tracks: (TRACK_FIXTURE.tracks ?? []).map((track, index) =>
+      index === 0
+        ? { ...track, volumeStep: 1, volumeDb: -6.02, gain: 0.5 }
+        : track,
+    ),
+  });
+  const quarterHtml = renderToStaticMarkup(
+    <GridView
+      model={quarterModel}
+      onSelectTrack={() => {}}
+      onToggleTrackFx={() => {}}
+      onSetTrackVolume={() => {}}
+    />,
+  );
+
+  check(
+    quarterHtml.includes(
+      'data-testid="track-cell" data-track-index="0" data-row="1" data-role="volume" data-step="1" data-active="true" data-over="false" data-volume-step="1" data-filled="true" data-cap="true"',
+    ) &&
+      quarterHtml.includes(
+        'class="track-grid__fader-fill" style="height:100%"',
+      ) &&
+      !quarterHtml.includes(
+        'class="track-grid__fader-fill" style="height:25%"',
+      ),
+    "50% fills the bottom two stages without gaps",
+  );
+  check(
+    quarterHtml.includes(
+      'data-testid="track-cell" data-track-index="0" data-row="0" data-role="volume" data-step="0" data-active="false" data-over="false" data-volume-step="1" data-filled="true" data-cap="false"',
+    ),
+    "the 50% step keeps the bottom segment filled",
+  );
+
+  check(
+    partialHtml.includes(
+      'data-testid="track-fader-readout" data-track-index="0" data-volume-step="2" data-db="-2.5"',
+    ),
+    "the fader readout follows the track level",
+  );
+  check(
+    volumeStepForRow(0) === 0 &&
+      volumeStepForRow(1) === 1 &&
+      volumeStepForRow(3) === 3 &&
+      volumeStepForRow(4) === 4,
+    "each volume row maps directly to its own step",
+  );
+
+  const recovering = gridFromState({
+    ...TRACK_FIXTURE,
+    pages: [
+      {
+        id: "tracks",
+        status: "recovering",
+        slots: [0, 1, 2, 3, 4, 5, 6, 7],
+        activeSlot: 0,
+        error: "shared plugin host exited unexpectedly",
+      },
+    ],
+  });
+  const recoveringHtml = renderToStaticMarkup(
+    <GridView model={recovering} onSelectTrack={() => {}} />,
+  );
+
+  check(
+    recovering.pluginPage?.status === "recovering" &&
+      countOf(recoveringHtml, 'data-testid="plugin-page-status"') === 1 &&
+      recoveringHtml.includes("Recovering instruments"),
+    "a recovering shared page renders one page-wide banner",
+  );
+  check(
+    recoveringHtml.includes(
+      `data-armed-slot="${String(recovering.armedSlot)}"`,
+    ),
+    "the selected track stays highlighted during page recovery",
   );
 
   const legacy = gridFromState(FIXTURE);
@@ -155,9 +287,9 @@ export async function trackGridInteractionTest(): Promise<void> {
       "the armed track starts selected",
     );
     check(
-      initial.includes('data-testid="track-column"') &&
-        countOf(initial, 'data-testid="track-column"') === 8,
-      "the live track grid renders eight columns",
+      !initial.includes('data-testid="track-grid-head"') &&
+        countOf(initial, 'data-testid="track-cell"') === 64,
+      "the live track grid renders the full 8x8 surface without labels",
     );
 
     check(await store.selectTrack(5), "selecting a track succeeds");
@@ -194,18 +326,24 @@ export async function trackGridInteractionTest(): Promise<void> {
       "the grid follows the hot FX bypass state",
     );
 
-    check(await store.setTrackVolume(2, 5), "setting the over step succeeds");
+    check(await store.setTrackVolume(2, 4), "setting the +3 dB step succeeds");
     check(
       server.trackRequests.at(-1)?.kind === "volume" &&
         server.trackRequests.at(-1)?.index === 2 &&
-        server.trackRequests.at(-1)?.step === 5,
+        server.trackRequests.at(-1)?.step === 4,
       "the volume step reaches POST /tracks/2/volume",
     );
     check(
       renderApp(store, "/grid").includes(
         'data-testid="track-volume" data-track-index="2" data-step="4" data-active="true" data-over="true"',
       ),
-      "the grid shows the over state on the 100% row",
+      "the grid shows the +3 dB state on its row",
+    );
+    check(
+      renderApp(store, "/grid").includes(
+        'data-testid="track-cell" data-track-index="2" data-row="4" data-role="volume" data-step="4" data-active="true" data-over="true" data-volume-step="4" data-filled="true" data-cap="true"',
+      ),
+      "the grid marks the +3 dB track's fader cap",
     );
 
     check(await store.selectTrack(2), "reselecting the edited track succeeds");

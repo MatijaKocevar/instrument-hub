@@ -73,6 +73,11 @@ SysExFrame ledFeedbackFrame (bool internal, bool external);
 
 SysExFrame ledSleepFrame (bool awake);
 
+SysExFrame rgbPadFrame (int padIndex,
+                        std::uint8_t red,
+                        std::uint8_t green,
+                        std::uint8_t blue);
+
 bool isProgrammerModeFrame (std::span<const std::uint8_t> bytes);
 
 enum class Colour : std::uint8_t
@@ -153,6 +158,39 @@ constexpr std::uint8_t velocityForPatchColour (int colourIndex) noexcept
                     : colourIndex;
 
     return patchPaletteVelocities[static_cast<std::size_t> (index)];
+}
+
+inline constexpr std::array<std::uint8_t, 8> trackPaletteVelocities {
+    9, 44, 80, 63, 82, 8, 2, 52
+};
+
+constexpr std::uint8_t velocityForTrackColour (int trackIndex) noexcept
+{
+    const int index = trackIndex < 0 ? 0
+                    : trackIndex > 7 ? 7
+                    : trackIndex;
+
+    return trackPaletteVelocities[static_cast<std::size_t> (index)];
+}
+
+inline constexpr std::array<std::array<std::uint8_t, 3>, 8> trackPaletteRgb {{
+    {{ 255, 107, 0 }},
+    {{ 106, 0, 255 }},
+    {{ 255, 45, 111 }},
+    {{ 0, 168, 143 }},
+    {{ 255, 0, 200 }},
+    {{ 161, 98, 7 }},
+    {{ 229, 231, 235 }},
+    {{ 126, 34, 206 }}
+}};
+
+constexpr std::array<std::uint8_t, 3> rgbForTrackColour (int trackIndex) noexcept
+{
+    const int index = trackIndex < 0 ? 0
+                    : trackIndex > 7 ? 7
+                    : trackIndex;
+
+    return trackPaletteRgb[static_cast<std::size_t> (index)];
 }
 
 constexpr std::array<std::uint8_t, 3> padVelocityMessage (

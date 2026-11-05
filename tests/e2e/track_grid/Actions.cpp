@@ -31,9 +31,9 @@ bool hotBypassed (const Api::TrackState& track, int hot)
 
 double gainForStep (int step)
 {
-    static constexpr double gains[] { 0.0, 0.25, 0.5, 0.75, 1.0,
-                                      1.9952623149688795 };
-    return step >= 0 && step <= kVolumeOverStep ? gains[step] : 0.0;
+    static constexpr double gains[] { 0.0, 0.5, 0.75, 1.0,
+                                      1.4125375446227544 };
+    return step >= 0 && step <= kVolumeBoostStep ? gains[step] : 0.0;
 }
 
 void checkChainBypass (Rig& rig, int slot, int insertIndex, bool expected,
@@ -121,16 +121,12 @@ void runTrackActions (Rig& rig, TrackGridResult& result)
     rig.press (volumePad (3, 0));
     ++result.volumeSets;
     rig.renderBlocks (kSwitchBlocks);
-    checkVolume (rig, 0, 3, "the volume pad");
+    checkVolume (rig, 0, 3, "the 100% volume pad");
     rig.paintLeds();
 
     rig.press (volumePad (4, 0));
     ++result.volumeSets;
-    checkVolume (rig, 0, 4, "the 100% volume pad");
-
-    rig.press (volumePad (4, 0));
-    ++result.volumeSets;
-    checkVolume (rig, 0, kVolumeOverStep, "the repeated 100% volume pad");
+    checkVolume (rig, 0, kVolumeBoostStep, "the +3 dB volume pad");
     rig.renderBlocks (kSwitchBlocks);
     rig.paintLeds();
 

@@ -273,6 +273,33 @@ void registerPatchRoutes (httplib::Server& server, const RouteContext& context)
         respondEditor (request, response, false);
     });
 
+    server.Post (R"(/patches/(\d+)/reload)",
+                 [context] (const httplib::Request& request,
+                            httplib::Response& response)
+    {
+        const int slot = readPatchSlot (context, request);
+
+        if (slot < 0)
+        {
+            setError (response, 404, "patch slot is out of range");
+            return;
+        }
+
+        std::string error;
+
+        if (! context.state.reloadPatch (slot, error))
+        {
+            const int status = error.find ("no audio session") != std::string::npos
+                                   ? 503
+                                   : 400;
+            setError (response, status, error);
+            return;
+        }
+
+        decorate (context, response);
+        setJson (response, 200, stateToVar (context.state.snapshot()));
+    });
+
     server.Post (R"(/patches/(\d+)/state/capture)",
                  [context] (const httplib::Request& request,
                             httplib::Response& response)

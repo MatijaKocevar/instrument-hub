@@ -34,6 +34,9 @@ export interface AppSnapshot {
   editorOpenSlot: number;
   editorBusy: boolean;
   editorError: string | null;
+  editorErrorSlot: number;
+  reloadBusy: boolean;
+  reloadSlot: number;
   captureBusy: boolean;
   captureSlot: number;
   capture: ControlPatchStateCapture | null;
@@ -79,6 +82,9 @@ export function initialSnapshot(): AppSnapshot {
     editorOpenSlot: -1,
     editorBusy: false,
     editorError: null,
+    editorErrorSlot: -1,
+    reloadBusy: false,
+    reloadSlot: -1,
     captureBusy: false,
     captureSlot: -1,
     capture: null,

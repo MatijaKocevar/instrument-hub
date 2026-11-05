@@ -15,6 +15,7 @@ export type ControlAudioPatch = components["schemas"]["AudioPatch"];
 export type ControlAudioChannel = components["schemas"]["AudioChannel"];
 export type ControlPairingState = components["schemas"]["PairingState"];
 export type ControlPairResponse = components["schemas"]["PairResponse"];
+export type ControlPluginPage = components["schemas"]["PluginPage"];
 export type ControlPatch = components["schemas"]["Patch"];
 export type ControlPatchUpdate = components["schemas"]["PatchUpdate"];
 export type ControlPatchEditor = components["schemas"]["PatchEditor"];

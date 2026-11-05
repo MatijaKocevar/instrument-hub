@@ -34,3 +34,25 @@ export function colourForIndex(index: number): string {
 export function nextColourIndex(index: number): number {
   return (clampColourIndex(index) + 1) % PATCH_COLOURS.length;
 }
+
+export const TRACK_COLOURS = [
+  "#ff6b00",
+  "#6a00ff",
+  "#ff2d6f",
+  "#00a88f",
+  "#ff00c8",
+  "#a16207",
+  "#e5e7eb",
+  "#7e22ce",
+] as const;
+
+export function trackColourForIndex(index: number): string {
+  if (!Number.isInteger(index)) return TRACK_COLOURS[0];
+
+  return (
+    TRACK_COLOURS[
+      ((index % TRACK_COLOURS.length) + TRACK_COLOURS.length) %
+        TRACK_COLOURS.length
+    ] ?? TRACK_COLOURS[0]
+  );
+}

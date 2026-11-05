@@ -81,17 +81,17 @@ export function routeTest(): void {
   );
 
   const clicked: string[] = [];
-  const footerLink = NavLink({
+  const sidebarLink = NavLink({
     item: AUDIO_ITEM,
     route: "grid",
     navigate: (path) => {
       clicked.push(path);
     },
-    variant: "footer",
+    variant: "sidebar",
   });
 
   const onClick = (
-    footerLink.props as {
+    sidebarLink.props as {
       readonly onClick: (event: { preventDefault: () => void }) => void;
     }
   ).onClick;
@@ -100,7 +100,7 @@ export function routeTest(): void {
 
   check(
     clicked.join("|") === "/audio",
-    "clicking the footer Audio & MIDI entry opens /audio",
+    "clicking the sidebar Audio & MIDI entry opens /audio",
   );
 }
 
@@ -119,6 +119,11 @@ export async function shellTest(): Promise<void> {
     writeArtifact("ui-shell-1200x800.html", wide);
 
     const wideNav = sectionOf(wide, 'data-testid="app-nav"', "</nav>");
+    const wideSettingsNav = sectionOf(
+      wide,
+      'data-testid="settings-nav"',
+      "</nav>",
+    );
     const wideFooter = sectionOf(wide, 'data-testid="app-footer"', "</footer>");
 
     check(
@@ -147,15 +152,19 @@ export async function shellTest(): Promise<void> {
     );
     check(
       !wideNav.includes('data-testid="nav-audio"'),
-      "Audio & MIDI is not a sidebar workspace item",
+      "Audio & MIDI is not a workspace item",
     );
     check(
-      countOf(wideFooter, 'data-testid="nav-audio"') === 1,
-      "the footer carries the Audio & MIDI entry",
+      countOf(wideSettingsNav, 'data-testid="nav-audio"') === 1,
+      "the Settings & Account group carries the Audio & MIDI entry",
     );
     check(
-      wideFooter.includes('href="/audio"'),
-      "the footer Audio & MIDI entry routes to /audio",
+      wideSettingsNav.includes('href="/audio"'),
+      "the sidebar Audio & MIDI entry routes to /audio",
+    );
+    check(
+      !wideFooter.includes('data-testid="nav-audio"'),
+      "the footer no longer carries the Audio & MIDI entry",
     );
     check(
       wide.includes('data-testid="settings-group"'),
@@ -170,8 +179,8 @@ export async function shellTest(): Promise<void> {
       "the active route is highlighted on /grid",
     );
     check(
-      wide.includes(">Audio &amp; MIDI<"),
-      "the footer entry is named Audio & MIDI",
+      wideSettingsNav.includes(">Audio &amp; MIDI<"),
+      "the sidebar entry is named Audio & MIDI",
     );
     check(
       !wide.includes("app__nav-link"),
@@ -398,6 +407,7 @@ export function assertSnapshotNonBlank(html: string): void {
 
 export function assertSnapshotShell(html: string): void {
   const nav = sectionOf(html, 'data-testid="app-nav"', "</nav>");
+  const settingsNav = sectionOf(html, 'data-testid="settings-nav"', "</nav>");
   const footer = sectionOf(html, 'data-testid="app-footer"', "</footer>");
 
   check(
@@ -438,18 +448,22 @@ export function assertSnapshotShell(html: string): void {
   );
   check(
     !nav.includes('data-testid="nav-audio"'),
-    "Audio & MIDI is not a sidebar workspace item",
+    "Audio & MIDI is not a workspace item",
   );
   check(
-    footer.includes('data-testid="nav-audio"'),
-    "the footer carries the Audio & MIDI entry",
+    settingsNav.includes('data-testid="nav-audio"'),
+    "the Settings & Account group carries the Audio & MIDI entry",
+  );
+  check(
+    !footer.includes('data-testid="nav-audio"'),
+    "the footer no longer carries the Audio & MIDI entry",
   );
   check(
     html.includes(">Grid<") &&
       html.includes(">Instrument<") &&
       html.includes(">Plugins<") &&
-      html.includes("Audio &amp; MIDI"),
-    "the workspace items are Grid, Instrument, Plugins and Audio & MIDI",
+      settingsNav.includes("Audio &amp; MIDI"),
+    "the workspace items and the settings group list every destination",
   );
   check(
     html.includes('data-testid="settings-group"'),
@@ -488,21 +502,23 @@ export function assertSnapshotActiveNav(
 }
 
 export function assertSnapshotFooter(html: string, armedSlot: number): void {
+  const sidebar = sectionOf(html, 'data-testid="app-sidebar"', "</aside>");
+
   check(
     armedSlot < 0 === html.includes("armed none"),
-    "footer reports the fetched arm state",
+    "the footer reports the fetched arm state",
   );
   check(
-    html.includes('data-testid="project-name"') && html.includes(">Demo<"),
-    "the footer shows the project name",
+    sidebar.includes('data-testid="project-name"') && html.includes(">Demo<"),
+    "the sidebar shows the project name",
   );
   check(
-    html.includes('data-testid="project-dirty" data-dirty="false"'),
+    sidebar.includes('data-testid="project-dirty" data-dirty="false"'),
     "a clean project carries a cleared dirty marker",
   );
   check(
-    html.includes('data-testid="project-save"') &&
-      html.includes('data-testid="project-open"'),
-    "the footer offers the Save and Open actions",
+    sidebar.includes('data-testid="project-save"') &&
+      sidebar.includes('data-testid="project-open"'),
+    "the sidebar offers the Save and Open actions",
   );
 }

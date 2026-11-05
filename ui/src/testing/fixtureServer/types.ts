@@ -50,6 +50,7 @@ export interface FixtureServer {
     body: Record<string, unknown>;
   }[];
   readonly editorRequests: readonly { slot: number; open: boolean }[];
+  readonly reloadRequests: readonly { slot: number }[];
   readonly stateCaptureRequests: readonly { slot: number }[];
   readonly pluginRequests: readonly string[];
   readonly midiRequests: readonly ControlMidiInputUpdate[];
@@ -103,6 +104,7 @@ export interface FixtureContext {
   }[];
   readonly sourceRequests: { slot: number; body: Record<string, unknown> }[];
   readonly editorRequests: { slot: number; open: boolean }[];
+  readonly reloadRequests: { slot: number }[];
   readonly stateCaptureRequests: { slot: number }[];
   readonly pluginRequests: string[];
   readonly midiRequests: ControlMidiInputUpdate[];

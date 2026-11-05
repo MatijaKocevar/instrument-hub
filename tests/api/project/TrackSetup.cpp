@@ -34,13 +34,13 @@ constexpr const char* insertTypes[] = { "eq", "compressor", "delay", "reverb" };
 
 int volumeStepFor (int track)
 {
-    return track % 6;
+    return track % 5;
 }
 
 double gainForStep (int step)
 {
-    static constexpr double gains[] = { 0.0, 0.25, 0.5, 0.75, 1.0,
-                                        1.9952623149688795 };
+    static constexpr double gains[] = { 0.0, 0.5, 0.75, 1.0,
+                                        1.4125375446227544 };
     return gains[step];
 }
 

@@ -56,7 +56,7 @@ void runCaptureChecks()
                       == Launchpad::velocityFor (Launchpad::Colour::Red),
            "exactly one track LED is red, on the pressed track");
     check (fixture.driver.getPadLed (56).velocity
-               == Launchpad::velocityForPatchColour (0),
+               == Launchpad::velocityForTrackColour (0),
            "the other track pads keep their instrument colours");
 
     fixture.press (48);
@@ -103,50 +103,44 @@ void runCaptureChecks()
     check (trackAt (snapshot, 0).volumeStep == 2
                && ! fixture.gains.empty()
                && fixture.gains.back().slot == 0
-               && near (fixture.gains.back().gain, 0.5),
-           "volume pad 16 sets track 1 to step 2 (gain 0.5)");
+               && near (fixture.gains.back().gain, 0.75),
+           "volume pad 16 sets track 1 to 75% (gain 0.75)");
 
     fixture.paint();
-    check (fixture.driver.getPadLed (16).velocity
-               == Launchpad::velocityFor (Launchpad::Colour::Blue),
-           "the active volume pad is lit");
+    check (fixture.driver.getPadLed (16).velocity == 0x13,
+           "the 75% volume pad is lit in its green shade");
 
     check (fixture.state->getArmedSlot() == 1,
            "fx and volume pads do not re-arm the selected track");
 
-    fixture.press (32);
-    fixture.release (32);
+    fixture.press (8);
+    fixture.release (8);
     snapshot = fixture.state->snapshot();
-    check (trackAt (snapshot, 0).volumeStep == 4
+    check (trackAt (snapshot, 0).volumeStep == 1
+               && near (fixture.gains.back().gain, 0.5),
+           "volume pad 8 sets track 1 to 50% (gain 0.5)");
+
+    fixture.press (24);
+    fixture.release (24);
+    snapshot = fixture.state->snapshot();
+    check (trackAt (snapshot, 0).volumeStep == 3
                && near (fixture.gains.back().gain, 1.0),
-           "the first press of the 100% pad selects 100%, not over");
+           "volume pad 24 sets track 1 to 100% (unity gain)");
 
     fixture.paint();
-    check (fixture.driver.getPadLed (32).velocity
-               == Launchpad::velocityFor (Launchpad::Colour::Blue),
-           "100% lights the 100% pad in the normal active colour");
+    check (fixture.driver.getPadLed (24).velocity == 0x18,
+           "the 100% pad lights in a lighter green");
 
     fixture.press (32);
     fixture.release (32);
     snapshot = fixture.state->snapshot();
-    check (trackAt (snapshot, 0).volumeStep == 5
-               && near (fixture.gains.back().gain, 1.9952623149688795),
-           "a repeated 100% press applies the +6 dB over step");
-
-    fixture.paint();
-    check (fixture.driver.getPadLed (32).velocity
-               == Launchpad::velocityFor (Launchpad::Colour::White),
-           "the over step uses a bright non-red LED");
-
-    fixture.press (32);
-    fixture.release (32);
-    snapshot = fixture.state->snapshot();
-    fixture.paint();
     check (trackAt (snapshot, 0).volumeStep == 4
-               && near (fixture.gains.back().gain, 1.0)
-               && fixture.driver.getPadLed (32).velocity
-                      != Launchpad::velocityFor (Launchpad::Colour::White),
-           "pressing over again returns to 100%");
+               && near (fixture.gains.back().gain, 1.4125375446227544),
+           "volume pad 32 applies the +3 dB boost step");
+
+    fixture.paint();
+    check (fixture.driver.getPadLed (32).velocity == 0x20,
+           "the +3 dB step uses the lightest green LED");
 
     fixture.press (63);
     fixture.release (63);
@@ -158,7 +152,7 @@ void runCaptureChecks()
                && fixture.driver.getPadLed (63).velocity
                       == Launchpad::velocityFor (Launchpad::Colour::Red)
                && fixture.driver.getPadLed (57).velocity
-                      == Launchpad::velocityForPatchColour (1),
+                      == Launchpad::velocityForTrackColour (1),
            "switching tracks moves the single red LED to track 8");
 }
 

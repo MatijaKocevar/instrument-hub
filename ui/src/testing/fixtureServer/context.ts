@@ -120,6 +120,7 @@ export function createFixtureContext(
     fxRequests: [],
     sourceRequests: [],
     editorRequests: [],
+    reloadRequests: [],
     stateCaptureRequests: [],
     pluginRequests: [],
     midiRequests: [],

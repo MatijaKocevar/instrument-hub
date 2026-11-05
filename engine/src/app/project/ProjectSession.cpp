@@ -107,6 +107,7 @@ bool loadProjectSession (const juce::File& projectFile,
     config.layout = document.layout == Controller::MappingLayout::tracks
                         ? SessionLayout::tracks
                         : SessionLayout::families;
+    config.sharedPluginHost = config.layout == SessionLayout::tracks;
     config.warmSlots.clear();
     config.tracks.clear();
 

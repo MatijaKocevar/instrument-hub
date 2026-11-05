@@ -1,5 +1,6 @@
 #include "SandboxClient.h"
 #include "ProcessLimits.h"
+#include "sandbox/SandboxPageClient.h"
 
 #include <juce_events/juce_events.h>
 
@@ -31,5 +32,10 @@ int main (int argc, char** argv)
 
     juce::ScopedJuceInitialiser_GUI juceInitialiser;
 
-    return ihub::plugins::SandboxClient::run (juce::StringArray (argv, argc));
+    const juce::StringArray commandLine (argv, argc);
+
+    if (commandLine.contains (ihub::plugins::sandbox::cli::pageMapFlag))
+        return ihub::plugins::SandboxPageClient::run (commandLine);
+
+    return ihub::plugins::SandboxClient::run (commandLine);
 }

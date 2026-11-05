@@ -2,20 +2,24 @@ import type { ReactElement } from "react";
 
 import { NavLink } from "./NavLink";
 import { PHASE_LABEL } from "./phaseLabel";
+import { ProjectMenu } from "./ProjectMenu";
 import {
+  AUDIO_ITEM,
   SETTINGS_ITEM,
   WORKSPACE_ITEMS,
   type ShellNavProps,
 } from "./navigation";
+import type { ShellData } from "./useShellData";
 
 export function Sidebar({
+  shell,
   route,
   navigate,
   phase,
   lanEnabled,
   paired,
   version,
-}: ShellNavProps): ReactElement {
+}: ShellNavProps & { readonly shell: ShellData }): ReactElement {
   return (
     <aside
       className="shell__sidebar"
@@ -32,6 +36,10 @@ export function Sidebar({
           </span>
           <span className="shell__brand-lede">Audio workspace</span>
         </span>
+      </div>
+
+      <div className="shell__project" data-testid="sidebar-project">
+        <ProjectMenu shell={shell} />
       </div>
 
       <nav className="shell__nav" aria-label="Workspace" data-testid="app-nav">
@@ -54,6 +62,7 @@ export function Sidebar({
           data-testid="settings-nav"
         >
           <NavLink item={SETTINGS_ITEM} route={route} navigate={navigate} />
+          <NavLink item={AUDIO_ITEM} route={route} navigate={navigate} />
         </nav>
 
         <p

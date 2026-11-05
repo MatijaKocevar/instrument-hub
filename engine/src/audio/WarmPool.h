@@ -57,7 +57,7 @@ public:
     using WarmCallback = std::function<void (int slot)>;
 
     static constexpr int defaultNeighbourCount = 2;
-    static constexpr int maximumWarmInstances = 16;
+    static constexpr int maximumWarmInstances = 32;
 
     explicit WarmPool (int neighbourCount = defaultNeighbourCount);
 

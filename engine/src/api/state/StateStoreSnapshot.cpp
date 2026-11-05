@@ -12,6 +12,7 @@ StateSnapshot StateStore::snapshot() const
     TransportProvider transportReader;
     SlotRuntimeProvider slotReader;
     ProjectStateProvider projectReader;
+    PluginPageProvider pageReader;
     std::vector<PatchInstrumentState> instruments;
     std::vector<PatchMixState> mixes;
     std::vector<bool> editors;
@@ -53,6 +54,7 @@ StateSnapshot StateStore::snapshot() const
         transportReader = transportProvider;
         slotReader = slotRuntimeProvider;
         projectReader = projectStateProvider;
+        pageReader = pluginPageProvider;
     }
 
     if (transportReader != nullptr)
@@ -79,6 +81,7 @@ StateSnapshot StateStore::snapshot() const
                 slot.warmState = runtime.warmState;
                 slot.warm = runtime.warm;
                 slot.editorOpen = runtime.editorOpen;
+                slot.error = runtime.error;
             }
             catch (...)
             {
@@ -91,6 +94,17 @@ StateSnapshot StateStore::snapshot() const
         try
         {
             result.project = projectReader();
+        }
+        catch (...)
+        {
+        }
+    }
+
+    if (pageReader != nullptr)
+    {
+        try
+        {
+            result.pages = pageReader();
         }
         catch (...)
         {
@@ -205,6 +219,7 @@ StateSnapshot StateStore::snapshot() const
             patch.editorOpen = slotReader != nullptr
                                    ? live.editorOpen
                                    : (index < editors.size() && editors[index]);
+            patch.error = live.error;
             patch.latencySamples = live.latencySamples;
             patch.latencyMs = live.latencyMs;
         }

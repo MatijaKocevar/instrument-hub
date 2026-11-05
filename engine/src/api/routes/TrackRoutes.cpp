@@ -137,7 +137,7 @@ void registerTrackRoutes (httplib::Server& server, const RouteContext& context)
 
         if (! object->hasProperty ("step"))
         {
-            setError (response, 400, "body must contain \"step\" (0..5)");
+            setError (response, 400, "body must contain \"step\" (0..4)");
             return;
         }
 

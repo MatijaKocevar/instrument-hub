@@ -65,6 +65,26 @@ void registerStateRoutes (httplib::Server& server, const RouteContext& context)
         setJson (response, 200, stateToVar (context.state.snapshot()));
     });
 
+    server.Post (R"(/pages/([^/]+)/restart)",
+                 [context] (const httplib::Request& request,
+                            httplib::Response& response)
+    {
+        const std::string pageId = request.matches[1].str();
+        std::string error;
+
+        if (! context.state.restartPage (pageId, error))
+        {
+            const int status = error.find ("no audio session") != std::string::npos
+                                   ? 503
+                                   : 404;
+            setError (response, status, error);
+            return;
+        }
+
+        decorate (context, response);
+        setJson (response, 200, stateToVar (context.state.snapshot()));
+    });
+
     server.Get ("/settings", [context] (const httplib::Request&, httplib::Response& response)
     {
         decorate (context, response);

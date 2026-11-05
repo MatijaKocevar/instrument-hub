@@ -4,6 +4,8 @@
 
 #include <juce_core/juce_core.h>
 
+#include <cstdio>
+
 namespace ihub::plugins::sandbox_client
 {
 namespace
@@ -18,6 +20,15 @@ void setControlStatus (sandbox::SharedMemory& shared,
 {
     sandbox::storeRelease (shared.control.status,
                            static_cast<std::int32_t> (status));
+}
+
+void setControlError (sandbox::SharedMemory& shared,
+                      const juce::String& message) noexcept
+{
+    std::snprintf (shared.control.error,
+                   sizeof (shared.control.error),
+                   "%s",
+                   message.toRawUTF8());
 }
 
 void applyState (sandbox::SharedMemory& shared, PluginInstrument* plugin)
@@ -154,10 +165,19 @@ void handleControl (sandbox::SharedMemory& shared,
             const bool open = sandbox::loadRelaxed (shared.control.command)
                               == static_cast<std::int32_t> (sandbox::ControlCommand::openEditor);
 
-            setControlStatus (shared,
-                              editorControl (open, error)
-                                  ? sandbox::ControlStatus::done
-                                  : sandbox::ControlStatus::failed);
+            if (editorControl (open, error))
+            {
+                setControlStatus (shared, sandbox::ControlStatus::done);
+            }
+            else
+            {
+                setControlError (shared,
+                                 error.isNotEmpty()
+                                     ? error
+                                     : juce::String ("the plugin host could not handle the editor request"));
+                setControlStatus (shared, sandbox::ControlStatus::failed);
+            }
+
             return;
         }
 

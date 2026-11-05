@@ -118,6 +118,7 @@ target_sources(instrument-hub
         src/api/state/StateStore.cpp
         src/api/state/StateStoreFx.cpp
         src/api/state/StateStorePatchSource.cpp
+        src/api/state/StateStorePages.cpp
         src/api/state/StateStorePatches.cpp
         src/api/state/StateStoreSession.cpp
         src/api/state/StateStoreSettings.cpp
@@ -288,9 +289,18 @@ target_sources(instrument-hub
         src/plugins/window/PluginEditorWindow.cpp
         src/plugins/window/PluginWindowEditor.cpp
         src/plugins/SandboxHost.cpp
+        src/plugins/PageHost.cpp
+        src/plugins/PageHostSlot.cpp
+        src/plugins/page/PageHostAudio.cpp
+        src/plugins/page/PageHostBundleView.cpp
+        src/plugins/page/PageHostControl.cpp
+        src/plugins/page/PageHostProcess.cpp
+        src/plugins/page/PageHostProcessTree.cpp
+        src/plugins/page/PageHostRecovery.cpp
         src/plugins/sandbox/SandboxHostMidi.cpp
         src/plugins/sandbox/SandboxHostParameters.cpp
         src/plugins/sandbox/SandboxHostProcess.cpp
+        src/plugins/sandbox/SandboxHostCommittedState.cpp
         src/plugins/sandbox/SandboxHostState.cpp
         src/plugins/sandbox/SandboxHostEditor.cpp
         src/plugins/sandbox/SandboxHostStatus.cpp
@@ -326,8 +336,11 @@ target_sources(instrument-hub
         src/session/SessionMeasure.cpp
         src/session/SessionMeasureLatency.cpp
         src/session/SessionPluginMirror.cpp
+        src/session/SessionPluginPage.cpp
+        src/session/SessionPluginReload.cpp
         src/session/SessionPluginSandbox.cpp
         src/session/SessionPluginState.cpp
+        src/session/SessionSharedSlot.cpp
         src/session/SessionRender.cpp
         src/session/SessionWarm.cpp
         src/session/SlotSources.cpp
@@ -494,6 +507,8 @@ target_sources(ihub-sandbox
         src/plugins/sandbox/FakeToneInstrument.cpp
         src/plugins/sandbox/SandboxClientArguments.cpp
         src/plugins/sandbox/SandboxClientControl.cpp
+        src/plugins/sandbox/SandboxClientEditor.cpp
+        src/plugins/sandbox/SandboxPageClient.cpp
         src/plugins/PluginInstrument.cpp
         src/plugins/host/PluginInstrumentBus.cpp
         src/plugins/host/PluginInstrumentMidi.cpp

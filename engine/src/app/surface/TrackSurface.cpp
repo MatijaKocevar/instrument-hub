@@ -3,6 +3,7 @@
 #include "api/StateStore.h"
 #include "controller/LaunchpadDriver.h"
 #include "controller/Mapping.h"
+#include "controller/LaunchpadProtocol.h"
 #include "controller/launchpad/TrackPadRouting.h"
 
 #include <string>
@@ -19,20 +20,22 @@ int trackIndexForSlot (const Api::StateSnapshot& snapshot, int slot) noexcept
     return -1;
 }
 
-Controller::TrackLedSnapshot trackLedSnapshotFor (const Api::StateSnapshot& snapshot,
-                                                  const Api::StateStore& state)
+Controller::TrackLedSnapshot trackLedSnapshotFor (const Api::StateSnapshot& snapshot)
 {
     Controller::TrackLedSnapshot result;
     result.armedSlot = snapshot.armedSlot;
     result.tracks.reserve (snapshot.tracks.size());
 
-    for (const auto& source : snapshot.tracks)
+    for (std::size_t index = 0; index < snapshot.tracks.size(); ++index)
     {
+        const auto& source = snapshot.tracks[index];
+
         Controller::TrackLedState track;
         track.slot = source.slot;
         track.selected = source.selected;
+        track.hasInstrument = source.instrument.kind != "empty";
         track.volumeStep = source.volumeStep;
-        track.colorIndex = state.getPatch (source.slot).colorIndex;
+        track.colorIndex = static_cast<int> (index);
 
         for (std::size_t hot = 0;
              hot < track.hotFx.size() && hot < source.hotFx.size();
@@ -62,6 +65,9 @@ void applyTrackPadAction (Api::StateStore& state,
     if (index < 0)
         return;
 
+    if (snapshot.tracks[static_cast<std::size_t> (index)].instrument.kind == "empty")
+        return;
+
     std::string error;
 
     if (binding.role == Controller::PadRole::fx)
@@ -70,8 +76,7 @@ void applyTrackPadAction (Api::StateStore& state,
         return;
     }
 
-    const auto action = Controller::trackPadActionFor (
-        binding, snapshot.tracks[static_cast<std::size_t> (index)].volumeStep);
+    const auto action = Controller::trackPadActionFor (binding);
 
     if (action.has_value())
         (void) state.setTrackVolumeStep (index, action->step, error);
@@ -88,6 +93,29 @@ void paintTrackLeds (Controller::LaunchpadDriver& driver,
         if (binding == nullptr)
         {
             driver.setPadLed (pad, {});
+            continue;
+        }
+
+        const auto* track = snapshot.trackForSlot (binding->slot);
+
+        if (track != nullptr && track->hasInstrument
+            && binding->role == Controller::PadRole::volume
+            && binding->step == 0)
+        {
+            driver.setPadRgb (pad, 0, 51, 0);
+            continue;
+        }
+
+        const bool wantsTrackRgb =
+            track != nullptr && track->hasInstrument
+            && (binding->role == Controller::PadRole::track
+                || binding->role == Controller::PadRole::patch)
+            && ! track->selected && track->slot != snapshot.armedSlot;
+
+        if (wantsTrackRgb)
+        {
+            const auto rgb = Launchpad::rgbForTrackColour (track->colorIndex);
+            driver.setPadRgb (pad, rgb[0], rgb[1], rgb[2]);
             continue;
         }
 

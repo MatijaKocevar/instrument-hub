@@ -13,6 +13,7 @@ import { handleMidi } from "./routes/midi";
 import { handlePairing } from "./routes/pairing";
 import { handlePatchCapture } from "./routes/patchCapture";
 import { handlePatchEditor } from "./routes/patchEditor";
+import { handlePatchReload } from "./routes/patchReload";
 import { handlePatchSource } from "./routes/patchSource";
 import { handlePatchUpdate } from "./routes/patchUpdate";
 import { handlePlugins } from "./routes/plugins";
@@ -28,6 +29,7 @@ const routes: readonly FixtureRoute[] = [
   handleFxReorder,
   handleFxInsert,
   handlePatchEditor,
+  handlePatchReload,
   handlePatchCapture,
   handlePatchSource,
   handlePlugins,

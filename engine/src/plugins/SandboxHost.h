@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SandboxClient.h"
+#include "SandboxSlotControl.h"
 
 #include "../audio/Slot.h"
 #include "../instruments/Instrument.h"
@@ -17,7 +18,8 @@ namespace ihub::plugins
 class SandboxWatchdog;
 
 class SandboxHost final : public Instrument,
-                          public AudioEngine::SlotSource
+                          public AudioEngine::SlotSource,
+                          public SandboxSlotControl
 {
 public:
     enum class Status
@@ -40,9 +42,12 @@ public:
         int maxBlockSize = 512;
         int numChannels = 2;
 
+        int slotIndex = -1;
+        std::uint64_t generation = 0;
+
         int startupTimeoutMs = 15000;
 
-        int hangTimeoutMs = 2500;
+        int hangTimeoutMs = 5000;
 
         std::function<bool()> shouldAbortStart;
     };
@@ -55,32 +60,41 @@ public:
 
     void stop();
 
-    bool isRunning() const noexcept;
+    bool isRunning() const noexcept override;
 
     Status getStatus() const noexcept;
-    bool isFailed() const noexcept;
+    bool isFailed() const noexcept override;
 
-    juce::String getFailureReason() const;
+    juce::String getFailureReason() const override;
 
     void setStatusCallback (std::function<void (Status, const juce::String&)> callback);
 
-    bool setStateInformation (const void* data, int numBytes);
-    bool setStateInformation (const juce::MemoryBlock& block);
-    juce::MemoryBlock getStateInformation();
+    bool setStateInformation (const void* data, int numBytes) override;
+    bool setStateInformation (const juce::MemoryBlock& block) override;
+    juce::MemoryBlock getStateInformation() override;
 
-    struct ParameterEdit
-    {
-        juce::String id;
-        float normalisedValue = 0.0f;
-    };
+    using StateChangedCallback = std::function<void (const juce::MemoryBlock&,
+                                                     std::uint64_t revision)>;
 
-    bool setParameters (const std::vector<ParameterEdit>& edits);
+    void setStateChangedCallback (StateChangedCallback callback);
 
-    bool openEditor (juce::String& error);
-    bool closeEditor (juce::String& error);
-    bool isEditorOpen() const noexcept;
+    juce::MemoryBlock getLastCommittedState() const override;
+    std::uint64_t getLastCommittedStateRevision() const noexcept override;
 
-    int getChildProcessId() const noexcept;
+    bool flushPublishedState() override;
+
+    using ParameterEdit = SandboxParameterEdit;
+
+    bool setParameters (const std::vector<ParameterEdit>& edits) override;
+
+    bool openEditor (juce::String& error) override;
+    bool closeEditor (juce::String& error) override;
+    bool isEditorOpen() const noexcept override;
+
+    int getChildProcessId() const noexcept override;
+
+    int getSlotIndex() const noexcept { return options.slotIndex; }
+    std::uint64_t getGeneration() const noexcept { return options.generation; }
 
     void prepare (double sampleRate, int maximumBlockSize) override;
 
@@ -93,11 +107,11 @@ public:
 
     Instrument::Kind kind() const noexcept override { return Instrument::Kind::Plugin; }
 
-    int getPluginLatencySamples() const noexcept;
-    int getUnderrunCount() const noexcept;
-    int getDroppedRequestCount() const noexcept;
-    int getDroppedMidiEventCount() const noexcept;
-    std::int64_t getPlayedBlockCount() const noexcept;
+    int getPluginLatencySamples() const noexcept override;
+    int getUnderrunCount() const noexcept override;
+    int getDroppedRequestCount() const noexcept override;
+    int getDroppedMidiEventCount() const noexcept override;
+    std::int64_t getPlayedBlockCount() const noexcept override;
 
     juce::File getSharedMemoryFile() const noexcept { return sharedMemoryFile; }
 
@@ -123,6 +137,8 @@ private:
     void resetTransportState() noexcept;
     void closeSharedMemory() noexcept;
     juce::String readChildError() const;
+    juce::String readControlError() const;
+    void commitState (const juce::MemoryBlock& state, bool notify);
     bool runControlCommand (sandbox::ControlCommand command,
                             const juce::MemoryBlock& input,
                             juce::MemoryBlock& output,
@@ -140,6 +156,13 @@ private:
 
     juce::CriticalSection controlLock;
     juce::File stateTransferFile;
+    juce::File editorStateFile;
+
+    mutable juce::CriticalSection stateLock;
+    juce::MemoryBlock lastCommittedState;
+    std::uint64_t lastCommittedRevision = 0;
+    std::uint32_t seenEditorStateRevision = 0;
+    StateChangedCallback stateChangedCallback;
 
     std::atomic<Status> status { Status::stopped };
     std::atomic<bool> failed { false };

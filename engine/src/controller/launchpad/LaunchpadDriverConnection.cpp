@@ -13,6 +13,9 @@ LaunchpadDriver::LaunchpadDriver()
     for (auto& led : padLeds)
         led.store (0);
 
+    for (auto& rgb : padRgb)
+        rgb.store (0);
+
     for (auto& state : buttonStates)
         state.store (static_cast<std::uint8_t> (PadState::idle));
 }
@@ -84,6 +87,8 @@ bool LaunchpadDriver::connect (const DeviceSelection& selection)
         disconnect();
         return false;
     }
+
+    clearLeds();
 
     clearError();
     return true;

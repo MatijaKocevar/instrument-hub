@@ -65,6 +65,33 @@
   transition: width 60ms linear;
 }
 
+.grid__page-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  align-items: baseline;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #6d5a2c;
+  border-radius: 0.75rem;
+  background: rgba(113, 89, 34, 0.28);
+  color: #f4dfa4;
+  font-size: 0.82rem;
+}
+
+.grid__page-status strong {
+  color: #ffe9ad;
+}
+
+.grid__page-status--failed {
+  border-color: #7d3038;
+  background: rgba(112, 32, 42, 0.32);
+  color: #ffc7cb;
+}
+
+.grid__page-status--failed strong {
+  color: #ffd7da;
+}
+
 .grid__scroll {
   overflow-x: auto;
   padding-bottom: 0.15rem;

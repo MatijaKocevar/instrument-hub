@@ -39,7 +39,7 @@ export function AppShell({
       data-layout={narrow ? "narrow" : "wide"}
       data-viewport-width={width}
     >
-      {narrow ? null : <Sidebar {...navProps} />}
+      {narrow ? null : <Sidebar {...navProps} shell={shell} />}
 
       <div className="app-shell__main">
         <main className="app" data-route={router.route}>
@@ -57,11 +57,7 @@ export function AppShell({
             <RouteOutlet router={router} shell={shell} />
           </div>
 
-          <ShellFooter
-            shell={shell}
-            route={router.route}
-            navigate={router.navigate}
-          />
+          <ShellFooter shell={shell} />
         </main>
       </div>
 

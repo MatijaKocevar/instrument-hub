@@ -104,13 +104,13 @@ bool Rig::build (std::string& errorText)
         const auto frequency = normalisedFrequency (
             kFrequencies[static_cast<std::size_t> (slot)]);
 
-        if (auto* sandbox = sessionInstance.getSandboxHost (slot))
+        if (auto* sandbox = sessionInstance.getSandboxSlotControl (slot))
         {
             if (! sandbox->isRunning())
                 return fail (errorText, "track slot " + juce::String (slot)
                                             + " sandbox is not running");
 
-            const std::vector<ihub::plugins::SandboxHost::ParameterEdit> edits {
+            const std::vector<ihub::plugins::SandboxParameterEdit> edits {
                 { "Gain", 0.0f },
                 { "Sine Level", 1.0f },
                 { "Frequency", frequency }
@@ -199,7 +199,7 @@ bool Rig::build (std::string& errorText)
         bool produced = true;
 
         for (int slot = 0; slot < kTrackCount; ++slot)
-            if (auto* sandbox = sessionInstance.getSandboxHost (slot);
+            if (auto* sandbox = sessionInstance.getSandboxSlotControl (slot);
                 sandbox != nullptr && sandbox->getPlayedBlockCount() == 0)
                 produced = false;
 

@@ -5,6 +5,7 @@
 #include "sandbox/FakeToneInstrument.h"
 #include "sandbox/SandboxClientArguments.h"
 #include "sandbox/SandboxClientControl.h"
+#include "sandbox/SandboxClientEditor.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -17,6 +18,11 @@
 
 #if JUCE_LINUX || JUCE_MAC
  #include <unistd.h>
+#endif
+
+#if JUCE_LINUX
+ #include <csignal>
+ #include <sys/prctl.h>
 #endif
 
 namespace ihub::plugins
@@ -61,6 +67,9 @@ bool hasDisplay()
     return juce::SystemStats::getEnvironmentVariable ("DISPLAY", {}).isNotEmpty()
         || juce::SystemStats::getEnvironmentVariable ("WAYLAND_DISPLAY", {}).isNotEmpty();
 }
+
+using sandbox_client::consumeEditorCapture;
+using sandbox_client::publishEditorState;
 }
 
 int SandboxClient::run (const juce::StringArray& commandLine)
@@ -93,6 +102,14 @@ int SandboxClient::run (const juce::StringArray& commandLine)
 
     if (sandbox::loadAcquire (shared.state) == static_cast<std::int32_t> (sandbox::ProcessState::stopping))
         return 0;
+
+   #if JUCE_LINUX
+    prctl (PR_SET_PDEATHSIG, SIGKILL);
+
+    if (shared.parentProcessId > 0
+        && static_cast<std::int32_t> (getppid()) != shared.parentProcessId)
+        return 0;
+   #endif
 
    #if JUCE_LINUX || JUCE_MAC
     sandbox::storeRelaxed (shared.childProcessId,
@@ -195,11 +212,15 @@ int SandboxClient::run (const juce::StringArray& commandLine)
                 }
 
                 if (editorWindow == nullptr)
+                {
                     editorWindow = std::make_unique<PluginWindow>();
+                    editorWindow->setHideOnClose (true);
+                }
 
                 editorWindow->onClose = [&shared]
                 {
                     sandbox::storeRelaxed (shared.editorOpen, 0);
+                    sandbox::storeRelease (shared.editorCaptureRequested, 1);
                 };
 
                 juce::String openError;
@@ -227,14 +248,13 @@ int SandboxClient::run (const juce::StringArray& commandLine)
             }
 
             if (editorWindow != nullptr)
-            {
                 editorWindow->close();
-                editorWindow.reset();
-            }
 
             sandbox::storeRelaxed (shared.editorOpen, 0);
             return true;
         });
+
+        consumeEditorCapture (shared, plugin.get());
 
         if (! result.has_value())
         {
@@ -272,6 +292,8 @@ int SandboxClient::run (const juce::StringArray& commandLine)
             if (sandbox::loadAcquire (shared.state)
                 == static_cast<std::int32_t> (sandbox::ProcessState::stopping))
                 break;
+
+            consumeEditorCapture (shared, plugin.get());
 
             sandbox_client::handleControl (shared,
                                            plugin.get(),

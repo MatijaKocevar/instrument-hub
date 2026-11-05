@@ -261,6 +261,11 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
             return session.closeEditor (slot, error);
         });
 
+    state.setPatchReloadHandler ([&session] (int slot, std::string& error)
+    {
+        return session.reloadPlugin (slot, error);
+    });
+
     state.setPatchStateCaptureHandler (
         [&session] (int slot, PatchStateCapture& capture, std::string& error)
         {
@@ -435,6 +440,7 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         runtime.warmState = session.getWarmStateName (slot);
         runtime.warm = session.isSlotWarm (slot);
         runtime.editorOpen = session.isEditorOpen (slot);
+        runtime.error = session.getSlotError (slot).toStdString();
         return runtime;
     });
 
@@ -448,9 +454,30 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         state.notifyChanged ("warm", slot);
     });
 
+    session.setPageStatusObserver ([&state, lifetime = state.getLifetime()]
+    {
+        const std::lock_guard<std::mutex> lock (lifetime->mutex);
+
+        if (! lifetime->alive)
+            return;
+
+        state.notifyChanged ("page", -1);
+    });
+
+    state.setPluginPageProvider ([&session]
+    {
+        return session.getPluginPageStatuses();
+    });
+
+    state.setPageRestartHandler ([&session] (const std::string& page, std::string& error)
+    {
+        return session.restartPluginPage (page, error);
+    });
+
     state.setDetachHandler ([&session]
     {
         session.setSlotStateObserver ({});
+        session.setPageStatusObserver ({});
     });
 
     state.setTransportProvider ([&session]

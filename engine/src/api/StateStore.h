@@ -5,6 +5,7 @@
 #include "state/LiveState.h"
 #include "state/MidiState.h"
 #include "state/PatchState.h"
+#include "state/PluginPageState.h"
 #include "state/PluginState.h"
 #include "state/TrackState.h"
 #include "state/TransportState.h"
@@ -143,6 +144,19 @@ public:
 
     bool closePatchEditor (int slot, std::string& error);
 
+    using PatchReloadHandler = std::function<bool (int slot, std::string& error)>;
+    void setPatchReloadHandler (PatchReloadHandler handler);
+
+    bool reloadPatch (int slot, std::string& error);
+
+    using PageRestartHandler = std::function<bool (const std::string& page,
+                                                   std::string& error)>;
+    void setPageRestartHandler (PageRestartHandler handler);
+    bool restartPage (const std::string& page, std::string& error);
+
+    void setPluginPageProvider (PluginPageProvider provider);
+    std::vector<PluginPageStatus> getPluginPageStatuses() const;
+
     using PatchStateCaptureHandler =
         std::function<bool (int slot, PatchStateCapture& capture, std::string& error)>;
     void setPatchStateCaptureHandler (PatchStateCaptureHandler handler);
@@ -216,6 +230,9 @@ private:
     PatchSourceHandler patchSourceHandler;
     PatchEditorHandler patchEditorHandler;
     PatchEditorHandler patchEditorCloseHandler;
+    PatchReloadHandler patchReloadHandler;
+    PageRestartHandler pageRestartHandler;
+    PluginPageProvider pluginPageProvider;
     PatchStateCaptureHandler patchStateCaptureHandler;
     FxChainProvider fxProvider;
     FxCommandHandler fxHandler;

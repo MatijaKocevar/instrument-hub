@@ -44,7 +44,7 @@ bool Session::ensurePluginMirrorNow (int slot, std::string& error)
     if (pluginState.getInstrument (slot) != nullptr)
         return true;
 
-    auto* sandbox = sandboxForSlot (slot);
+    auto* sandbox = getSandboxSlotControl (slot);
 
     if (sandbox == nullptr)
     {

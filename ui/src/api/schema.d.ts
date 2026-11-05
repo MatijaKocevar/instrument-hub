@@ -25,6 +25,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pages/{page}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Plugin page id, for example `tracks`. */
+                page: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restart a shared plugin page
+         * @description Stops the shared plugin host for the page, restarts it, restores every
+         *     slot's last committed plugin state, and re-arms the track that was
+         *     active before the restart. The engine keeps running if the restart
+         *     fails and reports the failure in the page status.
+         */
+        post: operations["restartPage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tracks/{index}/select": {
         parameters: {
             query?: never;
@@ -261,6 +287,35 @@ export interface paths {
          *     unloading the patch closes its editor before the processor is retired.
          */
         delete: operations["closePatchEditor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patches/{slot}/reload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restart one patch's plugin instance from its committed state
+         * @description Stops only this slot's plugin sandbox, waits for it to exit, then starts
+         *     a fresh instance for the same slot and applies the last committed plugin
+         *     state. A healthy instance is captured first; a failed or hung instance is
+         *     never queried for state. Every other slot and its state is left untouched.
+         *
+         *     The response is the complete state after the restart. A failed restart
+         *     leaves a slot-local `error` on the patch and answers with the failure.
+         */
+        post: operations["reloadPatch"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -881,6 +936,10 @@ export interface components {
             latencySamples: number;
             /** @description The same chain latency in milliseconds at the engine sample rate. */
             latencyMs: number;
+            /** @description True while this slot's native plugin editor window is open. */
+            editorOpen?: boolean;
+            /** @description The slot-local plugin failure, empty when the slot is healthy. */
+            error?: string;
         };
         Settings: {
             /**
@@ -977,10 +1036,27 @@ export interface components {
             warm: boolean;
             /** @description True while the patch's native plugin editor window is open. */
             editorOpen: boolean;
+            /** @description The slot-local plugin failure, empty when the patch is healthy. */
+            error?: string;
             /** @description Instrument + FX latency of this patch's chain, in samples. */
             latencySamples: number;
             /** @description The same chain latency in milliseconds. */
             latencyMs: number;
+        };
+        PluginPage: {
+            /** @description Page id, for example `tracks`. */
+            id: string;
+            /**
+             * @description Shared plugin-host status for the page.
+             * @enum {string}
+             */
+            status: "starting" | "ready" | "recovering" | "failed" | "stopped";
+            /** @description Slots hosted by the page, in page order. */
+            slots: number[];
+            /** @description The slot that was last armed on this page. */
+            activeSlot: number;
+            /** @description Page-level failure or recovery reason, empty when healthy. */
+            error: string;
         };
         Family: {
             id: string;
@@ -1150,6 +1226,8 @@ export interface components {
              *     family projects omit the field so their v1 state is unchanged.
              */
             tracks?: components["schemas"]["Track"][];
+            /** @description Shared plugin-host pages, empty for the legacy family layout. */
+            pages?: components["schemas"]["PluginPage"][];
             /** @description Family -> patch tree, one entry per patch. */
             families: components["schemas"]["Family"][];
             settings: components["schemas"]["Settings"];
@@ -1168,8 +1246,8 @@ export interface components {
             selected: boolean;
             instrument: components["schemas"]["PatchInstrument"];
             /**
-             * @description Stepped volume: 0 silent, 1 25%, 2 50%, 3 75%, 4 100% (0 dB),
-             *     5 +6 dB over.
+             * @description Stepped volume: 0 silent, 1 50%, 2 75%, 3 100% (0 dB),
+             *     4 +3 dB.
              */
             volumeStep: number;
             /** @description The published gain in dB; step 0 reports -60. */
@@ -1194,9 +1272,8 @@ export interface components {
         };
         TrackVolumeRequest: {
             /**
-             * @description Volume step. 0 is silent, 1 is 25% (-12.0 dB), 2 is 50%
-             *     (-6.0 dB), 3 is 75% (-2.5 dB), 4 is 100% (0 dB) and 5 is the
-             *     +6 dB over step.
+             * @description Volume step. 0 is silent, 1 is 50% (-6.0 dB), 2 is 75%
+             *     (-2.5 dB), 3 is 100% (0 dB) and 4 is +3 dB.
              */
             step: number;
         };
@@ -1622,6 +1699,47 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
+    restartPage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Plugin page id, for example `tracks`. */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page restarted and the complete state after recovery. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            /** @description No plugin page with that id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The server has no audio session attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     selectTrack: {
         parameters: {
             query?: never;
@@ -1772,7 +1890,7 @@ export interface operations {
                     "application/json": components["schemas"]["State"];
                 };
             };
-            /** @description The step is missing or outside 0-5 */
+            /** @description The step is missing or outside 0-4 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2021,6 +2139,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PatchEditor"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No patch is hosted by that slot */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    reloadPatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The state after the plugin restart */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["State"];
+                };
+            };
+            /** @description The slot does not host a plugin or the restart failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             401: components["responses"]["Unauthorized"];

@@ -74,6 +74,35 @@ SysExFrame ledSleepFrame (bool awake)
     return makeSysExFrame (SysExCommand::LedSleep, payload);
 }
 
+namespace
+{
+std::uint8_t toSevenBit (std::uint8_t value) noexcept
+{
+    return static_cast<std::uint8_t> ((static_cast<int> (value) * 127 + 127) / 255);
+}
+}
+
+SysExFrame rgbPadFrame (int padIndex,
+                        std::uint8_t red,
+                        std::uint8_t green,
+                        std::uint8_t blue)
+{
+    const int led = padNoteForIndex (padIndex);
+
+    if (led < 0 || led > 127)
+        return {};
+
+    const std::array<std::uint8_t, 5> payload {
+        0x03,
+        static_cast<std::uint8_t> (led),
+        toSevenBit (red),
+        toSevenBit (green),
+        toSevenBit (blue)
+    };
+
+    return makeSysExFrame (SysExCommand::LedLighting, payload);
+}
+
 bool isProgrammerModeFrame (std::span<const std::uint8_t> bytes)
 {
     if (bytes.size() != sysExHeader.size() + 3)

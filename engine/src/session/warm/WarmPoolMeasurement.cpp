@@ -188,13 +188,15 @@ void WarmPoolController::releaseAllPinsLocked()
 void WarmPoolController::pumpMessages (int milliseconds)
 {
    #if JUCE_MODAL_LOOPS_PERMITTED
-    if (auto* manager = juce::MessageManager::getInstanceWithoutCreating())
+    if (auto* manager = juce::MessageManager::getInstanceWithoutCreating();
+        manager != nullptr && manager->isThisTheMessageThread())
+    {
         manager->runDispatchLoopUntil (milliseconds);
-    else
-        juce::Thread::sleep (milliseconds);
-   #else
-    juce::Thread::sleep (milliseconds);
+        return;
+    }
    #endif
+
+    juce::Thread::sleep (milliseconds);
 }
 
 }

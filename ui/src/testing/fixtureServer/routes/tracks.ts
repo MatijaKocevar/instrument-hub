@@ -2,13 +2,10 @@ import { readJsonObject, sendJson } from "../http";
 import type { FixtureContext, FixtureRoute } from "../types";
 import { recalculateChain } from "../../fixtures";
 
-const OVER_GAIN = 1.9952623149688795;
+const STEP_GAINS = [0, 0.5, 0.75, 1, 1.4125375446227544] as const;
 
 function stepGain(step: number): number {
-  if (step === 0) return 0;
-  if (step === 5) return OVER_GAIN;
-
-  return step / 4;
+  return STEP_GAINS[step] ?? STEP_GAINS[3];
 }
 
 function stepDb(step: number): number {
@@ -187,9 +184,9 @@ export const handleTracks: FixtureRoute = (context, request, response) => {
         typeof step !== "number" ||
         !Number.isInteger(step) ||
         step < 0 ||
-        step > 5
+        step > 4
       ) {
-        sendJson(response, 400, { error: "step must be between 0 and 5" });
+        sendJson(response, 400, { error: "step must be between 0 and 4" });
         return;
       }
 

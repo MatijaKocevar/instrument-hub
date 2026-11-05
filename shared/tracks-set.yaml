@@ -4,7 +4,7 @@
 # instrument and no FX; assign a source and mark up to two inserts as hot
 # from the Instrument page.
 #
-# Rows, bottom to top: 0-4 volume steps (0/25/50/75/100%), 5-6 hot FX
+# Rows, bottom to top: 0-4 volume steps (0/50/75/100%/+3 dB), 5-6 hot FX
 # toggles, 7 track selector. Each column is one track.
 
 schemaVersion: 2
