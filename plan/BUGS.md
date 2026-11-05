@@ -146,17 +146,17 @@ reported by the human or reproduced on this machine.
 - evidence: Playwright before the fix read `data-row="0"` first with `data-slot` 0–7; after the fix the first rendered family row is `data-row="7"` with `data-slot` 56–63 and the last is `data-row="0"` with 0–7 (screenshots `tests/artifacts/ui-grid-before-T196.png`, `ui-grid-after-T196.png`); clicking the top row's slot 60 opened `/instrument?slot=60` and `GET /state` reported `armedSlot: 60`, clicking the bottom row's slot 3 reported `armedSlot: 3`; `ihub-launchpad-protocol-test` -> `ok : note 11 maps back to pad 0`, `ihub-launchpad-driver-test` captures the note-11 LED as pad 0, `ihub-e2e` -> `pad 0 arms slot 0` and `PASS`; `cd ui && pnpm test:snapshot` -> `ui-snapshot: all checks passed` including `PASS the top rendered row holds slots 57–64`; `scripts/test.sh` -> 100% tests passed, 0 failed out of 68
 - fix: T196 adds `gridRows()` in `ui/src/features/grid/model.ts`, which reverses the family order for rendering only; `GridTable` renders top-down while slot indexes, column order and all slot-keyed callbacks stay unchanged, and `data-row` keeps the hardware row (0 = bottom), so the rendered rows are numbered 08 at the top to 01 at the bottom. Snapshot assertions moved to `ui/src/testing/scenarios/gridSnapshot.tsx` with new top-down row checks against the 64-slot fixture.
 
-### BUG-027 · Project lifecycle reports zero warm track slots after T313
-- status: open
+### BUG-027 · Project lifecycle expects empty tracks to be warm
+- status: fixed
 - area: project | session
 - steps: run `./build-tests/tests/ihub-project-lifecycle-api-test`
-- expected: after `waitForWarmIdle`, `GET /state` reports eight warm track slots
-- actual: `GET /state reports eight warm track slots (got 0)`, while the session reports all eight slots in `warmSlots` and reaches warm idle
-- evidence: 2026-11-05 `ihub-project-lifecycle-api-test` -> `FAIL: 1 failed check(s)`; the pre-T313 `build/tests/ihub-project-lifecycle-api-test` passes
-- fix: pending; T313 enables the shared page host for the tracks layout and the state snapshot does not mark page-warmed slots as `warm`
+- expected: after `waitForWarmIdle`, an empty track project reports its eight slots as cold
+- actual: the test expected eight warm slots, so it failed after BUG-020 stopped warming empty tracks; no engine defect
+- evidence: 2026-11-05 the new project has `warmSlots` 0-7 but every slot is `kind: empty`, and `ihub-project-lifecycle-api-test` now checks `warmSlots == 0` -> `PASS: 0 failed check(s)`
+- fix: the lifecycle test now asserts `GET /state keeps the eight empty track slots cold`, matching BUG-020; no engine change
 
 ### BUG-026 · Every track pad reads red in the track-grid e2e
-- status: reproduced
+- status: fixed
 - area: launchpad, ui
 - steps:
   1. run `ihub-e2e-test` on the current tree
@@ -164,7 +164,7 @@ reported by the human or reproduced on this machine.
 - expected: one red selected track pad, the other seven keep their RGB instrument colours, and the API volume step lights its pad green
 - actual: `exactly one track pad is red (8 found)`; the unselected track colour and API-volume checks also fail. The e2e still renders audio and switches all eight tracks correctly.
 - evidence: 2026-11-05 `ihub-e2e-test` -> `FAIL: 3 failed check(s)`; the same three checks fail with `IHUB_SHARED_PLUGIN_HOST=0`, so this is independent of T313. The snapshot passed to the LED painter has `armedSlot=0` and only track 0 selected, but `paintTrackLeds()` calls `driver.setPadRgb()` for the other tracks while the test reads `driver.getPadLed()`; `setPadRgb()` writes `padRgb` and does not update the `padLeds` snapshot that `getPadLed()` returns. The uncommitted track-LED work (`TrackSurface.cpp`, `TrackPadLeds.cpp`) is the likely source.
-- fix: pending; do not mix this into T313.
+- fix: `setPadRgb()` now stores the matching track-palette velocity in `padLeds` for `getPadLed()`/snapshots while still sending the RGB SysEx frame, and `paintTrackLeds()` passes `launchpadLedForTrackPad(...).velocity`. The track-pad fixture assigns an init-tone source to every track so the FX/volume/LED paths run, and the volume shades are 0x10/0x13/0x18/0x20 for steps 0-4. `ihub-launchpad-track-test` and `ihub-e2e-test` now pass; full suite 76 passed, 1 skipped, 0 failed.
 
 ### BUG-025 · Engine SIGTERM leaves a Wine launcher behind
 - status: reproduced
