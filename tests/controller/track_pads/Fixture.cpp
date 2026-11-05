@@ -46,6 +46,12 @@ bool Fixture::load (std::string& errorText)
             track.hotFx = { "eq", "comp" };
 
         tracks.push_back (std::move (track));
+
+        Api::PatchInstrumentState instrument;
+        instrument.id = "init-tone-" + std::to_string (slot);
+        instrument.name = "Init Tone";
+        instrument.kind = "init-tone";
+        state->setPatchInstrument (slot, instrument);
         state->setPatchMix (slot, 0.0, 0.0, false, false, slot);
     }
 

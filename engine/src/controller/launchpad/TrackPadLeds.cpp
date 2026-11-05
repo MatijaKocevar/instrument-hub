@@ -21,8 +21,8 @@ constexpr std::uint8_t volumeVelocity (int step) noexcept
     switch (step)
     {
         case 0:
-        case 1:  return 0x13;
-        case 2:  return 0x11;
+        case 1:  return 0x10;
+        case 2:  return 0x13;
         case 3:  return 0x18;
         case 4:  return 0x20;
         default: return 0x13;

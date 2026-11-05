@@ -300,7 +300,7 @@ bool runLifecycle (const juce::File& root)
            "the new session protects all eight warm slots");
 
     check (rig.session().waitForWarmIdle (2000),
-           "the eight track slots finish warming");
+           "the empty track session is idle");
 
     response = client.Get ("/state");
     state = response ? parseJson (response->body) : juce::var {};
@@ -323,9 +323,9 @@ bool runLifecycle (const juce::File& root)
             if (boolProperty (entry, "warm"))
                 ++warmSlots;
 
-    check (warmSlots == 8,
-           "GET /state reports eight warm track slots (got "
-               + std::to_string (warmSlots) + ")");
+    check (warmSlots == 0,
+           "GET /state keeps the eight empty track slots cold (got "
+               + std::to_string (warmSlots) + " warm)");
 
     response = client.Post ("/project", R"({"action":"close"})",
                             "application/json");

@@ -102,7 +102,8 @@ void paintTrackLeds (Controller::LaunchpadDriver& driver,
             && binding->role == Controller::PadRole::volume
             && binding->step == 0)
         {
-            driver.setPadRgb (pad, 0, 51, 0);
+            driver.setPadRgb (pad, 0, 51, 0,
+                              Controller::launchpadLedForTrackPad (*binding, snapshot).velocity);
             continue;
         }
 
@@ -115,7 +116,8 @@ void paintTrackLeds (Controller::LaunchpadDriver& driver,
         if (wantsTrackRgb)
         {
             const auto rgb = Launchpad::rgbForTrackColour (track->colorIndex);
-            driver.setPadRgb (pad, rgb[0], rgb[1], rgb[2]);
+            driver.setPadRgb (pad, rgb[0], rgb[1], rgb[2],
+                              Controller::launchpadLedForTrackPad (*binding, snapshot).velocity);
             continue;
         }
 

@@ -60,7 +60,8 @@ void LaunchpadDriver::setPadLed (int padIndex, PatchLed led)
 void LaunchpadDriver::setPadRgb (int padIndex,
                                  std::uint8_t red,
                                  std::uint8_t green,
-                                 std::uint8_t blue)
+                                 std::uint8_t blue,
+                                 std::uint8_t snapshotVelocity)
 {
     if (padIndex < 0 || padIndex >= Launchpad::padCount)
         return;
@@ -69,6 +70,9 @@ void LaunchpadDriver::setPadRgb (int padIndex,
                                | (static_cast<std::uint32_t> (red) << 16)
                                | (static_cast<std::uint32_t> (green) << 8)
                                | static_cast<std::uint32_t> (blue);
+
+    padLeds[static_cast<std::size_t> (padIndex)].store (
+        packLed ({ snapshotVelocity, Launchpad::LedMode::Static }));
 
     auto& slot = padRgb[static_cast<std::size_t> (padIndex)];
 

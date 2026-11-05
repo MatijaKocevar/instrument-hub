@@ -54,6 +54,13 @@ int runParent()
                                              firstLog,
                                              "the first phase");
 
+    if (firstExit == kSkipReturnCode)
+    {
+        std::cout << "SKIP ihub-analog-lab-state: Analog Lab V is not usable"
+                  << std::endl;
+        return kSkipReturnCode;
+    }
+
     std::string hashA;
     std::string hashB;
     const bool haveHashes = readHashes (hashFile, hashA, hashB);
