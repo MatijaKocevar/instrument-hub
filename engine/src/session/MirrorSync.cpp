@@ -1,6 +1,6 @@
 #include "MirrorSync.h"
 
-#include "plugins/SandboxHost.h"
+#include "plugins/SandboxSlotControl.h"
 
 #include <chrono>
 #include <utility>
@@ -203,7 +203,7 @@ void MirrorSync::applyParameters (int slot, std::vector<ParameterEdit> edits)
     if (sandbox == nullptr || ! sandbox->isRunning() || edits.empty())
         return;
 
-    std::vector<plugins::SandboxHost::ParameterEdit> parameterEdits;
+    std::vector<plugins::SandboxParameterEdit> parameterEdits;
     parameterEdits.reserve (edits.size());
 
     for (const auto& edit : edits)

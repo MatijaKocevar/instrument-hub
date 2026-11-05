@@ -15,23 +15,23 @@ export async function projectTest(): Promise<void> {
     await store.refresh();
 
     const html = renderApp(store, "/grid", 1200);
-    const footer = sectionOf(html, 'data-testid="app-footer"', "</footer>");
+    const sidebar = sectionOf(html, 'data-testid="app-sidebar"', "</aside>");
 
     check(
-      footer.includes('data-testid="project-name"') && html.includes(">Demo<"),
-      "the footer shows the open project name",
+      sidebar.includes('data-testid="project-name"') && html.includes(">Demo<"),
+      "the sidebar shows the open project name",
     );
     check(
-      footer.includes('data-testid="project-dirty" data-dirty="false"'),
+      sidebar.includes('data-testid="project-dirty" data-dirty="false"'),
       "a clean project shows no dirty marker",
     );
     check(
-      footer.includes('data-testid="project-save"') &&
-        footer.includes('data-testid="project-open"'),
-      "the footer offers Save and Open actions",
+      sidebar.includes('data-testid="project-save"') &&
+        sidebar.includes('data-testid="project-open"'),
+      "the sidebar offers Save and Open actions",
     );
     check(
-      countOf(footer, 'data-testid="project-recent"') === 2,
+      countOf(sidebar, 'data-testid="project-recent"') === 2,
       "the Open menu lists the recent projects",
     );
 
@@ -67,7 +67,7 @@ export async function projectTest(): Promise<void> {
 
     check(
       opened.includes(">Rehearsal<"),
-      "opening a project updates the footer name",
+      "opening a project updates the sidebar name",
     );
     check(
       server.projectRequests.some(
@@ -81,14 +81,14 @@ export async function projectTest(): Promise<void> {
 
     check(
       renderApp(store, "/grid", 1200).includes(">Fresh<"),
-      "New updates the footer name",
+      "New updates the sidebar name",
     );
 
     await store.saveProjectAs("/home/demo/Music/Instrument Hub/Copy.ihub");
 
     const copied = renderApp(store, "/grid", 1200);
 
-    check(copied.includes(">Copy<"), "Save as updates the footer name");
+    check(copied.includes(">Copy<"), "Save as updates the sidebar name");
     check(
       server.projectRequests.some(
         (request) =>
@@ -101,7 +101,7 @@ export async function projectTest(): Promise<void> {
 
     const closed = renderApp(store, "/grid", 1200);
 
-    check(closed.includes(">No project<"), "Close clears the footer name");
+    check(closed.includes(">No project<"), "Close clears the sidebar name");
     check(
       closed.includes('data-testid="project-dirty" data-dirty="false"'),
       "Close shows no dirty marker",

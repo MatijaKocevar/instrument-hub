@@ -42,6 +42,9 @@ Your job inside a session:
 - Run tests with a hard timeout: `scripts/test.sh` or `ctest --timeout 120`.
   A hung test must fail within two minutes; never treat "still running" as
   progress.
+- Never build the whole tree. The C++ test suite is opt-in
+  (`-DIHUB_BUILD_TESTS=ON`) and each test target recompiles the engine and
+  JUCE; build only the specific executable needed for the task.
 - Write the result file, exactly in this format:
 
 ```

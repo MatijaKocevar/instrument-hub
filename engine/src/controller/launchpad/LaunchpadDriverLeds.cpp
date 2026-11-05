@@ -47,12 +47,35 @@ void LaunchpadDriver::setPadLed (int padIndex, PatchLed led)
         return;
 
     auto& slot = padLeds[static_cast<std::size_t> (padIndex)];
+    auto& rgbSlot = padRgb[static_cast<std::size_t> (padIndex)];
+    const auto previousRgb = rgbSlot.exchange (0);
     const auto packed = packLed (led);
+
+    if (slot.exchange (packed) == packed && previousRgb == 0)
+        return;
+
+    sendPadVelocity (padIndex, led.velocity, led.mode);
+}
+
+void LaunchpadDriver::setPadRgb (int padIndex,
+                                 std::uint8_t red,
+                                 std::uint8_t green,
+                                 std::uint8_t blue)
+{
+    if (padIndex < 0 || padIndex >= Launchpad::padCount)
+        return;
+
+    const std::uint32_t packed = 0x80000000u
+                               | (static_cast<std::uint32_t> (red) << 16)
+                               | (static_cast<std::uint32_t> (green) << 8)
+                               | static_cast<std::uint32_t> (blue);
+
+    auto& slot = padRgb[static_cast<std::size_t> (padIndex)];
 
     if (slot.exchange (packed) == packed)
         return;
 
-    sendPadVelocity (padIndex, led.velocity, led.mode);
+    sendSysEx (Launchpad::rgbPadFrame (padIndex, red, green, blue));
 }
 
 PatchLed LaunchpadDriver::getPadLed (int padIndex) const noexcept
@@ -136,6 +159,17 @@ void LaunchpadDriver::refreshLeds()
 {
     for (int pad = 0; pad < Launchpad::padCount; ++pad)
     {
+        const auto packed = padRgb[static_cast<std::size_t> (pad)].load();
+
+        if (packed != 0)
+        {
+            const auto red = static_cast<std::uint8_t> ((packed >> 16) & 0xFFu);
+            const auto green = static_cast<std::uint8_t> ((packed >> 8) & 0xFFu);
+            const auto blue = static_cast<std::uint8_t> (packed & 0xFFu);
+            sendSysEx (Launchpad::rgbPadFrame (pad, red, green, blue));
+            continue;
+        }
+
         const auto led = getPadLed (pad);
         sendPadVelocity (pad, led.velocity, led.mode);
     }
@@ -160,6 +194,7 @@ void LaunchpadDriver::clearLeds()
         padStates[static_cast<std::size_t> (pad)].store (
             static_cast<std::uint8_t> (PadState::idle));
         padLeds[static_cast<std::size_t> (pad)].store (0);
+        padRgb[static_cast<std::size_t> (pad)].store (0);
         sendPadColour (pad, Launchpad::Colour::Off);
     }
 

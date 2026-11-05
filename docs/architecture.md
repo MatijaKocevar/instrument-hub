@@ -106,9 +106,11 @@ Runtime topology (threads and processes):
 - **Audio device callback thread** — the only real-time thread. It runs
   `Session::audioDeviceIOCallbackWithContext()`.
 - **Helper processes** — `ihub-scanner` (one VST3 bundle per run, result passed
-  by file) and `ihub-sandbox` (the live per-plugin host, audio passed through
-  the documented shared-memory mapping). Neither can take the engine down with
-  it.
+  by file) and `ihub-sandbox` (the live plugin host; one process per instrument
+  page, audio passed through the documented shared-memory mapping). A page host
+  renders every slot on its own worker thread inside the helper, kills its
+  whole process tree when it stops, and is set to die with the engine
+  (`PR_SET_PDEATHSIG`). Neither helper can take the engine down with it.
 
 ---
 
@@ -252,7 +254,7 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   [WarmPool.cpp](../engine/src/audio/WarmPool.cpp) — background instrument
   cache: explicit protected slots (the eight tracks) or the legacy
   active + K neighbours, a live-instance limit equal to the protected count
-  (hard cap 16, legacy `1 + K`), LRU eviction, pinning, deferred loads and
+  (hard cap 32, legacy `1 + K`), LRU eviction, pinning, deferred loads and
   destroy posted to the message thread. Slot reservation, warm-up queue,
   eviction/accounting and the worker thread live in
   [audio/warm/](../engine/src/audio/warm/), so the pool file keeps lifecycle,
@@ -344,12 +346,11 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
 - [launchpad/TrackPadRouting.h](../engine/src/controller/launchpad/TrackPadRouting.h) /
   [TrackPadRouting.cpp](../engine/src/controller/launchpad/TrackPadRouting.cpp)
   — the v2 pad roles: a `track` pad arms its slot, an `fx` pad toggles hot
-  insert 0/1, and a `volume` pad sets steps 0..4; pressing the 100% pad again
-  toggles the +6 dB over step.
+  insert 0/1, and a `volume` pad sets its own step from 0 to +3 dB.
 - [launchpad/TrackPadLeds.h](../engine/src/controller/launchpad/TrackPadLeds.h) /
   [TrackPadLeds.cpp](../engine/src/controller/launchpad/TrackPadLeds.cpp) — the
   track-grid LED policy: red selected track, instrument colour otherwise,
-  green/yellow/dark hot FX, blue active volume step, white over step.
+  green/yellow/dark hot FX, and dark-to-light green volume stages.
   [app/surface/TrackSurface.cpp](../engine/src/app/surface/TrackSurface.cpp)
   turns a pad press into the `StateStore` command and paints this policy.
 - [MappingYaml.h](../engine/src/controller/MappingYaml.h) /
@@ -446,10 +447,24 @@ the kit and sample loaders. Both implement `Instrument` and `SlotSource`.
   [SandboxClient.h](../engine/src/plugins/SandboxClient.h) /
   [SandboxClient.cpp](../engine/src/plugins/SandboxClient.cpp) — out-of-process
   plugin hosting over a shared-memory file mapping; a crash or hang kills only
-  `ihub-sandbox`. Child-process lifecycle, the watchdog, audio transport and
-  MIDI queue live in `plugins/sandbox/`; so do the helper's argument parsing
-  and fake-tone test seam. This is the live factory for every
-  `SessionSlotKind::plugin` slot; see §5.4 and §8.
+  `ihub-sandbox`. The legacy one-host-per-slot path stays behind
+  `IHUB_SHARED_PLUGIN_HOST=0` for migration. Child-process lifecycle, the
+  watchdog, audio transport and MIDI queue live in `plugins/sandbox/`; so do
+  the helper's argument parsing and fake-tone test seam.
+- [PageHost.h](../engine/src/plugins/PageHost.h) /
+  [PageHost.cpp](../engine/src/plugins/PageHost.cpp) and
+  [PageHostSlot.h](../engine/src/plugins/PageHostSlot.h) — the live page host:
+  one `ihub-sandbox` process and one shared-memory `SharedPage` for all plugin
+  slots on an instrument page. Each slot has its own request/reply rings,
+  control channel, heartbeat and committed state; `PageHostSlot` is the
+  per-slot `SlotSource` proxy. Start/stop, process-tree cleanup, watchdog,
+  bounded recovery, state restore, the vstbridge group view and audio/MIDI
+  transport are split across [page/](../engine/src/plugins/page/). See §5.4 and
+  §8.
+- [SandboxSlotControl.h](../engine/src/plugins/SandboxSlotControl.h) — the
+  control surface shared by `SandboxHost` and `PageHostSlot`, so the
+  per-patch state store, mirror sync and editor code do not depend on which
+  hosting path is active.
 - [scanner_main.cpp](../engine/src/plugins/scanner_main.cpp) and
   [sandbox_main.cpp](../engine/src/plugins/sandbox_main.cpp) — entry points for
   the two helper executables.
@@ -734,8 +749,10 @@ installed in `Session::build()` ([Session.cpp](../engine/src/Session.cpp)):
 - `empty` → `SilentSource`
 - `initTone` → `InitToneSource`
 - `sampler` → `PooledSamplerSource` over `SamplerInstrument`
-- `plugin` → `SandboxHost` over an `ihub-sandbox` child, with
-  `applyStoredPluginState(..., force=true)` before publication
+- `plugin` → a `PageHostSlot` backed by the page's shared `PageHost` (the
+  default for the track layout), with the slot's stored plugin state applied
+  before publication. With `IHUB_SHARED_PLUGIN_HOST=0` the legacy
+  `SandboxHost` over one `ihub-sandbox` child is used instead.
 - `audioInput` → `AudioInputInstrument`
 
 The pool prepares the created instance at the session format, moves it into the
@@ -1034,7 +1051,7 @@ or any allocator.
 
 - **Protected set.** `SessionConfig::warmSlots` names the slots the project
   guarantees are resident. A new track project lists all eight tracks (slots
-  0-7), so the live-instance limit is eight; the hard cap is 16. An empty list
+  0-7), so the live-instance limit is eight; the hard cap is 32. An empty list
   keeps the legacy rule: the active slot plus the `K` nearest slot indices
   (default `K = 2`), limit `1 + K`. `preloadAll()` warms every protected slot;
   eviction never picks a protected or pinned slot.
@@ -1068,6 +1085,18 @@ or any allocator.
   automatically. The state never becomes `warm`; `/state` has no `error`
   member today (see §5.1), so the UI/API sees `warming` while the pending arm
   is set. It never sees a partially bound instance.
+- **Shared page host.** In the track layout every plugin slot on the page is a
+  warm `PageHostSlot` backed by one `PageHost` and one `ihub-sandbox`. Starting
+  the page loads every plugin instance once; arming a slot only changes the
+  switcher target and gain ramp. The page watchdog checks the child process and
+  each slot heartbeat. A dead or hung child flips the page to `recovering`,
+  which makes every slot source return silence, then the recovery thread kills
+  the process tree, restarts the host with the same page descriptor, reapplies
+  each slot's committed state, re-arms the previous slot and returns to `ready`.
+  Retries are bounded; a failed page stays failed without taking the engine
+  down. `GET /state` exposes `pages[]` and `POST /pages/{id}/restart` runs the
+  same path manually. The page descriptor is a vector, so the host does not
+  assume eight slots.
 - **Why no locks on audio:** the only cross-thread values are the atomic
   delegate pointer, the switch request, gains, meters and MIDI FIFO. The
   warm-pool mutex, `armMutex`, `pluginStateMutex` and `fxMutex` are all
@@ -1094,10 +1123,10 @@ The Launchpad becomes an eight-column mixer, bottom row first:
 | 7 (top) | 56..63 | track selector | arms that track's slot |
 | 6 | 48..55 | hot FX 1 | toggles bypass on the track's first hot insert |
 | 5 | 40..47 | hot FX 2 | toggles bypass on the track's second hot insert |
-| 4 | 32..39 | volume 100% | sets step 4; pressing again toggles step 5 (+6 dB) |
-| 3 | 24..31 | volume 75% | sets step 3 (0.75 gain) |
-| 2 | 16..23 | volume 50% | sets step 2 (0.5 gain) |
-| 1 | 8..15 | volume 25% | sets step 1 (0.25 gain) |
+| 4 | 32..39 | volume +3 dB | sets step 4 (1.4125 gain) |
+| 3 | 24..31 | volume 100% | sets step 3 (unity gain) |
+| 2 | 16..23 | volume 75% | sets step 2 (0.75 gain) |
+| 1 | 8..15 | volume 50% | sets step 1 (0.5 gain) |
 | 0 (bottom) | 0..7 | volume 0% | sets step 0 (silence) |
 
 Every column is one track. There are no long-press behaviours. The API mirrors
@@ -1113,13 +1142,13 @@ The track-grid LED policy is:
 | Pad state | LED |
 |---|---|
 | selected track | red, static |
-| unselected track | the track instrument's patch colour, never red |
+| unselected track | the track palette colour, never a status colour |
 | assigned hot FX, enabled | green |
 | assigned hot FX, bypassed | yellow |
 | unassigned hot FX | off |
-| active volume step | blue |
-| over step (+6 dB) | white on the 100% pad |
-| inactive volume step | off |
+| volume steps at or below the current level | green, dark at the bottom to light at the top |
+| +3 dB step when the boost is active | the lightest green |
+| volume steps above the current level | off |
 
 The controller route is `Mapping::handlePad` → `padRoleArms()` (track pads
 only) → `StateStore::setArmedSlot`; fx/volume presses go through
@@ -1220,11 +1249,13 @@ not mistake for the live path. T138 removed the superseded controller layer
 and the unused `.ihub` plugin-state binder; the remaining items are
 capabilities that are tested but not selected by the live factory.
 
-- **`plugins/SandboxHost`** — the live factory for plugin slots, not a fallback.
-  Every `SessionSlotKind::plugin` is hosted in `ihub-sandbox` over the
-  file-mapping protocol; `PluginInstrument` is loaded inside that helper and,
-  on demand, in-process as the editor mirror. The engine never renders the
-  hosted plugin on the audio thread.
+- **`plugins/SandboxHost`** — the legacy one-process-per-slot factory, kept
+  behind `IHUB_SHARED_PLUGIN_HOST=0` for migration. The live track layout uses
+  `plugins/PageHost`, which hosts every plugin slot on an instrument page in
+  one `ihub-sandbox` over the same file-mapping protocol. In both paths
+  `PluginInstrument` is loaded inside the helper and, on demand, in-process as
+  the editor mirror. The engine never renders a hosted plugin on the audio
+  thread.
 - **`instruments/PluginFx`** — a hosted-VST3 FX wrapper, but the live `FxRack`
   uses its own `InsertEffect` adapter. `PluginFx` is compiled and available,
   not selected by the app.
@@ -1279,7 +1310,7 @@ capabilities that are tested but not selected by the live factory.
 4. Add the descriptor to `SessionSlotConfig`, the set schema and the API
    source request, plus the UI picker.
 5. Test: cold/warm arm, state restore if hosted, and the live-instance bound
-   (protected count, legacy `1 + K`, hard cap 16).
+   (protected count, legacy `1 + K`, hard cap 32).
 
 ### 9.4 Add a controller binding
 
@@ -1340,7 +1371,7 @@ are tracked in [plan/BLOCKERS.md](../plan/BLOCKERS.md).
 | **Family** | A row of eight patches in `shared/set.yaml`; the top-row buttons select macro banks, not families, on the Launchpad. |
 | **Arm** | Make one slot the audible patch. Warm arm = pointer + 3 ms fade; cold arm = warm pool loads first, old patch stays audible. |
 | **Warm / cold** | Warm: the instrument instance is resident in the pool. Cold: only a descriptor exists; arming needs a load. |
-| **Warm pool** | The bounded cache of live instrument instances (eight protected tracks in a new project, legacy `1 + K` = 3, hard cap 16) and the background thread that fills it. |
+| **Warm pool** | The bounded cache of live instrument instances (eight protected tracks in a new project, legacy `1 + K` = 3, hard cap 32) and the background thread that fills it. |
 | **Guard** | A slot's fixed `Voice` proxy. It holds an atomic pointer to the current `SlotSource` and is never reallocated. |
 | **Sidecar** | A file next to `set.yaml` holding data the set document does not inline: `set.plugin-state/slot-<n>.bin`, `set.sources.json`. |
 | **Seam** | A narrow interface that keeps layers apart: `AudioEngine::SlotSource`, `ihub::Instrument`, `Mapping::Listeners`, `StateStore` handlers. |

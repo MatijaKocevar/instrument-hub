@@ -91,6 +91,11 @@ const char* Session::getWarmStateName (int slot) const noexcept
 
 void Session::setSlotStateObserver (SlotStateObserver observer)
 {
+    {
+        const std::lock_guard<std::mutex> lock (slotObserverMutex);
+        slotStateObserver = observer;
+    }
+
     warmPool.setSlotStateObserver (std::move (observer));
 }
 

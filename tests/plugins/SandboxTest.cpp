@@ -1,5 +1,6 @@
 #include "sandbox/TestSupport.h"
 #include "sandbox/CrashIsolation.h"
+#include "sandbox/PageHostScenario.h"
 #include "sandbox/RealPlugin.h"
 #include "sandbox/Transport.h"
 
@@ -17,10 +18,14 @@ int main()
     SandboxTest::runTransport();
     SandboxTest::runCrashIsolation();
     SandboxTest::runRealPlugin();
+    SandboxTest::runPageHostTransport();
+    SandboxTest::runPageHostRecovery();
+    SandboxTest::runPageHostFailedRestart();
 
     if (SandboxTest::failures == 0)
     {
-        std::cout << "\nPASS: sandbox transport, crash isolation and real plugin hosting"
+        std::cout << "\nPASS: sandbox transport, crash isolation, real plugin hosting "
+                     "and shared page recovery"
                   << std::endl;
         return 0;
     }

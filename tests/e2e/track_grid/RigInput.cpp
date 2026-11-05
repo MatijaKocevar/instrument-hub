@@ -39,7 +39,7 @@ void Rig::renderBlocks (int blocks)
 void Rig::waitForActiveSandbox()
 {
     const int slot = sessionInstance.getArmedSlot();
-    auto* sandbox = sessionInstance.getSandboxHost (slot);
+    auto* sandbox = sessionInstance.getSandboxSlotControl (slot);
 
     if (sandbox == nullptr)
         return;

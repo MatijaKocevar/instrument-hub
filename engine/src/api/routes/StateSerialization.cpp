@@ -63,6 +63,8 @@ juce::var stateToVar (const StateSnapshot& state)
         slotVar.getDynamicObject()->setProperty ("gain", static_cast<double> (slot.gain));
         slotVar.getDynamicObject()->setProperty ("latencySamples", slot.latencySamples);
         slotVar.getDynamicObject()->setProperty ("latencyMs", slot.latencyMs);
+        slotVar.getDynamicObject()->setProperty ("editorOpen", slot.editorOpen);
+        slotVar.getDynamicObject()->setProperty ("error", juce::String (slot.error));
         slots.add (slotVar);
     }
 
@@ -108,6 +110,29 @@ juce::var stateToVar (const StateSnapshot& state)
         object->setProperty ("tracks", juce::var (tracks));
     }
 
+    juce::Array<juce::var> pages;
+
+    for (const auto& page : state.pages)
+    {
+        auto pageVar = Routes::makeObject();
+        auto* pageObject = pageVar.getDynamicObject();
+
+        pageObject->setProperty ("id", juce::String (page.id));
+        pageObject->setProperty ("status", juce::String (page.status));
+
+        juce::Array<juce::var> slotsForPage;
+
+        for (const int slot : page.slots)
+            slotsForPage.add (slot);
+
+        pageObject->setProperty ("slots", juce::var (slotsForPage));
+        pageObject->setProperty ("activeSlot", page.activeSlot);
+        pageObject->setProperty ("error", juce::String (page.error));
+        pages.add (pageVar);
+    }
+
+    object->setProperty ("pages", juce::var (pages));
+
     juce::Array<juce::var> families;
 
     for (const auto& family : state.families)
@@ -140,6 +165,7 @@ juce::var stateToVar (const StateSnapshot& state)
                                                       juce::String (patch.warmState));
             patchVar.getDynamicObject()->setProperty ("warm", patch.warm);
             patchVar.getDynamicObject()->setProperty ("editorOpen", patch.editorOpen);
+            patchVar.getDynamicObject()->setProperty ("error", juce::String (patch.error));
             patchVar.getDynamicObject()->setProperty ("latencySamples",
                                                       patch.latencySamples);
             patchVar.getDynamicObject()->setProperty ("latencyMs", patch.latencyMs);

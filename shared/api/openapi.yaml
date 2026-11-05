@@ -70,6 +70,47 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /pages/{page}/restart:
+    parameters:
+      - name: page
+        in: path
+        required: true
+        description: Plugin page id, for example `tracks`.
+        schema:
+          type: string
+    post:
+      tags: [control]
+      operationId: restartPage
+      summary: Restart a shared plugin page
+      description: |
+        Stops the shared plugin host for the page, restarts it, restores every
+        slot's last committed plugin state, and re-arms the track that was
+        active before the restart. The engine keeps running if the restart
+        fails and reports the failure in the page status.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The page restarted and the complete state after recovery.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "404":
+          description: No plugin page with that id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: The server has no audio session attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/{index}/select:
     post:
       tags: [state]
@@ -257,7 +298,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/State"
         "400":
-          description: The step is missing or outside 0-5
+          description: The step is missing or outside 0-4
           content:
             application/json:
               schema:
@@ -565,6 +606,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PatchEditor"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No patch is hosted by that slot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: No audio session is attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /patches/{slot}/reload:
+    parameters:
+      - name: slot
+        in: path
+        required: true
+        description: Fixed audio-graph slot index, 0 .. 63.
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 63
+    post:
+      tags: [control]
+      operationId: reloadPatch
+      summary: Restart one patch's plugin instance from its committed state
+      description: |
+        Stops only this slot's plugin sandbox, waits for it to exit, then starts
+        a fresh instance for the same slot and applies the last committed plugin
+        state. A healthy instance is captured first; a failed or hung instance is
+        never queried for state. Every other slot and its state is left untouched.
+
+        The response is the complete state after the restart. A failed restart
+        leaves a slot-local `error` on the patch and answers with the failure.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The state after the plugin restart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          description: The slot does not host a plugin or the restart failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1718,6 +1813,12 @@ components:
           type: number
           minimum: 0.0
           description: The same chain latency in milliseconds at the engine sample rate.
+        editorOpen:
+          type: boolean
+          description: True while this slot's native plugin editor window is open.
+        error:
+          type: string
+          description: The slot-local plugin failure, empty when the slot is healthy.
 
     Settings:
       type: object
@@ -1901,6 +2002,9 @@ components:
         editorOpen:
           type: boolean
           description: True while the patch's native plugin editor window is open.
+        error:
+          type: string
+          description: The slot-local plugin failure, empty when the patch is healthy.
         latencySamples:
           type: integer
           minimum: 0
@@ -1909,6 +2013,33 @@ components:
           type: number
           minimum: 0
           description: The same chain latency in milliseconds.
+
+    PluginPage:
+      type: object
+      required: [id, status, slots, activeSlot, error]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Page id, for example `tracks`.
+        status:
+          type: string
+          enum: [starting, ready, recovering, failed, stopped]
+          description: Shared plugin-host status for the page.
+        slots:
+          type: array
+          description: Slots hosted by the page, in page order.
+          items:
+            type: integer
+            minimum: 0
+            maximum: 63
+        activeSlot:
+          type: integer
+          minimum: -1
+          description: The slot that was last armed on this page.
+        error:
+          type: string
+          description: Page-level failure or recovery reason, empty when healthy.
 
     Family:
       type: object
@@ -2233,6 +2364,11 @@ components:
           maxItems: 8
           items:
             $ref: "#/components/schemas/Track"
+        pages:
+          type: array
+          description: Shared plugin-host pages, empty for the legacy family layout.
+          items:
+            $ref: "#/components/schemas/PluginPage"
         families:
           type: array
           description: Family -> patch tree, one entry per patch.
@@ -2274,10 +2410,10 @@ components:
         volumeStep:
           type: integer
           minimum: 0
-          maximum: 5
+          maximum: 4
           description: |
-            Stepped volume: 0 silent, 1 25%, 2 50%, 3 75%, 4 100% (0 dB),
-            5 +6 dB over.
+            Stepped volume: 0 silent, 1 50%, 2 75%, 3 100% (0 dB),
+            4 +3 dB.
         volumeDb:
           type: number
           minimum: -60
@@ -2332,11 +2468,10 @@ components:
         step:
           type: integer
           minimum: 0
-          maximum: 5
+          maximum: 4
           description: |
-            Volume step. 0 is silent, 1 is 25% (-12.0 dB), 2 is 50%
-            (-6.0 dB), 3 is 75% (-2.5 dB), 4 is 100% (0 dB) and 5 is the
-            +6 dB over step.
+            Volume step. 0 is silent, 1 is 50% (-6.0 dB), 2 is 75%
+            (-2.5 dB), 3 is 100% (0 dB) and 4 is +3 dB.
 
     ProjectState:
       type: object

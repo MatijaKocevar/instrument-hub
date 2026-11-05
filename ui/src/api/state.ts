@@ -71,6 +71,11 @@ export interface StateEndpoints {
     options?: { signal?: AbortSignal },
   ): Promise<ControlPatchEditor>;
 
+  reloadPatch(
+    slot: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
+
   capturePatchState(
     slot: number,
     options?: { signal?: AbortSignal },
@@ -99,6 +104,18 @@ export function isControlState(value: unknown): value is ControlState {
         typeof slot.latencySamples === "number" &&
         typeof slot.latencyMs === "number",
     ) &&
+    (candidate.pages === undefined ||
+      (Array.isArray(candidate.pages) &&
+        candidate.pages.every(
+          (page) =>
+            page !== null &&
+            typeof page === "object" &&
+            typeof page.id === "string" &&
+            typeof page.status === "string" &&
+            Array.isArray(page.slots) &&
+            typeof page.activeSlot === "number" &&
+            typeof page.error === "string",
+        ))) &&
     Array.isArray(candidate.families) &&
     candidate.families.every(
       (family) =>
@@ -399,6 +416,26 @@ export function createStateEndpoints(
         error,
         response.status,
         `DELETE /patches/${String(slot)}/editor`,
+      );
+    },
+
+    async reloadPatch(slot, requestOptions) {
+      const { data, error, response } = await client.POST(
+        "/patches/{slot}/reload",
+        {
+          params: { path: { slot } },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
+        },
+      );
+
+      return requireState(
+        guard,
+        data,
+        error,
+        response.status,
+        `POST /patches/${String(slot)}/reload`,
       );
     },
 

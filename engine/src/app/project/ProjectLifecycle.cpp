@@ -189,8 +189,13 @@ Api::ProjectOverview ProjectLifecycle::getOverview() const
         const std::lock_guard<std::mutex> historyLock (historyMutex);
 
         for (const auto& entry : settingsStore->settings().project.recent)
+        {
+            if (! juce::File (entry.path).existsAsFile())
+                continue;
+
             overview.recent.push_back ({ entry.path.toStdString(),
                                          entry.name.toStdString() });
+        }
     }
 
     return overview;

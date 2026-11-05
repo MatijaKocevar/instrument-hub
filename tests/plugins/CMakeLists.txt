@@ -425,6 +425,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             sandbox/TestSupport.cpp
             sandbox/Transport.cpp
             sandbox/CrashIsolation.cpp
+            sandbox/PageHostFailure.cpp
+            sandbox/PageHostTransport.cpp
+            sandbox/PageHostRecovery.cpp
             sandbox/RealPlugin.cpp
             ${IHUB_SANDBOX_HOST_SOURCES}
             "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/AudioEngine.cpp"

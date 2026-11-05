@@ -1,6 +1,8 @@
 #include "Session.h"
 
 #include "instruments/AudioInputInstrument.h"
+#include "plugins/PageHost.h"
+#include "plugins/PageHostSlot.h"
 #include "plugins/PluginInstrument.h"
 #include "plugins/SandboxHost.h"
 #include "session/EditorHost.h"
@@ -22,10 +24,25 @@ namespace
 constexpr float initToneAmplitude = 0.12f;
 }
 
-bool Session::build (const SessionConfig& newConfig, juce::String& error)
+bool Session::build (const SessionConfig& newConfig,
+                     juce::String& error,
+                     bool keepDeviceOpen)
 {
     error.clear();
-    closeDevice();
+
+    const bool reuseDevice = keepDeviceOpen && devices.isOpen();
+    AudioEngine::DeviceSetup deviceSetup;
+
+    if (reuseDevice)
+    {
+        deviceSetup = devices.getManager().getCurrentSetup();
+        devices.setCallback (nullptr);
+    }
+    else
+    {
+        closeDevice();
+    }
+
     prepared = false;
     transportControl.reset();
 
@@ -41,6 +58,7 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
 
     cancelPendingLoads();
     warmPool.shutdown();
+    resetPageHost();
     shuttingDown.store (false, std::memory_order_release);
     loadAbort = std::make_shared<std::atomic<bool>> (false);
     switcher.reset();
@@ -50,11 +68,48 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     pluginFormats.reset();
 
     {
+        const juce::String overrideValue (
+            juce::SystemStats::getEnvironmentVariable ("IHUB_SHARED_PLUGIN_HOST", {}));
+        const bool requested = overrideValue.isEmpty()
+                                   ? newConfig.sharedPluginHost
+                                   : overrideValue != "0";
+        sharedPluginHostEnabled = requested && newConfig.layout == SessionLayout::tracks;
+    }
+
+    {
+        const std::lock_guard<std::mutex> lock (pageSlotHandleMutex);
+        pageSlotHandles.assign (defaultLogicalSlots, nullptr);
+    }
+
+    {
         const std::lock_guard<std::mutex> lock (slotErrorMutex);
         slotErrors.assign (defaultLogicalSlots, {});
     }
 
+    {
+        const std::lock_guard<std::mutex> lock (sandboxMutex);
+        sandboxGenerations.assign (defaultLogicalSlots, 0);
+        sandboxGenerationCounter = 0;
+    }
+
+    pluginReloadRevisions.assign (defaultLogicalSlots, 0);
+
     config = newConfig;
+
+    if (reuseDevice)
+    {
+        if (deviceSetup.sampleRate > 0.0)
+            config.device.sampleRate = deviceSetup.sampleRate;
+
+        if (deviceSetup.bufferSize > 0)
+            config.device.bufferSize = deviceSetup.bufferSize;
+
+        if (deviceSetup.numOutputChannels > 0)
+            config.device.numOutputChannels = deviceSetup.numOutputChannels;
+
+        if (deviceSetup.numInputChannels > 0)
+            config.device.numInputChannels = deviceSetup.numInputChannels;
+    }
 
     if (config.slots.empty())
         config.slots = makeDefaultSet();
@@ -137,8 +192,20 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
         },
         [this] (AudioEngine::SlotSource& instance)
         {
-            if (auto* sandbox = dynamic_cast<plugins::SandboxHost*> (&instance);
-                sandbox != nullptr)
+            if (auto* pageSlot = dynamic_cast<plugins::PageHostSlot*> (&instance);
+                pageSlot != nullptr)
+            {
+                (void) capturePluginState (pageSlot->getSlotIndex());
+
+                const std::lock_guard<std::mutex> lock (pageSlotHandleMutex);
+                const int slot = pageSlot->getSlotIndex();
+
+                if (slot >= 0 && slot < static_cast<int> (pageSlotHandles.size())
+                    && pageSlotHandles[static_cast<std::size_t> (slot)] == pageSlot)
+                    pageSlotHandles[static_cast<std::size_t> (slot)] = nullptr;
+            }
+            else if (auto* sandbox = dynamic_cast<plugins::SandboxHost*> (&instance);
+                     sandbox != nullptr)
             {
                 unregisterSandboxSlot (*sandbox);
             }
@@ -218,6 +285,9 @@ bool Session::build (const SessionConfig& newConfig, juce::String& error)
     warmPool.preloadAll();
     warmPool.resetArmState();
 
+    if (reuseDevice)
+        devices.setCallback (this);
+
     return true;
 }
 
@@ -277,11 +347,16 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
                 return nullptr;
             }
 
+            if (sharedPluginHostEnabled)
+                return createSharedPageSlot (slotIndex, error);
+
             plugins::SandboxHost::Options options;
             options.pluginBundle = juce::File (slotConfig.path);
             options.sampleRate = config.device.sampleRate;
             options.maxBlockSize = config.device.bufferSize;
             options.numChannels = juce::jlimit (1, 2, config.device.numOutputChannels);
+            options.slotIndex = slotIndex;
+            options.generation = nextSandboxGeneration (slotIndex);
 
             if (loadAbort != nullptr)
             {
@@ -309,6 +384,24 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
                 setSlotError (slotIndex, error);
                 return nullptr;
             }
+
+            const auto generation = options.generation;
+
+            instrument->setStateChangedCallback (
+                [this, slotIndex, generation] (const juce::MemoryBlock& state,
+                                               std::uint64_t)
+                {
+                    if (! isCurrentSandboxGeneration (slotIndex, generation))
+                        return;
+
+                    session::PluginStateIdentity current;
+
+                    if (! pluginIdentityForSlot (slotIndex, current))
+                        return;
+
+                    if (pluginState.storeState (slotIndex, current, state))
+                        notifySlotStateChanged (slotIndex);
+                });
 
             const session::PluginStateIdentity identity {
                 juce::String (slotConfig.path),

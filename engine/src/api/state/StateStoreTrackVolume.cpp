@@ -9,10 +9,10 @@ namespace Api
 
 namespace
 {
-constexpr double overGain = 1.9952623149688795;
+constexpr double boostGain = 1.4125375446227544;
 
 const std::array<double, trackVolumeMaximumStep + 1> stepGains {
-    0.0, 0.25, 0.5, 0.75, 1.0, overGain
+    0.0, 0.5, 0.75, 1.0, boostGain
 };
 }
 
@@ -39,15 +39,14 @@ int trackStepForGain (double gain) noexcept
     if (gain <= 0.001)
         return 0;
 
-    if (gain >= 1.4)
-        return trackVolumeMaximumStep;
+    int closest = trackVolumeMaximumStep;
+    double bestDistance =
+        std::abs (gain - stepGains[static_cast<std::size_t> (closest)]);
 
-    int closest = 4;
-    double bestDistance = std::abs (gain - 1.0);
-
-    for (int step = 1; step < 4; ++step)
+    for (int step = 0; step <= trackVolumeMaximumStep; ++step)
     {
-        const double distance = std::abs (gain - stepGains[static_cast<std::size_t> (step)]);
+        const double distance =
+            std::abs (gain - stepGains[static_cast<std::size_t> (step)]);
 
         if (distance < bestDistance)
         {
@@ -81,7 +80,7 @@ bool StateStore::setTrackVolumeStep (int index, int step, std::string& error)
 
         if (step < trackVolumeMinimumStep || step > trackVolumeMaximumStep)
         {
-            error = "step must be between 0 and 5";
+            error = "step must be between 0 and 4";
             return false;
         }
 

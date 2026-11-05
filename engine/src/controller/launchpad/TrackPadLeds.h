@@ -20,6 +20,7 @@ struct TrackLedState
     int slot = -1;
     int colorIndex = 0;
     bool selected = false;
+    bool hasInstrument = true;
     int volumeStep = SetMapping::maximumVolumeStep;
     std::array<TrackHotFxLed, SetMapping::maximumHotFx> hotFx {};
 };

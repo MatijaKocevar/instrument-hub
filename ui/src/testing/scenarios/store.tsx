@@ -110,6 +110,9 @@ export async function backoffTest(): Promise<void> {
     closePatchEditor: async () => {
       throw new Error("connection refused");
     },
+    reloadPatch: async () => {
+      throw new Error("connection refused");
+    },
     capturePatchState: async () => {
       throw new Error("connection refused");
     },

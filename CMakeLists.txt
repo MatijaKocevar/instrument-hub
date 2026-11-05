@@ -8,7 +8,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-enable_testing()
+option(IHUB_BUILD_TESTS
+       "Build the C++ test executables (off by default: every test target recompiles the engine and JUCE)"
+       OFF)
 
 if(NOT DEFINED IHUB_ENABLE_RT_GUARD)
     if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
@@ -26,4 +28,10 @@ option(IHUB_ENABLE_RT_GUARD
 
 add_subdirectory(third_party/JUCE)
 add_subdirectory(engine)
-add_subdirectory(tests)
+
+if(IHUB_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+else()
+    message(STATUS "Instrument Hub tests are disabled (configure with -DIHUB_BUILD_TESTS=ON to build them)")
+endif()

@@ -35,6 +35,7 @@ export type {
   ControlPatchStateCapture,
   ControlPatchUpdate,
   ControlPlugin,
+  ControlPluginPage,
   ControlPluginList,
   ControlProjectCommand,
   ControlProjectOverview,

@@ -66,6 +66,11 @@ public:
 
     void setPadLed (int padIndex, PatchLed led);
 
+    void setPadRgb (int padIndex,
+                    std::uint8_t red,
+                    std::uint8_t green,
+                    std::uint8_t blue);
+
     PatchLed getPadLed (int padIndex) const noexcept;
 
     void setPatchLed (int padIndex,
@@ -138,6 +143,7 @@ private:
 
     std::array<std::atomic<std::uint8_t>, Launchpad::padCount> padStates {};
     std::array<std::atomic<std::uint16_t>, Launchpad::padCount> padLeds {};
+    std::array<std::atomic<std::uint32_t>, Launchpad::padCount> padRgb {};
     std::array<std::atomic<std::uint8_t>, controlButtonCount> buttonStates {};
 
     std::atomic<bool> connected { false };

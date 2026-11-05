@@ -27,9 +27,28 @@ bool Session::openDevice (juce::String* errorMessage)
     if (! devices.open (setup, error))
         return false;
 
+    int activeOutputs = devices.getActiveOutputChannels();
+
+    for (int attempt = 0;
+         setup.deviceTypeName == "JACK"
+         && activeOutputs < juce::jmax (1, config.device.numOutputChannels)
+         && attempt < 3;
+         ++attempt)
+    {
+        closeDevice();
+        juce::Thread::sleep (100);
+
+        if (! devices.resolve (config.device, setup, error))
+            return false;
+
+        if (! devices.open (setup, error))
+            return false;
+
+        activeOutputs = devices.getActiveOutputChannels();
+    }
+
     const double actualRate = devices.getCurrentSampleRate();
     const int actualBlock = devices.getCurrentBufferSize();
-    const int activeOutputs = devices.getActiveOutputChannels();
 
     numChannels = activeOutputs > 0
                       ? juce::jmin (config.device.numOutputChannels, activeOutputs)

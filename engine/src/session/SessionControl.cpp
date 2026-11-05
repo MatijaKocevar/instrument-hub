@@ -1,5 +1,6 @@
 #include "Session.h"
 
+#include "plugins/PageHost.h"
 #include "plugins/SandboxHost.h"
 #include "session/EditorHost.h"
 
@@ -21,7 +22,7 @@ bool Session::setSlotSource (int slot,
 
     (void) capturePluginState (slot);
 
-    const auto& previousSource = config.slots[static_cast<std::size_t> (slot)];
+    const auto previousSource = config.slots[static_cast<std::size_t> (slot)];
     const bool keepsPluginState =
         previousSource.kind == SessionSlotKind::plugin
         && source.kind == SessionSlotKind::plugin
@@ -77,11 +78,64 @@ bool Session::setSlotSource (int slot,
                          + current.path + ":" + juce::String (current.frequency) + ":"
                          + juce::String (++sourceRevision);
 
+    const bool wasPlugin = previousSource.kind == SessionSlotKind::plugin;
+    const bool isPlugin = current.kind == SessionSlotKind::plugin;
+    const bool pluginSetChanged = wasPlugin != isPlugin
+        || (wasPlugin && isPlugin
+            && (previousSource.path != current.path
+                || juce::String (previousSource.pluginId) != juce::String (current.pluginId)));
+
+    std::vector<int> previousPageSlots;
+
+    if (sharedPluginHostEnabled && pluginSetChanged)
+    {
+        if (auto page = getPageHost(); page != nullptr)
+            previousPageSlots = page->getSlotIndices();
+
+        {
+            const std::lock_guard<std::mutex> lock (pageSlotHandleMutex);
+
+            for (const int pageSlot : previousPageSlots)
+                if (pageSlot >= 0 && pageSlot < static_cast<int> (pageSlotHandles.size()))
+                    pageSlotHandles[static_cast<std::size_t> (pageSlot)] = nullptr;
+
+            if (slot >= 0 && slot < static_cast<int> (pageSlotHandles.size()))
+                pageSlotHandles[static_cast<std::size_t> (slot)] = nullptr;
+        }
+
+        resetPageHost();
+    }
+
     if (config.layout == SessionLayout::tracks
         && current.kind == SessionSlotKind::empty)
         warmPool.setRequest (slot, {});
     else
         warmPool.replaceRequest (slot, requestId, wasActive, wasRequested);
+
+    if (sharedPluginHostEnabled && pluginSetChanged)
+    {
+        for (const int other : previousPageSlots)
+        {
+            if (other == slot)
+                continue;
+
+            const auto& otherSource = config.slots[static_cast<std::size_t> (other)];
+
+            if (otherSource.kind != SessionSlotKind::plugin)
+                continue;
+
+            const auto otherRequestId = juce::String (other) + ":"
+                                      + toString (otherSource.kind) + ":"
+                                      + otherSource.path + ":"
+                                      + juce::String (otherSource.frequency) + ":"
+                                      + juce::String (++sourceRevision);
+
+            warmPool.replaceRequest (other,
+                                     otherRequestId,
+                                     warmPool.getActiveSlot() == other,
+                                     warmPool.getRequestedSlot() == other);
+        }
+    }
 
     SourceAssignedHook hook;
 
@@ -114,7 +168,7 @@ bool Session::openEditor (int slot, std::string& error)
 
     if (isWineHostedSlot (slot))
     {
-        if (auto* sandbox = sandboxForSlot (slot))
+        if (auto* sandbox = getSandboxSlotControl (slot))
         {
             juce::String editorError;
 
@@ -123,9 +177,11 @@ bool Session::openEditor (int slot, std::string& error)
                 error = editorError.isNotEmpty()
                             ? editorError.toStdString()
                             : "the plugin host could not open the editor";
+                setSlotError (slot, juce::String (error));
                 return false;
             }
 
+            clearSlotError (slot);
             return true;
         }
     }
@@ -160,19 +216,27 @@ bool Session::closeEditor (int slot, std::string& error)
 
     if (isWineHostedSlot (slot))
     {
-        if (auto* sandbox = sandboxForSlot (slot))
+        if (auto* sandbox = getSandboxSlotControl (slot))
         {
             juce::String editorError;
+
+            const auto revisionBefore = sandbox->getLastCommittedStateRevision();
 
             if (! sandbox->closeEditor (editorError))
             {
                 error = editorError.isNotEmpty()
                             ? editorError.toStdString()
                             : "the plugin host could not close the editor";
+                setSlotError (slot, juce::String (error));
                 return false;
             }
 
-            (void) capturePluginState (slot);
+            (void) sandbox->flushPublishedState();
+
+            if (sandbox->getLastCommittedStateRevision() == revisionBefore)
+                (void) capturePluginState (slot);
+
+            clearSlotError (slot);
             return true;
         }
     }
@@ -189,7 +253,7 @@ bool Session::closeEditor (int slot, std::string& error)
 bool Session::isEditorOpen (int slot) const noexcept
 {
     if (isWineHostedSlot (slot))
-        if (auto* sandbox = sandboxForSlot (slot); sandbox != nullptr)
+        if (auto* sandbox = getSandboxSlotControl (slot); sandbox != nullptr)
             return sandbox->isEditorOpen();
 
     return editorHost != nullptr && editorHost->isOpen (slot);
@@ -199,11 +263,16 @@ int Session::getOpenEditorCount() const noexcept
 {
     int count = editorHost != nullptr ? editorHost->openCount() : 0;
 
-    const std::lock_guard<std::mutex> lock (sandboxMutex);
+    {
+        const std::lock_guard<std::mutex> lock (sandboxMutex);
 
-    for (const auto& entry : sandboxSlots)
-        if (entry.host != nullptr && entry.host->isEditorOpen())
-            ++count;
+        for (const auto& entry : sandboxSlots)
+            if (entry.host != nullptr && entry.host->isEditorOpen())
+                ++count;
+    }
+
+    if (auto host = getPageHost(); host != nullptr)
+        count += host->getOpenEditorCount();
 
     return count;
 }
@@ -218,7 +287,7 @@ bool Session::isWineHostedSlot (int slot) const
 
 void Session::closeSandboxEditors (int keepSlot)
 {
-    std::vector<plugins::SandboxHost*> hosts;
+    std::vector<plugins::SandboxSlotControl*> hosts;
 
     {
         const std::lock_guard<std::mutex> lock (sandboxMutex);
@@ -227,6 +296,19 @@ void Session::closeSandboxEditors (int keepSlot)
             if (entry.slot != keepSlot && entry.host != nullptr
                 && entry.host->isEditorOpen())
                 hosts.push_back (entry.host);
+    }
+
+    if (auto page = getPageHost(); page != nullptr)
+    {
+        for (const int slot : page->getSlotIndices())
+        {
+            if (slot == keepSlot)
+                continue;
+
+            if (auto* control = getSandboxSlotControl (slot);
+                control != nullptr && control->isEditorOpen())
+                hosts.push_back (control);
+        }
     }
 
     for (auto* host : hosts)
@@ -253,6 +335,9 @@ void Session::armSlot (int slot)
 
         closeSandboxEditors (-1);
 
+        if (auto page = getPageHost(); page != nullptr)
+            page->setActiveSlot (-1);
+
         warmPool.disarm();
         return;
     }
@@ -264,6 +349,9 @@ void Session::armSlot (int slot)
 
     if (previous >= 0 && previous != slot)
         (void) capturePluginState (previous);
+
+    if (auto page = getPageHost(); page != nullptr)
+        page->setActiveSlot (slot);
 
     if (editorHost != nullptr)
         editorHost->closeEditorsExcept (slot);

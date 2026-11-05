@@ -20,9 +20,14 @@ changes to be built and the running app restarted so they can see them.
   (engine, Vite, or both) without asking. Reuse the command line of the
   running instance, launch detached (`setsid`; add `pw-jack` when the
   current instance needs JACK), and leave it running for the developer.
+- Never run a build without an explicit target. `cmake --build <dir>` builds
+  the whole tree; this repo's test tree is dozens of heavy executables and
+  must never be built unless the human explicitly asks for the full suite.
+- The C++ test suite is opt-in (`-DIHUB_BUILD_TESTS=ON`) and is not part of
+  the default build. Do not enable it or build all tests for a normal change.
 - Do not run the full `scripts/test.sh` after every change. Use targeted
   builds/tests while working; run the full suite only when the developer
-  asks for it or a release check needs it.
+  asks for it explicitly.
 - Single-run diagnostics (`--selftest`, `--snapshot`, a test harness on its
   own port) are fine when they shut down before you report back.
 - Do not build or test after every edit just for the sake of it. Build when

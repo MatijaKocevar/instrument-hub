@@ -5,7 +5,7 @@ import type {
   ControlTrackHotFx,
 } from "../../api/client";
 
-const OVER_GAIN = 1.9952623149688795;
+const STEP_GAINS = [0, 0.5, 0.75, 1, 1.4125375446227544] as const;
 
 interface TrackFixtureSpec {
   readonly track: string;
@@ -22,7 +22,7 @@ const SPECS: readonly TrackFixtureSpec[] = [
     patch: "Studio Grand",
     instrument: { id: "studio-grand", name: "Studio Grand", kind: "init-tone" },
     colorIndex: 0,
-    volumeStep: 4,
+    volumeStep: 3,
     hot: true,
   },
   {
@@ -30,7 +30,7 @@ const SPECS: readonly TrackFixtureSpec[] = [
     patch: "Warm Pad",
     instrument: { id: "warm-pad", name: "Warm Pad", kind: "init-tone" },
     colorIndex: 1,
-    volumeStep: 4,
+    volumeStep: 3,
     hot: true,
   },
   {
@@ -42,7 +42,7 @@ const SPECS: readonly TrackFixtureSpec[] = [
       kind: "init-tone",
     },
     colorIndex: 2,
-    volumeStep: 4,
+    volumeStep: 3,
     hot: true,
   },
   {
@@ -50,7 +50,7 @@ const SPECS: readonly TrackFixtureSpec[] = [
     patch: "Sub Bass",
     instrument: { id: "sub-bass", name: "Sub Bass", kind: "init-tone" },
     colorIndex: 3,
-    volumeStep: 4,
+    volumeStep: 3,
     hot: false,
   },
   {
@@ -67,7 +67,7 @@ const SPECS: readonly TrackFixtureSpec[] = [
       pluginVersion: "5.10.0",
     },
     colorIndex: 4,
-    volumeStep: 5,
+    volumeStep: 4,
     hot: false,
   },
   {
@@ -75,7 +75,7 @@ const SPECS: readonly TrackFixtureSpec[] = [
     patch: "Vocal Chop",
     instrument: { id: "vocal-chop", name: "Vocal Chop", kind: "init-tone" },
     colorIndex: 5,
-    volumeStep: 4,
+    volumeStep: 3,
     hot: false,
   },
   {
@@ -83,7 +83,7 @@ const SPECS: readonly TrackFixtureSpec[] = [
     patch: "Drum Kit",
     instrument: { id: "drum-kit", name: "Drum Kit", kind: "init-tone" },
     colorIndex: 6,
-    volumeStep: 4,
+    volumeStep: 3,
     hot: false,
   },
   {
@@ -91,7 +91,7 @@ const SPECS: readonly TrackFixtureSpec[] = [
     patch: "Empty",
     instrument: { id: "", name: "Track 8", kind: "empty" },
     colorIndex: 7,
-    volumeStep: 4,
+    volumeStep: 3,
     hot: false,
   },
 ];
@@ -114,17 +114,13 @@ function hotFx(index: number, assigned: boolean): ControlTrackHotFx[] {
 }
 
 function stepDb(step: number): number {
-  if (step === 0) return -60;
-  if (step === 5) return 20 * Math.log10(OVER_GAIN);
+  const gain = stepGain(step);
 
-  return 20 * Math.log10(step / 4);
+  return gain <= 0 ? -60 : 20 * Math.log10(gain);
 }
 
 function stepGain(step: number): number {
-  if (step === 0) return 0;
-  if (step === 5) return OVER_GAIN;
-
-  return step / 4;
+  return STEP_GAINS[step] ?? STEP_GAINS[3];
 }
 
 const TRACKS: ControlTrack[] = SPECS.map((spec, index) => ({

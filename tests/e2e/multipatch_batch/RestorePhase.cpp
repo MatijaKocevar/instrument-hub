@@ -47,7 +47,7 @@ bool restoreBatch (int batchIndex,
             continue;
         }
 
-        auto* host = session.getSandboxHost (preset.index);
+        auto* host = session.getSandboxSlotControl (preset.index);
 
         if (host == nullptr)
         {

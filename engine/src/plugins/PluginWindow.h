@@ -31,9 +31,13 @@ public:
 
     const juce::String& getLastError() const noexcept { return lastError; }
 
+    void setHideOnClose (bool shouldHide) noexcept { hideOnClose = shouldHide; }
+
     void close();
 
-    bool isOpen() const noexcept             { return window != nullptr; }
+    bool isOpen() const noexcept { return openState; }
+
+    void closeForUnload();
 
     juce::AudioProcessorEditor* getEditor() const noexcept;
 
@@ -58,7 +62,13 @@ private:
 
     void clearInstrumentCallback() noexcept;
 
+    inline static std::atomic<int> openWindowCount { 0 };
+
     std::unique_ptr<PluginEditorWindow> window;
+    bool hideOnClose = false;
+    bool openState = false;
+    bool hasLastPosition = false;
+    juce::Point<int> lastPosition;
     juce::AudioProcessor* processor = nullptr;
     PluginInstrument* instrument = nullptr;
     mutable juce::String lastError;

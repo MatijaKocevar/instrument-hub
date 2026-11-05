@@ -1,6 +1,7 @@
 #include "TestSupport.h"
 #include "plugin_editor_api/AnalogLab.h"
 #include "plugin_editor_api/Lifecycle.h"
+#include "plugin_editor_api/Reload.h"
 #include "plugin_editor_api/SourceChange.h"
 
 #include "RequestDispatch.h"
@@ -41,6 +42,7 @@ int main()
     {
         ApiTest::PluginEditorApi::runSourceChange (rig.session(), rig.client());
         ApiTest::PluginEditorApi::runAnalogLab (rig.session(), rig.client());
+        ApiTest::PluginEditorApi::runReload (rig.session(), rig.client());
     }
 
     (void) ApiTest::deleteWithDispatch (rig.client(), "/patches/0/editor");

@@ -264,6 +264,7 @@ private:
         if (window == nullptr)
         {
             window = std::make_unique<plugins::PluginWindow>();
+            window->setHideOnClose (true);
 
             window->onBeforeClose = [this, slot]
             {

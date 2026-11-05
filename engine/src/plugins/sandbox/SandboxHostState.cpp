@@ -30,21 +30,41 @@ bool SandboxHost::setStateInformation (const juce::MemoryBlock& block)
         return false;
 
     juce::MemoryBlock ignored;
-    return runControlCommand (sandbox::ControlCommand::applyState,
-                              block,
-                              ignored,
-                              defaultControlTimeoutMs);
+
+    if (! runControlCommand (sandbox::ControlCommand::applyState,
+                             block,
+                             ignored,
+                             defaultControlTimeoutMs))
+        return false;
+
+    commitState (block, false);
+    return true;
 }
 
 juce::MemoryBlock SandboxHost::getStateInformation()
 {
     juce::MemoryBlock state;
     juce::MemoryBlock ignored;
-    (void) runControlCommand (sandbox::ControlCommand::captureState,
-                              ignored,
-                              state,
-                              defaultControlTimeoutMs);
-    return state;
+
+    if (runControlCommand (sandbox::ControlCommand::captureState,
+                           ignored,
+                           state,
+                           defaultControlTimeoutMs)
+        && state.getSize() > 0)
+    {
+        commitState (state, false);
+        return state;
+    }
+
+    return {};
+}
+
+juce::String SandboxHost::readControlError() const
+{
+    if (shared == nullptr)
+        return {};
+
+    return juce::String::fromUTF8 (shared->control.error).trim();
 }
 
 int SandboxHost::getChildProcessId() const noexcept
@@ -82,6 +102,11 @@ bool SandboxHost::runControlCommand (sandbox::ControlCommand command,
                    sizeof (shared->control.statePath),
                    "%s",
                    stateTransferFile.getFullPathName().toRawUTF8());
+
+    std::snprintf (shared->control.error,
+                   sizeof (shared->control.error),
+                   "%s",
+                   "");
 
     shared->control.command = static_cast<std::int32_t> (command);
     shared->control.stateBytes = static_cast<std::int32_t> (input.getSize());

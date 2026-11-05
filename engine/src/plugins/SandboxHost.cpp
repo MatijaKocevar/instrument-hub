@@ -27,7 +27,7 @@ SandboxHost::SandboxHost (Options optionsToUse)
         options.startupTimeoutMs = 15000;
 
     if (options.hangTimeoutMs <= 0)
-        options.hangTimeoutMs = 2500;
+        options.hangTimeoutMs = 5000;
 }
 
 SandboxHost::~SandboxHost()

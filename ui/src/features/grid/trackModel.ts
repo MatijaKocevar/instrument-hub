@@ -3,7 +3,7 @@ import type {
   ControlTrackHotFx,
 } from "../../api/client";
 import { clampColourIndex } from "./colours";
-import type { GridModel } from "./model";
+import type { GridModel, GridPageStatus } from "./model";
 import {
   clampTrackVolumeStep,
   trackDbForStep,
@@ -24,6 +24,7 @@ export interface GridTrack {
   readonly slot: number;
   readonly selected: boolean;
   readonly colorIndex: number;
+  readonly hasInstrument: boolean;
   readonly instrument: ControlPatchInstrument;
   readonly volumeStep: number;
   readonly volumeDb: number;
@@ -59,10 +60,10 @@ export const TRACK_GRID_ROWS: readonly TrackGridRow[] = [
   { row: 7, role: "track", label: "Track" },
   { row: 6, role: "fx", hot: 0, label: "FX 1" },
   { row: 5, role: "fx", hot: 1, label: "FX 2" },
-  { row: 4, role: "volume", step: 4, label: "100%" },
-  { row: 3, role: "volume", step: 3, label: "75%" },
-  { row: 2, role: "volume", step: 2, label: "50%" },
-  { row: 1, role: "volume", step: 1, label: "25%" },
+  { row: 4, role: "volume", step: 4, label: "+3 dB" },
+  { row: 3, role: "volume", step: 3, label: "100%" },
+  { row: 2, role: "volume", step: 2, label: "75%" },
+  { row: 1, role: "volume", step: 1, label: "50%" },
   { row: 0, role: "volume", step: 0, label: "0%" },
 ];
 
@@ -83,10 +84,12 @@ function hotForIndex(
 export function createTrackGridModel(
   tracks: readonly TrackGridTrackInput[],
   armedSlot: number,
+  pluginPage: GridPageStatus | null = null,
 ): GridModel {
   return {
     layout: "tracks",
     families: [],
+    pluginPage,
     tracks: tracks.map((track) => {
       const volumeStep = clampTrackVolumeStep(track.volumeStep);
 
@@ -96,7 +99,8 @@ export function createTrackGridModel(
         name: track.name,
         slot: track.slot,
         selected: track.selected,
-        colorIndex: clampColourIndex(track.colorIndex),
+        colorIndex: clampColourIndex(track.index),
+        hasInstrument: track.instrument.kind !== "empty",
         instrument: track.instrument,
         volumeStep,
         volumeDb:

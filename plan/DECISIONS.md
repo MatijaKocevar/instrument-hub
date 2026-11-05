@@ -39,6 +39,25 @@ public:
 };
 ```
 
+## Plugin hosting
+
+- Live plugin instruments are hosted by one shared `ihub-sandbox` process per
+  instrument page. A page is a vector of slot descriptors, not a fixed eight;
+  the shared-page transport supports up to 32 slots and future pages can use
+  any smaller count.
+- Page failure is accepted as page-wide. The engine mutes the page, restarts
+  the host with bounded retries, restores every slot's committed state, re-arms
+  the active slot and returns to `ready`; it never takes the audio thread down.
+- Wine/VST3 pages use a page-scoped `vstbridge.toml` group in a mirrored bundle
+  view so every instance on the page shares one `vstbridge-host` process. The
+  original plugin directory is never modified.
+- The legacy one-host-per-slot path stays behind
+  `IHUB_SHARED_PLUGIN_HOST=0` (and `SessionConfig::sharedPluginHost`) until the
+  shared path has passed its crash, hang and state tests.
+- The engine is the parent of the page helper; the helper is the parent of the
+  Wine launcher. `PR_SET_PDEATHSIG` plus the engine's process-tree cleanup keep
+  the Wine host from outliving it.
+
 ## Controller
 
 - **Target device:** Novation Launchpad Mini MK3 (64-pad 8×8 grid; no keys, no

@@ -27,11 +27,20 @@ export interface GridFamily {
   readonly patches: readonly GridPatch[];
 }
 
+export interface GridPageStatus {
+  readonly id: string;
+  readonly status: string;
+  readonly slots: readonly number[];
+  readonly activeSlot: number;
+  readonly error: string;
+}
+
 export interface GridModel {
   readonly layout: GridLayout;
   readonly families: readonly GridFamily[];
   readonly tracks: readonly GridTrack[];
   readonly armedSlot: number;
+  readonly pluginPage: GridPageStatus | null;
 }
 
 export interface GridRow {
@@ -55,6 +64,7 @@ export function createGridModel(
     })),
     tracks: [],
     armedSlot: Number.isInteger(armedSlot) ? armedSlot : -1,
+    pluginPage: null,
   };
 }
 
@@ -124,12 +134,39 @@ function trackInputs(state: ControlState): TrackGridTrackInput[] {
     }));
 }
 
+function pageStatusFor(state: ControlState): GridPageStatus | null {
+  const pages = state.pages ?? [];
+  const page =
+    pages.find((candidate) => candidate.slots.includes(state.armedSlot)) ??
+    pages[0];
+
+  if (page === undefined) return null;
+
+  return {
+    id: page.id,
+    status: page.status,
+    slots: page.slots,
+    activeSlot: page.activeSlot,
+    error: page.error,
+  };
+}
+
 export function gridFromState(state: ControlState | null): GridModel {
   if (state === null)
-    return { layout: "families", families: [], tracks: [], armedSlot: -1 };
+    return {
+      layout: "families",
+      families: [],
+      tracks: [],
+      armedSlot: -1,
+      pluginPage: null,
+    };
 
   if (state.layout === "tracks" && (state.tracks?.length ?? 0) > 0)
-    return createTrackGridModel(trackInputs(state), state.armedSlot);
+    return createTrackGridModel(
+      trackInputs(state),
+      state.armedSlot,
+      pageStatusFor(state),
+    );
 
   const families: GridFamily[] =
     state.families.length > 0

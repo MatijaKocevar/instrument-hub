@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { GridHeader } from "./GridHeader";
 import { GridTable } from "./GridTable";
 import { LoadingGrid } from "./LoadingGrid";
+import { RecoveringBanner } from "./RecoveringBanner";
 import type { GridModel } from "./model";
 import { EMPTY_METERS, type MeterSnapshot } from "./meterFrame";
 import { TrackGridTable } from "./TrackGridTable";
@@ -51,7 +52,13 @@ export function GridView({
       data-armed-slot={model.armedSlot}
       data-loading={loading ? "true" : "false"}
     >
-      <GridHeader meters={meters} layout={model.layout} />
+      {model.layout === "tracks" ? null : (
+        <GridHeader meters={meters} layout={model.layout} />
+      )}
+
+      {model.pluginPage !== null ? (
+        <RecoveringBanner page={model.pluginPage} />
+      ) : null}
 
       {loading ? (
         <LoadingGrid />

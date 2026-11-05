@@ -47,7 +47,8 @@ export interface InstrumentPageProps {
     source: ControlPatchSourceRequest,
   ) => void;
   readonly onOpenEditor?: (slot: number) => void;
-  readonly onCloseEditor?: (slot: number) => void;
+  readonly onReloadPlugin?: (slot: number) => void;
+  readonly reloadBusy?: boolean;
   readonly onCaptureState?: (slot: number) => void;
   readonly onAddInsert?: (slot: number, insert: ControlFxInsertRequest) => void;
   readonly onRemoveInsert?: (slot: number, index: number) => void;
@@ -90,7 +91,8 @@ export function InstrumentPage({
   onColourChange,
   onSourceChange,
   onOpenEditor,
-  onCloseEditor,
+  onReloadPlugin,
+  reloadBusy = false,
   onCaptureState,
   onAddInsert,
   onRemoveInsert,
@@ -124,7 +126,14 @@ export function InstrumentPage({
                 editorBusy={editorBusy}
                 editorError={editorError}
                 {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
-                {...(onCloseEditor !== undefined ? { onCloseEditor } : {})}
+                {...(onReloadPlugin !== undefined
+                  ? {
+                      onReload: () => {
+                        onReloadPlugin(patch.slot);
+                      },
+                    }
+                  : {})}
+                reloadBusy={reloadBusy}
               />
 
               <SaveSoundAction

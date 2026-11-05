@@ -115,6 +115,8 @@ struct SessionConfig
 
     SessionLayout layout = SessionLayout::families;
 
+    bool sharedPluginHost = false;
+
     float fadeMilliseconds = 3.0f;
 
     int initialSlot = 0;

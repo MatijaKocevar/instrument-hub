@@ -70,6 +70,9 @@ Session::Session()
     config.slots = makeDefaultSet();
     pluginMirrors.resize (defaultLogicalSlots);
     slotErrors.resize (defaultLogicalSlots);
+    sandboxGenerations.resize (defaultLogicalSlots);
+    pluginReloadRevisions.resize (defaultLogicalSlots);
+    pageSlotHandles.assign (defaultLogicalSlots, nullptr);
     loadAbort = std::make_shared<std::atomic<bool>> (false);
 
     editorHost = std::make_unique<session::EditorHost> (
@@ -98,7 +101,7 @@ Session::Session()
         defaultLogicalSlots,
         [this] (int slot)
         {
-            return sandboxForSlot (slot);
+            return getSandboxSlotControl (slot);
         });
 }
 
@@ -115,6 +118,7 @@ Session::~Session()
 
     releaseAllPluginMirrors();
     warmPool.shutdown();
+    resetPageHost();
     switcher.reset();
     engine.reset();
     fxChain.reset();

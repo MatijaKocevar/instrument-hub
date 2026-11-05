@@ -15,6 +15,7 @@
 #include "SessionConfig.h"
 #include "SessionSwitchReport.h"
 #include "api/state/AudioState.h"
+#include "api/state/PluginPageState.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
@@ -33,8 +34,11 @@ class AudioPluginFormatManager;
 
 namespace ihub::plugins
 {
+class PageHost;
+class PageHostSlot;
 class PluginInstrument;
 class SandboxHost;
+class SandboxSlotControl;
 }
 
 namespace ihub::session
@@ -57,7 +61,9 @@ public:
     static std::vector<SessionSlotConfig> makeDefaultSet
         (SessionSlotKind defaultKind = SessionSlotKind::empty);
 
-    bool build (const SessionConfig& config, juce::String& error);
+    bool build (const SessionConfig& config,
+                juce::String& error,
+                bool keepDeviceOpen = false);
 
     void prepare (double sampleRate, int maximumBlockSize, int numChannels);
 
@@ -128,6 +134,8 @@ public:
 
     bool isEditorOpen (int slot) const noexcept;
 
+    bool reloadPlugin (int slot, std::string& error);
+
     int getOpenEditorCount() const noexcept;
 
     void setPluginStateDirectory (const juce::File& directory);
@@ -152,6 +160,16 @@ public:
     plugins::PluginInstrument* getPluginInstrument (int slot);
 
     plugins::SandboxHost* getSandboxHost (int slot) const noexcept;
+
+    plugins::SandboxSlotControl* getSandboxSlotControl (int slot) const noexcept;
+
+    std::shared_ptr<plugins::PageHost> getPageHost() const;
+
+    bool isSharedPluginHostEnabled() const noexcept { return sharedPluginHostEnabled; }
+
+    std::vector<Api::PluginPageStatus> getPluginPageStatuses() const;
+
+    bool restartPluginPage (const std::string& pageId, std::string& error);
 
     int getSandboxProcessId (int slot) const noexcept;
 
@@ -220,6 +238,9 @@ public:
     using SlotStateObserver = session::WarmPoolController::SlotStateObserver;
     void setSlotStateObserver (SlotStateObserver observer);
 
+    using PageStatusObserver = std::function<void()>;
+    void setPageStatusObserver (PageStatusObserver observer);
+
     bool waitForSlotWarm (int slot, int timeoutMs = 5000);
 
     bool waitForSlotActive (int slot, int timeoutMs = 5000);
@@ -260,6 +281,19 @@ private:
     std::unique_ptr<AudioEngine::SlotSource> createPooledSource (int slotIndex,
                                                                  juce::String& error);
 
+    std::unique_ptr<AudioEngine::SlotSource> createSharedPageSlot (int slotIndex,
+                                                                   juce::String& error);
+
+    std::shared_ptr<plugins::PageHost> ensurePageHost (juce::String& error);
+    void resetPageHost() noexcept;
+    void configurePageCallbacks (plugins::PageHost& host);
+    void onPageStatusChanged (int status, const juce::String& reason);
+    void onPageSlotStateChanged (int slot,
+                                 const juce::MemoryBlock& state,
+                                 const session::PluginStateIdentity& identity);
+    void onPageRecovered (int activeSlot);
+    void retryPageWarmSlots();
+
     void renderInternal (int numSamples, juce::MidiBuffer& midi) noexcept;
     void copyToOutput (float* const* outputChannelData,
                        int numOutputChannels,
@@ -284,6 +318,12 @@ private:
     plugins::SandboxHost* sandboxForSlot (int slot) const noexcept;
     void closeSandboxEditors (int keepSlot);
     bool isWineHostedSlot (int slot) const;
+
+    std::uint64_t nextSandboxGeneration (int slot);
+    std::uint64_t bumpSandboxGeneration (int slot);
+    bool isCurrentSandboxGeneration (int slot, std::uint64_t generation) const noexcept;
+
+    void notifySlotStateChanged (int slot);
 
     void setSlotError (int slot, const juce::String& error);
     void clearSlotError (int slot);
@@ -312,10 +352,30 @@ private:
         int slot = -1;
         plugins::SandboxHost* host = nullptr;
         session::PluginStateIdentity identity;
+        std::uint64_t generation = 0;
     };
 
     mutable std::mutex sandboxMutex;
     std::vector<SandboxSlot> sandboxSlots;
+    std::vector<std::uint64_t> sandboxGenerations;
+    std::uint64_t sandboxGenerationCounter = 0;
+
+    std::vector<std::uint64_t> pluginReloadRevisions;
+
+    mutable std::mutex slotObserverMutex;
+    session::WarmPoolController::SlotStateObserver slotStateObserver;
+
+    mutable std::mutex pageStatusObserverMutex;
+    PageStatusObserver pageStatusObserver;
+
+    mutable std::mutex pageHostMutex;
+    std::mutex pageStartMutex;
+    std::shared_ptr<plugins::PageHost> pageHost;
+
+    mutable std::mutex pageSlotHandleMutex;
+    std::vector<plugins::PageHostSlot*> pageSlotHandles;
+
+    bool sharedPluginHostEnabled = false;
 
     mutable std::mutex mirrorMutex;
     std::vector<std::shared_ptr<plugins::PluginInstrument>> pluginMirrors;

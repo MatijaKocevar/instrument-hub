@@ -11,7 +11,7 @@
 
 namespace ihub::plugins
 {
-class SandboxHost;
+class SandboxSlotControl;
 }
 
 namespace ihub::session
@@ -26,7 +26,7 @@ public:
         float normalisedValue = 0.0f;
     };
 
-    using SandboxLookup = std::function<plugins::SandboxHost* (int slot)>;
+    using SandboxLookup = std::function<plugins::SandboxSlotControl* (int slot)>;
 
     MirrorSync (int slotCapacity, SandboxLookup sandboxLookup);
     ~MirrorSync();

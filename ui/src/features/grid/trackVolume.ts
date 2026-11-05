@@ -6,14 +6,14 @@ export interface TrackVolumeStep {
   readonly db: number;
 }
 
-const OVER_GAIN = 1.9952623149688795;
+const BOOST_GAIN = 1.4125375446227544;
 
 function dbForGain(gain: number): number {
   return gain <= 0 ? -60 : 20 * Math.log10(gain);
 }
 
-const STEP_GAINS = [0, 0.25, 0.5, 0.75, 1, OVER_GAIN] as const;
-const STEP_LABELS = ["0%", "25%", "50%", "75%", "100%", "+6 dB"] as const;
+const STEP_GAINS = [0, 0.5, 0.75, 1, BOOST_GAIN] as const;
+const STEP_LABELS = ["0%", "50%", "75%", "100%", "+3 dB"] as const;
 
 export const TRACK_VOLUME_STEPS: readonly TrackVolumeStep[] = STEP_GAINS.map(
   (gain, step) => ({
@@ -25,9 +25,9 @@ export const TRACK_VOLUME_STEPS: readonly TrackVolumeStep[] = STEP_GAINS.map(
   }),
 );
 
-export const TRACK_OVER_STEP = 5;
-export const TRACK_MAX_STEP = 5;
-export const TRACK_DEFAULT_STEP = 4;
+export const TRACK_OVER_STEP = 4;
+export const TRACK_MAX_STEP = 4;
+export const TRACK_DEFAULT_STEP = 3;
 
 export function clampTrackVolumeStep(step: number): number {
   if (!Number.isInteger(step)) return TRACK_DEFAULT_STEP;
@@ -49,8 +49,6 @@ export function trackDbForStep(step: number): number {
   return trackVolumeStep(step).db;
 }
 
-export function volumeStepForRow(row: number, currentStep: number): number {
-  if (row !== 4) return clampTrackVolumeStep(row);
-
-  return clampTrackVolumeStep(currentStep) === 4 ? TRACK_OVER_STEP : 4;
+export function volumeStepForRow(row: number): number {
+  return clampTrackVolumeStep(row);
 }

@@ -45,7 +45,7 @@ void runLedChecks()
         track.slot = slot;
         track.colorIndex = slot;
         track.selected = slot == 1;
-        track.volumeStep = slot == 0 ? 2 : (slot == 2 ? 5 : 4);
+        track.volumeStep = slot == 0 ? 2 : (slot == 2 ? 4 : 3);
 
         if (slot == 0)
         {
@@ -65,7 +65,7 @@ void runLedChecks()
 
     const auto idle = Controller::launchpadLedForTrackPad (
         bindingFor (56, Controller::PadRole::track), snapshot);
-    check (idle.velocity == Launchpad::velocityForPatchColour (0),
+    check (idle.velocity == Launchpad::velocityForTrackColour (0),
            "an unarmed track pad keeps its instrument colour");
 
     const auto enabledFx = Controller::launchpadLedForTrackPad (
@@ -83,20 +83,34 @@ void runLedChecks()
     check (isColour (unassignedFx, Launchpad::Colour::Off),
            "an unassigned hot pad is dark");
 
-    const auto overVolume = Controller::launchpadLedForTrackPad (
+    const auto boostVolume = Controller::launchpadLedForTrackPad (
         bindingFor (34, Controller::PadRole::volume), snapshot);
-    check (isColour (overVolume, Launchpad::Colour::White),
-           "the over step lights the 100% pad bright white");
+    check (boostVolume.velocity == 0x20
+               && boostVolume.mode == Launchpad::LedMode::Static,
+           "the +3 dB step lights its pad in the lightest green");
+
+    const auto boostBelow = Controller::launchpadLedForTrackPad (
+        bindingFor (26, Controller::PadRole::volume), snapshot);
+    check (boostBelow.velocity == 0x18
+               && boostBelow.mode == Launchpad::LedMode::Static,
+           "the 100% step lights in a lighter green than the steps below");
 
     const auto activeVolume = Controller::launchpadLedForTrackPad (
         bindingFor (16, Controller::PadRole::volume), snapshot);
-    check (isColour (activeVolume, Launchpad::Colour::Blue),
-           "the active volume step is blue");
+    check (activeVolume.velocity == 0x13
+               && activeVolume.mode == Launchpad::LedMode::Static,
+           "the 75% volume step has its own green shade");
+
+    const auto lowerVolume = Controller::launchpadLedForTrackPad (
+        bindingFor (8, Controller::PadRole::volume), snapshot);
+    check (lowerVolume.velocity == 0x10
+               && lowerVolume.mode == Launchpad::LedMode::Static,
+           "the 50% volume step is a darker green");
 
     const auto inactiveVolume = Controller::launchpadLedForTrackPad (
-        bindingFor (18, Controller::PadRole::volume), snapshot);
+        bindingFor (24, Controller::PadRole::volume), snapshot);
     check (isColour (inactiveVolume, Launchpad::Colour::Off),
-           "an inactive volume pad is dark");
+           "a volume step above the current level is dark");
 
     int red = 0;
 

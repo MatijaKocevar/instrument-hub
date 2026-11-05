@@ -147,7 +147,7 @@ export class TrackActions {
   };
 
   setTrackVolume = async (index: number, step: number): Promise<boolean> => {
-    if (!Number.isInteger(step) || step < 0 || step > 5) return false;
+    if (!Number.isInteger(step) || step < 0 || step > 4) return false;
     if (trackAt(this.snapshot.state, index) === null) return false;
 
     return this.run(

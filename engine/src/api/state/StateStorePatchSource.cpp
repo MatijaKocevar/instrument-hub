@@ -185,6 +185,44 @@ bool StateStore::closePatchEditor (int slot, std::string& error)
     return true;
 }
 
+void StateStore::setPatchReloadHandler (PatchReloadHandler handler)
+{
+    const std::lock_guard<std::mutex> lock (mutex);
+    patchReloadHandler = std::move (handler);
+}
+
+bool StateStore::reloadPatch (int slot, std::string& error)
+{
+    if (slot < 0 || slot >= numSlots)
+    {
+        error = "patch slot is out of range";
+        return false;
+    }
+
+    PatchReloadHandler reload;
+
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        reload = patchReloadHandler;
+    }
+
+    if (reload == nullptr)
+    {
+        error = "no audio session is attached";
+        return false;
+    }
+
+    std::string handlerError;
+    const bool reloaded = reload (slot, handlerError);
+
+    if (! reloaded)
+        error = handlerError.empty() ? "could not reload the plugin" : handlerError;
+
+    notifyChanged ("patch", slot);
+
+    return reloaded;
+}
+
 void StateStore::setPatchStateCaptureHandler (PatchStateCaptureHandler handler)
 {
     const std::lock_guard<std::mutex> lock (mutex);

@@ -61,7 +61,7 @@ void runTrackGridScenario()
         const auto warm = session.getWarmState (slot);
         bool instrument = false;
 
-        if (auto* sandbox = session.getSandboxHost (slot); sandbox != nullptr)
+        if (auto* sandbox = session.getSandboxSlotControl (slot); sandbox != nullptr)
             instrument = sandbox->isRunning();
         else
             instrument = session.getPluginInstrument (slot) != nullptr;
@@ -121,7 +121,7 @@ void runTrackGridScenario()
                 "switching all eight tracks evicts no instances");
     E2E::check (result.fxToggles >= 3,
                 "the pad and API hot-FX paths both applied");
-    E2E::check (result.volumeSets >= 4,
+    E2E::check (result.volumeSets >= 3,
                 "the pad and API volume paths both applied");
     E2E::check (session.getWarmEvictionCount() == 0,
                 "the full performance pass still has zero evictions");

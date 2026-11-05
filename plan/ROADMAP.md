@@ -1144,8 +1144,8 @@ open; pressing a track button switches instantly because nothing loads during
 performance. Only the selected track is audible. Existing 64-patch projects
 keep the legacy family grid; new projects use the track layout.
 
-Rows, bottom to top: 0-4 volume steps (0 / 25 / 50 / 75 / 100%, pressing 100%
-again goes to +6 dB "over"), 5-6 hot FX toggles, 7 track selector.
+Rows, bottom to top: 0-4 volume steps (0 / 50 / 75 / 100% / +3 dB), 5-6 hot
+FX toggles, 7 track selector.
 
 ## T300 · Explicit eight-track warm set
 - depends: none
@@ -1171,16 +1171,16 @@ again goes to +6 dB "over"), 5-6 hot FX toggles, 7 track selector.
 ## T303 · Track state and commands over the API
 - depends: T302
 - size: M
-- goal: Extend `GET /state` with the layout and eight track entries: selected flag, instrument, volume step, and the two hot FX entries with name and bypass state. Add `POST /tracks/{index}/select`, `POST /tracks/{index}/fx/{hot}/toggle` and `POST /tracks/{index}/volume` with `step: 0..5` (step 4 is 0 dB, step 5 is +6 dB). Broadcast a `track` state event over the existing WebSocket. Update the OpenAPI contract and regenerate the UI schema.
+- goal: Extend `GET /state` with the layout and eight track entries: selected flag, instrument, volume step, and the two hot FX entries with name and bypass state. Add `POST /tracks/{index}/select`, `POST /tracks/{index}/fx/{hot}/toggle` and `POST /tracks/{index}/volume` with `step: 0..4` (step 3 is 0 dB, step 4 is +3 dB). Broadcast a `track` state event over the existing WebSocket. Update the OpenAPI contract and regenerate the UI schema.
 - files: `engine/src/api/`, `engine/src/api/state/`, `shared/api/openapi.yaml`, `ui/src/api/schema.d.ts`, `tests/api/`
 - accept: state lists 8 tracks; select arms only that slot; the FX command toggles the chosen insert; volume steps map to the documented gains and persist across a `GET`; WebSocket clients receive the change; v1 legacy state is unchanged; API tests pass.
 
 ## T304 · Route Launchpad track pads
 - depends: T303
 - size: M
-- goal: Decode the v2 pad roles and route presses by role: track pads arm their slot, fx pads toggle their hot insert, volume pads set their step. Pressing the pad for the current 100% step toggles the over step (+6 dB) and back. LED policy: the armed track pad is red, other track pads keep their instrument colour, fx pads show enabled/disabled, volume pads light the active step, over is a bright non-red colour, and unassigned hot pads are dark. No long-press behaviours.
+- goal: Decode the v2 pad roles and route presses by role: track pads arm their slot, fx pads toggle their hot insert, volume pads set their step. LED policy: the armed track pad is red, other track pads keep their instrument colour, fx pads show enabled/disabled, volume pads light the active step, the +3 dB step is a bright non-red colour, and unassigned hot pads are dark. No long-press behaviours.
 - files: `engine/src/controller/`, `engine/src/controller/launchpad/`, `engine/src/app/ControllerSurface.cpp`, `tests/controller/`, `tests/e2e/`
-- accept: a virtual-Launchpad capture arms the pressed track, toggles the correct insert, sets the requested gain, and applies over only on a repeated 100% press; exactly one red track LED; controller tests pass.
+- accept: a virtual-Launchpad capture arms the pressed track, toggles the correct insert, sets each requested gain including +3 dB; exactly one red track LED; controller tests pass.
 
 ## T305 · Track grid UI and hot-FX setup
 - depends: T303
@@ -1203,3 +1203,35 @@ again goes to +6 dB "over"), 5-6 hot FX toggles, 7 track selector.
 - files: `tests/e2e/`, `docs/architecture.md`, `docs/launchpad-mini-mk3.md`
 - accept: the e2e run switches all eight tracks with zero load events, applies FX and volume actions, and records the LED stream; no xruns; peak RSS with eight warm TestPlugin instances is recorded in the result; docs match the implementation; `scripts/test.sh` passes.
 
+## T308 · Mixer-style track grid rendering
+- depends: T305
+- size: M
+- goal: Restyle the track layout so each of the eight columns reads as a channel strip, without changing any behaviour. Row 7 becomes an instrument selector card (track name, instrument name, selection state); rows 6/5 become hardware-style FX toggle switches (name plus on/bypass state, dimmed and inert when unassigned); rows 4-0 are drawn as one continuous vertical mixer fader per track: a rail with five equally spaced stages labelled 0%, 50%, 75%, 100% and +3 dB, a filled level from the bottom to the active stage, one fader cap on the active detent, and a dB readout. The +3 dB stage is amber. Every one of the five volume rows stays an independent click target wired to its own step. No drag gesture, no API/controller/mapping/LED changes, and the legacy family grid is untouched.
+- files: `ui/src/features/grid/TrackGridRow.tsx`, `ui/src/features/grid/trackGrid.css`, `ui/src/features/grid/`, `ui/src/testing/scenarios/trackGrid.tsx`
+- accept: the track-grid snapshot renders 8 instrument selectors, 16 FX toggles and 40 volume hit areas with the same `data-testid`/`data-*` attributes; the fader fill, cap, ticks and readout follow the active step, the five stages are equally spaced and labelled 0%, 50%, 75%, 100% and +3 dB; clicking each volume row sets its own step; double-click on a track still opens it; the legacy 64-patch grid is unchanged; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
+- note: Split the selector, FX toggle and fader into small single-responsibility components rather than growing `TrackGridRow.tsx`; presentation only, so the controller mapping and LED policy from T301/T304 stay byte-for-byte as they are.
+
+
+## T311 · Compile the engine once for tests
+- depends: none
+- size: L
+- goal: Stop every test executable from recompiling its own copy of the engine and JUCE. Extract the engine sources into one static library (or object library) and make the test targets link it instead of listing `IHUB_SESSION_SOURCES`, `IHUB_API_*`, `IHUB_SANDBOX_*`, and the JUCE module sources per executable. Keep the existing per-test binaries working while the shared library is introduced, then delete the duplicated source lists.
+- files: `tests/CMakeLists.txt`, `engine/CMakeLists.txt`, `CMakeLists.txt`, new `engine/ihub-engine.cmake` or equivalent
+- accept: touching `engine/src/Session.h` rebuilds the engine library once and then relinks only test targets that link it; no test target lists engine or JUCE `.cpp` files directly; `IHUB_BUILD_TESTS=ON` still builds every existing test; the same tests pass; record the before/after wall time for a one-header change.
+- note: The test suite is opt-in after the T207 build guard: configure with `-DIHUB_BUILD_TESTS=ON` only when tests are actually needed.
+
+## T312 · Collapse the test suite into a few runners
+- depends: T311
+- size: L
+- goal: Replace the 77 one-binary-per-scenario CTest entries with a small number of runners (for example engine, API, plugins/audio, UI/e2e) registered as multiple CTest cases in one executable each. Keep crash-isolated plugin tests as separate processes where isolation is the point. Do not change what each scenario checks.
+- files: `tests/CMakeLists.txt`, `tests/**/*Test.cpp`, new runner mains under `tests/`
+- accept: `ctest -N` lists the same scenario names; a cold `IHUB_BUILD_TESTS=ON` build produces a handful of executables instead of dozens; a failure still names the failing scenario; crash-isolation tests remain separate; `scripts/test.sh` passes and the build time is measured.
+- note: A header-only framework may be vendored if it simplifies registration, but do not add a package-manager dependency.
+
+## T313 · Shared plugin host per instrument page
+- depends: BUG-024, T307
+- size: XL
+- goal: Replace the per-slot plugin sandbox with one shared `ihub-sandbox`/Wine process per instrument page. All plugin instruments on the page stay warm; switching is still only the 2–5 ms gain ramp. Add a page-level watchdog and automatic recovery: if the shared host dies or hangs, mute the page, restart the host, restore every slot's committed plugin state, re-arm the active track and fade back in without crashing or blocking the audio thread. Design the host for N slots and a page descriptor so future pages of instruments can switch as a group; do not hard-code eight. Keep the old per-slot path behind a migration flag until the new path is proven.
+- files: `engine/src/plugins/SandboxClient.*`, `engine/src/plugins/sandbox/`, `engine/src/plugins/sandbox_main.cpp`, `engine/src/session/SessionBuild.cpp`, `engine/src/session/WarmPoolController.*`, `engine/src/audio/warm/`, `engine/src/api/state/`, `ui/src/features/grid/`, `tests/plugins/sandbox/`, `tests/plugin_state/`, `docs/architecture.md`
+- accept: eight Analog Lab V tracks warm in one host process; switching all eight produces no loads/warming and no xruns; `kill -9` the host recovers all eight slot states and re-arms the active track without crashing or leaving orphan Wine processes; RSS is materially lower than the eight-host baseline; state capture/persistence still works; targeted tests pass; docs updated.
+- note: Full brief in `plan/T313-SHARED-PLUGIN-HOST.md`. Shared failure takes the whole page down by design; `BUG-024` has the evidence and the eight-host baseline.

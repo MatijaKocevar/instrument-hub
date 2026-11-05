@@ -144,13 +144,13 @@ bool ProjectLifecycle::rebuildSession (const ihub::SessionConfig& config,
         next.device.numInputChannels = setup.numInputChannels;
     }
 
-    if (! session.build (next, error))
+    if (! session.build (next, error, wasOpen))
         return false;
 
     if (session.getNumSlots() > 0)
         session.armSlot (0);
 
-    if (wasOpen)
+    if (wasOpen && ! session.isDeviceOpen())
     {
         juce::String openError;
 

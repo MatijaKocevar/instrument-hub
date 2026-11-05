@@ -38,7 +38,7 @@ void paintTrackLeds (Api::StateStore& state,
 
     const auto snapshot = state.snapshot();
     ihub::app::paintTrackLeds (driver, *document,
-                               ihub::app::trackLedSnapshotFor (snapshot, state));
+                               ihub::app::trackLedSnapshotFor (snapshot));
 }
 
 int countRedTrackLeds (Controller::LaunchpadDriver& driver)

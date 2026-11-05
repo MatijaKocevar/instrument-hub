@@ -26,7 +26,8 @@ PluginWindow::~PluginWindow()
 {
     lifetime->alive = false;
 
-    close();
+    destroyWindow();
+    clearInstrumentCallback();
 
     livePluginWindows.fetch_sub (1, std::memory_order_relaxed);
 }
@@ -73,7 +74,7 @@ bool PluginWindow::open (PluginInstrument& instrumentToShow,
         if (auto locked = weakLifetime.lock();
             locked != nullptr && locked->alive && locked->owner != nullptr)
         {
-            locked->owner->close();
+            locked->owner->closeForUnload();
         }
     });
 
@@ -106,23 +107,49 @@ void PluginWindow::clearInstrumentCallback() noexcept
 
 void PluginWindow::close()
 {
-    const bool wasOpen = window != nullptr;
+    const bool wasOpen = openState;
 
-    if (wasOpen && onBeforeClose && lifetime != nullptr && lifetime->alive)
+    if (! wasOpen)
+        return;
+
+    openState = false;
+    openWindowCount.fetch_sub (1, std::memory_order_relaxed);
+
+    if (onBeforeClose && lifetime != nullptr && lifetime->alive)
     {
         auto callback = onBeforeClose;
         callback();
     }
 
-    destroyWindow();
+    if (hideOnClose && window != nullptr)
+    {
+        lastPosition = window->getPosition();
+        window->setVisible (true);
+        window->setTopLeftPosition (-32000, -32000);
+    }
+    else
+    {
+        destroyWindow();
+        clearInstrumentCallback();
+    }
 
-    clearInstrumentCallback();
-
-    if (wasOpen && onClose && lifetime != nullptr && lifetime->alive)
+    if (onClose && lifetime != nullptr && lifetime->alive)
     {
         auto callback = onClose;
         callback();
     }
+}
+
+void PluginWindow::closeForUnload()
+{
+    if (openState)
+    {
+        openState = false;
+        openWindowCount.fetch_sub (1, std::memory_order_relaxed);
+    }
+
+    destroyWindow();
+    clearInstrumentCallback();
 }
 
 juce::AudioProcessorEditor* PluginWindow::getEditor() const noexcept
@@ -140,7 +167,7 @@ juce::Component* PluginWindow::getWindowComponent() const noexcept
 
 int PluginWindow::getOpenWindowCount() noexcept
 {
-    return PluginEditorWindow::getLiveWindowCount();
+    return openWindowCount.load (std::memory_order_relaxed);
 }
 
 int PluginWindow::getLiveInstanceCount() noexcept

@@ -26,7 +26,7 @@ void ControllerSurface::refreshLeds()
     {
         if (setMapping != nullptr)
             paintTrackLeds (*launchpad, *setMapping,
-                            trackLedSnapshotFor (snapshot, *apiState));
+                            trackLedSnapshotFor (snapshot));
 
         return;
     }

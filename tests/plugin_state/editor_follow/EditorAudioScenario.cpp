@@ -85,7 +85,7 @@ void run (ihub::Session& session, int slot, const Check& check)
     }
 
     const auto sandboxPid = session.getSandboxProcessId (slot);
-    auto* sandbox = session.getSandboxHost (slot);
+    auto* sandbox = session.getSandboxSlotControl (slot);
     const auto playedBefore = sandbox != nullptr ? sandbox->getPlayedBlockCount() : 0;
 
     (void) instrument->setParameterValue ("Sine Level", 1.0f);

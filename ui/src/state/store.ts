@@ -22,6 +22,7 @@ import { PairingActions } from "./pairing";
 import { PatchArmActions } from "./patchArm";
 import { PatchCaptureActions } from "./patchCapture";
 import { PatchEditorActions } from "./patchEditor";
+import { PatchReloadActions } from "./patchReload";
 import { PatchSourceActions } from "./patchSource";
 import { PatchUpdateActions } from "./patchUpdate";
 import { PluginActions } from "./plugins";
@@ -47,6 +48,7 @@ export class AppStore {
   private readonly patchUpdate: PatchUpdateActions;
   private readonly patchSource: PatchSourceActions;
   private readonly patchEditor: PatchEditorActions;
+  private readonly patchReload: PatchReloadActions;
   private readonly patchCapture: PatchCaptureActions;
   private readonly fx: FxActions;
   private readonly plugins: PluginActions;
@@ -76,6 +78,7 @@ export class AppStore {
       this.fx.loadFxChain(slot, { force: true }),
     );
     this.patchEditor = new PatchEditorActions(context);
+    this.patchReload = new PatchReloadActions(context);
     this.patchCapture = new PatchCaptureActions(context);
     this.plugins = new PluginActions(context);
     this.midi = new MidiActions(context);
@@ -187,6 +190,13 @@ export class AppStore {
 
   closeInstrumentEditor = (slot: number): Promise<boolean> =>
     this.patchEditor.closeInstrumentEditor(slot);
+
+  reloadInstrumentPlugin = (slot: number): Promise<boolean> =>
+    this.patchReload.reloadInstrumentPlugin(slot);
+
+  clearInstrumentError = (): void => {
+    this.patchEditor.clearInstrumentError();
+  };
 
   savePatchSound = (slot: number): Promise<boolean> =>
     this.patchCapture.savePatchSound(slot);

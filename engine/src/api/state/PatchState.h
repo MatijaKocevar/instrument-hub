@@ -30,6 +30,8 @@ struct SlotSnapshot
     double latencyMs = 0.0;
 
     bool editorOpen = false;
+
+    std::string error;
 };
 
 struct PatchInstrumentState
@@ -81,6 +83,8 @@ struct PatchState
     bool warm = false;
 
     bool editorOpen = false;
+
+    std::string error;
 
     int latencySamples = 0;
     double latencyMs = 0.0;

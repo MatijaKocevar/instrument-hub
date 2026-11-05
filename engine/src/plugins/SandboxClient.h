@@ -14,7 +14,12 @@ namespace sandbox
 {
 
 inline constexpr std::uint32_t sharedMemoryMagic = 0x49485553u;
-inline constexpr std::uint32_t sharedMemoryVersion = 3;
+inline constexpr std::uint32_t sharedMemoryVersion = 4;
+
+inline constexpr std::uint32_t sharedPageMagic = 0x49485550u;
+inline constexpr std::uint32_t sharedPageVersion = 1;
+inline constexpr int maximumPageSlots = 32;
+inline constexpr int pageIdSize = 64;
 
 inline constexpr int requestRingSize = 8;
 inline constexpr int replyRingSize = 8;
@@ -84,6 +89,7 @@ struct SharedControl
     std::uint32_t sequence;
     std::int32_t stateBytes;
     char statePath[statePathSize];
+    char error[errorTextSize];
 };
 
 struct SharedMemory
@@ -102,6 +108,11 @@ struct SharedMemory
     std::uint32_t heartbeat;
     std::int32_t editorOpen;
 
+    std::int32_t editorCaptureRequested;
+    std::int32_t editorStateBytes;
+    std::int32_t editorStateRevision;
+    char editorStatePath[statePathSize];
+
     std::uint64_t requestPublished;
     std::uint64_t requestConsumed;
 
@@ -113,6 +124,24 @@ struct SharedMemory
 
     SharedRequest requests[requestRingSize];
     SharedReply replies[replyRingSize];
+};
+
+struct SharedPage
+{
+    std::uint32_t magic;
+    std::uint32_t version;
+
+    std::int32_t numSlots;
+    std::int32_t state;
+    std::int32_t parentProcessId;
+    std::int32_t childProcessId;
+    std::uint32_t heartbeat;
+    std::int32_t reserved;
+
+    char pageId[pageIdSize];
+    char error[errorTextSize];
+
+    SharedMemory slots[maximumPageSlots];
 };
 
 inline std::uint64_t loadAcquire (const std::uint64_t& value) noexcept
@@ -180,6 +209,9 @@ static_assert (std::is_standard_layout_v<SharedMemory>,
                "the shared layout must be standard-layout");
 static_assert (offsetof (SharedMemory, requestPublished) % alignof (std::uint64_t) == 0);
 static_assert (offsetof (SharedMemory, replies) % alignof (std::uint32_t) == 0);
+static_assert (std::is_standard_layout_v<SharedPage>,
+               "the page layout must be standard-layout");
+static_assert (offsetof (SharedPage, slots) % alignof (SharedMemory) == 0);
 
 namespace cli
 {
@@ -189,6 +221,12 @@ inline constexpr const char* pluginFlag = "--plugin";
 inline constexpr const char* fakeToneFlag = "--fake-tone";
 inline constexpr const char* abortAfterFlag = "--abort-after";
 inline constexpr const char* paramFlag = "--param";
+inline constexpr const char* pageMapFlag = "--page-map";
+inline constexpr const char* pageIdFlag = "--page-id";
+inline constexpr const char* pageSlotFlag = "--page-slot";
+inline constexpr const char* pageFakeToneFlag = "--page-fake-tone";
+inline constexpr const char* pageParamFlag = "--page-param";
+inline constexpr const char* pageAbortAfterFlag = "--page-abort-after";
 }
 
 }

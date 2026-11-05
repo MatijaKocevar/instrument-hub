@@ -2,6 +2,7 @@
 
 #include "SandboxWatchdog.h"
 
+#include <cstdio>
 #include <cstring>
 
 #if JUCE_LINUX || JUCE_MAC
@@ -195,6 +196,23 @@ bool SandboxHost::start (juce::String& error)
     shared->state = static_cast<std::int32_t> (sandbox::ProcessState::empty);
     shared->parentProcessId = currentProcessId();
     shared->latencySamples = -1;
+
+    editorStateFile = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                          .getChildFile ("ihub-sandbox-editor-"
+                                         + juce::Uuid().toString() + ".bin");
+    editorStateFile.deleteFile();
+
+    std::snprintf (shared->editorStatePath,
+                   sizeof (shared->editorStatePath),
+                   "%s",
+                   editorStateFile.getFullPathName().toRawUTF8());
+
+    {
+        const juce::ScopedLock lock (stateLock);
+        lastCommittedState.reset();
+        lastCommittedRevision = 0;
+        seenEditorStateRevision = 0;
+    }
 
     juce::StringArray arguments;
     arguments.add (helper.getFullPathName());
