@@ -41,7 +41,6 @@ export interface InstrumentPageProps {
   readonly onPanChange?: (slot: number, pan: number) => void;
   readonly onMuteChange?: (slot: number, muted: boolean) => void;
   readonly onSoloChange?: (slot: number, solo: boolean) => void;
-  readonly onColourChange?: (slot: number, colorIndex: number) => void;
   readonly onSourceChange?: (
     slot: number,
     source: ControlPatchSourceRequest,
@@ -88,7 +87,6 @@ export function InstrumentPage({
   onPanChange,
   onMuteChange,
   onSoloChange,
-  onColourChange,
   onSourceChange,
   onOpenEditor,
   onReloadPlugin,
@@ -107,7 +105,6 @@ export function InstrumentPage({
       armedSlot={armedSlot}
       following={following}
       loading={loading}
-      {...(onColourChange !== undefined ? { onColourChange } : {})}
     >
       {patch === null ? null : (
         <>

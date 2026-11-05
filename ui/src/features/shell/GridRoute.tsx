@@ -55,6 +55,9 @@ export function GridRoute({
       onSetTrackVolume={(index, step) => {
         void store.setTrackVolume(index, step);
       }}
+      onRenameTrack={(index, name) => {
+        void store.renameTrack(index, name);
+      }}
     />
   );
 }

@@ -144,6 +144,45 @@ void runTracks()
     runTrackVolume (rig, events, eventsConnected);
     runTrackFx (rig, events, eventsConnected);
 
+    response = client.Patch ("/tracks/2", "{\"name\":\"Lead Synth\"}",
+                             "application/json");
+    state = response ? parseJson (response->body) : juce::var {};
+
+    check (response && response->status == 200,
+           "PATCH /tracks/2 renames a track");
+    check (stringProperty (trackAt (state, kTrack), "name") == "Lead Synth",
+           "the renamed track publishes its new name");
+
+    const auto* renamedSlots = arrayProperty (state, "slots");
+
+    if (renamedSlots != nullptr && renamedSlots->size() > kTrack)
+        check (stringProperty ((*renamedSlots)[kTrack], "name") == "Lead Synth",
+               "the track slot follows the renamed track");
+    else
+        check (false, "the renamed state still lists the slots");
+
+    if (eventsConnected)
+    {
+        juce::var frame;
+        const bool sawRename = readEventUntil (events, [&] (const juce::var& candidate)
+        {
+            return isTrackEvent (candidate, kTrack)
+                   && stringProperty (trackAt (property (candidate, "state"), kTrack),
+                                      "name") == "Lead Synth";
+        }, 2000, frame);
+
+        check (sawRename, "the WebSocket delivers the track rename");
+    }
+
+    response = client.Patch ("/tracks/2", "{\"name\":\"   \"}",
+                             "application/json");
+    check (response && response->status == 400,
+           "the rename command rejects an empty name");
+
+    response = client.Patch ("/tracks/2", "{}", "application/json");
+    check (response && response->status == 400,
+           "the rename command requires a name");
+
     response = client.Post ("/tracks/8/select", "{}", "application/json");
     check (response && response->status == 404,
            "track selection rejects an out-of-range track");

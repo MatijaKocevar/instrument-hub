@@ -17,6 +17,8 @@ export interface GridHotFx {
   readonly bypassed: boolean;
 }
 
+export type TrackStatus = "ok" | "warming" | "error" | "empty";
+
 export interface GridTrack {
   readonly index: number;
   readonly id: string;
@@ -24,6 +26,7 @@ export interface GridTrack {
   readonly slot: number;
   readonly selected: boolean;
   readonly colorIndex: number;
+  readonly status: TrackStatus;
   readonly hasInstrument: boolean;
   readonly instrument: ControlPatchInstrument;
   readonly volumeStep: number;
@@ -49,6 +52,8 @@ export interface TrackGridTrackInput {
   readonly slot: number;
   readonly selected: boolean;
   readonly colorIndex: number;
+  readonly warmState: string;
+  readonly error: string;
   readonly instrument: ControlPatchInstrument;
   readonly volumeStep: number;
   readonly volumeDb: number;
@@ -81,6 +86,28 @@ function hotForIndex(
   };
 }
 
+function trackStatus(
+  track: TrackGridTrackInput,
+  page: GridPageStatus | null,
+): TrackStatus {
+  if (track.instrument.kind === "empty") return "empty";
+  if (track.error.length > 0) return "error";
+
+  const onPage = page?.slots.includes(track.slot) === true;
+
+  if (onPage && page?.status === "failed") return "error";
+
+  if (
+    track.warmState === "cold" ||
+    track.warmState === "warming" ||
+    track.warmState === "fading" ||
+    (onPage && page?.status === "recovering")
+  )
+    return "warming";
+
+  return "ok";
+}
+
 export function createTrackGridModel(
   tracks: readonly TrackGridTrackInput[],
   armedSlot: number,
@@ -100,6 +127,7 @@ export function createTrackGridModel(
         slot: track.slot,
         selected: track.selected,
         colorIndex: clampColourIndex(track.index),
+        status: trackStatus(track, pluginPage),
         hasInstrument: track.instrument.kind !== "empty",
         instrument: track.instrument,
         volumeStep,

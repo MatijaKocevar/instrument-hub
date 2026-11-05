@@ -111,6 +111,57 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{index}:
+    patch:
+      tags: [state]
+      operationId: renameTrack
+      summary: Rename a performance track
+      description: |
+        Sets the display name for track `index` (0-7). The name is trimmed
+        and must not be empty. The slot, family and patch display names follow
+        the track so the instrument page shows the same label. Emits a `track`
+        state event and is written to the project mapping on autosave.
+      parameters:
+        - name: index
+          in: path
+          required: true
+          description: Track index, 0-7.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 7
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackUpdate"
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The control state after the rename
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/State"
+        "400":
+          description: The name is missing, empty or too long
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: The track index is out of range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /tracks/{index}/select:
     post:
       tags: [state]
@@ -1816,6 +1867,10 @@ components:
         editorOpen:
           type: boolean
           description: True while this slot's native plugin editor window is open.
+        warmState:
+          type: string
+          enum: [cold, warming, warm, active, fading]
+          description: Warm-pool state of the slot.
         error:
           type: string
           description: The slot-local plugin failure, empty when the slot is healthy.
@@ -2431,6 +2486,17 @@ components:
           description: The two hot-FX slots for this track.
           items:
             $ref: "#/components/schemas/TrackHotFx"
+
+    TrackUpdate:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Trimmed display name for the track.
 
     TrackHotFx:
       type: object

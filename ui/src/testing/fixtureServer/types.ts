@@ -14,11 +14,12 @@ import type {
 } from "../../api/client";
 
 export interface FixtureTrackRequest {
-  readonly kind: "select" | "toggle" | "volume" | "assign";
+  readonly kind: "select" | "rename" | "toggle" | "volume" | "assign";
   readonly index: number;
   readonly hot?: number;
   readonly step?: number;
   readonly insertId?: string;
+  readonly name?: string;
 }
 
 export interface FixtureServer {

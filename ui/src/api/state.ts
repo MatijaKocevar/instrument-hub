@@ -25,6 +25,12 @@ export interface StateEndpoints {
     options?: { signal?: AbortSignal },
   ): Promise<ControlState>;
 
+  renameTrack(
+    index: number,
+    name: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlState>;
+
   toggleTrackFx(
     index: number,
     hot: number,
@@ -258,6 +264,24 @@ export function createStateEndpoints(
         error,
         response.status,
         `POST /tracks/${String(index)}/select`,
+      );
+    },
+
+    async renameTrack(index, name, requestOptions) {
+      const { data, error, response } = await client.PATCH("/tracks/{index}", {
+        params: { path: { index } },
+        body: { name },
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
+
+      return requireState(
+        guard,
+        data,
+        error,
+        response.status,
+        `PATCH /tracks/${String(index)}`,
       );
     },
 

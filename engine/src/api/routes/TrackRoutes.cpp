@@ -43,6 +43,46 @@ void respondState (const RouteContext& context, httplib::Response& response)
 
 void registerTrackRoutes (httplib::Server& server, const RouteContext& context)
 {
+    server.Patch (R"(/tracks/(\d+))",
+                  [context] (const httplib::Request& request,
+                             httplib::Response& response)
+    {
+        const int index = readIndex (request, 1);
+
+        juce::var body;
+        std::string error;
+
+        if (! parseJsonObject (request, body, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        auto* object = body.getDynamicObject();
+
+        if (! object->hasProperty ("name"))
+        {
+            setError (response, 400, "body must contain \"name\"");
+            return;
+        }
+
+        std::string name;
+
+        if (! readString (object->getProperty ("name"), "name", name, error))
+        {
+            setError (response, 400, error);
+            return;
+        }
+
+        if (! context.state.renameTrack (index, name, error))
+        {
+            setError (response, statusForTrackError (error), error);
+            return;
+        }
+
+        respondState (context, response);
+    });
+
     server.Post (R"(/tracks/(\d+)/select)",
                  [context] (const httplib::Request& request,
                             httplib::Response& response)

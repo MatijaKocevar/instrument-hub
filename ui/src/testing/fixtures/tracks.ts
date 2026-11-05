@@ -174,6 +174,8 @@ export const TRACK_FIXTURE: ControlState = {
     armed: index === 2,
     latencySamples: index === 2 ? 240 : 0,
     latencyMs: index === 2 ? 5 : 0,
+    warmState: index === 2 ? "active" : "warm",
+    error: "",
   })),
   tracks: TRACKS,
   families: FAMILIES,

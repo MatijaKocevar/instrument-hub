@@ -62,6 +62,7 @@ void runTrackLayoutChecks()
            "a track project without hot FX keeps mapping.yaml byte-identical");
 
     tracks = makeTracks();
+    tracks[3].name = "Lead Synth";
 
     std::string updated;
     check (ihub::app::saveTrackLayoutToMapping (text, tracks, updated, error),
@@ -94,6 +95,8 @@ void runTrackLayoutChecks()
            "a single hot FX entry is written");
     check (fourth != nullptr && fourth->hotFx.empty(),
            "tracks without hot FX stay empty");
+    check (fourth != nullptr && fourth->name == "Lead Synth",
+           "a renamed track persists its name");
 
     std::string rewritten;
     check (ihub::app::saveTrackLayoutToMapping (updated, tracks, rewritten, error),

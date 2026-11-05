@@ -8,7 +8,6 @@ interface InstrumentFrameProps {
   readonly armedSlot: number;
   readonly following: boolean;
   readonly loading: boolean;
-  readonly onColourChange?: (slot: number, colorIndex: number) => void;
   readonly children?: ReactNode;
 }
 
@@ -17,7 +16,6 @@ export function InstrumentFrame({
   armedSlot,
   following,
   loading,
-  onColourChange,
   children,
 }: InstrumentFrameProps): ReactElement {
   if (patch === null) {
@@ -56,12 +54,7 @@ export function InstrumentFrame({
       data-warm-state={patch.warmState}
       data-colour-index={patch.colorIndex}
     >
-      <InstrumentHead
-        patch={patch}
-        armed={armed}
-        following={following}
-        {...(onColourChange !== undefined ? { onColourChange } : {})}
-      />
+      <InstrumentHead patch={patch} armed={armed} following={following} />
 
       {children}
     </section>

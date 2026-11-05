@@ -273,8 +273,9 @@ export async function instrumentPageTest(): Promise<void> {
       "solo reflects the patch",
     );
     check(
-      initial.includes('data-testid="instrument-colour" data-colour-index="0"'),
-      "the patch colour reaches the page",
+      !initial.includes('data-testid="instrument-colour"') &&
+        !initial.includes('data-testid="instrument-colour-next"'),
+      "the instrument page omits the colour badge and next-colour action",
     );
 
     check(
@@ -401,10 +402,10 @@ export async function instrumentPageTest(): Promise<void> {
       "recolouring succeeds",
     );
     check(
-      renderApp(store, "/instrument?slot=3").includes(
-        'data-testid="instrument-colour" data-colour-index="7"',
+      !renderApp(store, "/instrument?slot=3").includes(
+        'data-testid="instrument-colour"',
       ),
-      "the colour swatch follows the patch",
+      "the instrument page keeps the colour badge removed after a recolour",
     );
 
     check(

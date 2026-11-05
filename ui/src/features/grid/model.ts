@@ -114,24 +114,31 @@ function colourIndexBySlot(state: ControlState): Map<number, number> {
 
 function trackInputs(state: ControlState): TrackGridTrackInput[] {
   const colours = colourIndexBySlot(state);
+  const slots = new Map(state.slots.map((slot) => [slot.index, slot]));
   const tracks = state.tracks ?? [];
 
   return [...tracks]
     .sort((left, right) => left.index - right.index)
     .slice(0, GRID_COLUMNS)
-    .map((track) => ({
-      index: track.index,
-      id: track.id,
-      name: track.name,
-      slot: track.slot,
-      selected: track.selected || track.slot === state.armedSlot,
-      colorIndex: colours.get(track.slot) ?? track.index,
-      instrument: track.instrument,
-      volumeStep: track.volumeStep,
-      volumeDb: track.volumeDb,
-      gain: track.gain,
-      hotFx: track.hotFx,
-    }));
+    .map((track) => {
+      const slot = slots.get(track.slot);
+
+      return {
+        index: track.index,
+        id: track.id,
+        name: track.name,
+        slot: track.slot,
+        selected: track.selected || track.slot === state.armedSlot,
+        colorIndex: colours.get(track.slot) ?? track.index,
+        warmState: slot?.warmState ?? "cold",
+        error: slot?.error ?? "",
+        instrument: track.instrument,
+        volumeStep: track.volumeStep,
+        volumeDb: track.volumeDb,
+        gain: track.gain,
+        hotFx: track.hotFx,
+      };
+    });
 }
 
 function pageStatusFor(state: ControlState): GridPageStatus | null {
