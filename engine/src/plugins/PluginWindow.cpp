@@ -121,17 +121,8 @@ void PluginWindow::close()
         callback();
     }
 
-    if (hideOnClose && window != nullptr)
-    {
-        lastPosition = window->getPosition();
-        window->setVisible (true);
-        window->setTopLeftPosition (-32000, -32000);
-    }
-    else
-    {
-        destroyWindow();
-        clearInstrumentCallback();
-    }
+    destroyWindow();
+    clearInstrumentCallback();
 
     if (onClose && lifetime != nullptr && lifetime->alive)
     {
