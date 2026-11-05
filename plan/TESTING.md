@@ -90,14 +90,24 @@ This removes all third-party dependency from CI. Optical plugins
 ## Commands you will use constantly
 
 ```bash
-scripts/build.sh                       # configure + build
+scripts/build.sh                       # configure + build the app
+scripts/build-tests.sh                 # build the test runners and isolated tests
+scripts/build-tests.sh ihub-runner-api # build one runner only
+scripts/test.sh                        # run every registered CTest scenario
 ./build/engine/instrument-hub --selftest
 ./build/engine/instrument-hub --list-devices
 ./build/engine/instrument-hub --measure-latency
 ./build/engine/instrument-hub --snapshot out.png
 ./build/engine/instrument-hub --rt-strict
-ctest --test-dir build --output-on-failure
+ctest --test-dir build-tests -R ihub-session-api --output-on-failure
 ```
+
+The app build lives in `build/`; tests live in `build-tests/`. The test tree
+links three shared libraries from `tests/TestEngine.cmake` (headless,
+realtime-guarded and GUI). Do not add engine or JUCE `.cpp` files to a test
+target; add the scenario source to a runner in `tests/CMakeLists.txt`
+instead. Keep the build in minutes, not hours, and the full run under three
+minutes; `ctest -N` must keep the same scenario names.
 
 ## Realtime safety harness (T014)
 

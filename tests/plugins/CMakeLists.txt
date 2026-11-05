@@ -129,7 +129,6 @@ juce_add_console_app(ihub-plugin-instance-test
 target_sources(ihub-plugin-instance-test
     PRIVATE
         PluginInstanceTest.cpp
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
 )
 
 target_include_directories(ihub-plugin-instance-test
@@ -143,14 +142,8 @@ target_compile_definitions(ihub-plugin-instance-test
         "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
 )
 
-target_link_libraries(ihub-plugin-instance-test
-    PRIVATE
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+ihub_link_test_engine(ihub-plugin-instance-test)
+
 
 add_dependencies(ihub-plugin-instance-test TestPlugin_VST3)
 
@@ -169,15 +162,13 @@ add_test(
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-plugin-window-test
-        PRODUCT_NAME "ihub-plugin-window-test"
-    )
+add_library(ihub-plugin-window-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/PluginWindowTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_plugin_window_test")
+
 
     target_sources(ihub-plugin-window-test
         PRIVATE
             PluginWindowTest.cpp
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_PLUGIN_WINDOW_SOURCES}
     )
 
     target_include_directories(ihub-plugin-window-test
@@ -192,29 +183,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
     )
 
-    target_link_libraries(ihub-plugin-window-test
-        PRIVATE
-            juce::juce_audio_processors
-            juce::juce_gui_basics
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
-    )
+target_link_libraries(ihub-plugin-window-test PRIVATE ihub-test-engine-gui-usage)
+
+
 
     add_dependencies(ihub-plugin-window-test TestPlugin_VST3)
 
-    set_target_properties(ihub-plugin-window-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-plugin-window
-        COMMAND ihub-plugin-window-test
+        COMMAND ihub-runner-gui ihub-plugin-window
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
@@ -246,14 +225,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "${IHUB_CRASHING_BUNDLE}/Contents/${IHUB_MACHINE}-linux"
     )
 
-    juce_add_console_app(ihub-plugin-scanner-test
-        PRODUCT_NAME "ihub-plugin-scanner-test"
-    )
+add_library(ihub-plugin-scanner-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/ScannerTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_plugin_scanner_test")
+
 
     target_sources(ihub-plugin-scanner-test
         PRIVATE
             ScannerTest.cpp
-            ${IHUB_PLUGIN_SCAN_SOURCES}
     )
 
     target_include_directories(ihub-plugin-scanner-test
@@ -269,14 +247,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "IHUB_SCANNER_HELPER=\"$<TARGET_FILE:ihub-scanner>\""
     )
 
-    target_link_libraries(ihub-plugin-scanner-test
-        PRIVATE
-            juce::juce_audio_processors
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
-    )
+target_link_libraries(ihub-plugin-scanner-test PRIVATE ihub-test-engine-gui-usage)
+
+
 
     add_dependencies(ihub-plugin-scanner-test
         TestPlugin_VST3
@@ -284,28 +257,21 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ihub-scanner
     )
 
-    set_target_properties(ihub-plugin-scanner-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-plugin-scanner
-        COMMAND ihub-plugin-scanner-test
+        COMMAND ihub-runner-gui ihub-plugin-scanner
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
-    juce_add_console_app(ihub-plugin-cache-test
-        PRODUCT_NAME "ihub-plugin-cache-test"
-    )
+add_library(ihub-plugin-cache-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/PluginCacheTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_plugin_cache_test")
+
 
     target_sources(ihub-plugin-cache-test
         PRIVATE
             PluginCacheTest.cpp
-            ${IHUB_PLUGIN_SCAN_SOURCES}
     )
 
     target_include_directories(ihub-plugin-cache-test
@@ -321,14 +287,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "IHUB_SCANNER_HELPER=\"$<TARGET_FILE:ihub-scanner>\""
     )
 
-    target_link_libraries(ihub-plugin-cache-test
-        PRIVATE
-            juce::juce_audio_processors
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
-    )
+target_link_libraries(ihub-plugin-cache-test PRIVATE ihub-test-engine-gui-usage)
+
+
 
     add_dependencies(ihub-plugin-cache-test
         TestPlugin_VST3
@@ -336,36 +297,21 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ihub-scanner
     )
 
-    set_target_properties(ihub-plugin-cache-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-plugin-cache
-        COMMAND ihub-plugin-cache-test
+        COMMAND ihub-runner-gui ihub-plugin-cache
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
-    juce_add_console_app(ihub-plugin-inventory-api-test
-        PRODUCT_NAME "ihub-plugin-inventory-api-test"
-    )
+add_library(ihub-plugin-inventory-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/PluginInventoryApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_plugin_inventory_api_test")
+
 
     target_sources(ihub-plugin-inventory-api-test
         PRIVATE
             PluginInventoryApiTest.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Discovery.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/discovery/DnsPacket.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/discovery/MdnsSocket.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/Pairing.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/PluginBridge.cpp"
-            ${IHUB_API_ROUTES_SOURCES}
-            ${IHUB_API_SERVER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/api/StateBroadcast.cpp"
-            ${IHUB_PLUGIN_INVENTORY_SOURCES}
     )
 
     target_include_directories(ihub-plugin-inventory-api-test
@@ -384,30 +330,21 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             Threads::Threads
             ihub-httplib
-            juce::juce_audio_processors
-            juce::juce_core
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+target_link_libraries(ihub-plugin-inventory-api-test PRIVATE ihub-test-engine-gui-usage)
+
+
 
     add_dependencies(ihub-plugin-inventory-api-test
         TestPlugin_VST3
         ihub-scanner
     )
 
-    set_target_properties(ihub-plugin-inventory-api-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-plugin-inventory-api
-        COMMAND ihub-plugin-inventory-api-test
+        COMMAND ihub-runner-gui ihub-plugin-inventory-api
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 else()
@@ -429,14 +366,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             sandbox/PageHostTransport.cpp
             sandbox/PageHostRecovery.cpp
             sandbox/RealPlugin.cpp
-            ${IHUB_SANDBOX_HOST_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/AudioEngine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Bus.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/MasterLimiter.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/FxChain.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../engine/src/audio/TimingMonitor.cpp"
     )
 
     target_include_directories(ihub-sandbox-test
@@ -450,15 +379,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
     )
 
-    target_link_libraries(ihub-sandbox-test
-        PRIVATE
-            juce::juce_audio_devices
-            juce::juce_audio_processors_headless
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
-    )
+ihub_link_test_engine(ihub-sandbox-test)
+
 
     add_dependencies(ihub-sandbox-test
         ihub-sandbox

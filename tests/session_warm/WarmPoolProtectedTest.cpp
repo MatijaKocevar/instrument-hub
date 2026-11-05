@@ -119,14 +119,14 @@ void runWarmPoolScenario()
     check (counters.live.load() == 0, "every instance is destroyed after clear");
 
     AudioEngine::WarmPool cappedPool (2);
-    cappedPool.setNumSlots (20);
-    cappedPool.setProtectedSlots (slotRange (20));
+    cappedPool.setNumSlots (40);
+    cappedPool.setProtectedSlots (slotRange (40));
 
-    check (cappedPool.getProtectedCount() == 20,
-           "a wide protected list keeps all twenty slots");
+    check (cappedPool.getProtectedCount() == 40,
+           "a wide protected list keeps all forty slots");
     check (cappedPool.getInstanceLimit()
                == AudioEngine::WarmPool::maximumWarmInstances,
-           "the protected live limit is capped at sixteen");
+           "the protected live limit is capped at thirty-two");
 }
 
 }
