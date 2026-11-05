@@ -357,6 +357,7 @@ std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource (int slotIn
             options.numChannels = juce::jlimit (1, 2, config.device.numOutputChannels);
             options.slotIndex = slotIndex;
             options.generation = nextSandboxGeneration (slotIndex);
+            options.startupTimeoutMs = 60000;
 
             if (loadAbort != nullptr)
             {
