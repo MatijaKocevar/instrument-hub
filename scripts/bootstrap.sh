@@ -212,8 +212,15 @@ if (( BUILD )); then
     scripts/build.sh || { echo "build failed" >&2; exit 1; }
 
     echo
+    echo "test build"
+    cmake -S . -B build-tests -G Ninja \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo -DIHUB_BUILD_TESTS=ON \
+        || { echo "test configure failed" >&2; exit 1; }
+    scripts/build-tests.sh || { echo "test build failed" >&2; exit 1; }
+
+    echo
     echo "tests"
-    ctest --test-dir build --output-on-failure || { echo "tests failed" >&2; exit 1; }
+    scripts/test.sh || { echo "tests failed" >&2; exit 1; }
 fi
 
 echo

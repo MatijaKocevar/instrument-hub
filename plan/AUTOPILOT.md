@@ -43,8 +43,12 @@ Your job inside a session:
   A hung test must fail within two minutes; never treat "still running" as
   progress.
 - Never build the whole tree. The C++ test suite is opt-in
-  (`-DIHUB_BUILD_TESTS=ON`) and each test target recompiles the engine and
-  JUCE; build only the specific executable needed for the task.
+  (`-DIHUB_BUILD_TESTS=ON`); the engine and JUCE are compiled once into the
+  shared libraries in `tests/TestEngine.cmake`. Build only the specific
+  runner or isolated executable needed for the task
+  (`scripts/build-tests.sh ihub-runner-api`). A cold test build must stay in
+  minutes, not hours, and a full `scripts/test.sh` run under three minutes;
+  if not, stop and fix the build graph instead of waiting.
 - Write the result file, exactly in this format:
 
 ```

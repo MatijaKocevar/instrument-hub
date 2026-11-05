@@ -1,329 +1,10 @@
-set(IHUB_API_ROUTES_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Routes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioSerialization.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/AudioWizardSerialization.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/FxRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/Json.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/MeterSerialization.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/MidiRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/MidiSerialization.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PairingRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PairingSerialization.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PatchRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/PluginRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/ProjectRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/ProjectSerialization.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/RouteHelpers.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/StateRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/StateSerialization.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/TrackRoutes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/routes/TransportRoutes.cpp"
-)
 
-set(IHUB_DISCOVERY_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Discovery.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/discovery/DnsPacket.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/discovery/MdnsSocket.cpp"
-)
+include("${CMAKE_CURRENT_LIST_DIR}/TestEngine.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/Runner.cmake")
 
-set(IHUB_MIDI_BRIDGE_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MidiBridge.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/JuceMidiInputBackend.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeGridSettings.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeInputs.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeUpdate.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeMessages.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiBridgeState.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiGridMap.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiInputPersistence.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/midi/MidiPadTest.cpp"
-)
+add_library(ihub-app-modes-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/app/AppModesTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_app_modes_test")
 
-set(IHUB_BUS_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Bus.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/MasterLimiter.cpp"
-)
-
-set(IHUB_RT_GUARD_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/RtGuard.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/rtguard/AllocatorInterposition.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/rtguard/LockInterposition.cpp"
-)
-
-set(IHUB_SETTINGS_STORE_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/AtomicFileWrite.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/MidiInputNames.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/ProjectHistory.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonAudio.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonRead.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsJsonWrite.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/settings/SettingsStore.cpp"
-)
-
-set(IHUB_API_SERVER_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/AuthGuard.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/MeterSampler.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Server.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStore.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreFx.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePatchSource.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePages.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStorePatches.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSession.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSettings.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSettingsPersistence.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTransport.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreSnapshot.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreProject.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTracks.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTrackFx.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTrackFxAssign.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/state/StateStoreTrackVolume.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/WebSocketRoutes.cpp"
-    ${IHUB_SETTINGS_STORE_SOURCES}
-)
-
-set(IHUB_PROJECT_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Migrations.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/SetFile.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/Serializer.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/Container.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/JsonFields.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/PluginStateBlob.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/SetManifest.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/project/serializer/SetPatch.cpp"
-)
-
-set(IHUB_MAPPING_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/Mapping.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/TrackPadRouting.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingApply.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingButtonEvents.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingDecoder.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingDefaults.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingDiagnostics.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingFamilies.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingFile.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingFx.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingMacros.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingPadBindings.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingPadEvents.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingReload.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingScenes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingTracks.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/MappingWatcher.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/YamlParser.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/YamlScalar.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/mapping/YamlScanner.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingModel.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/MappingYaml.cpp"
-)
-
-set(IHUB_LAUNCHPAD_PROTOCOL_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
-)
-
-set(IHUB_LAUNCHPAD_DRIVER_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadLed.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/TrackPadLeds.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverConnection.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverDevice.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverLeds.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverMidi.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/launchpad/LaunchpadDriverOutput.cpp"
-    ${IHUB_LAUNCHPAD_PROTOCOL_SOURCES}
-)
-
-set(IHUB_FX_RACK_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxRack.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertFactory.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertParameters.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertType.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxRackEditing.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxRackLatency.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxRackOrder.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxRackSnapshot.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/InsertEffect.cpp"
-)
-
-set(IHUB_WARM_POOL_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/WarmPool.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolEviction.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolProtected.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolShutdown.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolSlots.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolWarming.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/warm/WarmPoolWorker.cpp"
-)
-
-set(IHUB_DEVICE_MANAGER_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/DeviceManager.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceChannels.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceCardList.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceCardProbe.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceCards.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceDescription.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceEnumeration.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceErrors.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLatency.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceLookup.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceOpen.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DevicePcmHints.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceRawList.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceState.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/DeviceTypeCards.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/device/PipeWireQuantum.cpp"
-)
-
-set(IHUB_LATENCY_PROBE_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/LatencyProbe.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/latency/AlsaLoopback.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/latency/LatencyCapture.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/latency/LatencyCorrelation.cpp"
-)
-
-set(IHUB_AUDIO_SETTINGS_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioSettings.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioDeviceRestore.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioDeviceSelection.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioProfiles.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsApply.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsChannels.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsMeasure.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsOpen.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsPersistence.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSettingsSnapshot.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSetupApply.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSetupRecommendation.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/AudioSetupWizard.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/settings/LatencyBudget.cpp"
-)
-
-set(IHUB_SAMPLER_KIT_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/Kit.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/KitLoader.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/LoadedKit.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/PanGains.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/kit/KitBuilder.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/kit/KitJson.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/kit/KitParser.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/kit/KitValidation.cpp"
-)
-
-set(IHUB_SAMPLE_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleHandoff.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SampleLoader.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/sample/SampleDecoder.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/sample/SampleResampler.cpp"
-)
-
-set(IHUB_SAMPLER_INSTRUMENT_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/SamplerInstrument.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/instrument/SamplerInstrumentEvents.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/instrument/SamplerInstrumentRender.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/sampler/instrument/SamplerInstrumentVoices.cpp"
-)
-
-set(IHUB_SAMPLER_SOURCES
-    ${IHUB_SAMPLER_KIT_SOURCES}
-    ${IHUB_SAMPLE_SOURCES}
-    ${IHUB_SAMPLER_INSTRUMENT_SOURCES}
-)
-
-set(IHUB_PLUGIN_INSTRUMENT_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInstrument.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentBus.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentMidi.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentNotifications.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentParameters.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentProcess.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/host/PluginInstrumentState.cpp"
-)
-
-set(IHUB_PLUGIN_WINDOW_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginWindow.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/window/PluginEditorWindow.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/window/PluginWindowEditor.cpp"
-)
-
-set(IHUB_PLUGIN_SCAN_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginCache.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/PluginCacheFingerprint.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/PluginCachePersistence.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/Scanner.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/ScannerDiscovery.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/ScannerRun.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/ScannerProcess.cpp"
-)
-
-set(IHUB_PLUGIN_INVENTORY_SOURCES
-    ${IHUB_PLUGIN_SCAN_SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PluginInventory.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/PluginInfo.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/PluginInventoryRecords.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/scanner/PluginInventoryScan.cpp"
-)
-
-set(IHUB_SANDBOX_HOST_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/SandboxHost.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PageHost.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/PageHostSlot.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/page/PageHostAudio.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/page/PageHostBundleView.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/page/PageHostControl.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/page/PageHostProcess.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/page/PageHostProcessTree.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/page/PageHostRecovery.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostMidi.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostParameters.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostProcess.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostCommittedState.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostState.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostEditor.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostStatus.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostStop.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxHostTransport.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/plugins/sandbox/SandboxWatchdog.cpp"
-)
-
-set(IHUB_SESSION_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/Session.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/DeviceController.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/EditorHost.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/FxChainController.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MeterBridge.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MidiBridge.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/MirrorSync.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateFile.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateStore.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateStoreData.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionBuild.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionControl.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionDevice.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionFx.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionMeasure.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionMeasureLatency.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginMirror.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginPage.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginReload.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginSandbox.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionPluginState.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionSharedSlot.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionRender.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SessionWarm.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/SlotSources.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/TransportControl.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/WarmPoolController.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolArm.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolMeasurement.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/warm/WarmPoolVoice.cpp"
-    ${IHUB_SANDBOX_HOST_SOURCES}
-)
-
-juce_add_console_app(ihub-app-modes-test
-    PRODUCT_NAME "ihub-app-modes-test"
-)
 
 target_sources(ihub-app-modes-test
     PRIVATE
@@ -331,8 +12,6 @@ target_sources(ihub-app-modes-test
         app/TestSupport.cpp
         app/CommandLine.cpp
         app/Modes.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/Modes.cpp"
 )
 
 target_include_directories(ihub-app-modes-test
@@ -340,31 +19,21 @@ target_include_directories(ihub-app-modes-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-target_link_libraries(ihub-app-modes-test
-    PRIVATE
-        juce::juce_core
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-app-modes-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-app-modes-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-app-modes
-    COMMAND ihub-app-modes-test
+    COMMAND ihub-runner-app ihub-app-modes
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-settings-store-test
-    PRODUCT_NAME "ihub-settings-store-test"
-)
+add_library(ihub-settings-store-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/settings/SettingsStoreTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_settings_store_test")
+
 
 target_sources(ihub-settings-store-test
     PRIVATE
@@ -377,7 +46,6 @@ target_sources(ihub-settings-store-test
         settings/AtomicReplace.cpp
         settings/NewerVersion.cpp
         settings/MidiInputs.cpp
-        ${IHUB_SETTINGS_STORE_SOURCES}
 )
 
 target_include_directories(ihub-settings-store-test
@@ -385,25 +53,15 @@ target_include_directories(ihub-settings-store-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-target_link_libraries(ihub-settings-store-test
-    PRIVATE
-        juce::juce_core
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-settings-store-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-settings-store-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-settings-store
-    COMMAND ihub-settings-store-test
+    COMMAND ihub-runner-app ihub-settings-store
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -511,15 +169,14 @@ endif()
 
 add_subdirectory(plugins)
 
-juce_add_console_app(ihub-device-manager-test
-    PRODUCT_NAME "ihub-device-manager-test"
-)
+add_library(ihub-device-manager-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/device_manager/DeviceManagerTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_device_manager_test")
+
 
 target_sources(ihub-device-manager-test
     PRIVATE
         device_manager/DeviceManagerTest.cpp
         device_manager/DeviceTypes.cpp
-        ${IHUB_DEVICE_MANAGER_SOURCES}
 )
 
 target_include_directories(ihub-device-manager-test
@@ -532,26 +189,15 @@ target_compile_definitions(ihub-device-manager-test
         JUCE_JACK=1
 )
 
-target_link_libraries(ihub-device-manager-test
-    PRIVATE
-        juce::juce_audio_devices
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-device-manager-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-device-manager-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-device-manager
-    COMMAND ihub-device-manager-test
+    COMMAND ihub-runner-app ihub-device-manager
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -572,12 +218,6 @@ target_sources(ihub-audio-engine-test
         audio_engine/Scheduling.cpp
         audio_engine/Realtime.cpp
         audio_engine/Limiter.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
 target_include_directories(ihub-audio-engine-test
@@ -585,15 +225,8 @@ target_include_directories(ihub-audio-engine-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-target_link_libraries(ihub-audio-engine-test
-    PRIVATE
-        juce::juce_audio_devices
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+ihub_link_test_engine(ihub-audio-engine-test)
+
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(ihub-audio-engine-test PRIVATE
@@ -641,14 +274,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             instruments/audio_input/EngineInput.cpp
             instruments/audio_input/LoopbackMaster.cpp
             instruments/audio_input/LoopbackMonitor.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
     )
 
     target_include_directories(ihub-instrument-test
@@ -659,14 +284,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ihub-instrument-test
         PRIVATE
             ALSA::ALSA
-            juce::juce_audio_basics
-            juce::juce_audio_devices
-            juce::juce_audio_processors_headless
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+ihub_link_test_engine(ihub-instrument-test)
+
 
     set_target_properties(ihub-instrument-test PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
@@ -685,9 +305,9 @@ else()
     message(STATUS "ihub-instrument-test: ALSA loopback test is Linux-only; skipping")
 endif()
 
-juce_add_console_app(ihub-timing-monitor-test
-    PRODUCT_NAME "ihub-timing-monitor-test"
-)
+add_library(ihub-timing-monitor-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/timing_monitor/TimingMonitorTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_timing_monitor_test")
+
 
 target_sources(ihub-timing-monitor-test
     PRIVATE
@@ -700,7 +320,6 @@ target_sources(ihub-timing-monitor-test
         timing_monitor/Window.cpp
         timing_monitor/Measured.cpp
         timing_monitor/Reset.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
 target_include_directories(ihub-timing-monitor-test
@@ -708,31 +327,21 @@ target_include_directories(ihub-timing-monitor-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-target_link_libraries(ihub-timing-monitor-test
-    PRIVATE
-        juce::juce_core
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-timing-monitor-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-timing-monitor-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-timing-monitor
-    COMMAND ihub-timing-monitor-test
+    COMMAND ihub-runner-audio ihub-timing-monitor
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-diagnostics-test
-    PRODUCT_NAME "ihub-diagnostics-test"
-)
+add_library(ihub-diagnostics-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/diag/DiagnosticsTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_diagnostics_test")
+
 
 find_package(Threads REQUIRED)
 
@@ -747,12 +356,6 @@ target_sources(ihub-diagnostics-test
         diag/SignalHandler.cpp
         diag/Plugins.cpp
         diag/Report.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/CrashDump.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/Diagnostics.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/LogRing.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/diag/LogSink.cpp"
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
 target_include_directories(ihub-diagnostics-test
@@ -763,31 +366,22 @@ target_include_directories(ihub-diagnostics-test
 target_link_libraries(ihub-diagnostics-test
     PRIVATE
         Threads::Threads
-        juce::juce_audio_devices
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-diagnostics-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-diagnostics-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-diagnostics
-    COMMAND ihub-diagnostics-test
+    COMMAND ihub-runner-app ihub-diagnostics
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-latency-probe-test
-    PRODUCT_NAME "ihub-latency-probe-test"
-)
+add_library(ihub-latency-probe-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/latency_probe/LatencyProbeTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_latency_probe_test")
+
 
 target_sources(ihub-latency-probe-test
     PRIVATE
@@ -795,7 +389,6 @@ target_sources(ihub-latency-probe-test
         latency_probe/TestSupport.cpp
         latency_probe/CrossCorrelation.cpp
         latency_probe/Loopback.cpp
-        ${IHUB_LATENCY_PROBE_SOURCES}
 )
 
 target_include_directories(ihub-latency-probe-test
@@ -803,26 +396,15 @@ target_include_directories(ihub-latency-probe-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-target_link_libraries(ihub-latency-probe-test
-    PRIVATE
-        juce::juce_audio_devices
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-latency-probe-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-latency-probe-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-latency-probe
-    COMMAND ihub-latency-probe-test
+    COMMAND ihub-runner-app ihub-latency-probe
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -831,9 +413,9 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 if(IHUB_ENABLE_RT_GUARD)
-    juce_add_console_app(ihub-rt-guard-test
-        PRODUCT_NAME "ihub-rt-guard-test"
-    )
+add_library(ihub-rt-guard-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/rt_guard/RtGuardTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_rt_guard_test")
+
 
     target_sources(ihub-rt-guard-test
         PRIVATE
@@ -845,13 +427,6 @@ if(IHUB_ENABLE_RT_GUARD)
             rt_guard/NonStrict.cpp
             rt_guard/Strict.cpp
             rt_guard/Disabled.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
     )
 
     target_include_directories(ihub-rt-guard-test
@@ -861,16 +436,9 @@ if(IHUB_ENABLE_RT_GUARD)
 
     target_compile_definitions(ihub-rt-guard-test PRIVATE IHUB_RT_GUARD=1)
 
-    target_link_libraries(ihub-rt-guard-test
-        PRIVATE
-            juce::juce_audio_devices
-            juce::juce_audio_processors_headless
-            juce::juce_core
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
-    )
+target_link_libraries(ihub-rt-guard-test PRIVATE ihub-test-engine-rt-usage)
+
+
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_definitions(ihub-rt-guard-test PRIVATE
@@ -899,17 +467,11 @@ if(IHUB_ENABLE_RT_GUARD)
         endif()
     endif()
 
-    set_target_properties(ihub-rt-guard-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-rt-guard
-        COMMAND ihub-rt-guard-test
+        COMMAND ihub-runner-rt ihub-rt-guard
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 else()
@@ -926,10 +488,6 @@ target_sources(ihub-fx-chain-test
         fx_chain/Fixtures.cpp
         fx_chain/EmptyChain.cpp
         fx_chain/ChainOrder.cpp
-        ${IHUB_BUS_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
 )
 
 target_include_directories(ihub-fx-chain-test
@@ -943,14 +501,8 @@ target_compile_definitions(ihub-fx-chain-test
         "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
 )
 
-target_link_libraries(ihub-fx-chain-test
-    PRIVATE
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+ihub_link_test_engine(ihub-fx-chain-test)
+
 
 add_dependencies(ihub-fx-chain-test TestPlugin_VST3)
 
@@ -968,9 +520,9 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-plugin-fx-test
-    PRODUCT_NAME "ihub-plugin-fx-test"
-)
+add_library(ihub-plugin-fx-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/instruments/PluginFxTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_plugin_fx_test")
+
 
 target_sources(ihub-plugin-fx-test
     PRIVATE
@@ -979,11 +531,6 @@ target_sources(ihub-plugin-fx-test
         instruments/plugin_fx/GainLatency.cpp
         instruments/plugin_fx/State.cpp
         instruments/plugin_fx/Editor.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/PluginFx.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_PLUGIN_WINDOW_SOURCES}
 )
 
 target_include_directories(ihub-plugin-fx-test
@@ -998,29 +545,17 @@ target_compile_definitions(ihub-plugin-fx-test
         "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
 )
 
-target_link_libraries(ihub-plugin-fx-test
-    PRIVATE
-        juce::juce_audio_processors
-        juce::juce_gui_basics
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-plugin-fx-test PRIVATE ihub-test-engine-gui-usage)
+
+
 
 add_dependencies(ihub-plugin-fx-test TestPlugin_VST3)
 
-set_target_properties(ihub-plugin-fx-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-plugin-fx
-    COMMAND ihub-plugin-fx-test
+    COMMAND ihub-runner-gui ihub-plugin-fx
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -1040,9 +575,6 @@ target_sources(ihub-slot-switcher-test
         slot_switcher/Continuity.cpp
         slot_switcher/Realtime.cpp
         slot_switcher/Disarm.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
 )
 
 target_include_directories(ihub-slot-switcher-test
@@ -1056,15 +588,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     )
 endif()
 
-target_link_libraries(ihub-slot-switcher-test
-    PRIVATE
-        juce::juce_audio_basics
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+ihub_link_test_engine(ihub-slot-switcher-test)
+
 
 set_target_properties(ihub-slot-switcher-test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
@@ -1088,11 +613,6 @@ target_sources(ihub-warm-pool-test
     PRIVATE
         warm_pool/WarmPoolTest.cpp
         warm_pool/Fixtures.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
 )
 
 target_include_directories(ihub-warm-pool-test
@@ -1107,14 +627,8 @@ target_compile_definitions(ihub-warm-pool-test
         "IHUB_TESTPLUGIN_VST3=\"$<GENEX_EVAL:$<TARGET_PROPERTY:TestPlugin_VST3,JUCE_PLUGIN_ARTEFACT_FILE>>\""
 )
 
-target_link_libraries(ihub-warm-pool-test
-    PRIVATE
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+ihub_link_test_engine(ihub-warm-pool-test)
+
 
 add_dependencies(ihub-warm-pool-test TestPlugin_VST3)
 
@@ -1132,23 +646,18 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-switch-continuity-test
-    PRODUCT_NAME "ihub-switch-continuity-test"
-)
+add_library(ihub-switch-continuity-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/audio/SwitchContinuity.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_switch_continuity_test")
+
 
 target_sources(ihub-switch-continuity-test
     PRIVATE
         audio/SwitchContinuity.cpp
-        audio/TestSupport.cpp
         audio/switch_continuity/Cases.cpp
         audio/switch_continuity/DeltaDetector.cpp
         audio/switch_continuity/Render.cpp
         audio/switch_continuity/SineSource.cpp
         audio/switch_continuity/SpectralDetector.cpp
-        ${IHUB_BUS_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
 )
 
 target_include_directories(ihub-switch-continuity-test
@@ -1156,33 +665,21 @@ target_include_directories(ihub-switch-continuity-test
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src"
 )
 
-target_link_libraries(ihub-switch-continuity-test
-    PRIVATE
-        juce::juce_audio_basics
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-switch-continuity-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-switch-continuity-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-switch-continuity
-    COMMAND ihub-switch-continuity-test
+    COMMAND ihub-runner-audio ihub-switch-continuity
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-session-smoke-test
-    PRODUCT_NAME "ihub-session-smoke-test"
-)
+add_library(ihub-session-smoke-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/audio/SessionSmoke.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_session_smoke_test")
+
 
 target_sources(ihub-session-smoke-test
     PRIVATE
@@ -1192,28 +689,6 @@ target_sources(ihub-session-smoke-test
         audio/session_smoke/Fixtures.cpp
         audio/session_smoke/HardSwitch.cpp
         audio/session_smoke/Switch.cpp
-        ${IHUB_SESSION_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_FX_RACK_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        ${IHUB_RT_GUARD_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-session-smoke-test
@@ -1228,17 +703,9 @@ target_compile_definitions(ihub-session-smoke-test
         IHUB_RT_GUARD=1
 )
 
-target_link_libraries(ihub-session-smoke-test
-    PRIVATE
-        juce::juce_audio_devices
-        juce::juce_dsp
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-session-smoke-test PRIVATE ihub-test-engine-rt-usage)
+
+
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_definitions(ihub-session-smoke-test PRIVATE
@@ -1268,17 +735,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Cla
     endif()
 endif()
 
-set_target_properties(ihub-session-smoke-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-session-smoke
-    COMMAND ihub-session-smoke-test
+    COMMAND ihub-runner-rt ihub-session-smoke
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -1294,9 +755,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
 endif()
 
-juce_add_console_app(ihub-session-api-test
-    PRODUCT_NAME "ihub-session-api-test"
-)
+add_library(ihub-session-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/SessionApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_session_api_test")
+
 
 target_sources(ihub-session-api-test
     PRIVATE
@@ -1314,35 +775,6 @@ target_sources(ihub-session-api-test
         api/session_api/Tracks.cpp
         api/session_api/TrackVolume.cpp
         api/session_api/Transport.cpp
-        ${IHUB_SESSION_SOURCES}
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_FX_RACK_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        ${IHUB_RT_GUARD_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-session-api-test
@@ -1361,78 +793,31 @@ target_link_libraries(ihub-session-api-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_dsp
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-session-api-test PRIVATE ihub-test-engine-rt-usage)
 
-set_target_properties(ihub-session-api-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-session-api
-    COMMAND ihub-session-api-test
+    COMMAND ihub-runner-rt ihub-session-api
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-patch-fx-api-test
-    PRODUCT_NAME "ihub-patch-fx-api-test"
-)
+add_library(ihub-patch-fx-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/PatchFxApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_patch_fx_api_test")
+
 
 target_sources(ihub-patch-fx-api-test
     PRIVATE
         api/PatchFxApiTest.cpp
-        api/AudioMeasurements.cpp
-        api/FxChainJson.cpp
-        api/JsonSupport.cpp
-        api/RequestDispatch.cpp
-        api/SessionRig.cpp
-        api/TestSupport.cpp
         api/patch_fx_api/Bypass.cpp
         api/patch_fx_api/Chain.cpp
         api/patch_fx_api/HostedInsert.cpp
         api/patch_fx_api/Replace.cpp
         api/patch_fx_api/Validation.cpp
-        ${IHUB_SESSION_SOURCES}
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_FX_RACK_SOURCES}
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        ${IHUB_RT_GUARD_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-patch-fx-api-test
@@ -1451,79 +836,32 @@ target_link_libraries(ihub-patch-fx-api-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_dsp
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-patch-fx-api-test PRIVATE ihub-test-engine-usage)
+
+
 
 add_dependencies(ihub-patch-fx-api-test TestPlugin_VST3)
 
-set_target_properties(ihub-patch-fx-api-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-patch-fx-api
-    COMMAND ihub-patch-fx-api-test
+    COMMAND ihub-runner-api ihub-patch-fx-api
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-instrument-page-api-test
-    PRODUCT_NAME "ihub-instrument-page-api-test"
-)
+add_library(ihub-instrument-page-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/InstrumentPageApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_instrument_page_api_test")
+
 
 target_sources(ihub-instrument-page-api-test
     PRIVATE
         api/InstrumentPageApiTest.cpp
-        api/AudioMeasurements.cpp
-        api/FxChainJson.cpp
-        api/JsonSupport.cpp
-        api/RequestDispatch.cpp
-        api/SessionRig.cpp
-        api/TestSupport.cpp
         api/instrument_page_api/Inserts.cpp
         api/instrument_page_api/Mixer.cpp
         api/instrument_page_api/PluginSource.cpp
         api/instrument_page_api/Source.cpp
-        ${IHUB_SESSION_SOURCES}
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_FX_RACK_SOURCES}
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        ${IHUB_RT_GUARD_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-instrument-page-api-test
@@ -1542,85 +880,32 @@ target_link_libraries(ihub-instrument-page-api-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_dsp
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-instrument-page-api-test PRIVATE ihub-test-engine-usage)
+
+
 
 add_dependencies(ihub-instrument-page-api-test TestPlugin_VST3)
 
-set_target_properties(ihub-instrument-page-api-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-instrument-page-api
-    COMMAND ihub-instrument-page-api-test
+    COMMAND ihub-runner-api ihub-instrument-page-api
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-patch-state-capture-api-test
-    PRODUCT_NAME "ihub-patch-state-capture-api-test"
-)
+add_library(ihub-patch-state-capture-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/PatchStateCaptureApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_patch_state_capture_api_test")
+
 
 target_sources(ihub-patch-state-capture-api-test
     PRIVATE
         api/PatchStateCaptureApiTest.cpp
-        api/JsonSupport.cpp
-        api/RequestDispatch.cpp
-        api/SessionRig.cpp
-        api/TestSupport.cpp
         api/patch/Autosave.cpp
         api/patch_state_capture_api/Capture.cpp
         api/patch_state_capture_api/Fixtures.cpp
         api/patch_state_capture_api/Restart.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectAutosave.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectCapture.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutSave.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutText.cpp"
-        ${IHUB_PROJECT_SOURCES}
-        ${IHUB_MAPPING_SOURCES}
-        ${IHUB_SESSION_SOURCES}
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_FX_RACK_SOURCES}
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        ${IHUB_RT_GUARD_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-patch-state-capture-api-test
@@ -1640,37 +925,25 @@ target_link_libraries(ihub-patch-state-capture-api-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_dsp
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-patch-state-capture-api-test PRIVATE ihub-test-engine-usage)
+
+
 
 add_dependencies(ihub-patch-state-capture-api-test TestPlugin_VST3)
 
-set_target_properties(ihub-patch-state-capture-api-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-patch-state-capture-api
-    COMMAND ihub-patch-state-capture-api-test
+    COMMAND ihub-runner-api ihub-patch-state-capture-api
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-plugin-editor-api-test
-        PRODUCT_NAME "ihub-plugin-editor-api-test"
-    )
+add_library(ihub-plugin-editor-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/PluginEditorApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_plugin_editor_api_test")
+
 
     target_sources(ihub-plugin-editor-api-test
         PRIVATE
@@ -1684,36 +957,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             api/plugin_editor_api/Lifecycle.cpp
             api/plugin_editor_api/Reload.cpp
             api/plugin_editor_api/SourceChange.cpp
-            ${IHUB_SESSION_SOURCES}
-            ${IHUB_DISCOVERY_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-            ${IHUB_API_ROUTES_SOURCES}
-            ${IHUB_API_SERVER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_PLUGIN_WINDOW_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-plugin-editor-api-test
@@ -1732,31 +975,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             Threads::Threads
             ihub-httplib
-            juce::juce_audio_devices
-            juce::juce_audio_formats
-            juce::juce_audio_processors
-            juce::juce_core
-            juce::juce_dsp
-            juce::juce_events
-            juce::juce_gui_basics
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+target_link_libraries(ihub-plugin-editor-api-test PRIVATE ihub-test-engine-gui-usage)
+
+
 
     add_dependencies(ihub-plugin-editor-api-test TestPlugin_VST3)
 
-    set_target_properties(ihub-plugin-editor-api-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-plugin-editor-api
-        COMMAND ihub-plugin-editor-api-test
+        COMMAND ihub-runner-gui ihub-plugin-editor-api
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
@@ -1767,46 +997,13 @@ else()
     message(STATUS "ihub-plugin-editor-api-test: Linux-only; skipping")
 endif()
 
-set(IHUB_SESSION_WARM_TEST_SOURCES
-    ${IHUB_SESSION_SOURCES}
-    ${IHUB_DISCOVERY_SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-    ${IHUB_API_ROUTES_SOURCES}
-    ${IHUB_API_SERVER_SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-    ${IHUB_BUS_SOURCES}
-    ${IHUB_DEVICE_MANAGER_SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-    ${IHUB_FX_RACK_SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-    ${IHUB_LATENCY_PROBE_SOURCES}
-    ${IHUB_RT_GUARD_SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-    ${IHUB_WARM_POOL_SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-    ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-    ${IHUB_SAMPLER_SOURCES}
-)
+add_library(ihub-session-warm-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/session_warm/SessionWarmPoolTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_session_warm_test")
 
-juce_add_console_app(ihub-session-warm-test
-    PRODUCT_NAME "ihub-session-warm-test"
-)
 
 target_sources(ihub-session-warm-test
     PRIVATE
         session_warm/SessionWarmPoolTest.cpp
-        ${IHUB_SESSION_WARM_TEST_SOURCES}
 )
 
 target_include_directories(ihub-session-warm-test
@@ -1824,34 +1021,23 @@ target_link_libraries(ihub-session-warm-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_dsp
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-session-warm-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-session-warm-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-session-warm
-    COMMAND ihub-session-warm-test
+    COMMAND ihub-runner-session ihub-session-warm
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 juce_add_console_app(ihub-session-warm-protected-test
     PRODUCT_NAME "ihub-session-warm-protected-test"
 )
+
 
 target_sources(ihub-session-warm-protected-test
     PRIVATE
@@ -1860,7 +1046,6 @@ target_sources(ihub-session-warm-protected-test
         session_warm/WarmPoolProtectedTest.cpp
         session_warm/SessionProtectedTest.cpp
         session_warm/EmptyTrackArmTest.cpp
-        ${IHUB_SESSION_WARM_TEST_SOURCES}
 )
 
 target_include_directories(ihub-session-warm-protected-test
@@ -1878,24 +1063,20 @@ target_link_libraries(ihub-session-warm-protected-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_dsp
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+ihub_link_test_engine(ihub-session-warm-protected-test)
+    set_target_properties(ihub-session-warm-protected-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
 
-set_target_properties(ihub-session-warm-protected-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
+
 
 add_test(
     NAME ihub-session-warm-protected
@@ -1903,44 +1084,15 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-shutdown-test
-    PRODUCT_NAME "ihub-shutdown-test"
-)
+add_library(ihub-shutdown-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/app/shutdown/ShutdownTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_shutdown_test")
+
 
 target_sources(ihub-shutdown-test
     PRIVATE
         app/shutdown/Scenarios.cpp
         app/shutdown/ShutdownTest.cpp
         app/shutdown/TestSupport.cpp
-        ${IHUB_SESSION_SOURCES}
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_FX_RACK_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        ${IHUB_RT_GUARD_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-shutdown-test
@@ -1958,28 +1110,16 @@ target_link_libraries(ihub-shutdown-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_dsp
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-shutdown-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-shutdown-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-shutdown
-    COMMAND ihub-shutdown-test
+    COMMAND ihub-runner-session ihub-shutdown
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -1993,7 +1133,6 @@ add_executable(ihub-launchpad-protocol-test
     controller/protocol/Grid.cpp
     controller/protocol/Hex.cpp
     controller/protocol/Leds.cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/controller/LaunchpadProtocol.cpp"
 )
 
 target_compile_features(ihub-launchpad-protocol-test PRIVATE cxx_std_20)
@@ -2006,6 +1145,8 @@ target_include_directories(ihub-launchpad-protocol-test
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ihub-launchpad-protocol-test PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+ihub_link_test_engine(ihub-launchpad-protocol-test)
 
 set_target_properties(ihub-launchpad-protocol-test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
@@ -2030,7 +1171,6 @@ add_executable(ihub-launchpad-mapping-test
     controller/launchpad_mapping/Fixtures.cpp
     controller/launchpad_mapping/Mapping.cpp
     controller/launchpad_mapping/Validation.cpp
-    ${IHUB_MAPPING_SOURCES}
 )
 
 target_compile_features(ihub-launchpad-mapping-test PRIVATE cxx_std_20)
@@ -2049,8 +1189,9 @@ target_compile_definitions(ihub-launchpad-mapping-test
 target_link_libraries(ihub-launchpad-mapping-test
     PRIVATE
         Threads::Threads
-        juce::juce_core
 )
+ihub_link_test_engine(ihub-launchpad-mapping-test)
+
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ihub-launchpad-mapping-test PRIVATE -Wall -Wextra -Wpedantic)
@@ -2070,14 +1211,13 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-launchpad-driver-test
-    PRODUCT_NAME "ihub-launchpad-driver-test"
-)
+add_library(ihub-launchpad-driver-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/controller/LaunchpadDriverTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_launchpad_driver_test")
+
 
 target_sources(ihub-launchpad-driver-test
     PRIVATE
         controller/LaunchpadDriverTest.cpp
-        controller/TestSupport.cpp
         controller/driver/ArmingCapture.cpp
         controller/driver/ArmingCaptureGrid.cpp
         controller/driver/Grid.cpp
@@ -2085,8 +1225,6 @@ target_sources(ihub-launchpad-driver-test
         controller/driver/LedStream.cpp
         controller/driver/PatchLeds.cpp
         controller/driver/Rig.cpp
-        ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
-        ${IHUB_MAPPING_SOURCES}
 )
 
 target_include_directories(ihub-launchpad-driver-test
@@ -2102,30 +1240,23 @@ target_compile_definitions(ihub-launchpad-driver-test
 target_link_libraries(ihub-launchpad-driver-test
     PRIVATE
         Threads::Threads
-        juce::juce_audio_devices
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-launchpad-driver-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-launchpad-driver-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-launchpad-driver
-    COMMAND ihub-launchpad-driver-test
+    COMMAND ihub-runner-session ihub-launchpad-driver
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 juce_add_console_app(ihub-launchpad-track-test
     PRODUCT_NAME "ihub-launchpad-track-test"
 )
+
 
 target_sources(ihub-launchpad-track-test
     PRIVATE
@@ -2135,14 +1266,6 @@ target_sources(ihub-launchpad-track-test
         controller/track_pads/Fixture.cpp
         controller/track_pads/Leds.cpp
         controller/track_pads/Routing.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/surface/TrackSurface.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        ${IHUB_DISCOVERY_SOURCES}
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
-        ${IHUB_MAPPING_SOURCES}
 )
 
 target_include_directories(ihub-launchpad-track-test
@@ -2159,21 +1282,20 @@ target_link_libraries(ihub-launchpad-track-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+ihub_link_test_engine(ihub-launchpad-track-test)
+    set_target_properties(ihub-launchpad-track-test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
 
-set_target_properties(ihub-launchpad-track-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
+
 
 add_test(
     NAME ihub-launchpad-track
@@ -2183,14 +1305,13 @@ add_test(
 
 find_package(Threads REQUIRED)
 
-juce_add_console_app(ihub-mapping-test
-    PRODUCT_NAME "ihub-mapping-test"
-)
+add_library(ihub-mapping-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/controller/MappingTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_mapping_test")
+
 
 target_sources(ihub-mapping-test
     PRIVATE
         controller/MappingTest.cpp
-        controller/TestSupport.cpp
         controller/mapping/Document.cpp
         controller/mapping/Fixtures.cpp
         controller/mapping/HotReload.cpp
@@ -2203,10 +1324,6 @@ target_sources(ihub-mapping-test
         controller/mapping/ValidationStructure.cpp
         controller/mapping/ValidationSupport.cpp
         controller/mapping/ValidationValues.cpp
-        ${IHUB_MAPPING_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
 )
 
 target_include_directories(ihub-mapping-test
@@ -2223,37 +1340,26 @@ target_compile_definitions(ihub-mapping-test
 target_link_libraries(ihub-mapping-test
     PRIVATE
         Threads::Threads
-        juce::juce_audio_basics
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-mapping-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-mapping-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-mapping
-    COMMAND ihub-mapping-test
+    COMMAND ihub-runner-session ihub-mapping
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-api-test
-    PRODUCT_NAME "ihub-api-test"
-)
+add_library(ihub-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/ApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_api_test")
+
 
 target_sources(ihub-api-test
     PRIVATE
         api/ApiTest.cpp
-        api/JsonSupport.cpp
-        api/TestSupport.cpp
         api/core_api/Arm.cpp
         api/core_api/Auth.cpp
         api/core_api/Fixtures.cpp
@@ -2262,11 +1368,6 @@ target_sources(ihub-api-test
         api/core_api/Settings.cpp
         api/core_api/State.cpp
         api/core_api/Transport.cpp
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
 )
 
 target_include_directories(ihub-api-test
@@ -2278,43 +1379,29 @@ target_link_libraries(ihub-api-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_core
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-api-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-api-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-api
-    COMMAND ihub-api-test
+    COMMAND ihub-runner-api ihub-api
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-app-settings-api-test
-    PRODUCT_NAME "ihub-app-settings-api-test"
-)
+add_library(ihub-app-settings-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/AppSettingsApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_app_settings_api_test")
+
 
 target_sources(ihub-app-settings-api-test
     PRIVATE
         api/AppSettingsApiTest.cpp
-        api/JsonSupport.cpp
-        api/TestSupport.cpp
         api/app_settings_api/Account.cpp
         api/app_settings_api/Fixtures.cpp
         api/app_settings_api/Mixer.cpp
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
 )
 
 target_include_directories(ihub-app-settings-api-test
@@ -2326,44 +1413,30 @@ target_link_libraries(ihub-app-settings-api-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_core
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-app-settings-api-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-app-settings-api-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-app-settings-api
-    COMMAND ihub-app-settings-api-test
+    COMMAND ihub-runner-api ihub-app-settings-api
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-pairing-test
-    PRODUCT_NAME "ihub-pairing-test"
-)
+add_library(ihub-pairing-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/PairingTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_pairing_test")
+
 
 target_sources(ihub-pairing-test
     PRIVATE
         api/PairingTest.cpp
-        api/JsonSupport.cpp
-        api/TestSupport.cpp
         api/pairing/Fixtures.cpp
         api/pairing/LanOff.cpp
         api/pairing/Pairing.cpp
         api/pairing/StartupFlag.cpp
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
 )
 
 target_include_directories(ihub-pairing-test
@@ -2375,49 +1448,34 @@ target_link_libraries(ihub-pairing-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_core
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-pairing-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-pairing-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-pairing
-    COMMAND ihub-pairing-test
+    COMMAND ihub-runner-api ihub-pairing
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-state-broadcast-test
-        PRODUCT_NAME "ihub-state-broadcast-test"
-    )
+add_library(ihub-state-broadcast-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/StateBroadcastTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_state_broadcast_test")
+
 
     target_sources(ihub-state-broadcast-test
         PRIVATE
             api/StateBroadcastTest.cpp
             api/EventStream.cpp
-            api/JsonSupport.cpp
-            api/TestSupport.cpp
             api/state_broadcast/Accounting.cpp
             api/state_broadcast/Fixtures.cpp
             api/state_broadcast/InitialState.cpp
             api/state_broadcast/PadPath.cpp
             api/state_broadcast/RevisionPath.cpp
             api/state_broadcast/UiPath.cpp
-            ${IHUB_DISCOVERY_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-            ${IHUB_API_ROUTES_SOURCES}
-            ${IHUB_API_SERVER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-            ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
     )
 
     target_include_directories(ihub-state-broadcast-test
@@ -2429,40 +1487,29 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             Threads::Threads
             ihub-httplib
-            juce::juce_audio_devices
-            juce::juce_core
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+target_link_libraries(ihub-state-broadcast-test PRIVATE ihub-test-engine-usage)
 
-    set_target_properties(ihub-state-broadcast-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
+
+
 
     add_test(
         NAME ihub-state-broadcast
-        COMMAND ihub-state-broadcast-test
+        COMMAND ihub-runner-api ihub-state-broadcast
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 else()
     message(STATUS "ihub-state-broadcast-test: the live server test is Linux-only; skipping")
 endif()
 
-juce_add_console_app(ihub-audio-settings-test
-    PRODUCT_NAME "ihub-audio-settings-test"
-)
+add_library(ihub-audio-settings-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/AudioSettingsTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_audio_settings_test")
+
 
 target_sources(ihub-audio-settings-test
     PRIVATE
         api/AudioSettingsTest.cpp
-        api/JsonSupport.cpp
-        api/TestSupport.cpp
         api/audio_settings/Channels.cpp
         api/audio_settings/DeviceBridge.cpp
         api/audio_settings/DeviceSwitch.cpp
@@ -2475,15 +1522,6 @@ target_sources(ihub-audio-settings-test
         api/audio_settings/RestoreSupport.cpp
         api/audio_settings/Routes.cpp
         api/audio_settings/Wizard.cpp
-        ${IHUB_DISCOVERY_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        ${IHUB_AUDIO_SETTINGS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
 target_include_directories(ihub-audio-settings-test
@@ -2495,25 +1533,16 @@ target_link_libraries(ihub-audio-settings-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-audio-settings-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-audio-settings-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-audio-settings
-    COMMAND ihub-audio-settings-test
+    COMMAND ihub-runner-api ihub-audio-settings
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -2521,15 +1550,13 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-audio-settings PROPERTIES DISABLED TRUE)
 endif()
 
-juce_add_console_app(ihub-midi-api-test
-    PRODUCT_NAME "ihub-midi-api-test"
-)
+add_library(ihub-midi-api-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/MidiApiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_midi_api_test")
+
 
 target_sources(ihub-midi-api-test
     PRIVATE
         api/MidiApiTest.cpp
-        api/JsonSupport.cpp
-        api/TestSupport.cpp
         api/midi_api/DeviceEnumeration.cpp
         api/midi_api/Fixtures.cpp
         api/midi_api/GenericGridRouting.cpp
@@ -2537,14 +1564,6 @@ target_sources(ihub-midi-api-test
         api/midi_api/PadTest.cpp
         api/midi_api/Persistence.cpp
         api/midi_api/Routes.cpp
-        ${IHUB_DISCOVERY_SOURCES}
-        ${IHUB_MIDI_BRIDGE_SOURCES}
-        ${IHUB_SETTINGS_STORE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-        ${IHUB_API_ROUTES_SOURCES}
-        ${IHUB_API_SERVER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-        ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
 )
 
 target_include_directories(ihub-midi-api-test
@@ -2556,29 +1575,23 @@ target_link_libraries(ihub-midi-api-test
     PRIVATE
         Threads::Threads
         ihub-httplib
-        juce::juce_audio_devices
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-midi-api-test PRIVATE ihub-test-engine-usage)
+
+
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ihub-midi-api-test PRIVATE ALSA::ALSA)
+target_link_libraries(ihub-midi-api-test PRIVATE ihub-test-engine-usage)
+
+
 endif()
 
-set_target_properties(ihub-midi-api-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-midi-api
-    COMMAND ihub-midi-api-test
+    COMMAND ihub-runner-api ihub-midi-api
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -2586,20 +1599,18 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_tests_properties(ihub-midi-api PROPERTIES DISABLED TRUE)
 endif()
 
-juce_add_console_app(ihub-discovery-test
-    PRODUCT_NAME "ihub-discovery-test"
-)
+add_library(ihub-discovery-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/api/DiscoveryTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_discovery_test")
+
 
 target_sources(ihub-discovery-test
     PRIVATE
         api/DiscoveryTest.cpp
-        api/TestSupport.cpp
         api/discovery/Advertisement.cpp
         api/discovery/Dns.cpp
         api/discovery/Helpers.cpp
         api/discovery/Query.cpp
         api/discovery/Socket.cpp
-        ${IHUB_DISCOVERY_SOURCES}
 )
 
 target_include_directories(ihub-discovery-test
@@ -2610,35 +1621,26 @@ target_include_directories(ihub-discovery-test
 target_link_libraries(ihub-discovery-test
     PRIVATE
         Threads::Threads
-        juce::juce_core
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-discovery-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-discovery-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-discovery
-    COMMAND ihub-discovery-test
+    COMMAND ihub-runner-api ihub-discovery
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-compressor-test
-    PRODUCT_NAME "ihub-compressor-test"
-)
+add_library(ihub-compressor-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/dsp/CompressorTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_compressor_test")
+
 
 target_sources(ihub-compressor-test
     PRIVATE
         dsp/CompressorTest.cpp
-        dsp/AllocationCount.cpp
-        dsp/TestSupport.cpp
         dsp/compressor/Bypass.cpp
         dsp/compressor/Dynamics.cpp
         dsp/compressor/Fixtures.cpp
@@ -2648,7 +1650,6 @@ target_sources(ihub-compressor-test
         dsp/compressor/State.cpp
         dsp/compressor/StaticCurve.cpp
         dsp/compressor/StereoLink.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
 )
 
 target_include_directories(ihub-compressor-test
@@ -2670,38 +1671,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Cla
     )
 endif()
 
-target_link_libraries(ihub-compressor-test
-    PRIVATE
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-compressor-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-compressor-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-compressor
-    COMMAND ihub-compressor-test
+    COMMAND ihub-runner-dsp ihub-compressor
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-delay-test
-    PRODUCT_NAME "ihub-delay-test"
-)
+add_library(ihub-delay-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/dsp/DelayTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_delay_test")
+
 
 target_sources(ihub-delay-test
     PRIVATE
         dsp/DelayTest.cpp
-        dsp/AllocationCount.cpp
-        dsp/TestSupport.cpp
         dsp/delay/Acceptance.cpp
         dsp/delay/Bypass.cpp
         dsp/delay/Feedback.cpp
@@ -2711,7 +1699,6 @@ target_sources(ihub-delay-test
         dsp/delay/State.cpp
         dsp/delay/SyncTable.cpp
         dsp/delay/Transport.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
 )
 
 target_include_directories(ihub-delay-test
@@ -2733,38 +1720,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Cla
     )
 endif()
 
-target_link_libraries(ihub-delay-test
-    PRIVATE
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-delay-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-delay-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-delay
-    COMMAND ihub-delay-test
+    COMMAND ihub-runner-dsp ihub-delay
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-reverb-test
-    PRODUCT_NAME "ihub-reverb-test"
-)
+add_library(ihub-reverb-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/dsp/ReverbTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_reverb_test")
+
 
 target_sources(ihub-reverb-test
     PRIVATE
         dsp/ReverbTest.cpp
-        dsp/AllocationCount.cpp
-        dsp/TestSupport.cpp
         dsp/reverb/Damping.cpp
         dsp/reverb/Decay.cpp
         dsp/reverb/DryPath.cpp
@@ -2774,7 +1748,6 @@ target_sources(ihub-reverb-test
         dsp/reverb/Stability.cpp
         dsp/reverb/State.cpp
         dsp/reverb/Width.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
 )
 
 target_include_directories(ihub-reverb-test
@@ -2796,44 +1769,30 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Cla
     )
 endif()
 
-target_link_libraries(ihub-reverb-test
-    PRIVATE
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-reverb-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-reverb-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-reverb
-    COMMAND ihub-reverb-test
+    COMMAND ihub-runner-dsp ihub-reverb
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-eq-test
-    PRODUCT_NAME "ihub-eq-test"
-)
+add_library(ihub-eq-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/dsp/EqTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_eq_test")
+
 
 target_sources(ihub-eq-test
     PRIVATE
         dsp/EqTest.cpp
-        dsp/AllocationCount.cpp
-        dsp/TestSupport.cpp
         dsp/eq/Flat.cpp
         dsp/eq/Fixtures.cpp
         dsp/eq/Realtime.cpp
         dsp/eq/Response.cpp
         dsp/eq/State.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
 )
 
 target_include_directories(ihub-eq-test
@@ -2855,34 +1814,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Cla
     )
 endif()
 
-target_link_libraries(ihub-eq-test
-    PRIVATE
-        juce::juce_dsp
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-eq-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-eq-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-eq
-    COMMAND ihub-eq-test
+    COMMAND ihub-runner-dsp ihub-eq
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-add_executable(ihub-transport-test
+add_library(ihub-transport-test OBJECT
     audio/TransportTest.cpp
-    audio/AllocationCount.cpp
-    audio/TestSupport.cpp
     audio/transport/Acceptance.cpp
     audio/transport/ExternalSync.cpp
     audio/transport/Fixtures.cpp
@@ -2893,9 +1838,9 @@ add_executable(ihub-transport-test
     audio/transport/StartStop.cpp
     audio/transport/TapTempo.cpp
     audio/transport/Tempo.cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/audio/TransportTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_transport_test")
+
 
 target_compile_features(ihub-transport-test PRIVATE cxx_std_20)
 
@@ -2914,24 +1859,16 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ihub-transport-test PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-set_target_properties(ihub-transport-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-transport
-    COMMAND ihub-transport-test
+    COMMAND ihub-runner-audio ihub-transport
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-add_executable(ihub-clock-out-test
+add_library(ihub-clock-out-test OBJECT
     audio/ClockOutTest.cpp
-    audio/AllocationCount.cpp
-    audio/TestSupport.cpp
     audio/clock_out/Acceptance.cpp
     audio/clock_out/Fixtures.cpp
     audio/clock_out/Midi.cpp
@@ -2940,10 +1877,9 @@ add_executable(ihub-clock-out-test
     audio/clock_out/Rewind.cpp
     audio/clock_out/Tempo.cpp
     audio/clock_out/Transport.cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/ClockOut.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/audio/ClockOutTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_clock_out_test")
+
 
 target_compile_features(ihub-clock-out-test PRIVATE cxx_std_20)
 
@@ -2962,24 +1898,16 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ihub-clock-out-test PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-set_target_properties(ihub-clock-out-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-clock-out
-    COMMAND ihub-clock-out-test
+    COMMAND ihub-runner-audio ihub-clock-out
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-add_executable(ihub-clock-in-test
+add_library(ihub-clock-in-test OBJECT
     audio/ClockInTest.cpp
-    audio/AllocationCount.cpp
-    audio/TestSupport.cpp
     audio/clock_in/Acceptance.cpp
     audio/clock_in/ClockLoss.cpp
     audio/clock_in/InternalSync.cpp
@@ -2991,10 +1919,9 @@ add_executable(ihub-clock-in-test
     audio/clock_in/TempoChange.cpp
     audio/clock_in/Tempos.cpp
     audio/clock_in/Transport.cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/ClockIn.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/audio/ClockInTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_clock_in_test")
+
 
 target_compile_features(ihub-clock-in-test PRIVATE cxx_std_20)
 
@@ -3013,24 +1940,16 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ihub-clock-in-test PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-set_target_properties(ihub-clock-in-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-clock-in
-    COMMAND ihub-clock-in-test
+    COMMAND ihub-runner-audio ihub-clock-in
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-add_executable(ihub-tap-tempo-test
+add_library(ihub-tap-tempo-test OBJECT
     audio/TapTempoTest.cpp
-    audio/AllocationCount.cpp
-    audio/TestSupport.cpp
     audio/tap_tempo/Acceptance.cpp
     audio/tap_tempo/Fixtures.cpp
     audio/tap_tempo/Median.cpp
@@ -3039,9 +1958,9 @@ add_executable(ihub-tap-tempo-test
     audio/tap_tempo/Reset.cpp
     audio/tap_tempo/SequenceReset.cpp
     audio/tap_tempo/TransportIntegration.cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
 )
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/audio/TapTempoTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_tap_tempo_test")
+
 
 target_compile_features(ihub-tap-tempo-test PRIVATE cxx_std_20)
 
@@ -3060,34 +1979,21 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ihub-tap-tempo-test PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-set_target_properties(ihub-tap-tempo-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-tap-tempo
-    COMMAND ihub-tap-tempo-test
+    COMMAND ihub-runner-audio ihub-tap-tempo
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-set-file-test
-    PRODUCT_NAME "ihub-set-file-test"
-)
+add_library(ihub-set-file-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/project/SetFileTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_set_file_test")
+
 
 target_sources(ihub-set-file-test
     PRIVATE
         project/SetFileTest.cpp
-        ${IHUB_PROJECT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
 target_include_directories(ihub-set-file-test
@@ -3100,44 +2006,25 @@ target_compile_definitions(ihub-set-file-test
         "IHUB_SET_YAML=\"${CMAKE_CURRENT_SOURCE_DIR}/../shared/set.yaml\""
 )
 
-target_link_libraries(ihub-set-file-test
-    PRIVATE
-        juce::juce_audio_devices
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-set-file-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-set-file-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-set-file
-    COMMAND ihub-set-file-test
+    COMMAND ihub-runner-project ihub-set-file
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-migrations-test
-    PRODUCT_NAME "ihub-migrations-test"
-)
+add_library(ihub-migrations-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/project/MigrationsTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_migrations_test")
+
 
 target_sources(ihub-migrations-test
     PRIVATE
         project/MigrationsTest.cpp
-        ${IHUB_PROJECT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
 target_include_directories(ihub-migrations-test
@@ -3150,45 +2037,25 @@ target_compile_definitions(ihub-migrations-test
         "IHUB_V1_SET_FIXTURE=\"${CMAKE_CURRENT_SOURCE_DIR}/project/fixtures/set-v1.ihub\""
 )
 
-target_link_libraries(ihub-migrations-test
-    PRIVATE
-        juce::juce_audio_devices
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-migrations-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-migrations-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-migrations
-    COMMAND ihub-migrations-test
+    COMMAND ihub-runner-project ihub-migrations
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-patch-persistence-test
-    PRODUCT_NAME "ihub-patch-persistence-test"
-)
+add_library(ihub-patch-persistence-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/project/PatchPersistenceTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_patch_persistence_test")
+
 
 target_sources(ihub-patch-persistence-test
     PRIVATE
         project/PatchPersistenceTest.cpp
-        ${IHUB_MAPPING_SOURCES}
-        ${IHUB_PROJECT_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
 )
 
 target_include_directories(ihub-patch-persistence-test
@@ -3204,31 +2071,22 @@ target_compile_definitions(ihub-patch-persistence-test
 target_link_libraries(ihub-patch-persistence-test
     PRIVATE
         Threads::Threads
-        juce::juce_audio_devices
-        juce::juce_audio_processors_headless
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-patch-persistence-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-patch-persistence-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-patch-persistence
-    COMMAND ihub-patch-persistence-test
+    COMMAND ihub-runner-project ihub-patch-persistence
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-project-test
-    PRODUCT_NAME "ihub-project-test"
-)
+add_library(ihub-project-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/project/ProjectTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_project_test")
+
 
 target_sources(ihub-project-test
     PRIVATE
@@ -3239,26 +2097,6 @@ target_sources(ihub-project-test
         project/project/SessionDescription.cpp
         project/project/Support.cpp
         project/project/TrackLayout.cpp
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectAutosave.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectImport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectPaths.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SourceImport.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutSave.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutText.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/fx/FxInsertType.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/session/PluginStateFile.cpp"
-        ${IHUB_PROJECT_SOURCES}
-        ${IHUB_MAPPING_SOURCES}
 )
 
 target_include_directories(ihub-project-test
@@ -3276,46 +2114,32 @@ target_compile_definitions(ihub-project-test
 target_link_libraries(ihub-project-test
     PRIVATE
         Threads::Threads
-        juce::juce_audio_devices
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-project-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-project-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-project
-    COMMAND ihub-project-test
+    COMMAND ihub-runner-project ihub-project
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-sample-loader-test
-    PRODUCT_NAME "ihub-sample-loader-test"
-)
+add_library(ihub-sample-loader-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/sampler/SampleLoaderTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_sample_loader_test")
+
 
 target_sources(ihub-sample-loader-test
     PRIVATE
         sampler/SampleLoaderTest.cpp
-        sampler/Fixtures.cpp
-        sampler/Measurements.cpp
-        sampler/TestSupport.cpp
         sampler/sample/Assertions.cpp
         sampler/sample/Decode.cpp
         sampler/sample/Failure.cpp
         sampler/sample/Handoff.cpp
         sampler/sample/Resample.cpp
         sampler/sample/Stress.cpp
-        ${IHUB_SAMPLE_SOURCES}
 )
 
 target_include_directories(ihub-sample-loader-test
@@ -3337,39 +2161,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Cla
     )
 endif()
 
-target_link_libraries(ihub-sample-loader-test
-    PRIVATE
-        juce::juce_audio_formats
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-sample-loader-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-sample-loader-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-sample-loader
-    COMMAND ihub-sample-loader-test
+    COMMAND ihub-runner-sampler ihub-sample-loader
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-kit-loader-test
-    PRODUCT_NAME "ihub-kit-loader-test"
-)
+add_library(ihub-kit-loader-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/sampler/KitLoaderTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_kit_loader_test")
+
 
 target_sources(ihub-kit-loader-test
     PRIVATE
         sampler/KitLoaderTest.cpp
-        sampler/Fixtures.cpp
-        sampler/Measurements.cpp
-        sampler/TestSupport.cpp
         sampler/kit/AudioFixtures.cpp
         sampler/kit/Fixtures.cpp
         sampler/kit/Layers.cpp
@@ -3378,8 +2188,6 @@ target_sources(ihub-kit-loader-test
         sampler/kit/RenderHit.cpp
         sampler/kit/Resolve.cpp
         sampler/kit/Validation.cpp
-        ${IHUB_SAMPLER_KIT_SOURCES}
-        ${IHUB_SAMPLE_SOURCES}
 )
 
 target_include_directories(ihub-kit-loader-test
@@ -3406,38 +2214,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Cla
     )
 endif()
 
-target_link_libraries(ihub-kit-loader-test
-    PRIVATE
-        juce::juce_audio_formats
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-kit-loader-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-kit-loader-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-kit-loader
-    COMMAND ihub-kit-loader-test
+    COMMAND ihub-runner-sampler ihub-kit-loader
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-juce_add_console_app(ihub-sampler-instrument-test
-    PRODUCT_NAME "ihub-sampler-instrument-test"
-)
+add_library(ihub-sampler-instrument-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/sampler/SamplerInstrumentTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_sampler_instrument_test")
+
 
 target_sources(ihub-sampler-instrument-test
     PRIVATE
         sampler/SamplerInstrumentTest.cpp
-        sampler/Fixtures.cpp
-        sampler/TestSupport.cpp
         sampler/voices/Choke.cpp
         sampler/voices/Fixtures.cpp
         sampler/voices/Gate.cpp
@@ -3445,7 +2240,6 @@ target_sources(ihub-sampler-instrument-test
         sampler/voices/Realtime.cpp
         sampler/voices/Setup.cpp
         sampler/voices/Stealing.cpp
-        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-sampler-instrument-test
@@ -3467,26 +2261,15 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Cla
     )
 endif()
 
-target_link_libraries(ihub-sampler-instrument-test
-    PRIVATE
-        juce::juce_audio_formats
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-)
+target_link_libraries(ihub-sampler-instrument-test PRIVATE ihub-test-engine-usage)
 
-set_target_properties(ihub-sampler-instrument-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
+
+
 
 add_test(
     NAME ihub-sampler-instrument
-    COMMAND ihub-sampler-instrument-test
+    COMMAND ihub-runner-sampler ihub-sampler-instrument
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -3591,38 +2374,13 @@ else()
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-session-midi-test
-        PRODUCT_NAME "ihub-session-midi-test"
-    )
+add_library(ihub-session-midi-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/session_midi/SessionMidiTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_session_midi_test")
+
 
     target_sources(ihub-session-midi-test
         PRIVATE
             session_midi/SessionMidiTest.cpp
-            ${IHUB_SESSION_SOURCES}
-            ${IHUB_MIDI_BRIDGE_SOURCES}
-            ${IHUB_SETTINGS_STORE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-session-midi-test
@@ -3641,65 +2399,31 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             Threads::Threads
             ALSA::ALSA
-            juce::juce_core
-            juce::juce_audio_devices
-            juce::juce_dsp
-            juce::juce_audio_formats
-            juce::juce_audio_processors_headless
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+target_link_libraries(ihub-session-midi-test PRIVATE ihub-test-engine-usage)
+
+
 
     add_dependencies(ihub-session-midi-test NoteTonePlugin_VST3)
 
-    set_target_properties(ihub-session-midi-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-session-midi
-        COMMAND ihub-session-midi-test
+        COMMAND ihub-runner-session ihub-session-midi
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 else()
     message(STATUS "ihub-session-midi-test: ALSA MIDI forwarding is Linux-only; skipping")
 endif()
 
-juce_add_console_app(ihub-session-plugin-state-test
-    PRODUCT_NAME "ihub-session-plugin-state-test"
-)
+add_library(ihub-session-plugin-state-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/plugin_state/SessionPluginStateTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_session_plugin_state_test")
+
 
 target_sources(ihub-session-plugin-state-test
     PRIVATE
         plugin_state/SessionPluginStateTest.cpp
-        ${IHUB_SESSION_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-        ${IHUB_BUS_SOURCES}
-        ${IHUB_DEVICE_MANAGER_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-        ${IHUB_FX_RACK_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-        ${IHUB_LATENCY_PROBE_SOURCES}
-        ${IHUB_RT_GUARD_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-        ${IHUB_WARM_POOL_SOURCES}
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-        ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-        ${IHUB_SAMPLER_SOURCES}
 )
 
 target_include_directories(ihub-session-plugin-state-test
@@ -3717,30 +2441,18 @@ target_compile_definitions(ihub-session-plugin-state-test
 target_link_libraries(ihub-session-plugin-state-test
     PRIVATE
         Threads::Threads
-        juce::juce_audio_devices
-        juce::juce_dsp
-        juce::juce_audio_formats
-        juce::juce_audio_processors_headless
-        juce::juce_core
-        juce::juce_events
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
 )
+target_link_libraries(ihub-session-plugin-state-test PRIVATE ihub-test-engine-usage)
+
+
 
 add_dependencies(ihub-session-plugin-state-test TestPlugin_VST3)
 
-set_target_properties(ihub-session-plugin-state-test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-)
+
 
 add_test(
     NAME ihub-session-plugin-state
-    COMMAND ihub-session-plugin-state-test
+    COMMAND ihub-runner-session ihub-session-plugin-state
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
@@ -3756,28 +2468,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             plugin_state/concurrent/EditorCapture.cpp
             plugin_state/concurrent/Reload.cpp
             plugin_state/shared_page/SharedPageScenario.cpp
-            ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-session-concurrent-instances-test
@@ -3796,16 +2486,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ihub-session-concurrent-instances-test
         PRIVATE
             Threads::Threads
-            juce::juce_audio_devices
-            juce::juce_audio_formats
-            juce::juce_audio_processors_headless
-            juce::juce_core
-            juce::juce_dsp
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+ihub_link_test_engine(ihub-session-concurrent-instances-test)
+
 
     add_dependencies(ihub-session-concurrent-instances-test
         ihub-sandbox
@@ -3839,28 +2522,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ihub-session-sandbox-death-test
         PRIVATE
             plugin_state/SessionSandboxDeathTest.cpp
-            ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-session-sandbox-death-test
@@ -3879,16 +2540,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ihub-session-sandbox-death-test
         PRIVATE
             Threads::Threads
-            juce::juce_audio_devices
-            juce::juce_dsp
-            juce::juce_audio_formats
-            juce::juce_audio_processors_headless
-            juce::juce_core
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+ihub_link_test_engine(ihub-session-sandbox-death-test)
+
 
     add_dependencies(ihub-session-sandbox-death-test
         ihub-sandbox
@@ -3911,37 +2565,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-session-editor-follow-test
-        PRODUCT_NAME "ihub-session-editor-follow-test"
-    )
+add_library(ihub-session-editor-follow-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/plugin_state/SessionEditorFollowTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_session_editor_follow_test")
+
 
     target_sources(ihub-session-editor-follow-test
         PRIVATE
             plugin_state/SessionEditorFollowTest.cpp
             plugin_state/editor_follow/EditorAudioScenario.cpp
-            ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_PLUGIN_WINDOW_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-session-editor-follow-test
@@ -3959,31 +2590,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ihub-session-editor-follow-test
         PRIVATE
             Threads::Threads
-            juce::juce_audio_devices
-            juce::juce_audio_formats
-            juce::juce_audio_processors
-            juce::juce_core
-            juce::juce_dsp
-            juce::juce_events
-            juce::juce_gui_basics
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+target_link_libraries(ihub-session-editor-follow-test PRIVATE ihub-test-engine-gui-usage)
+
+
 
     add_dependencies(ihub-session-editor-follow-test TestPlugin_VST3)
 
-    set_target_properties(ihub-session-editor-follow-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-session-editor-follow
-        COMMAND ihub-session-editor-follow-test
+        COMMAND ihub-runner-gui ihub-session-editor-follow
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
@@ -4025,45 +2643,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             e2e/pad_audio/Records.cpp
             e2e/pad_audio/Render.cpp
             e2e/pad_audio/Rig.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/surface/TrackSurface.cpp"
-            ${IHUB_SESSION_SOURCES}
-            ${IHUB_PROJECT_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectImport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectPaths.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SourceImport.cpp"
-            ${IHUB_DISCOVERY_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-            ${IHUB_API_ROUTES_SOURCES}
-            ${IHUB_API_SERVER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            ${IHUB_LAUNCHPAD_DRIVER_SOURCES}
-            ${IHUB_MAPPING_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-e2e-test
@@ -4092,16 +2671,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             Threads::Threads
             ALSA::ALSA
             ihub-httplib
-            juce::juce_core
-            juce::juce_audio_devices
-            juce::juce_dsp
-            juce::juce_audio_formats
-            juce::juce_audio_processors_headless
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+ihub_link_test_engine(ihub-e2e-test)
+
 
     set_target_properties(ihub-e2e-test PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
@@ -4121,35 +2693,13 @@ else()
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-per-patch-state-test
-        PRODUCT_NAME "ihub-per-patch-state-test"
-    )
+add_library(ihub-per-patch-state-test OBJECT)
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/e2e/PerPatchStateTest.cpp" PROPERTIES COMPILE_DEFINITIONS "main=ihub_scenario_ihub_per_patch_state_test")
+
 
     target_sources(ihub-per-patch-state-test
         PRIVATE
             e2e/PerPatchStateTest.cpp
-            ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-per-patch-state-test
@@ -4167,30 +2717,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ihub-per-patch-state-test
         PRIVATE
             Threads::Threads
-            juce::juce_audio_devices
-            juce::juce_audio_formats
-            juce::juce_audio_processors_headless
-            juce::juce_core
-            juce::juce_dsp
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+target_link_libraries(ihub-per-patch-state-test PRIVATE ihub-test-engine-usage)
+
+
 
     add_dependencies(ihub-per-patch-state-test TestPlugin_VST3)
 
-    set_target_properties(ihub-per-patch-state-test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+
 
     add_test(
         NAME ihub-per-patch-state
-        COMMAND ihub-per-patch-state-test
+        COMMAND ihub-runner-session ihub-per-patch-state
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     )
 else()
@@ -4198,9 +2736,9 @@ else()
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-analog-lab-state-test
-        PRODUCT_NAME "ihub-analog-lab-state-test"
-    )
+juce_add_console_app(ihub-analog-lab-state-test
+    PRODUCT_NAME "ihub-analog-lab-state-test"
+)
 
     target_sources(ihub-analog-lab-state-test
         PRIVATE
@@ -4215,28 +2753,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             e2e/analog_lab/RestartPhase.cpp
             e2e/analog_lab/SessionRig.cpp
             e2e/analog_lab/StateFile.cpp
-            ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-analog-lab-state-test
@@ -4254,16 +2770,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ihub-analog-lab-state-test
         PRIVATE
             Threads::Threads
-            juce::juce_audio_devices
-            juce::juce_audio_formats
-            juce::juce_audio_processors_headless
-            juce::juce_core
-            juce::juce_dsp
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
+ihub_link_test_engine(ihub-analog-lab-state-test)
 
     set_target_properties(ihub-analog-lab-state-test PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
@@ -4287,9 +2795,9 @@ else()
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-multipatch-batch-test
-        PRODUCT_NAME "ihub-multipatch-batch-test"
-    )
+juce_add_console_app(ihub-multipatch-batch-test
+    PRODUCT_NAME "ihub-multipatch-batch-test"
+)
 
     target_sources(ihub-multipatch-batch-test
         PRIVATE
@@ -4305,28 +2813,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             e2e/multipatch_batch/Record.cpp
             e2e/multipatch_batch/RestorePhase.cpp
             e2e/multipatch_batch/Validation.cpp
-            ${IHUB_SESSION_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-multipatch-batch-test
@@ -4345,21 +2831,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(ihub-multipatch-batch-test
         PRIVATE
             Threads::Threads
-            juce::juce_audio_devices
-            juce::juce_audio_formats
-            juce::juce_audio_processors_headless
-            juce::juce_core
-            juce::juce_dsp
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
-
-    add_dependencies(ihub-multipatch-batch-test
-        TestPlugin_VST3
-        ihub-sandbox
-    )
+ihub_link_test_engine(ihub-multipatch-batch-test)
 
     set_target_properties(ihub-multipatch-batch-test PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
@@ -4367,6 +2840,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}"
         RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_CURRENT_BINARY_DIR}"
         RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
+    add_dependencies(ihub-multipatch-batch-test
+        TestPlugin_VST3
+        ihub-sandbox
     )
 
     add_test(
@@ -4379,9 +2857,10 @@ else()
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    juce_add_console_app(ihub-project-lifecycle-api-test
-        PRODUCT_NAME "ihub-project-lifecycle-api-test"
-    )
+juce_add_console_app(ihub-project-lifecycle-api-test
+    PRODUCT_NAME "ihub-project-lifecycle-api-test"
+)
+
 
     target_sources(ihub-project-lifecycle-api-test
         PRIVATE
@@ -4393,51 +2872,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             api/project/History.cpp
             api/project/ProjectLifecycle.cpp
             api/project/TrackSetup.cpp
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/CommandLine.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/MappingImport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectAutosave.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectCapture.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectImport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectLifecycle.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectLifecycleOpen.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectLifecycleSave.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectPaths.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/ProjectSession.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SessionSlotMapping.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/SourceImport.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutSave.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/app/project/TrackLayoutText.cpp"
-            ${IHUB_PROJECT_SOURCES}
-            ${IHUB_MAPPING_SOURCES}
-            ${IHUB_SESSION_SOURCES}
-            ${IHUB_DISCOVERY_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/Pairing.cpp"
-            ${IHUB_API_ROUTES_SOURCES}
-            ${IHUB_API_SERVER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/SessionBridge.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/TrackBridge.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/api/StateBroadcast.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/AudioEngine.cpp"
-            ${IHUB_BUS_SOURCES}
-            ${IHUB_DEVICE_MANAGER_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/FxChain.cpp"
-            ${IHUB_FX_RACK_SOURCES}
-            ${IHUB_LATENCY_PROBE_SOURCES}
-            ${IHUB_RT_GUARD_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Slot.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/SlotSwitcher.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TapTempo.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/TimingMonitor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/audio/Transport.cpp"
-            ${IHUB_WARM_POOL_SOURCES}
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Compressor.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Delay.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Eq.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/dsp/Reverb.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/AudioInputInstrument.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/instruments/Instrument.cpp"
-            ${IHUB_PLUGIN_INSTRUMENT_SOURCES}
-            ${IHUB_SAMPLER_SOURCES}
     )
 
     target_include_directories(ihub-project-lifecycle-api-test
@@ -4456,17 +2890,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             Threads::Threads
             ihub-httplib
-            juce::juce_audio_devices
-            juce::juce_audio_formats
-            juce::juce_audio_processors_headless
-            juce::juce_core
-            juce::juce_dsp
-            juce::juce_events
-        PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags
     )
-
+ihub_link_test_engine(ihub-project-lifecycle-api-test)
     set_target_properties(ihub-project-lifecycle-api-test PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
         RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}"
@@ -4475,6 +2900,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
+
+
+
+
+
     add_test(
         NAME ihub-project-lifecycle-api
         COMMAND ihub-project-lifecycle-api-test
@@ -4482,6 +2912,209 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
 else()
     message(STATUS "ihub-project-lifecycle-api-test: needs the Linux VST3 host; skipping")
+endif()
+
+ihub_add_test_runner(ihub-runner-audio
+    ENGINE ihub-test-engine
+    USAGE ihub-test-engine-usage
+    TARGETS
+        ihub-transport-test
+        ihub-clock-in-test
+        ihub-clock-out-test
+        ihub-tap-tempo-test
+        ihub-switch-continuity-test
+        ihub-timing-monitor-test
+    SCENARIOS
+        ihub-transport=ihub_scenario_ihub_transport_test
+        ihub-clock-in=ihub_scenario_ihub_clock_in_test
+        ihub-clock-out=ihub_scenario_ihub_clock_out_test
+        ihub-tap-tempo=ihub_scenario_ihub_tap_tempo_test
+        ihub-switch-continuity=ihub_scenario_ihub_switch_continuity_test
+        ihub-timing-monitor=ihub_scenario_ihub_timing_monitor_test
+    SHARED
+        audio/AllocationCount.cpp
+        audio/TestSupport.cpp
+)
+
+ihub_add_test_runner(ihub-runner-dsp
+    ENGINE ihub-test-engine
+    USAGE ihub-test-engine-usage
+    WRAP_ALLOC
+    TARGETS
+        ihub-compressor-test
+        ihub-delay-test
+        ihub-reverb-test
+        ihub-eq-test
+    SCENARIOS
+        ihub-compressor=ihub_scenario_ihub_compressor_test
+        ihub-delay=ihub_scenario_ihub_delay_test
+        ihub-reverb=ihub_scenario_ihub_reverb_test
+        ihub-eq=ihub_scenario_ihub_eq_test
+    SHARED
+        dsp/AllocationCount.cpp
+        dsp/TestSupport.cpp
+)
+
+ihub_add_test_runner(ihub-runner-sampler
+    ENGINE ihub-test-engine
+    USAGE ihub-test-engine-usage
+    WRAP_ALLOC
+    TARGETS
+        ihub-sample-loader-test
+        ihub-kit-loader-test
+        ihub-sampler-instrument-test
+    SCENARIOS
+        ihub-sample-loader=ihub_scenario_ihub_sample_loader_test
+        ihub-kit-loader=ihub_scenario_ihub_kit_loader_test
+        ihub-sampler-instrument=ihub_scenario_ihub_sampler_instrument_test
+    SHARED
+        sampler/Fixtures.cpp
+        sampler/Measurements.cpp
+        sampler/TestSupport.cpp
+)
+
+ihub_add_test_runner(ihub-runner-app
+    ENGINE ihub-test-engine
+    USAGE ihub-test-engine-usage
+    TARGETS
+        ihub-app-modes-test
+        ihub-settings-store-test
+        ihub-device-manager-test
+        ihub-diagnostics-test
+        ihub-latency-probe-test
+    SCENARIOS
+        ihub-app-modes=ihub_scenario_ihub_app_modes_test
+        ihub-settings-store=ihub_scenario_ihub_settings_store_test
+        ihub-device-manager=ihub_scenario_ihub_device_manager_test
+        ihub-diagnostics=ihub_scenario_ihub_diagnostics_test
+        ihub-latency-probe=ihub_scenario_ihub_latency_probe_test
+)
+
+ihub_add_test_runner(ihub-runner-project
+    ENGINE ihub-test-engine
+    USAGE ihub-test-engine-usage
+    TARGETS
+        ihub-set-file-test
+        ihub-migrations-test
+        ihub-patch-persistence-test
+        ihub-project-test
+    SCENARIOS
+        ihub-set-file=ihub_scenario_ihub_set_file_test
+        ihub-migrations=ihub_scenario_ihub_migrations_test
+        ihub-patch-persistence=ihub_scenario_ihub_patch_persistence_test
+        ihub-project=ihub_scenario_ihub_project_test
+)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+ihub_add_test_runner(ihub-runner-api
+    ENGINE ihub-test-engine
+    USAGE ihub-test-engine-usage
+    TARGETS
+        ihub-api-test
+        ihub-app-settings-api-test
+        ihub-pairing-test
+        ihub-state-broadcast-test
+        ihub-audio-settings-test
+        ihub-midi-api-test
+        ihub-discovery-test
+        ihub-patch-fx-api-test
+        ihub-instrument-page-api-test
+        ihub-patch-state-capture-api-test
+    SCENARIOS
+        ihub-api=ihub_scenario_ihub_api_test
+        ihub-app-settings-api=ihub_scenario_ihub_app_settings_api_test
+        ihub-pairing=ihub_scenario_ihub_pairing_test
+        ihub-state-broadcast=ihub_scenario_ihub_state_broadcast_test
+        ihub-audio-settings=ihub_scenario_ihub_audio_settings_test
+        ihub-midi-api=ihub_scenario_ihub_midi_api_test
+        ihub-discovery=ihub_scenario_ihub_discovery_test
+        ihub-patch-fx-api=ihub_scenario_ihub_patch_fx_api_test
+        ihub-instrument-page-api=ihub_scenario_ihub_instrument_page_api_test
+        ihub-patch-state-capture-api=ihub_scenario_ihub_patch_state_capture_api_test
+    SHARED
+        api/JsonSupport.cpp
+        api/TestSupport.cpp
+        api/AudioMeasurements.cpp
+        api/FxChainJson.cpp
+        api/RequestDispatch.cpp
+        api/SessionRig.cpp
+)
+target_link_libraries(ihub-runner-api PRIVATE ihub-httplib Threads::Threads)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+ihub_add_test_runner(ihub-runner-session
+    ENGINE ihub-test-engine
+    USAGE ihub-test-engine-usage
+    TARGETS
+        ihub-session-warm-test
+        ihub-shutdown-test
+        ihub-launchpad-driver-test
+        ihub-mapping-test
+        ihub-session-midi-test
+        ihub-session-plugin-state-test
+        ihub-per-patch-state-test
+    SCENARIOS
+        ihub-session-warm=ihub_scenario_ihub_session_warm_test
+        ihub-shutdown=ihub_scenario_ihub_shutdown_test
+        ihub-launchpad-driver=ihub_scenario_ihub_launchpad_driver_test
+        ihub-mapping=ihub_scenario_ihub_mapping_test
+        ihub-session-midi=ihub_scenario_ihub_session_midi_test
+        ihub-session-plugin-state=ihub_scenario_ihub_session_plugin_state_test
+        ihub-per-patch-state=ihub_scenario_ihub_per_patch_state_test
+    SHARED
+        controller/TestSupport.cpp
+        e2e/Check.cpp
+)
+add_dependencies(ihub-runner-session
+    TestPlugin_VST3
+    NoteTonePlugin_VST3
+    ihub-sandbox
+)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+ihub_add_test_runner(ihub-runner-gui
+    ENGINE ihub-test-engine-gui
+    USAGE ihub-test-engine-gui-usage
+    TARGETS
+        ihub-plugin-fx-test
+        ihub-plugin-window-test
+        ihub-plugin-editor-api-test
+        ihub-session-editor-follow-test
+        ihub-plugin-scanner-test
+        ihub-plugin-cache-test
+        ihub-plugin-inventory-api-test
+    SCENARIOS
+        ihub-plugin-fx=ihub_scenario_ihub_plugin_fx_test=args
+        ihub-plugin-window=ihub_scenario_ihub_plugin_window_test=args
+        ihub-plugin-editor-api=ihub_scenario_ihub_plugin_editor_api_test
+        ihub-session-editor-follow=ihub_scenario_ihub_session_editor_follow_test
+        ihub-plugin-scanner=ihub_scenario_ihub_plugin_scanner_test=args
+        ihub-plugin-cache=ihub_scenario_ihub_plugin_cache_test=args
+        ihub-plugin-inventory-api=ihub_scenario_ihub_plugin_inventory_api_test
+)
+add_dependencies(ihub-runner-gui
+    TestPlugin_VST3
+    ihub-crashing-vst3
+    ihub-scanner
+)
+endif()
+
+if(IHUB_ENABLE_RT_GUARD)
+ihub_add_test_runner(ihub-runner-rt
+    ENGINE ihub-test-engine-rt
+    USAGE ihub-test-engine-rt-usage
+    TARGETS
+        ihub-rt-guard-test
+        ihub-session-smoke-test
+        ihub-session-api-test
+    SCENARIOS
+        ihub-rt-guard=ihub_scenario_ihub_rt_guard_test
+        ihub-session-smoke=ihub_scenario_ihub_session_smoke_test
+        ihub-session-api=ihub_scenario_ihub_session_api_test
+    RT
+)
 endif()
 
 get_property(IHUB_ALL_TESTS DIRECTORY PROPERTY TESTS)

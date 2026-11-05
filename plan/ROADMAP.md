@@ -1219,6 +1219,7 @@ FX toggles, 7 track selector.
 - files: `tests/CMakeLists.txt`, `engine/CMakeLists.txt`, `CMakeLists.txt`, new `engine/ihub-engine.cmake` or equivalent
 - accept: touching `engine/src/Session.h` rebuilds the engine library once and then relinks only test targets that link it; no test target lists engine or JUCE `.cpp` files directly; `IHUB_BUILD_TESTS=ON` still builds every existing test; the same tests pass; record the before/after wall time for a one-header change.
 - note: The test suite is opt-in after the T207 build guard: configure with `-DIHUB_BUILD_TESTS=ON` only when tests are actually needed.
+- done: `engine/ihub-engine.cmake` is the single engine source list; `tests/TestEngine.cmake` builds `ihub-test-engine`, `ihub-test-engine-rt` and `ihub-test-engine-gui`; no test target lists engine or JUCE sources. The old build compiled 3,710 engine and 433 JUCE translation units across the test targets; the shared libraries compile 831 engine and 43 JUCE objects once per configuration.
 
 ## T312 · Collapse the test suite into a few runners
 - depends: T311
@@ -1227,6 +1228,7 @@ FX toggles, 7 track selector.
 - files: `tests/CMakeLists.txt`, `tests/**/*Test.cpp`, new runner mains under `tests/`
 - accept: `ctest -N` lists the same scenario names; a cold `IHUB_BUILD_TESTS=ON` build produces a handful of executables instead of dozens; a failure still names the failing scenario; crash-isolation tests remain separate; `scripts/test.sh` passes and the build time is measured.
 - note: A header-only framework may be vendored if it simplifies registration, but do not add a package-manager dependency.
+- done: 77 CTest names still exist; 52 scenarios now dispatch through nine runners (`ihub-runner-audio`, `-dsp`, `-sampler`, `-app`, `-project`, `-api`, `-session`, `-gui`, `-rt`), driven by `tests/Runner.cmake`. Crash-isolated, allocator-override and self-re-executing e2e tests stay separate executables. The full suite runs in about two minutes.
 
 ## T313 · Shared plugin host per instrument page
 - depends: BUG-024, T307

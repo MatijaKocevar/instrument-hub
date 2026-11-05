@@ -146,6 +146,15 @@ reported by the human or reproduced on this machine.
 - evidence: Playwright before the fix read `data-row="0"` first with `data-slot` 0–7; after the fix the first rendered family row is `data-row="7"` with `data-slot` 56–63 and the last is `data-row="0"` with 0–7 (screenshots `tests/artifacts/ui-grid-before-T196.png`, `ui-grid-after-T196.png`); clicking the top row's slot 60 opened `/instrument?slot=60` and `GET /state` reported `armedSlot: 60`, clicking the bottom row's slot 3 reported `armedSlot: 3`; `ihub-launchpad-protocol-test` -> `ok : note 11 maps back to pad 0`, `ihub-launchpad-driver-test` captures the note-11 LED as pad 0, `ihub-e2e` -> `pad 0 arms slot 0` and `PASS`; `cd ui && pnpm test:snapshot` -> `ui-snapshot: all checks passed` including `PASS the top rendered row holds slots 57–64`; `scripts/test.sh` -> 100% tests passed, 0 failed out of 68
 - fix: T196 adds `gridRows()` in `ui/src/features/grid/model.ts`, which reverses the family order for rendering only; `GridTable` renders top-down while slot indexes, column order and all slot-keyed callbacks stay unchanged, and `data-row` keeps the hardware row (0 = bottom), so the rendered rows are numbered 08 at the top to 01 at the bottom. Snapshot assertions moved to `ui/src/testing/scenarios/gridSnapshot.tsx` with new top-down row checks against the 64-slot fixture.
 
+### BUG-027 · Project lifecycle reports zero warm track slots after T313
+- status: open
+- area: project | session
+- steps: run `./build-tests/tests/ihub-project-lifecycle-api-test`
+- expected: after `waitForWarmIdle`, `GET /state` reports eight warm track slots
+- actual: `GET /state reports eight warm track slots (got 0)`, while the session reports all eight slots in `warmSlots` and reaches warm idle
+- evidence: 2026-11-05 `ihub-project-lifecycle-api-test` -> `FAIL: 1 failed check(s)`; the pre-T313 `build/tests/ihub-project-lifecycle-api-test` passes
+- fix: pending; T313 enables the shared page host for the tracks layout and the state snapshot does not mark page-warmed slots as `warm`
+
 ### BUG-026 · Every track pad reads red in the track-grid e2e
 - status: reproduced
 - area: launchpad, ui

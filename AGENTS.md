@@ -20,18 +20,39 @@ changes to be built and the running app restarted so they can see them.
   (engine, Vite, or both) without asking. Reuse the command line of the
   running instance, launch detached (`setsid`; add `pw-jack` when the
   current instance needs JACK), and leave it running for the developer.
-- Never run a build without an explicit target. `cmake --build <dir>` builds
-  the whole tree; this repo's test tree is dozens of heavy executables and
-  must never be built unless the human explicitly asks for the full suite.
+- Never run a build without an explicit target. `cmake --build <dir>`,
+  bare `ninja`, and `scripts/build.sh` build the whole tree. Always pass
+  `--target` (or use `scripts/build-tests.sh` with a runner name).
 - The C++ test suite is opt-in (`-DIHUB_BUILD_TESTS=ON`) and is not part of
   the default build. Do not enable it or build all tests for a normal change.
 - Do not run the full `scripts/test.sh` after every change. Use targeted
   builds/tests while working; run the full suite only when the developer
   asks for it explicitly.
+- Never add engine or JUCE `.cpp` files to a test target. Test targets link
+  `ihub-test-engine`, `ihub-test-engine-rt` or `ihub-test-engine-gui`
+  from `tests/TestEngine.cmake`; see `tests/Runner.cmake` for scenario
+  runners.
 - Single-run diagnostics (`--selftest`, `--snapshot`, a test harness on its
   own port) are fine when they shut down before you report back.
 - Do not build or test after every edit just for the sake of it. Build when
   the change is ready to run, then restart the app once.
+
+## Build and test budget
+
+Hard limits, not aspirations:
+
+- A cold `IHUB_BUILD_TESTS=ON` build must stay in minutes, not hours.
+  A full `scripts/test.sh` run must stay under three minutes.
+- If a change makes either slower, stop and fix the build graph before
+  continuing. Do not wait hours for a build or a test run.
+- Build one target at a time: `scripts/build-tests.sh ihub-runner-api`,
+  `cmake --build build --target instrument-hub`, or a specific
+  `--target`. Never build the default `all` target.
+- The engine and JUCE compile once per test configuration, into the three
+  libraries in `tests/TestEngine.cmake`. A new test scenario is source-only;
+  it must not add a new engine copy or a new executable by default.
+- Tests run through `scripts/test.sh`. Scenario names stay stable even when
+  several scenarios share a runner executable.
 
 ---
 
@@ -174,10 +195,11 @@ test suite only when the developer asks. Targeted tests are appropriate while
 working; record their output when you run them. The developer verifies the
 live app interactively.
 
-When you do run it, use `scripts/test.sh` (or `ctest --timeout 120`). A
-deadlocked test must fail within two minutes; never leave a test or test
-wrapper unbounded, and never treat "the command is still running" as
-progress.
+When you do run it, build only the runner or isolated test you changed
+(`scripts/build-tests.sh ihub-runner-api`), then use `scripts/test.sh`
+(or `ctest --timeout 120`). A deadlocked test must fail within two minutes;
+never leave a test or test wrapper unbounded, and never treat "the command
+is still running" as progress.
 
 ---
 
