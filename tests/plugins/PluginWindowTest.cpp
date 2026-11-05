@@ -191,6 +191,7 @@ int main (int argc, char** argv)
                    "the native editor host is showing");
         }
 
+        window.setHideOnClose (true);
         window.close();
 
         check (! window.isOpen(), "close() closed the window");
