@@ -1,5 +1,10 @@
 # Instrument Hub — Handover
 
+> Historical handover from 2026-10-31. The current user-facing state lives in
+> [README.md](README.md); the current architecture is
+> [docs/architecture.md](docs/architecture.md). In particular, the 0.1.0
+> release is Linux-only and the Windows/macOS packaging paths are deferred.
+
 **What this is:** a JUCE 8 / C++20 audio engine with an embedded React UI,
 controlled by a Novation **Launchpad Mini MK3** and a local HTTP + WebSocket
 API.

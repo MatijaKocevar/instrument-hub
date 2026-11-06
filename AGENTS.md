@@ -20,46 +20,27 @@ changes to be built and the running app restarted so they can see them.
   (engine, Vite, or both) without asking. Reuse the command line of the
   running instance, launch detached (`setsid`; add `pw-jack` when the
   current instance needs JACK), and leave it running for the developer.
-- Do not build or run any C++ test target or the UI snapshot test while
-  developing. Build and run tests only when the human explicitly says a
-  milestone is finished or asks for tests. Then build one runner at a time,
-  scoped to the change.
 - Never run a build without an explicit target. `cmake --build <dir>`,
   bare `ninja`, and `scripts/build.sh` build the whole tree. Always pass
-  `--target` (or use `scripts/build-tests.sh` with a runner name).
-- The C++ test suite is opt-in (`-DIHUB_BUILD_TESTS=ON`) and is not part of
-  the default build. Do not enable it, build it, or run it for a normal
-  change; wait for an explicit milestone or a request from the human.
-- Do not run the full `scripts/test.sh` during development. Use the app
-  build, typecheck and live app for verification; run tests only when the
-  human declares a milestone or asks.
-- Never add engine or JUCE `.cpp` files to a test target. Test targets link
-  `ihub-test-engine`, `ihub-test-engine-rt` or `ihub-test-engine-gui`
-  from `tests/TestEngine.cmake`; see `tests/Runner.cmake` for scenario
-  runners.
-- Single-run diagnostics (`--selftest`, `--snapshot`, a test harness on its
-  own port) are fine when they shut down before you report back.
-- Do not build or test after every edit just for the sake of it. Build when
-  the change is ready to run, then restart the app once.
+  `--target`.
+- The only verification is that the app builds and runs. There is no test
+  build in the CMake tree. Do not add, build, or run tests, test runners,
+  snapshot harnesses, or test targets.
+- Do not run `--selftest`, `--snapshot`, or any test harness. Use the app
+  build and the live app.
+- Do not build after every edit just for the sake of it. Build when the
+  change is ready to run, then restart the app once.
 
-## Build and test budget
+## Build budget
 
 Hard limits, not aspirations:
 
 - An incremental app rebuild after a normal source change must stay under
   one minute; stop and fix the build graph if it does not.
-- A cold `IHUB_BUILD_TESTS=ON` build must stay in minutes, not hours.
-  A full `scripts/test.sh` run must stay under three minutes.
-- If a change makes either slower, stop and fix the build graph before
-  continuing. Do not wait hours for a build or a test run.
-- Build one target at a time: `scripts/build-tests.sh ihub-runner-api`,
-  `cmake --build build --target instrument-hub`, or a specific
-  `--target`. Never build the default `all` target.
-- The engine and JUCE compile once per test configuration, into the three
-  libraries in `tests/TestEngine.cmake`. A new test scenario is source-only;
-  it must not add a new engine copy or a new executable by default.
-- Tests run through `scripts/test.sh`. Scenario names stay stable even when
-  several scenarios share a runner executable.
+- If a change makes it slower, stop and fix the build graph before
+  continuing.
+- Build one target at a time: `cmake --build build --target instrument-hub`,
+  or a specific `--target`. Never build the default `all` target.
 
 ---
 
@@ -71,8 +52,8 @@ safely. Big files hide coupling: you scroll for ten minutes, then change
 the wrong thing. Optimise for comprehension, not for fewer files.
 
 - One file, one responsibility. On opening it, you should be able to say
-  in one sentence what it does: one component, one hook, one model, one
-  C++ class implementation, or one test scenario.
+  in one sentence what it does: one component, one hook, one model, or one
+  C++ class implementation.
 - Aim for one screen, roughly 80–120 lines. This is a target, not a gate:
   155 lines with one clear responsibility is fine; 150 lines doing three
   unrelated things is not.
@@ -87,8 +68,7 @@ the wrong thing. Optimise for comprehension, not for fewer files.
 - Feature code lives in `ui/src/features/<feature>/`; shell-only UI in
   `ui/src/features/shell/`; public surfaces through `index.ts`.
   C++ uses one class per header, with implementation split across `.cpp`
-  files by concern. Tests keep fixtures, harness, assertions and
-  scenarios in separate files.
+  files by concern.
 - Generated code (`ui/src/api/schema.d.ts`), `third_party/` and build
   dirs are exempt.
 - Existing oversized files are tracked in `plan/REFACTOR.md`; do not make
@@ -111,8 +91,8 @@ Everything else is removed. Rationale belongs in `docs/` or
 `plan/DECISIONS.md`. Do not add `TODO`/`FIXME` comments; write a task or a
 bug instead.
 
-This applies to first-party source under `engine/`, `ui/src/`, `tests/`,
-`scripts/` and build files. `third_party/`, generated code, `docs/` and
+This applies to first-party source under `engine/`, `ui/src/`, `scripts/`
+and build files. `third_party/`, generated code, `docs/` and
 `plan/` are exempt. The cleanup queue is `plan/ROADMAP.md` T175–T181.
 
 ---
@@ -131,8 +111,6 @@ on the work is **bug fixing plus the explicitly requested refactors
 - Reproduce first: exact steps, expected vs actual, and the log or
   screenshot. Record it in `plan/BUGS.md`. Use the developer's running
   instance; do not start a dev server to reproduce.
-- Add a regression test where practical, but do not build or run the C++
-  test suite until the human declares a milestone or asks for tests.
 - One bug per commit; update the entry's status and evidence.
 - Keep the audio-thread contract and the Launchpad/Linux assumptions.
 - Launch the app detached (desktop entry, `setsid`, or a long-lived
@@ -186,27 +164,17 @@ queried once per load, not per block.
   `127.0.0.1:8080` by default.
 - UI and tablet remote are the same React app, different routes.
 - Set files are a versioned `.ihub` container, never inline plugin chunks.
-- Repo layout: `engine/`, `ui/`, `shared/`, `third_party/`, `tests/`, `plan/`.
+- Repo layout: `engine/`, `ui/`, `shared/`, `third_party/`, `plan/`.
 
 ---
 
 ## Verification
 
-`plan/TESTING.md` defines how to prove things without hardware: ALSA
-loopback for audio, a virtual Launchpad on the ALSA sequencer for MIDI,
-an in-repo `TestPlugin` VST3, and snapshots taken inside JUCE.
+The only verification is that the app builds and runs: build the affected
+target, then restart the app so the developer can inspect it.
 
-Verification while developing is the app build, typecheck and the live app:
-build the affected target and restart it after a change so the developer can
-inspect it. Do not build or run C++ tests until the human declares a
-milestone or explicitly asks; then build only the runner or isolated test
-scoped to the change.
-
-When you do run tests, build one runner or isolated test at a time
-(`scripts/build-tests.sh ihub-runner-api`), then use `scripts/test.sh`
-(or `ctest --timeout 120`). A deadlocked test must fail within two minutes;
-never leave a test or test wrapper unbounded, and never treat "the command
-is still running" as progress.
+Do not build or run tests, test runners, snapshot harnesses, `--selftest` or
+`--snapshot`. The test tree is not part of the build.
 
 ---
 

@@ -57,7 +57,8 @@ if [[ "$BUILD_PRESET" == "debug" ]]; then
     JOBS="${IH_BUILD_JOBS:-$(( $(nproc) / 2 ))}"
     cmake --build --preset "$BUILD_PRESET" --parallel "$JOBS" --target instrument-hub
 else
-    cmake --build --preset "$BUILD_PRESET" --parallel
+    cmake --build --preset "$BUILD_PRESET" --parallel \
+        --target instrument-hub ihub-scanner ihub-sandbox
 fi
 
 echo "built: $BUILD_DIR/engine/instrument-hub"

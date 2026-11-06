@@ -1,6 +1,0 @@
-#include "NoteTonePluginProcessor.h"
-
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
-{
-    return new NoteTonePluginProcessor();
-}

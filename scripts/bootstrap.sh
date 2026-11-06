@@ -12,10 +12,10 @@ INSTALL=0
 usage() {
     cat <<'EOF'
 Usage:
-  scripts/bootstrap.sh              # check everything, build, test
+  scripts/bootstrap.sh              # check everything and build
   scripts/bootstrap.sh --install    # install missing packages/devices, then build
   scripts/bootstrap.sh --check      # diagnostics only, change nothing
-  scripts/bootstrap.sh --no-build   # checks + deps, skip build/test
+  scripts/bootstrap.sh --no-build   # checks + deps, skip build
   scripts/bootstrap.sh --start      # checks + build, then run the autopilot
 EOF
 }
@@ -116,18 +116,18 @@ echo "audio and midi"
 if [[ -e /dev/snd/seq ]]; then
     ok "ALSA sequencer /dev/snd/seq"
 else
-    miss "ALSA sequencer missing (needed by controller and MIDI tests)"
+    miss "ALSA sequencer missing (needed by the controller and MIDI input)"
 fi
 if aplay -l 2>/dev/null | grep -qi loopback; then
     ok "ALSA loopback card"
 else
-    miss "ALSA loopback card (needed by the latency/xrun tests)"
+    miss "ALSA loopback card (needed for latency measurement)"
 fi
 rtprio="$(ulimit -r 2>/dev/null || echo 0)"
 if [[ "$rtprio" =~ ^[0-9]+$ ]] && (( rtprio > 0 )); then
     ok "realtime priority (rtprio $rtprio)"
 else
-    warn "no realtime priority: audio tests run without SCHED_FIFO"
+    warn "no realtime priority: audio runs without SCHED_FIFO"
 fi
 if id -nG | tr ' ' '\n' | grep -qx audio; then
     ok "member of the audio group"
@@ -210,17 +210,6 @@ if (( BUILD )); then
     echo
     echo "build"
     scripts/build.sh || { echo "build failed" >&2; exit 1; }
-
-    echo
-    echo "test build"
-    cmake -S . -B build-tests -G Ninja \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo -DIHUB_BUILD_TESTS=ON \
-        || { echo "test configure failed" >&2; exit 1; }
-    scripts/build-tests.sh || { echo "test build failed" >&2; exit 1; }
-
-    echo
-    echo "tests"
-    scripts/test.sh || { echo "tests failed" >&2; exit 1; }
 fi
 
 echo

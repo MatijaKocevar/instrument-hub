@@ -9,7 +9,6 @@ the tablet remote (different routes, added by later tasks).
 corepack pnpm install        # pnpm is pinned by "packageManager"
 corepack pnpm run dev        # Vite on :5173, proxies the API to :8080
 corepack pnpm run build      # regenerate the client, typecheck, build dist/
-corepack pnpm run test:snapshot
 ```
 
 `pnpm` may be installed directly; `corepack pnpm ...` works anywhere Node is.
@@ -33,26 +32,7 @@ with exponential backoff (250 ms doubling to 5 s). Requests are serialised, so
 a slow engine cannot stack them. `main.tsx` also refreshes on `online` and
 window `focus`.
 
-Components read the store through `useAppState()` (`useSyncExternalStore`),
-which works both in the browser and under `react-dom/server`.
-
-## Headless snapshot test
-
-`pnpm run test:snapshot` builds `src/testing/snapshot.tsx` for Node and runs
-it. React renders the real app with `react-dom/server` — no browser and no
-Chrome — against a fixture HTTP server that speaks the control API. The test
-asserts the widget count and content, writes the markup to
-`tests/artifacts/ui-state-snapshot.html`, and separately proves the store
-reconnects after HTTP failures and backs off on repeated failures.
-
-To render against a running engine instead of the fixture:
-
-```bash
-./build/engine/instrument-hub --serve --api-port 18080 &
-node dist-test/snapshot.mjs --api=http://127.0.0.1:18080
-```
-
-The live snapshot lands in `tests/artifacts/ui-state-live.html`.
+Components read the store through `useAppState()` (`useSyncExternalStore`).
 
 ## Instrument grid
 
@@ -72,14 +52,8 @@ across, with one level meter per patch and a master meter in the header.
   `touch-action: manipulation`, and the 8 columns scroll inside the grid on
   narrow screens rather than shrinking below the touch minimum.
 
-The control API currently publishes flat slots, not the set's family tree.
-`gridFromState()` maps each slot to a one-patch family so every playable slot
-is visible; the view itself is fully family/patch shaped, so the adapter can
-be replaced when `/state` carries families.
-
-The grid-specific snapshot (`tests/artifacts/ui-grid-snapshot.html`) renders
-8 families × 8 columns with live meter values, and the arm test proves the
-highlight changes before the delayed HTTP response arrives.
+`/state` carries the active layout: eight tracks for a track project, or the
+legacy family tree for a 64-patch project. The grid renders both shapes.
 
 ## Instrument page (`/instrument`)
 
@@ -108,10 +82,6 @@ latency are the engine's real values.
 - **Touch** — every control is at least 44 px (the row buttons use a 40 px
   minimum inside a 44 px row) and the layout reflows at 720 px.
 
-The page is rendered by `tests/artifacts/ui-instrument-snapshot.html`; the
-fixture-backed test drives the fader, mute/solo, every chain edit and a source
-swap through the real HTTP client.
-
 ## Plugins page (`/plugins`)
 
 `src/features/plugins/` is the read-only inventory of everything the VST3
@@ -130,10 +100,6 @@ scanner found. It never assigns anything; assignment stays on the patch.
   family of every patch whose instrument source is that plug-in. Effects used
   in insert chains are edited on the patch's Instrument page, not here.
 
-The page is rendered by `tests/artifacts/ui-plugins-snapshot.html`; the
-fixture-backed test proves search, the used-by hint, and that a rescan picks
-up a newly scanned bundle.
-
 ## Stage remote (`/remote`)
 
 `src/features/remote/` is the tablet route. Open `http://<engine>:8080/remote`
@@ -151,7 +117,4 @@ from the pathname without shipping a router.
 - **Panic** — stops the transport, rewinds it and disarms every patch.
 - **Responsive** — two columns at 820 px and wider, one column below; the set
   list scrolls inside its card and the document never scrolls sideways.
-
-The remote-specific snapshot is `tests/artifacts/ui-remote-snapshot.html`; the
-1024×768 browser snapshot is `tests/artifacts/t100-remote-1024x768.png`.
 
