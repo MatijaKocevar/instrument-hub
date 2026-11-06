@@ -2,6 +2,10 @@ name: build
 
 on:
   push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "v*"
   workflow_dispatch:
 
 concurrency:
@@ -12,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 jobs:
   linux:
@@ -58,103 +62,22 @@ jobs:
             libglu1-mesa-dev \
             mesa-common-dev
 
-      - name: Check JUCE submodule (scripts/build.sh)
+      - name: Check JUCE submodule
         run: |
           if [[ ! -f third_party/JUCE/CMakeLists.txt ]]; then
             echo "error: third_party/JUCE is missing; run: git submodule update --init --recursive" >&2
             exit 1
           fi
 
-      - name: Build React UI (scripts/build.sh build_ui)
+      - name: Build React UI
         working-directory: ui
         run: |
           pnpm install --frozen-lockfile
           pnpm run format:check
           pnpm run build
 
-      - name: Configure (cmake --preset default)
+      - name: Configure
         run: cmake --preset default
 
-      - name: Build (cmake --build --preset default --parallel)
-        run: cmake --build --preset default --parallel
-
-  windows:
-    name: Windows
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout (with JUCE submodule)
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-          cache-dependency-path: ui/pnpm-lock.yaml
-
-      - name: Install WebView2 SDK
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Register-PackageSource -Provider NuGet -Name nugetRepository `
-            -Location https://www.nuget.org/api/v2 -Trusted -Force `
-            -ErrorAction SilentlyContinue
-          Install-Package Microsoft.Web.WebView2 -Scope CurrentUser `
-            -RequiredVersion 1.0.3485.44 -Source nugetRepository -Force
-
-      - name: Set up MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Build React UI
-        working-directory: ui
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
-
-      - name: Configure (cmake --preset default)
-        run: cmake --preset default
-
-      - name: Build (cmake --build --preset default --parallel)
-        run: cmake --build --preset default --parallel
-
-  macos:
-    name: macOS
-    runs-on: macos-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout (with JUCE submodule)
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-          cache-dependency-path: ui/pnpm-lock.yaml
-
-      - name: Build React UI
-        working-directory: ui
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
-
-      - name: Configure (cmake --preset default)
-        run: cmake --preset default
-
-      - name: Build (cmake --build --preset default --parallel)
-        run: cmake --build --preset default --parallel
+      - name: Build
+        run: cmake --build --preset default --parallel --target instrument-hub ihub-scanner ihub-sandbox

@@ -42,7 +42,8 @@ __pycache__/
 # Playwright MCP page dumps
 .playwright-mcp/
 
-# Test and runtime artifacts
+# Packaging and runtime artifacts
+/dist/
 /tests/artifacts/
 *.ihub.tmp
 *.wav.tmp

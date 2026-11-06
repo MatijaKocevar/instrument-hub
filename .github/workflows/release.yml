@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 jobs:
   linux-appimage:
@@ -26,6 +26,8 @@ jobs:
     env:
       APPIMAGE_EXTRACT_AND_RUN: "1"
       APPIMAGETOOL_URL: https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout (with JUCE submodule)
         uses: actions/checkout@v4
@@ -61,14 +63,20 @@ jobs:
             libxrender-dev \
             libwebkit2gtk-4.1-dev \
             libglu1-mesa-dev \
-            mesa-common-dev \
-            xvfb
+            mesa-common-dev
 
       - name: Resolve version
         id: version
         run: |
+          set -euo pipefail
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             version="${GITHUB_REF_NAME#v}"
+            project_version="$(sed -n 's/^project(InstrumentHub VERSION \([^ ]*\).*/\1/p' CMakeLists.txt)"
+            ui_version="$(node -p "require('./ui/package.json').version")"
+            if [[ "$version" != "$project_version" || "$version" != "$ui_version" ]]; then
+              echo "error: tag ${GITHUB_REF_NAME} does not match CMake ${project_version} and UI ${ui_version}" >&2
+              exit 1
+            fi
           else
             version="$(sed -n 's/^project(InstrumentHub VERSION \([^ ]*\).*/\1/p' CMakeLists.txt)"
           fi
@@ -91,114 +99,10 @@ jobs:
       - name: Build (Release)
         run: cmake --build --preset release --parallel --target instrument-hub ihub-scanner ihub-sandbox
 
-      - name: Stage AppDir
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          APPDIR="$RUNNER_TEMP/InstrumentHub.AppDir"
-          rm -rf "$APPDIR"
-          mkdir -p "$APPDIR/usr/bin"
-
-          install -m755 build-release/engine/instrument-hub "$APPDIR/usr/bin/instrument-hub"
-          install -m755 build-release/engine/ihub-scanner     "$APPDIR/usr/bin/ihub-scanner"
-          install -m755 build-release/engine/ihub-sandbox     "$APPDIR/usr/bin/ihub-sandbox"
-
-          mkdir -p "$APPDIR/usr/lib"
-          for lib in libstdc++.so.6 libgcc_s.so.1; do
-            libpath="$(ldd build-release/engine/instrument-hub | awk -v name="$lib" '$1 == name { print $3 }')"
-            if [[ -n "$libpath" && -f "$libpath" ]]; then
-              cp -L "$libpath" "$APPDIR/usr/lib/"
-            fi
-          done
-
-          cat > "$APPDIR/AppRun" <<'APPRUN'
-          #!/bin/sh
-          set -eu
-          HERE="$(dirname "$(readlink -f "$0")")"
-          APPDIR="${APPDIR:-$HERE}"
-          if [ -d "$APPDIR/usr/lib" ]; then
-              LD_LIBRARY_PATH="$APPDIR/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-              export LD_LIBRARY_PATH
-          fi
-          exec "$APPDIR/usr/bin/instrument-hub" "$@"
-          APPRUN
-          chmod 755 "$APPDIR/AppRun"
-
-          cat > "$APPDIR/instrument-hub.desktop" <<DESKTOP
-          [Desktop Entry]
-          Type=Application
-          Name=Instrument Hub
-          GenericName=Audio Workbench
-          Comment=Modular audio engine for the Novation Launchpad Mini MK3
-          Exec=instrument-hub %U
-          Icon=instrument-hub
-          Terminal=false
-          Categories=AudioVideo;Audio;Music;
-          StartupWMClass=Instrument Hub
-          X-AppImage-Version=$VERSION
-          DESKTOP
-
-          cat > "$APPDIR/instrument-hub.svg" <<'ICON'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-            <rect width="256" height="256" rx="52" fill="#12151b"/>
-            <g fill="#57d2c8">
-              <rect x="44"  y="106" width="16" height="44"  rx="8"/>
-              <rect x="72"  y="78"  width="16" height="100" rx="8"/>
-              <rect x="100" y="52"  width="16" height="152" rx="8"/>
-              <rect x="128" y="88"  width="16" height="80"  rx="8"/>
-              <rect x="156" y="64"  width="16" height="128" rx="8"/>
-              <rect x="184" y="100" width="16" height="56"  rx="8"/>
-            </g>
-          </svg>
-          ICON
-
-          mkdir -p "$APPDIR/usr/share/applications" \
-                   "$APPDIR/usr/share/icons/hicolor/scalable/apps"
-          cp "$APPDIR/instrument-hub.desktop" "$APPDIR/usr/share/applications/"
-          cp "$APPDIR/instrument-hub.svg" \
-             "$APPDIR/usr/share/icons/hicolor/scalable/apps/instrument-hub.svg"
-
-      - name: Fetch appimagetool
-        run: |
-          set -euo pipefail
-          curl --fail --location --retry 3 --output "$RUNNER_TEMP/appimagetool" "$APPIMAGETOOL_URL"
-          chmod 755 "$RUNNER_TEMP/appimagetool"
-          "$RUNNER_TEMP/appimagetool" --appimage-extract-and-run --version
-
       - name: Build AppImage
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          APPDIR="$RUNNER_TEMP/InstrumentHub.AppDir"
-          mkdir -p dist
-          OUT="dist/Instrument-Hub-${VERSION}-x86_64.AppImage"
-          ARCH=x86_64 "$RUNNER_TEMP/appimagetool" \
-            --appimage-extract-and-run \
-            --no-appstream \
-            "$APPDIR" "$OUT"
-          chmod 755 "$OUT"
-          ls -l "$OUT"
-
-      - name: Verify AppImage runs
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          APPIMAGE="dist/Instrument-Hub-${VERSION}-x86_64.AppImage"
-          file "$APPIMAGE"
-          "$APPIMAGE" --appimage-version
-
-          "$APPIMAGE" --list-devices | tee "$RUNNER_TEMP/devices.txt"
-          grep -q "audio device types:" "$RUNNER_TEMP/devices.txt"
-
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" \
-            env WEBKIT_DISABLE_COMPOSITING_MODE=1 \
-                WEBKIT_DISABLE_DMABUF_RENDERER=1 \
-                LIBGL_ALWAYS_SOFTWARE=1 \
-            "$APPIMAGE" --selftest
+        run: scripts/build-appimage.sh "$VERSION" dist
 
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
@@ -207,290 +111,50 @@ jobs:
           path: dist/*.AppImage
           if-no-files-found: error
 
-  windows-msi:
-    name: Windows MSI (x64)
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
+  publish:
+    name: Publish GitHub Release
+    needs: linux-appimage
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Checkout (with JUCE submodule)
-        uses: actions/checkout@v4
+      - name: Download AppImage
+        uses: actions/download-artifact@v4
         with:
-          submodules: recursive
+          name: instrument-hub-linux-appimage
+          path: dist
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-          cache-dependency-path: ui/pnpm-lock.yaml
-
-      - name: Install WebView2 SDK
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Register-PackageSource -Provider NuGet -Name nugetRepository `
-            -Location https://www.nuget.org/api/v2 -Trusted -Force `
-            -ErrorAction SilentlyContinue
-          Install-Package Microsoft.Web.WebView2 -Scope CurrentUser `
-            -RequiredVersion 1.0.3485.44 -Source nugetRepository -Force
-
-      - name: Set up MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Resolve version
-        id: version
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            version="${GITHUB_REF_NAME#v}"
-          else
-            version="$(sed -n 's/^project(InstrumentHub VERSION \([^ ]*\).*/\1/p' CMakeLists.txt)"
-          fi
-          version="$(printf '%s' "$version" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
-          if [[ -z "$version" ]]; then
-            echo "error: could not determine a package version" >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Build React UI
-        working-directory: ui
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
-
-      - name: Configure (Release)
-        run: cmake --preset release
-
-      - name: Build (Release)
-        run: cmake --build --preset release --parallel --target instrument-hub ihub-scanner ihub-sandbox
-
-      - name: Generate WiX source
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+      - name: Generate checksums
         run: |
           set -euo pipefail
-          mkdir -p dist
+          cd dist
+          sha256sum -- *.AppImage > SHA256SUMS
+          cat SHA256SUMS
 
-          bin_dir="$PWD/build-release/engine"
-          wxs="dist/instrument-hub.wxs"
-          upgrade_code="{7E1B6F1A-2C7D-4C4A-9F3B-5A2E8D6C1B40}"
-
-          {
-            cat <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-            <Product Id="*"
-                     Name="Instrument Hub"
-                     Language="1033"
-                     Version="$VERSION"
-                     Manufacturer="Instrument Hub"
-                     UpgradeCode="$upgrade_code">
-              <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine"/>
-              <MajorUpgrade DowngradeErrorMessage="A newer version of Instrument Hub is already installed."/>
-              <MediaTemplate EmbedCab="yes"/>
-              <Directory Id="TARGETDIR" Name="SourceDir">
-                <Directory Id="ProgramFiles64Folder">
-                  <Directory Id="INSTALLFOLDER" Name="Instrument Hub"/>
-                </Directory>
-                <Directory Id="ProgramMenuFolder">
-                  <Directory Id="AppShortcutFolder" Name="Instrument Hub"/>
-                </Directory>
-              </Directory>
-              <DirectoryRef Id="AppShortcutFolder">
-                <Component Id="ApplicationShortcut" Guid="*">
-                  <Shortcut Id="StartMenuShortcut"
-                            Name="Instrument Hub"
-                            Description="Modular audio engine for the Novation Launchpad Mini MK3"
-                            Target="[INSTALLFOLDER]instrument-hub.exe"
-                            WorkingDirectory="INSTALLFOLDER"/>
-                  <RemoveFolder Id="RemoveShortcutFolder" On="uninstall"/>
-                  <RegistryValue Root="HKLM" Key="Software\Instrument Hub" Name="shortcut"
-                                 Type="integer" Value="1" KeyPath="yes"/>
-                </Component>
-              </DirectoryRef>
-              <ComponentGroup Id="ProductComponents">
-          EOF
-
-            index=0
-            for file in "$bin_dir"/*.exe "$bin_dir"/*.dll; do
-              [[ -e "$file" ]] || continue
-              source="$(cygpath -w "$file")"
-              cat <<EOF
-                <Component Id="Cmp$index" Directory="INSTALLFOLDER" Guid="*">
-                  <File Id="Fil$index" Source="$source" KeyPath="yes"/>
-                </Component>
-          EOF
-              index=$((index + 1))
-            done
-
-            if [[ $index -eq 0 ]]; then
-              echo "error: no .exe or .dll files in $bin_dir" >&2
-              exit 1
-            fi
-
-            cat <<'EOF'
-              </ComponentGroup>
-              <Feature Id="MainFeature" Title="Instrument Hub" Level="1">
-                <ComponentGroupRef Id="ProductComponents"/>
-                <ComponentRef Id="ApplicationShortcut"/>
-              </Feature>
-            </Product>
-          </Wix>
-          EOF
-          } > "$wxs"
-
-      - name: Build MSI
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          wix_bin="/c/Program Files (x86)/WiX Toolset v3.14/bin"
-          if [[ ! -x "$wix_bin/candle.exe" ]]; then
-            echo "error: WiX Toolset 3.14 not found at $wix_bin" >&2
-            exit 1
-          fi
-
-          "$wix_bin/candle.exe" -nologo -arch x64 \
-            -out "dist/instrument-hub.wixobj" "dist/instrument-hub.wxs"
-          "$wix_bin/light.exe" -nologo -sval \
-            -out "dist/Instrument-Hub-${VERSION}-x64.msi" "dist/instrument-hub.wixobj"
-
-          ls -l dist/*.msi
-
-      - name: Verify MSI
-        shell: pwsh
-        run: |
-          $msi = Get-ChildItem dist/*.msi | Select-Object -First 1
-          if (-not $msi) { throw "no MSI produced" }
-          $target = Join-Path $env:RUNNER_TEMP "msi-check"
-          if (Test-Path $target) { Remove-Item -Recurse -Force $target }
-          $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList @(
-            "/a", "`"$($msi.FullName)`"", "/qn", "TARGETDIR=`"$target`""
-          )
-          if ($process.ExitCode -ne 0) { throw "msiexec /a failed with exit code $($process.ExitCode)" }
-          $exe = Get-ChildItem -Path $target -Recurse -Filter instrument-hub.exe | Select-Object -First 1
-          if (-not $exe) { throw "instrument-hub.exe is missing from the MSI" }
-          $helper = Get-ChildItem -Path $target -Recurse -Filter ihub-scanner.exe | Select-Object -First 1
-          if (-not $helper) { throw "ihub-scanner.exe is missing from the MSI" }
-
-      - name: Upload MSI
-        uses: actions/upload-artifact@v4
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
         with:
-          name: instrument-hub-windows-msi
-          path: dist/*.msi
-          if-no-files-found: error
+          tag_name: ${{ github.ref_name }}
+          name: Instrument Hub ${{ github.ref_name }}
+          body: |
+            Instrument Hub 0.1.0 for Linux x86_64.
 
-  macos-dmg:
-    name: macOS DMG
-    runs-on: macos-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout (with JUCE submodule)
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+            Download the AppImage, make it executable, and run it:
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+                chmod +x Instrument-Hub-0.1.0-x86_64.AppImage
+                ./Instrument-Hub-0.1.0-x86_64.AppImage
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-          cache-dependency-path: ui/pnpm-lock.yaml
+            The AppImage is unsigned. It requires WebKitGTK 4.1 and a
+            glibc-based distribution with glibc 2.39 or newer (Ubuntu 24.04
+            or later is the verified baseline). Verify the download with
+            SHA256SUMS before running it.
 
-      - name: Resolve version
-        id: version
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            version="${GITHUB_REF_NAME#v}"
-          else
-            version="$(sed -n 's/^project(InstrumentHub VERSION \([^ ]*\).*/\1/p' CMakeLists.txt)"
-          fi
-          version="$(printf '%s' "$version" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
-          if [[ -z "$version" ]]; then
-            echo "error: could not determine a package version" >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "arch=$(uname -m)" >> "$GITHUB_OUTPUT"
-
-      - name: Build React UI
-        working-directory: ui
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
-
-      - name: Configure (Release)
-        run: cmake --preset release
-
-      - name: Build (Release)
-        run: cmake --build --preset release --parallel --target instrument-hub ihub-scanner ihub-sandbox
-
-      - name: Package DMG
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          ARCH: ${{ steps.version.outputs.arch }}
-        run: |
-          set -euo pipefail
-          app="$(find build-release -name '*.app' -type d -print | head -n 1)"
-          if [[ -z "$app" ]]; then
-            echo "error: no .app bundle was produced" >&2
-            exit 1
-          fi
-          echo "app bundle: $app"
-
-          install -m755 build-release/engine/ihub-scanner "$app/Contents/MacOS/ihub-scanner"
-          install -m755 build-release/engine/ihub-sandbox "$app/Contents/MacOS/ihub-sandbox"
-
-          stage="$RUNNER_TEMP/dmg"
-          rm -rf "$stage"
-          mkdir -p "$stage"
-          cp -R "$app" "$stage/"
-          ln -s /Applications "$stage/Applications"
-
-          mkdir -p dist
-          hdiutil create \
-            -volname "Instrument Hub" \
-            -srcfolder "$stage" \
-            -ov -format UDZO \
-            "dist/Instrument-Hub-${VERSION}-${ARCH}.dmg"
-          ls -l dist/*.dmg
-
-      - name: Verify DMG
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          ARCH: ${{ steps.version.outputs.arch }}
-        run: |
-          set -euo pipefail
-          dmg="dist/Instrument-Hub-${VERSION}-${ARCH}.dmg"
-          mount_point="$RUNNER_TEMP/dmg-mount"
-          rm -rf "$mount_point"
-          mkdir -p "$mount_point"
-          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mount_point"
-          trap 'hdiutil detach "$mount_point"' EXIT
-
-          app="$(find "$mount_point" -name '*.app' -type d -print | head -n 1)"
-          if [[ -z "$app" ]]; then
-            echo "error: the DMG does not contain an .app bundle" >&2
-            exit 1
-          fi
-          test -x "$app/Contents/MacOS/instrument-hub"
-          test -x "$app/Contents/MacOS/ihub-scanner"
-          test -x "$app/Contents/MacOS/ihub-sandbox"
-          echo "verified: $app"
-
-      - name: Upload DMG
-        uses: actions/upload-artifact@v4
-        with:
-          name: instrument-hub-macos-dmg
-          path: dist/*.dmg
-          if-no-files-found: error
+            Windows and macOS packages are not part of this release.
+          files: |
+            dist/*.AppImage
+            dist/SHA256SUMS
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          draft: false
+          prerelease: false

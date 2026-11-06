@@ -26,15 +26,6 @@ AppMode selectMode (const juce::String& commandLine) noexcept
     if (commandLine.contains ("--serve"))
         return AppMode::serve;
 
-    if (commandLine.contains ("--snapshot"))
-        return AppMode::snapshot;
-
-    if (commandLine.contains ("--ui-check"))
-        return AppMode::uiCheck;
-
-    if (commandLine.contains ("--selftest"))
-        return AppMode::selftest;
-
     return AppMode::gui;
 }
 

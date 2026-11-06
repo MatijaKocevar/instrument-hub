@@ -67,11 +67,23 @@ juce_add_binary_data(InstrumentHubAssets
 
 add_dependencies(InstrumentHubAssets instrument-hub-ui)
 
+get_filename_component(IHUB_SHARED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../shared" ABSOLUTE)
+set(IHUB_TRACKS_TEMPLATE "${IHUB_SHARED_DIR}/tracks-set.yaml")
+set(IHUB_BLANK_TEMPLATE "${IHUB_SHARED_DIR}/blank-set.yaml")
+
+juce_add_binary_data(InstrumentHubTemplates
+    SOURCES
+        "${IHUB_TRACKS_TEMPLATE}"
+        "${IHUB_BLANK_TEMPLATE}"
+    NAMESPACE BundledData
+    HEADER_NAME BundledTemplates.h
+)
+
 juce_add_gui_app(instrument-hub
     PRODUCT_NAME "Instrument Hub"
     COMPANY_NAME "Instrument Hub"
     BUNDLE_ID "com.instrumenthub.app"
-    VERSION 0.1.0
+    VERSION ${PROJECT_VERSION}
     NEEDS_WEB_BROWSER TRUE
     NEEDS_WEBVIEW2 TRUE
 )
@@ -102,6 +114,7 @@ target_compile_definitions(instrument-hub
 target_link_libraries(instrument-hub
     PRIVATE
         InstrumentHubAssets
+        InstrumentHubTemplates
         juce::juce_audio_devices
         juce::juce_audio_formats
         juce::juce_audio_processors
