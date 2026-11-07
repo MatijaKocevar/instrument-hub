@@ -376,12 +376,12 @@ reported by the human or reproduced on this machine.
 - fix: `PageHost::stopProcess` always runs `stopWinePrefixes` (`wineserver -k`) and then `killProcessesWithWinePrefix` before it waits for or kills the vstbridge group, so the persistent prefix server and its `winedevice.exe` children are killed before the engine exits. The group wait and the process matching timeout were shortened so shutdown does not depend on six seconds of graceful waiting, `PageHost::shutdown` uses a 2 s helper grace period, and `runControlCommand` stops waiting for an in-flight command when shutdown begins.
 
 ### BUG-032 · MIDI input changes flood the log with device-list assertions
-- status: reproduced
+- status: fixed
 - area: midi
 - steps:
   1. launch the app through Vite and wait for the UI
   2. `POST /midi/inputs {"id":"17-0","enabled":true}`, or refresh the MIDI device list
 - expected: the input opens without JUCE assertions
 - actual: `JUCE Assertion failure in juce_MidiDeviceListConnectionBroadcaster.cpp:94` and `:227` repeat continuously in the dev log
-- evidence: 2026-11-07 `/tmp/opencode/t314-dev10.log` had 576 occurrences of each assertion; VirMIDI 0-1 still opened and delivered notes.
-- fix: pending
+- evidence: 2026-11-07 `/tmp/opencode/t314-dev10.log` had 576 occurrences of each assertion; VirMIDI 0-1 still opened and delivered notes. Before the fix the live dev log `/tmp/opencode/t315-final-dev.log` had grown to 2,397 occurrences of each `:94`/`:227` line; an explicit disable/enable of 17-0 also produced `:82`, `:245` and `juce_UMPInput.cpp:56/111/165/174` assertions. After the fix (debug build 22:03): `POST /midi/inputs {"id":"17-0","enabled":false}` then `{"id":"17-0","enabled":true}` both returned 200, a 10 s wait added no log lines, and a `GET /midi` plus two note-on/off pairs through `amidi -p hw:0,1` reported `17-0` enabled/open with 4 events and `lastEvent: note off 64`; the window and the whole log since the app restart contain zero `MidiDeviceListConnectionBroadcaster` and zero `JUCE Assertion failure` lines (`/tmp/opencode/t318-accept.txt`).
+- fix: `/midi` requests call `MidiBridge::snapshot()` on an httplib worker thread, and that path (plus `POST /midi/inputs`) called `juce::MidiInput::getAvailableDevices()`, `juce::MidiInput::openDevice()` and the `juce::MidiInput` destructor off the JUCE message thread; the broadcaster, UMP input and their consumers are all message-thread affine. `JuceMidiInputBackend` now runs device enumeration, device opening and input teardown through `juce::MessageManager::callSync`, which executes directly when already on the message thread and marshals otherwise. `start()`/`stop()` remain the lock-free flag flips inside JUCE, the MIDI callback and audio path are unchanged, and the HTTP thread only blocks until the short JUCE call returns.

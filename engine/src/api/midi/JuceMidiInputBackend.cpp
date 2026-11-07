@@ -19,6 +19,16 @@ std::string toStd (const juce::String& value)
     return value.toStdString();
 }
 
+template <typename Function>
+auto onMessageThread (Function&& function)
+    -> decltype (juce::MessageManager::callSync (std::forward<Function> (function)))
+{
+    if (juce::MessageManager::getInstanceWithoutCreating() == nullptr)
+        return {};
+
+    return juce::MessageManager::callSync (std::forward<Function> (function));
+}
+
 #if JUCE_LINUX
 int alsaClientForIdentifier (const std::string& identifier)
 {
@@ -75,6 +85,19 @@ public:
     {
     }
 
+    ~JuceMidiInputHandle() override
+    {
+        if (input == nullptr)
+            return;
+
+        auto device = std::move (input);
+
+        (void) onMessageThread ([device = std::move (device)]() mutable
+        {
+            device.reset();
+        });
+    }
+
     void start() override
     {
         if (input != nullptr)
@@ -106,12 +129,15 @@ public:
 
     std::unique_ptr<MidiInputHandle> open (const std::string& id) override
     {
-        auto input = juce::MidiInput::openDevice (juce::String (id), &midiCallback);
+        auto input = onMessageThread ([this, &id]
+        {
+            return juce::MidiInput::openDevice (juce::String (id), &midiCallback);
+        });
 
-        if (input == nullptr)
+        if (! input.has_value() || *input == nullptr)
             return {};
 
-        return std::make_unique<JuceMidiInputHandle> (std::move (input));
+        return std::make_unique<JuceMidiInputHandle> (std::move (*input));
     }
 
 private:
@@ -122,13 +148,21 @@ private:
 
 std::vector<MidiInputDevice> listJuceMidiInputDevices()
 {
+    const auto available = onMessageThread ([]
+    {
+        return juce::MidiInput::getAvailableDevices();
+    });
+
+    if (! available.has_value())
+        return {};
+
     std::vector<MidiInputDevice> devices;
 
 #if JUCE_LINUX
     AlsaClientNames clients;
 #endif
 
-    for (const auto& device : juce::MidiInput::getAvailableDevices())
+    for (const auto& device : *available)
     {
         MidiInputDevice entry;
         entry.id = toStd (device.identifier);
