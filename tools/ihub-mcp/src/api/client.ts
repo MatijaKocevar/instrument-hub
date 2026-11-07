@@ -1,17 +1,20 @@
 import createClient from "openapi-fetch";
 import type { HubConfig } from "../config.js";
 import type { components, paths } from "./schema.js";
+import { createPatchApi, type PatchApi } from "./patches.js";
+import { createProjectApi, type ProjectApi } from "./project.js";
+import { unwrap } from "./result.js";
 
 type State = components["schemas"]["State"];
-type ProjectOverview = components["schemas"]["ProjectOverview"];
 type AudioState = components["schemas"]["AudioState"];
 type MidiState = components["schemas"]["MidiState"];
 type PluginList = components["schemas"]["PluginList"];
 type Transport = components["schemas"]["Transport"];
 type TransportPatch = components["schemas"]["TransportPatch"];
 type MidiInputUpdate = components["schemas"]["MidiInputUpdate"];
+export type ProjectOverview = components["schemas"]["ProjectOverview"];
 
-export interface HubApi {
+export interface HubApi extends PatchApi, ProjectApi {
   getState(): Promise<State>;
   getProject(): Promise<ProjectOverview>;
   getAudio(): Promise<AudioState>;
@@ -24,16 +27,7 @@ export interface HubApi {
   toggleTrackFx(index: number, hot: number): Promise<State>;
   setTransport(patch: TransportPatch): Promise<Transport>;
   setMidiInput(update: MidiInputUpdate): Promise<MidiState>;
-}
-
-export class HubApiError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "HubApiError";
-    this.status = status;
-  }
+  restartPage(page: string): Promise<State>;
 }
 
 export function createHubApi(config: HubConfig): HubApi {
@@ -45,6 +39,8 @@ export function createHubApi(config: HubConfig): HubApi {
   });
 
   return {
+    ...createPatchApi(client),
+    ...createProjectApi(client),
     getState: async () => unwrap(await client.GET("/state")),
     getProject: async () => unwrap(await client.GET("/project")),
     getAudio: async () => unwrap(await client.GET("/audio")),
@@ -81,24 +77,11 @@ export function createHubApi(config: HubConfig): HubApi {
       unwrap(await client.POST("/transport", { body: patch })),
     setMidiInput: async (update: MidiInputUpdate) =>
       unwrap(await client.POST("/midi/inputs", { body: update })),
+    restartPage: async (page: string) =>
+      unwrap(
+        await client.POST("/pages/{page}/restart", {
+          params: { path: { page } },
+        }),
+      ),
   };
-}
-
-function unwrap<T>(result: {
-  data?: T;
-  error?: unknown;
-  response: Response;
-}): T {
-  if (result.data !== undefined) return result.data;
-  throw new HubApiError(
-    result.response.status,
-    errorMessage(result.response, result.error),
-  );
-}
-
-function errorMessage(response: Response, error: unknown): string {
-  if (error && typeof error === "object" && "error" in error) {
-    return String((error as { error: unknown }).error);
-  }
-  return response.statusText || `HTTP ${response.status}`;
 }

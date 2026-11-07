@@ -18,3 +18,10 @@ export const toggling = {
   idempotentHint: false,
   openWorldHint: false,
 } as const;
+
+export const destructive = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: false,
+} as const;
