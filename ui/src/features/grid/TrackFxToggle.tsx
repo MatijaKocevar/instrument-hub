@@ -25,7 +25,7 @@ export function TrackFxToggle({
 
   return (
     <div
-      className={`grid__cell track-grid__cell track-grid__cell--fx track-grid__fx-toggle${inactive ? " track-grid__cell--inactive" : ""}${assigned ? " track-grid__cell--assigned" : ""}${enabled ? " track-grid__cell--enabled" : ""}`}
+      className={`grid__cell track-grid__cell track-grid__cell--fx track-grid__fx-toggle${inactive ? " track-grid__cell--inactive" : ""}${assigned ? " track-grid__cell--assigned" : " track-grid__fx-toggle--unassigned"}${enabled ? " track-grid__cell--enabled" : ""}${assigned && !enabled ? " track-grid__fx-toggle--bypassed" : ""}`}
       role="gridcell"
       data-testid="track-cell"
       data-track-index={track.index}
@@ -58,14 +58,29 @@ export function TrackFxToggle({
         <span className="track-grid__fx-head">
           <span className="grid__cell-slot">FX {String(hot + 1)}</span>
           <span
-            className={`track-grid__switch${enabled ? " track-grid__switch--on" : ""}${assigned ? "" : " track-grid__switch--empty"}`}
+            className={`track-grid__switch${enabled ? " track-grid__switch--on" : ""}${assigned ? "" : " track-grid__switch--empty"}${assigned && !enabled ? " track-grid__switch--bypass" : ""}`}
+            data-testid="track-fx-switch"
+            data-on={enabled ? "true" : "false"}
+            data-assigned={assigned ? "true" : "false"}
             aria-hidden="true"
           >
             <span className="track-grid__switch-thumb" />
           </span>
         </span>
         <span className="grid__cell-name">{label}</span>
-        <span className="track-grid__sub">
+        <span
+          className="track-grid__sub track-grid__fx-state"
+          data-testid="track-fx-state"
+          data-state={
+            inactive
+              ? "inactive"
+              : assigned
+                ? enabled
+                  ? "on"
+                  : "bypass"
+                : "unassigned"
+          }
+        >
           {inactive
             ? "Assign an instrument"
             : assigned

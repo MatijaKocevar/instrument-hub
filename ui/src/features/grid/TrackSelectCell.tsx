@@ -3,6 +3,7 @@ import { useRef, useState, type ReactElement } from "react";
 import { EMPTY_COLOUR, trackColourForIndex } from "./colours";
 import { pad2 } from "./format";
 import type { GridTrack, TrackStatus } from "./trackModel";
+import { TrackSelectButton } from "./TrackSelectButton";
 
 interface TrackSelectCellProps {
   readonly track: GridTrack;
@@ -81,6 +82,8 @@ export function TrackSelectCell({
         <span className="grid__cell-slot">T{pad2(track.index + 1)}</span>
         <span
           className={`track-grid__selector-state${selected ? " track-grid__selector-state--selected" : ""}`}
+          data-testid="track-selection"
+          data-selected={selected ? "true" : "false"}
         >
           {selected ? "Selected" : empty ? "Empty" : "Ready"}
         </span>
@@ -130,37 +133,11 @@ export function TrackSelectCell({
           />
         </form>
       ) : (
-        <button
-          className="grid__cell-main track-grid__selector-button"
-          type="button"
-          data-testid="track-select"
-          data-track-index={track.index}
-          data-slot={track.slot}
-          aria-pressed={selected}
-          onClick={
-            onSelectTrack === undefined
-              ? undefined
-              : () => {
-                  onSelectTrack(track.index);
-                }
-          }
-          onDoubleClick={
-            onOpenTrack === undefined
-              ? undefined
-              : () => {
-                  onOpenTrack(track.index);
-                }
-          }
-        >
-          <span className="grid__cell-name">{track.name}</span>
-          <span className="track-grid__sub">
-            {empty
-              ? "No instrument"
-              : track.instrument.name.length > 0
-                ? track.instrument.name
-                : "No instrument"}
-          </span>
-        </button>
+        <TrackSelectButton
+          track={track}
+          onSelectTrack={onSelectTrack}
+          onOpenTrack={onOpenTrack}
+        />
       )}
     </div>
   );

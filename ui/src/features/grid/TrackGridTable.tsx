@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
 import type { GridModel } from "./model";
-import { TrackGridColumn } from "./TrackGridColumn";
+import { TrackGridRow } from "./TrackGridRow";
 import "./trackGrid.css";
 
 export interface TrackGridActions {
@@ -35,7 +35,7 @@ export function TrackGridTable({
         data-testid="track-grid-table"
       >
         {model.tracks.map((track) => (
-          <TrackGridColumn
+          <TrackGridRow
             key={track.id}
             track={track}
             {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
