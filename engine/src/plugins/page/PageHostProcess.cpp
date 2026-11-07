@@ -18,6 +18,9 @@ namespace
 constexpr int processOutputDrainMs = 50;
 constexpr int helperGracefulStopMs = 8000;
 constexpr int groupGracefulStopMs = 6000;
+constexpr int maximumOutputTailLength = 12000;
+constexpr int maximumRestartAssertionLines = 10;
+constexpr const char* restartAssertionMarker = "juce_VST3PluginFormatImpl.h:3498";
 
 std::int32_t currentProcessId() noexcept
 {
@@ -252,6 +255,36 @@ bool PageHost::startProcess (juce::String& error)
     outputThreadStop.store (false, std::memory_order_relaxed);
     outputThread = std::thread ([this]
     {
+        int restartAssertionLines = 0;
+        bool restartAssertionsCapped = false;
+        juce::String pendingLine;
+
+        const auto appendLine = [&] (const juce::String& line)
+        {
+            if (line.contains (restartAssertionMarker))
+            {
+                if (restartAssertionLines >= maximumRestartAssertionLines)
+                {
+                    if (! restartAssertionsCapped)
+                    {
+                        outputTail += "[ihub: further repeated restartComponent assertion lines suppressed]\n";
+                        restartAssertionsCapped = true;
+                    }
+
+                    return;
+                }
+
+                ++restartAssertionLines;
+            }
+
+            outputTail += line;
+            outputTail += '\n';
+
+            if (outputTail.length() > maximumOutputTailLength)
+                outputTail = outputTail.substring (outputTail.length()
+                                                   - maximumOutputTailLength);
+        };
+
         while (! outputThreadStop.load (std::memory_order_relaxed))
         {
             if (childProcess != nullptr)
@@ -261,14 +294,28 @@ bool PageHost::startProcess (juce::String& error)
                 if (output.isNotEmpty())
                 {
                     const std::lock_guard<std::mutex> lock (outputMutex);
-                    outputTail += output;
+                    pendingLine += output;
 
-                    if (outputTail.length() > 12000)
-                        outputTail = outputTail.substring (outputTail.length() - 12000);
+                    for (;;)
+                    {
+                        const auto newline = pendingLine.indexOfChar ('\n');
+
+                        if (newline < 0)
+                            break;
+
+                        appendLine (pendingLine.substring (0, newline).trimEnd());
+                        pendingLine = pendingLine.substring (newline + 1);
+                    }
                 }
             }
 
             juce::Thread::sleep (processOutputDrainMs);
+        }
+
+        if (pendingLine.isNotEmpty())
+        {
+            const std::lock_guard<std::mutex> lock (outputMutex);
+            appendLine (pendingLine.trimEnd());
         }
     });
 

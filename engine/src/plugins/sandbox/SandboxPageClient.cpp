@@ -146,10 +146,8 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
     const auto numChannels = juce::jlimit (1, sandbox::maximumChannels,
                                            static_cast<int> (page.slots[0].numChannels));
 
-    std::unique_ptr<juce::ScopedJuceInitialiser_GUI> gui;
-
-    if (hasDisplay())
-        gui = std::make_unique<juce::ScopedJuceInitialiser_GUI>();
+    const auto displayAvailable = hasDisplay();
+    const juce::ScopedJuceInitialiser_GUI juceInitialiser;
 
     std::vector<SlotRuntime> runtimes (static_cast<std::size_t> (page.numSlots));
     juce::AudioPluginFormatManager formatManager;
@@ -297,10 +295,9 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
     std::vector<std::thread> threads;
     threads.reserve (static_cast<std::size_t> (page.numSlots));
 
-    const auto stopMessageLoop = [&gui]
+    const auto stopMessageLoop = []
     {
-        if (gui != nullptr)
-            juce::MessageManager::getInstance()->stopDispatchLoop();
+        juce::MessageManager::getInstance()->stopDispatchLoop();
     };
 
     const auto markPageFailed = [&page, &failed] (const juce::String& message)
@@ -325,10 +322,10 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
             auto& runtime = runtimes[static_cast<std::size_t> (slot)];
             auto* plugin = runtime.plugin.get();
 
-            if (gui == nullptr || plugin == nullptr)
+            if (! displayAvailable || plugin == nullptr)
             {
-                error = gui == nullptr ? "no display is available for the plugin editor"
-                                       : "this sandbox slot has no plugin editor";
+                error = ! displayAvailable ? "no display is available for the plugin editor"
+                                           : "this sandbox slot has no plugin editor";
                 return false;
             }
 
@@ -426,6 +423,18 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
                 stopMessageLoop();
         };
 
+        const auto consumeEditorCapture = [&]
+        {
+            if (sandbox::loadAcquire (shared.editorCaptureRequested) == 0)
+                return;
+
+            (void) juce::MessageManager::callSync ([&]
+            {
+                sandbox_client::consumeEditorCapture (shared, plugin);
+                return true;
+            });
+        };
+
         for (;;)
         {
             if (pageState (page) == sandbox::ProcessState::stopping
@@ -435,30 +444,22 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
                 return;
             }
 
-            sandbox_client::consumeEditorCapture (shared, plugin);
+            consumeEditorCapture();
 
             if (sandbox::loadAcquire (shared.control.sequence) != lastControlSequence)
             {
-                if (gui != nullptr)
-                {
-                    const auto handled = juce::MessageManager::callSync ([&]
-                    {
-                        sandbox_client::handleControl (shared, plugin,
-                                                       lastControlSequence,
-                                                       editorControl);
-                        return true;
-                    });
-
-                    if (! handled.has_value())
-                        sandbox_client::handleControl (shared, plugin,
-                                                       lastControlSequence,
-                                                       editorControl);
-                }
-                else
+                const auto handled = juce::MessageManager::callSync ([&]
                 {
                     sandbox_client::handleControl (shared, plugin,
                                                    lastControlSequence,
                                                    editorControl);
+                    return true;
+                });
+
+                if (! handled.has_value())
+                {
+                    juce::Thread::sleep (1);
+                    continue;
                 }
             }
 
@@ -565,8 +566,7 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
 
     setPageState (page, sandbox::ProcessState::ready);
 
-    if (gui != nullptr)
-        juce::MessageManager::getInstance()->runDispatchLoop();
+    juce::MessageManager::getInstance()->runDispatchLoop();
 
     for (auto& thread : threads)
         if (thread.joinable())
