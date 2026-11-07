@@ -124,10 +124,8 @@ int SandboxClient::run (const juce::StringArray& commandLine)
     const auto numChannels = juce::jlimit (1, sandbox::maximumChannels,
                                            static_cast<int> (shared.numChannels));
 
-    std::unique_ptr<juce::ScopedJuceInitialiser_GUI> gui;
-
-    if (hasDisplay())
-        gui = std::make_unique<juce::ScopedJuceInitialiser_GUI>();
+    const auto displayAvailable = hasDisplay();
+    const juce::ScopedJuceInitialiser_GUI juceInitialiser;
 
     std::unique_ptr<PluginInstrument> plugin;
     std::unique_ptr<sandbox_client::FakeToneInstrument> fake;
@@ -187,7 +185,7 @@ int SandboxClient::run (const juce::StringArray& commandLine)
 
     const auto editorControl = [&] (bool open, juce::String& error) -> bool
     {
-        if (gui == nullptr)
+        if (! displayAvailable)
         {
             error = "no display is available for the plugin editor";
             return false;
@@ -270,10 +268,9 @@ int SandboxClient::run (const juce::StringArray& commandLine)
 
     const auto runAudioLoop = [&] () -> int
     {
-        const auto stopDispatch = juce::ScopeGuard ([&gui]
+        const auto stopDispatch = juce::ScopeGuard ([]
         {
-            if (gui != nullptr)
-                juce::MessageManager::getInstance()->stopDispatchLoop();
+            juce::MessageManager::getInstance()->stopDispatchLoop();
         });
 
         juce::ignoreUnused (stopDispatch);
@@ -293,33 +290,30 @@ int SandboxClient::run (const juce::StringArray& commandLine)
                 == static_cast<std::int32_t> (sandbox::ProcessState::stopping))
                 break;
 
-            consumeEditorCapture (shared, plugin.get());
+            if (sandbox::loadAcquire (shared.editorCaptureRequested) != 0)
+            {
+                (void) juce::MessageManager::callSync ([&]
+                {
+                    consumeEditorCapture (shared, plugin.get());
+                    return true;
+                });
+            }
 
             if (sandbox::loadAcquire (shared.control.sequence) != lastControlSequence)
             {
-                if (gui != nullptr)
-                {
-                    const auto handled = juce::MessageManager::callSync ([&]
-                    {
-                        sandbox_client::handleControl (shared,
-                                                       plugin.get(),
-                                                       lastControlSequence,
-                                                       editorControl);
-                        return true;
-                    });
-
-                    if (! handled.has_value())
-                        sandbox_client::handleControl (shared,
-                                                       plugin.get(),
-                                                       lastControlSequence,
-                                                       editorControl);
-                }
-                else
+                const auto handled = juce::MessageManager::callSync ([&]
                 {
                     sandbox_client::handleControl (shared,
                                                    plugin.get(),
                                                    lastControlSequence,
                                                    editorControl);
+                    return true;
+                });
+
+                if (! handled.has_value())
+                {
+                    juce::Thread::sleep (1);
+                    continue;
                 }
             }
 
@@ -410,9 +404,6 @@ int SandboxClient::run (const juce::StringArray& commandLine)
         setState (shared, sandbox::ProcessState::stopping);
         return 0;
     };
-
-    if (gui == nullptr)
-        return runAudioLoop();
 
     std::thread audioThread (runAudioLoop);
     juce::MessageManager::getInstance()->runDispatchLoop();

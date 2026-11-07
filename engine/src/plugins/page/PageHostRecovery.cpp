@@ -98,29 +98,32 @@ void PageHost::watchdogLoop()
 
         if (childProcess == nullptr || ! childProcess->isRunning())
         {
-            juce::String reason = "shared plugin host exited unexpectedly";
+            const auto reason = "shared plugin host exited unexpectedly";
+            juce::String tail;
 
             {
                 const std::lock_guard<std::mutex> lock (outputMutex);
-                const auto tail = outputTail.trim();
-
-                if (tail.isNotEmpty())
-                {
-                    reason << ": "
-                           << (tail.length() > 4000
-                                   ? tail.substring (tail.length() - 4000)
-                                   : tail);
-
-                    const auto log = juce::File::getSpecialLocation (
-                                         juce::File::tempDirectory)
-                                         .getChildFile ("ihub-page-host-crash.log");
-                    log.appendText ("--- "
-                                    + juce::Time::getCurrentTime().toString (true, true)
-                                    + " ---\n" + tail + "\n");
-                }
+                tail = outputTail.trim();
             }
 
-            requestRecovery (reason, false);
+            const auto log = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                                 .getChildFile ("ihub-page-host-crash.log");
+            log.appendText ("--- "
+                            + juce::Time::getCurrentTime().toString (true, true)
+                            + " ---\nreason: " + reason + "\n"
+                            + (tail.isNotEmpty() ? tail + "\n" : juce::String()));
+
+            juce::String statusReason = reason;
+
+            if (tail.isNotEmpty())
+            {
+                statusReason << ": "
+                             << (tail.length() > 4000
+                                     ? tail.substring (tail.length() - 4000)
+                                     : tail);
+            }
+
+            requestRecovery (statusReason, false);
             continue;
         }
 
