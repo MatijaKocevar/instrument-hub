@@ -556,8 +556,27 @@ instrument registry.
 | [shared/schema/kit.schema.json](../shared/schema/kit.schema.json) | Sampler kit schema. |
 | [tests](../tests) | ctest targets, including the pad/click/LED acceptance in `tests/e2e/`. |
 | [scripts](../scripts) | `build.sh`, `test.sh`, `dev.sh`, `bootstrap.sh`. |
+| [tools/ihub-mcp](../tools/ihub-mcp) | Standalone MCP adapter over stdio: read tools, control tools and resources. |
 | [plan](../plan) | Decisions, roadmap, testing recipes, blockers, autopilot. |
 | `docs/` | This map, the Launchpad reference and new-machine setup. |
+
+### 3.13 `tools/ihub-mcp`
+
+`tools/ihub-mcp` is a separate Node 22/TypeScript package, not part of the
+engine build. It speaks MCP over stdio and reaches the engine only through the
+same HTTP and WebSocket API the web UI uses; the typed client is generated from
+`shared/api/openapi.yaml`, so an endpoint change shows up as a compile error.
+The package registers read tools and resources, plus control tools for tracks,
+transport, MIDI, plugin sources, patch editors, page restarts and the project
+lifecycle. It has no generic HTTP passthrough and never runs plugin code. See
+[tools/ihub-mcp/README.md](../tools/ihub-mcp/README.md) for the tool table and
+client configuration.
+
+The adapter is an untrusted client of the engine, so its own guards come before
+any request: `IHUB_MCP_READ_ONLY=1` registers no write tools, a non-loopback
+`IHUB_API_URL` is refused unless `IHUB_MCP_ALLOW_REMOTE=1` is set, plugin
+assignment resolves a bundle path only from `GET /plugins`, and project
+switching or clearing a source requires an explicit `confirm: true`.
 
 ---
 

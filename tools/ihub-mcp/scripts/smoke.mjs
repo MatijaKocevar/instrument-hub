@@ -6,12 +6,17 @@ import {
   getDefaultEnvironment,
   StdioClientTransport,
 } from "@modelcontextprotocol/sdk/client/stdio.js";
+import {
+  checkLoopbackGuard,
+  checkReadOnlyMode,
+  checkWriteGuards,
+} from "./smoke-security.mjs";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const timeout = setTimeout(() => {
-  console.error("smoke: timed out after 30 s");
+  console.error("smoke: timed out after 60 s");
   process.exit(1);
-}, 30000);
+}, 60000);
 
 const readTools = [
   "ihub_state",
@@ -31,6 +36,25 @@ const controlTools = [
   "ihub_set_transport",
   "ihub_set_midi_input",
 ];
+const pluginTools = [
+  "ihub_assign_plugin",
+  "ihub_clear_source",
+  "ihub_open_editor",
+  "ihub_close_editor",
+  "ihub_capture_patch_state",
+  "ihub_reload_plugin",
+  "ihub_restart_page",
+  "ihub_project_action",
+];
+const writeTools = [...controlTools, ...pluginTools];
+const allTools = [...readTools, ...writeTools];
+const destructiveTools = [
+  "ihub_assign_plugin",
+  "ihub_clear_source",
+  "ihub_reload_plugin",
+  "ihub_restart_page",
+  "ihub_project_action",
+];
 const resources = [
   "ihub://state",
   "ihub://project",
@@ -43,6 +67,8 @@ const env = {
   ...getDefaultEnvironment(),
   ...(process.env.IHUB_API_URL ? { IHUB_API_URL: process.env.IHUB_API_URL } : {}),
   ...(process.env.IHUB_TOKEN ? { IHUB_TOKEN: process.env.IHUB_TOKEN } : {}),
+  IHUB_MCP_READ_ONLY: "",
+  IHUB_MCP_ALLOW_REMOTE: "",
 };
 
 const client = new Client({ name: "ihub-mcp-smoke", version: "0.1.0" });
@@ -62,11 +88,7 @@ try {
 
   const { tools } = await client.listTools();
   const toolNames = tools.map((tool) => tool.name).sort();
-  assert.deepEqual(
-    toolNames,
-    [...readTools, ...controlTools].sort(),
-    "read and control tools registered",
-  );
+  assert.deepEqual(toolNames, [...allTools].sort(), "all tools registered");
   const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
   for (const name of readTools) {
     assert.equal(
@@ -74,12 +96,33 @@ try {
       true,
       `${name} is annotated read-only`,
     );
+    assert.equal(
+      toolsByName.get(name)?.annotations?.destructiveHint,
+      false,
+      `${name} is not destructive`,
+    );
   }
-  for (const name of controlTools) {
+  for (const name of writeTools) {
     assert.equal(
       toolsByName.get(name)?.annotations?.readOnlyHint,
       false,
       `${name} is annotated state-changing`,
+    );
+  }
+  for (const name of destructiveTools) {
+    assert.equal(
+      toolsByName.get(name)?.annotations?.destructiveHint,
+      true,
+      `${name} is annotated destructive`,
+    );
+  }
+  for (const name of writeTools.filter(
+    (candidate) => !destructiveTools.includes(candidate),
+  )) {
+    assert.equal(
+      toolsByName.get(name)?.annotations?.destructiveHint,
+      false,
+      `${name} is not annotated destructive`,
     );
   }
   console.log(`tools: ${toolNames.join(", ")}`);
@@ -216,6 +259,45 @@ try {
   assert.equal(finalTransport.bpm, originalTransport.bpm, "transport confirms BPM restore");
   console.log("control tools: PASS");
 
+  const pathRejected = await expectToolError("ihub_assign_plugin", {
+    slot: 0,
+    plugin: "/tmp/not-an-installed-plugin.vst3",
+  });
+  assert.match(pathRejected, /No installed plugin matches/i);
+  console.log("plugin assignment: arbitrary bundle path rejected");
+
+  const capture = await callJson("ihub_capture_patch_state", { slot: 0 });
+  assert.equal(capture.slot, 0);
+  assert.equal(capture.captured, true);
+  assert.ok(capture.sizeBytes > 0, "captured state has a size");
+  console.log(`captured slot 0 state: ${capture.sizeBytes} bytes`);
+
+  const editor = await callJson("ihub_close_editor", { slot: 0 });
+  assert.equal(editor.slot, 0);
+  assert.equal(editor.open, false, "slot 0 editor is closed");
+  console.log(`closed slot 0 editor (wasOpen=${editor.wasOpen ?? false})`);
+
+  const projectBefore = await callJson("ihub_project");
+  assert.ok(projectBefore.path.length > 0, "an .ihub project is open");
+  const saved = await callJson("ihub_project_action", { action: "save" });
+  assert.equal(saved.path, projectBefore.path, "save keeps the open project");
+  assert.equal(saved.saved, true, "save reports success");
+  assert.equal(saved.error, "", "save reports no error");
+  const projectAfter = await callJson("ihub_project");
+  assert.equal(projectAfter.saved, true, "project confirms the save");
+  console.log(`project saved: ${saved.name}`);
+  console.log("plugin and project tools: PASS");
+
+  await checkReadOnlyMode({
+    packageRoot,
+    env,
+    readTools,
+    resources,
+  });
+
+  await checkLoopbackGuard({ packageRoot, env });
+  await checkWriteGuards({ packageRoot, env });
+
   for (const uri of resources) {
     const result = await client.readResource({ uri });
     const text = result.contents?.[0]?.text;
@@ -239,6 +321,17 @@ async function callJson(name, args = {}) {
   const text = result.content?.find((block) => block.type === "text")?.text;
   assert.equal(typeof text, "string", `${name} returned text`);
   return JSON.parse(text);
+}
+
+async function expectToolError(name, args = {}) {
+  let result;
+  try {
+    result = await client.callTool({ name, arguments: args });
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  assert.equal(result.isError, true, `${name} was rejected`);
+  return result.content?.find((block) => block.type === "text")?.text ?? "";
 }
 
 function findInput(midiState, id) {

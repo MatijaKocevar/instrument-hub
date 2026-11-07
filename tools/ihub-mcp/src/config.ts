@@ -1,14 +1,23 @@
+import {
+  assertLoopbackApiUrl,
+  readOnlyMode,
+  remoteApiAllowed,
+} from "./security.js";
+
 export interface HubConfig {
   apiUrl: string;
   token?: string;
+  readOnly: boolean;
 }
 
 const DEFAULT_API_URL = "http://127.0.0.1:8080";
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): HubConfig {
   const apiUrl = normalizeApiUrl(env.IHUB_API_URL);
+  assertLoopbackApiUrl(apiUrl, remoteApiAllowed(env));
   const token = env.IHUB_TOKEN?.trim();
-  return token ? { apiUrl, token } : { apiUrl };
+  const readOnly = readOnlyMode(env);
+  return token ? { apiUrl, token, readOnly } : { apiUrl, readOnly };
 }
 
 export function websocketUrl(apiUrl: string, path: string): string {
