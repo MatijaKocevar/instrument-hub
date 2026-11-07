@@ -186,36 +186,6 @@ void killProcessTree (pid_t root) noexcept
    #endif
 }
 
-bool hasProcessesMatching (const char* token) noexcept
-{
-   #if defined(__linux__)
-    if (token == nullptr || *token == '\0')
-        return false;
-
-    const std::string needle (token);
-
-    for (const auto& process : readProcesses())
-        for (const auto& argument : process.arguments)
-            if (argument.find (needle) != std::string::npos)
-                return true;
-   #else
-    (void) token;
-   #endif
-
-    return false;
-}
-
-void waitForProcessesMatching (const char* token, int timeoutMs) noexcept
-{
-    for (int elapsed = 0; elapsed < timeoutMs; elapsed += 20)
-    {
-        if (! hasProcessesMatching (token))
-            return;
-
-        std::this_thread::sleep_for (std::chrono::milliseconds (20));
-    }
-}
-
 void killProcessesMatching (const char* token) noexcept
 {
    #if defined(__linux__)
@@ -277,7 +247,7 @@ void killProcessesMatching (const char* token) noexcept
     const std::vector<pid_t> ordered (targets.begin(), targets.end());
     signalProcesses (ordered, SIGTERM);
 
-    for (int attempt = 0; attempt < 500; ++attempt)
+    for (int attempt = 0; attempt < 100; ++attempt)
     {
         bool anyAlive = false;
 

@@ -9,6 +9,7 @@
 #include "app/ProjectSetup.h"
 #include "app/SessionSetup.h"
 #include "app/StartupWindow.h"
+#include "app/TerminationSignal.h"
 #include "app/UiModes.h"
 #include "diag/CrashDump.h"
 #include "diag/Diagnostics.h"
@@ -109,6 +110,9 @@ public:
         crashOptions.path = ihub::app::getCommandLineValue (commandLine, "--crash-dump")
                                 .toStdString();
         ihub::diag::installCrashDump (crashOptions);
+
+        if (! ihub::app::installTerminationSignalHandler())
+            std::cerr << "shutdown: could not install the termination signal handler" << std::endl;
 
         juce::File snapshotFile;
 

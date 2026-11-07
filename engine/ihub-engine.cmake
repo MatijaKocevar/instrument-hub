@@ -84,6 +84,7 @@ set(IHUB_ENGINE_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/src/app/StartupWindow.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/SnapshotCapture.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/SourcePersistence.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/src/app/TerminationSignal.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/UiModes.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/DeviceListMode.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/DiagnosticsMode.cpp"

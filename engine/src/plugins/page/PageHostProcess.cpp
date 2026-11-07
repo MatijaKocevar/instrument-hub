@@ -17,7 +17,7 @@ namespace
 {
 constexpr int processOutputDrainMs = 50;
 constexpr int helperGracefulStopMs = 8000;
-constexpr int groupGracefulStopMs = 6000;
+constexpr int shutdownHelperGracefulStopMs = 2000;
 constexpr int maximumOutputTailLength = 12000;
 constexpr int maximumRestartAssertionLines = 10;
 constexpr const char* restartAssertionMarker = "juce_VST3PluginFormatImpl.h:3498";
@@ -408,7 +408,7 @@ void PageHost::killChildProcessTree() noexcept
         childProcess->kill();
 }
 
-void PageHost::stopProcess (bool resetWinePrefix) noexcept
+void PageHost::stopProcess (bool resetWinePrefix, int helperStopTimeoutMs) noexcept
 {
     auto* page = sharedPage.load (std::memory_order_acquire);
 
@@ -416,10 +416,14 @@ void PageHost::stopProcess (bool resetWinePrefix) noexcept
         sandbox::storeRelease (page->state,
                                static_cast<std::int32_t> (sandbox::ProcessState::stopping));
 
+    const auto helperTimeout = helperStopTimeoutMs > 0
+                                   ? helperStopTimeoutMs
+                                   : helperGracefulStopMs;
+
     bool helperExited = false;
 
     if (childProcess != nullptr)
-        helperExited = childProcess->waitForProcessToFinish (helperGracefulStopMs);
+        helperExited = childProcess->waitForProcessToFinish (helperTimeout);
 
     if (childProcess != nullptr && ! helperExited)
     {
@@ -427,23 +431,20 @@ void PageHost::stopProcess (bool resetWinePrefix) noexcept
         childProcess->waitForProcessToFinish (1000);
     }
 
+    if (resetWinePrefix
+        && (winePrefix.isNotEmpty() || vstbridgeGroup.isNotEmpty()))
+    {
+        page_detail::stopWinePrefixes (vstbridgeGroup, winePrefix);
+
+        if (winePrefix.isNotEmpty())
+            page_detail::killProcessesWithWinePrefix (winePrefix.toRawUTF8());
+    }
+
     if (sharedMemoryFile != juce::File())
         page_detail::killProcessesMatching (sharedMemoryFile.getFullPathName().toRawUTF8());
 
     if (vstbridgeGroup.isNotEmpty())
-    {
-        if (resetWinePrefix)
-        {
-            page_detail::waitForProcessesMatching (vstbridgeGroup.toRawUTF8(),
-                                                    groupGracefulStopMs);
-            page_detail::stopWinePrefixes (vstbridgeGroup, winePrefix);
-
-            if (winePrefix.isNotEmpty())
-                page_detail::killProcessesWithWinePrefix (winePrefix.toRawUTF8());
-        }
-
         page_detail::killProcessesMatching (vstbridgeGroup.toRawUTF8());
-    }
 
     removeBundleView();
 
@@ -509,7 +510,7 @@ void PageHost::shutdown() noexcept
 
     std::lock_guard<std::mutex> lock (lifecycleMutex);
 
-    stopProcess (true);
+    stopProcess (true, shutdownHelperGracefulStopMs);
     removeBundleView();
     closeRetiredMappings();
     markStatus (Status::stopped, {});
