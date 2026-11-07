@@ -83,6 +83,9 @@ bool PageHost::runControlCommand (SlotState& slot,
         if (childProcess == nullptr || ! childProcess->isRunning())
             break;
 
+        if (abortRequested())
+            break;
+
         if (juce::Time::getMillisecondCounterHiRes() > deadline)
             break;
 

@@ -192,7 +192,8 @@ private:
     explicit PageHost (Options optionsToUse);
 
     bool startProcess (juce::String& error);
-    void stopProcess (bool resetWinePrefix = false) noexcept;
+    void stopProcess (bool resetWinePrefix = false,
+                      int helperStopTimeoutMs = 0) noexcept;
     void killChildProcessTree() noexcept;
 
     void startThreads();

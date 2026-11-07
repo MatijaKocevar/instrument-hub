@@ -167,15 +167,15 @@ reported by the human or reproduced on this machine.
 - fix: `setPadRgb()` now stores the matching track-palette velocity in `padLeds` for `getPadLed()`/snapshots while still sending the RGB SysEx frame, and `paintTrackLeds()` passes `launchpadLedForTrackPad(...).velocity`. The track-pad fixture assigns an init-tone source to every track so the FX/volume/LED paths run, and the volume shades are 0x10/0x13/0x18/0x20 for steps 0-4. `ihub-launchpad-track-test` and `ihub-e2e-test` now pass; full suite 76 passed, 1 skipped, 0 failed.
 
 ### BUG-025 · Engine SIGTERM leaves a Wine launcher behind
-- status: reproduced
+- status: fixed
 - area: plugins/sandbox, engine shutdown
 - steps:
   1. run the shared-page build with eight Analog Lab V tracks and let the page reach `ready`
   2. `kill -TERM` the engine process
 - expected: the page helper, the vstbridge group host and its Wine launcher all exit
-- actual: the helper exits because it is now set to die with its parent (`PR_SET_PDEATHSIG`); the group host exits too and becomes a zombie, but its `start.exe` launcher (about 17 MB) survives under init. The engine has no SIGTERM handler, so `PageHost::shutdown` and the process-tree killer never run on this path.
-- evidence: 2026-11-05, shared page `ready` with pid 415531, helper 415549 and group host 415583; after `kill -TERM 415531`, the helper disappeared within 250 ms and the group host became `[vstbridge-host.] <defunct>`, while `start.exe /exec .../vstbridge-host.exe.so group` remained with ppid 1850 and 17.2 MB RSS.
-- fix: pending. Normal window shutdown and `PageHost::restart` already use the full process-tree cleanup; this is only the abrupt-engine-death path. A signal handler in `Main` or a launcher-side parent-death signal would close it.
+- actual: the helper exits because it is now set to die with its parent (`PR_SET_PDEATHSIG`); the group host exits too and becomes a zombie, but its `start.exe` launcher (about 17 MB) survives under init. The engine had no SIGTERM handler, so `PageHost::shutdown` and the process-tree killer never ran on this path.
+- evidence: 2026-11-05, shared page `ready` with pid 415531, helper 415549 and group host 415583; after `kill -TERM 415531`, the helper disappeared within 250 ms and the group host became `[vstbridge-host.] <defunct>`, while `start.exe /exec .../vstbridge-host.exe.so group` remained with ppid 1850 and 17.2 MB RSS. 2026-11-07 22:01 final debug build with the same eight-track project: `kill -TERM` the engine (pid 314031) removed the engine, helper 314367, `start.exe` 314371, vstbridge group 314402, `wineserver -p` 314069 and both `winedevice.exe` 314087/314166 in 781 ms; an earlier run took 756 ms. The only surviving process with a matching name is the pre-existing `vstbridge-host.` zombie 128993 (state `Z`, ppid 1535/systemd) that was already defunct before this run.
+- fix: `app/TerminationSignal` installs a `SIGTERM`/`SIGINT` handler that only writes a byte to a non-blocking self-pipe, and a monitor thread turns that into `JUCEApplicationBase::systemRequestedQuit()`. The normal JUCE shutdown path then runs `PageHost::shutdown` and `stopProcess`, so the helper and Wine tree are reaped instead of being orphaned. `stopProcess` now runs the Wine-prefix stop (`wineserver -k` plus a direct `WINEPREFIX` sweep) before waiting on the vstbridge group, and shutdown uses a short helper timeout, so the whole tree is gone in under a second rather than after the previous six-second group wait. In-flight page control commands also stop waiting when shutdown begins.
 
 ### BUG-006 · Audio device and mixer settings are lost on every restart
 - status: open
@@ -365,15 +365,15 @@ reported by the human or reproduced on this machine.
 - fix: `PageHostProcess` now parses the helper output by line while it is captured, keeps the first ten `juce_VST3PluginFormatImpl.h:3498` lines for each host lifetime, replaces every further copy with one suppression line, and preserves the surrounding Wine output instead of letting the assertions fill the 12 KB tail. `PageHostRecovery` writes `reason: shared plugin host exited unexpectedly` into the crash log even when the output tail is empty and passes only the bounded tail to the page status. `SandboxPageClient` and `SandboxClient` always create the JUCE message manager and run its dispatch loop, even when no display is available, and marshal editor-close state capture and every control command to that thread; this closes the remaining first-party state path that could call VST3 off the message thread. The real host-exit reason and the first ten assertions are still visible, so a genuine crash is not hidden.
 
 ### BUG-031 · Persistent wineserver and winedevice survive engine stop
-- status: reproduced
+- status: fixed
 - area: plugins/page, engine shutdown
 - steps:
   1. open the eight-track project and wait for `pages[0].status` to become `ready`
-  2. stop the app (`kill -TERM` the `scripts/dev.sh` wrapper, or close while the page host is busy)
+  2. stop the app (`kill -TERM` the `scripts/dev.sh` wrapper, or close the window while the page host is busy)
 - expected: the page host, vstbridge group, `start.exe`, `wineserver` and `winedevice` all exit
 - actual: after the engine process is gone, `wineserver -p` and two `winedevice.exe` processes remain; a short shutdown window can kill the engine before `PageHost::shutdown()` finishes
-- evidence: 2026-11-07 after stopping the dev build, `pgrep -ax instrument-hub` returned nothing while `1244004 wineserver -p`, `1244036 C:\windows\system32\winedevice.exe` and `1244078 C:\windows\system32\winedevice.exe` remained; BUG-025 shows SIGTERM can also leave `start.exe` behind.
-- fix: pending
+- evidence: 2026-11-07 after stopping the dev build, `pgrep -ax instrument-hub` returned nothing while `1244004 wineserver -p`, `1244036 C:\windows\system32\winedevice.exe` and `1244078 C:\windows\system32\winedevice.exe` remained; BUG-025 shows SIGTERM can also leave `start.exe` behind. 2026-11-07 22:02 final debug build, eight-track project `ready`: sending `WM_DELETE_WINDOW` to the app window removed the engine, helper, `start.exe`, vstbridge group, `wineserver -p` and both `winedevice.exe` in 968 ms; `kill -TERM` of a fresh engine removed the same set in 781 ms (an earlier build measured 756 ms). `kill -9` of helper 316623 recovered to `ready` in 18 s, with old helper 316623, `start.exe` 316625, vstbridge group 316657 and `wineserver -p` 316299 all gone and exactly one new group running.
+- fix: `PageHost::stopProcess` always runs `stopWinePrefixes` (`wineserver -k`) and then `killProcessesWithWinePrefix` before it waits for or kills the vstbridge group, so the persistent prefix server and its `winedevice.exe` children are killed before the engine exits. The group wait and the process matching timeout were shortened so shutdown does not depend on six seconds of graceful waiting, `PageHost::shutdown` uses a 2 s helper grace period, and `runControlCommand` stops waiting for an in-flight command when shutdown begins.
 
 ### BUG-032 · MIDI input changes flood the log with device-list assertions
 - status: reproduced
