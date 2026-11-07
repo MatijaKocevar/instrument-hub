@@ -113,7 +113,9 @@ SessionStartup startSession (const juce::String& commandLine,
         if (! loadProjectSession (projectFile, config, projectError))
         {
             std::cerr << "project: " << projectError << std::endl;
+            config = ihub::SessionConfig {};
             config.slots = ihub::Session::makeDefaultSet();
+            config.layout = ihub::SessionLayout::tracks;
         }
         else
         {

@@ -52,6 +52,8 @@ bool PageHost::runControlCommand (SlotState& slot,
                    file.getFullPathName().toRawUTF8());
     std::snprintf (shared->control.error, sizeof (shared->control.error), "%s", "");
 
+    slot.controlInFlight.fetch_add (1, std::memory_order_relaxed);
+
     shared->control.command = static_cast<std::int32_t> (command);
     shared->control.stateBytes = static_cast<std::int32_t> (input.getSize());
     shared->control.status = static_cast<std::int32_t> (sandbox::ControlStatus::pending);
@@ -96,11 +98,15 @@ bool PageHost::runControlCommand (SlotState& slot,
     file.deleteFile();
     shared->control.command = static_cast<std::int32_t> (sandbox::ControlCommand::none);
 
-    return completed && (command == sandbox::ControlCommand::applyState
-                         || command == sandbox::ControlCommand::applyParameters
-                         || command == sandbox::ControlCommand::openEditor
-                         || command == sandbox::ControlCommand::closeEditor
-                         || output.getSize() > 0);
+    const bool success = completed
+                      && (command == sandbox::ControlCommand::applyState
+                          || command == sandbox::ControlCommand::applyParameters
+                          || command == sandbox::ControlCommand::openEditor
+                          || command == sandbox::ControlCommand::closeEditor
+                          || output.getSize() > 0);
+
+    slot.controlInFlight.fetch_sub (1, std::memory_order_release);
+    return success;
 }
 
 bool PageHost::setStateInformation (int slot, const juce::MemoryBlock& state)

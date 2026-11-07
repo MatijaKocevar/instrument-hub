@@ -64,6 +64,9 @@ public:
     void setProjectHandlers (ProjectOverviewProvider provider,
                              ProjectCommandHandler command);
 
+    void setProjectDialogHandlers (ProjectDialogBeginHandler begin,
+                                   ProjectDialogPollHandler poll);
+
     void setAuthToken (std::string token);
     bool hasAuthToken() const;
 

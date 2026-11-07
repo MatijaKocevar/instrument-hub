@@ -5,6 +5,7 @@
 #include "plugins/SandboxHost.h"
 
 #include <algorithm>
+#include <iostream>
 #include <utility>
 
 namespace ihub
@@ -74,7 +75,7 @@ bool Session::restartPluginPage (const std::string& pageId, std::string& error)
 
     juce::String restartError;
 
-    if (! host->restartAndWait (60000, restartError))
+    if (! host->restartAndWait (360000, restartError))
     {
         error = restartError.toStdString();
         return false;
@@ -306,10 +307,13 @@ void Session::onPageStatusChanged (int status, const juce::String& reason)
         }
     }
 
-    juce::Logger::writeToLog ("session: plugin page status "
-                              + juce::String (plugins::PageHost::toString (
-                                    static_cast<plugins::PageHost::Status> (status)))
-                              + (reason.isNotEmpty() ? ": " + reason : juce::String()));
+    const auto message = "session: plugin page status "
+                       + juce::String (plugins::PageHost::toString (
+                             static_cast<plugins::PageHost::Status> (status)))
+                       + (reason.isNotEmpty() ? ": " + reason : juce::String());
+
+    juce::Logger::writeToLog (message);
+    std::cerr << message << std::endl;
 
     PageStatusObserver observer;
 

@@ -1203,6 +1203,70 @@ FX toggles, 7 track selector.
 - files: `tests/e2e/`, `docs/architecture.md`, `docs/launchpad-mini-mk3.md`
 - accept: the e2e run switches all eight tracks with zero load events, applies FX and volume actions, and records the LED stream; no xruns; peak RSS with eight warm TestPlugin instances is recorded in the result; docs match the implementation; `scripts/test.sh` passes.
 
+## T314 · Stabilize the shared plugin page host on track switches
+- depends: none
+- size: M
+- goal: Finish and verify the in-tree fix for the shared plugin page host crash and stuck-note bugs documented as BUG-024/BUG-028. The working tree already contains the fix: VST3 state calls are marshalled to the page-host message thread, track arming no longer captures plugin state, every arm/disarm queues all-notes-off/all-sound-off/sustain-off for all page slots, the watchdog survives recoveries, stale Wine processes/groups are cleaned up with a Wine-prefix reset, and page-host crashes are logged. Do not revert that work; verify it and fix anything still broken.
+- files: `engine/src/plugins/PageHost.h`, `engine/src/plugins/page/`, `engine/src/plugins/sandbox/SandboxPageClient.cpp`, `engine/src/plugins/SandboxClient.cpp`, `engine/src/session/SessionControl.cpp`, `engine/src/api/SessionBridge.cpp`, `plan/BUGS.md`
+- accept: `cmake --build build-debug --target instrument-hub` succeeds; the app opens `/tmp/opencode/track-check.ihub` with `pages[0].status: ready` and eight warm slots; holding a note while switching tracks 20 times leaves the page `ready`, leaves the previous slot silent, and produces no `/tmp/ihub-page-host-crash.log`; a page-host restart or `kill -9` recovers to `ready` without leaving orphan Wine processes; BUG-024/BUG-028 evidence is updated. Use the live app and `/state` for verification; do not build or run the C++ test suite.
+- note: An app instance may already be running from the interactive session. Stop it first, clean stale `ihub-sandbox`/`start.exe`/`wineserver` processes and vstbridge sockets, then launch `scripts/dev.sh --watch --project /tmp/opencode/track-check.ihub` detached and leave it running. VirMIDI 0-1 can be enabled as a keyboard input through `POST /midi/inputs` when the physical Keystation is not available.
+
+## T315 · BUG-029 make the first page-host recovery attempt reliable
+- depends: T314
+- size: M
+- goal: Make the first replacement page host load all eight Analog Lab slots without stalling at slot 3 and hitting the 120 s startup timeout. The second attempt already succeeds; find why the first post-stop host stalls and fix the startup ordering, Wine-prefix warm-up or vstbridge-group setup rather than only raising the HTTP timeout.
+- files: `engine/src/plugins/page/`, `engine/src/plugins/sandbox/`, `engine/src/session/SessionPluginPage.cpp`, `plan/BUGS.md`
+- accept: on the eight-track project, five `POST /pages/tracks/restart` calls each return `ready` without a recovery timeout and within 60 s; five `kill -9` page-host recoveries return `ready` within 60 s; no helper, `start.exe`, `wineserver`, `winedevice` or vstbridge group from the previous host remains; BUG-029 evidence is updated. Verify against the live app; do not build or run the C++ test suite.
+- note: Repro is in BUG-029. The current 360 s request timeout masks the first-attempt stall; do not treat a later second attempt as a fix.
+
+## T316 · BUG-030 stop the VST3 restartComponent assertion flood
+- depends: T314
+- size: M
+- goal: Identify every source of `JUCE Assertion failure in juce_VST3PluginFormatImpl.h:3498` in the page host. If a first-party control or state path still calls VST3 off the message thread, marshal it; if Analog Lab itself calls `restartComponent` from its audio thread, keep the real host-exit reason and bound or deduplicate the repeated assertion tail instead of hiding the crash.
+- files: `engine/src/plugins/page/PageHostRecovery.cpp`, `engine/src/plugins/page/PageHostProcess.cpp`, `engine/src/plugins/sandbox/`, `plan/BUGS.md`
+- accept: one `kill -9` with eight Analog Lab slots writes a crash log containing the host exit reason and at most ten repeated `:3498` lines; no `:3498` line originates from a first-party state or control call; 20 held-note track switches still produce no crash log; BUG-030 evidence is updated.
+- note: The `:2809` `getStateInformation` assertion is already gone; this task is only the remaining `restartComponent` line.
+
+## T317 · BUG-025/BUG-031 reap the Wine tree on engine exit
+- depends: T314
+- size: M
+- goal: Close the Wine process lifecycle on engine exit. Cover the reproduced SIGTERM path where `start.exe` survives and the normal-stop path where `wineserver -p` and `winedevice` survive. Use a signal-safe shutdown request or launcher parent-death handling so the page host and its vstbridge group die with the engine, and make normal shutdown kill the persistent prefix server before the process exits.
+- files: `engine/src/Main.cpp`, `engine/src/plugins/page/PageHostProcess.cpp`, `engine/src/plugins/page/PageHostProcessTree.*`, `plan/BUGS.md`
+- accept: with eight Analog Lab tracks ready, `kill -TERM` the engine leaves no `ihub-sandbox`, `start.exe`, `wineserver`, `winedevice` or vstbridge group within 5 s; closing normally leaves the same clean process list; `kill -9` of the page host still recovers to `ready`; BUG-025 and BUG-031 evidence are updated.
+- note: BUG-025 is the existing SIGTERM report; BUG-031 is the new persistent-server evidence. No sudo and no test-suite build.
+
+## T318 · BUG-032 remove the MIDI device-list assertion flood
+- depends: none
+- size: S
+- goal: Stop the repeated `juce_MidiDeviceListConnectionBroadcaster.cpp:94` and `:227` assertions when a MIDI input is enabled or the device list refreshes. Find which code touches the JUCE device-list broadcaster off the message thread and marshal that update without blocking the audio callback; keep input opening and note delivery working.
+- files: `engine/src/api/MidiBridge.*`, `engine/src/api/midi/`, `plan/BUGS.md`
+- accept: launch the app, enable VirMIDI 0-1 through `POST /midi/inputs`, wait 10 s and observe zero `MidiDeviceListConnectionBroadcaster.cpp:94`/`:227` assertion lines; the input still opens and receives notes; BUG-032 evidence is updated.
+- note: Pre-existing and independent of the page host; it is visible on every dev launch and makes other MIDI log lines hard to read.
+
+## T319 · MCP adapter foundation and read-only tools
+- depends: none
+- size: M
+- goal: Create the standalone `tools/ihub-mcp` Node 22/TypeScript package using the official MCP SDK over stdio. Add a typed HTTP/WebSocket client generated from `shared/api/openapi.yaml`, `IHUB_API_URL` defaulting to `http://127.0.0.1:8080`, optional `IHUB_TOKEN` sent as `X-Instrument-Hub-Token`, and read-only MCP tools `ihub_state`, `ihub_project`, `ihub_audio`, `ihub_midi`, `ihub_plugins`, `ihub_meters` (one latest frame), `ihub_transport`, and `ihub_wait_for_page_ready`. Add resources `ihub://state`, `ihub://project`, `ihub://audio`, `ihub://midi`, and `ihub://plugins`. Keep files small: API client, read tools, resources, formatting. Add a scripted stdio smoke client and a README with build/run and Claude Desktop/OpenCode config examples. Do not link engine code or change the engine.
+- files: `tools/ihub-mcp/`
+- accept: `pnpm --dir tools/ihub-mcp install --frozen-lockfile`, `typecheck` and `build` pass; the smoke client initializes, lists the read-only tools/resources, reads live state with `pages[0].status: ready`, and reads project, audio, MIDI, plugin inventory, transport and one meter frame; no write tools are registered; `cmake --build build-debug --target instrument-hub` still succeeds; no C++ test suite is built or run.
+- note: Foundation only. Pin the official `@modelcontextprotocol/sdk`, `zod`, `openapi-fetch`, `openapi-typescript`, TypeScript and `@types/node` in the lockfile. Do not add track, plugin, project or page control tools in this task.
+
+## T320 · MCP track, transport and MIDI control tools
+- depends: T319
+- size: S
+- goal: Add the first control tools on top of the T319 client: `ihub_arm_track`, `ihub_arm_slot`, `ihub_set_track_volume`, `ihub_toggle_track_fx`, `ihub_set_transport`, and `ihub_set_midi_input`. Reuse the existing typed client and result formatting; annotate every state-changing tool. Extend the stdio smoke client to arm track 2, set its volume step, change transport BPM, enable/disable a virtual MIDI input, and confirm each change through `/state` and `/transport`. Do not add plugin, editor, project or page tools.
+- files: `tools/ihub-mcp/src/tools/`, `tools/ihub-mcp/scripts/smoke.mjs`, `tools/ihub-mcp/README.md`
+- accept: `typecheck` and `build` pass; the smoke client arms track 2, sets its volume, changes BPM, toggles a MIDI input and confirms all changes through the live API; the tool list shows the new control tools; the engine build is unchanged; no C++ test suite is built or run.
+- note: Use the existing `/tracks/...`, `/transport` and `/midi/inputs` endpoints only. No direct ALSA calls and no raw HTTP passthrough.
+
+## T321 · MCP plugin, project and page tools with safety
+- depends: T320
+- size: M
+- goal: Add the plugin, project and page tools: `ihub_assign_plugin` (resolve the bundle path from `/plugins`, never accept arbitrary plugin paths), `ihub_clear_source`, `ihub_open_editor`, `ihub_close_editor`, `ihub_capture_patch_state`, `ihub_reload_plugin`, `ihub_restart_page`, and `ihub_project_action` for new/open/save/save-as. Add `IHUB_MCP_READ_ONLY=1` so write tools are not registered or are rejected, a loopback-only guard for `IHUB_API_URL` unless explicitly overridden, `confirm: true` for project switching and clearing a source, and MCP `readOnlyHint`/`destructiveHint` annotations. Finish the README with the full tool table, security notes and config examples, and add a short MCP adapter section to `docs/architecture.md`. Extend the smoke client to capture state on slot 0 and save the project, then verify read-only mode exposes no write tools and rejects a write call.
+- files: `tools/ihub-mcp/src/tools/`, `tools/ihub-mcp/src/security.ts`, `tools/ihub-mcp/README.md`, `tools/ihub-mcp/scripts/smoke.mjs`, `docs/architecture.md`
+- accept: `typecheck` and `build` pass; the full smoke client lists all tools and resources, captures state on slot 0, saves the project, and confirms read-only mode rejects writes; the MCP server never accepts an arbitrary plugin path or arbitrary HTTP endpoint; `ihub_restart_page` is registered but not called by the smoke client because of the known BUG-029 recovery delay; `cmake --build build-debug --target instrument-hub` still succeeds; no C++ test suite is built or run.
+- note: Register `ihub_restart_page` but keep it out of the timed smoke path. Do not add an engine MCP dependency or a generic HTTP proxy tool.
+
 ## T308 · Mixer-style track grid rendering
 - depends: T305
 - size: M

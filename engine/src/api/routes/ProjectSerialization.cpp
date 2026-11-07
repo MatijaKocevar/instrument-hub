@@ -28,4 +28,16 @@ juce::var projectOverviewToVar (const ProjectOverview& overview)
     return root;
 }
 
+juce::var projectDialogStatusToVar (const ProjectDialogStatus& status)
+{
+    auto root = Routes::makeObject();
+    auto* object = root.getDynamicObject();
+
+    object->setProperty ("id", juce::var (static_cast<juce::int64> (status.id)));
+    object->setProperty ("state", juce::String (status.state));
+    object->setProperty ("path", juce::String (status.path));
+
+    return root;
+}
+
 }

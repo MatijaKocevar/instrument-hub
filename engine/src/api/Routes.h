@@ -62,6 +62,7 @@ juce::var audioWizardToVar (const AudioWizardState& wizard);
 juce::var pairingToVar (const PairingSnapshot& pairing);
 
 juce::var projectOverviewToVar (const ProjectOverview& overview);
+juce::var projectDialogStatusToVar (const ProjectDialogStatus& status);
 
 juce::var midiStateToVar (const MidiStateSnapshot& midi);
 
@@ -91,6 +92,8 @@ struct RouteContext
 
     ProjectOverviewProvider projectProvider;
     ProjectCommandHandler projectCommand;
+    ProjectDialogBeginHandler projectDialogBegin;
+    ProjectDialogPollHandler projectDialogPoll;
 };
 
 void registerRoutes (httplib::Server& server, RouteContext context);

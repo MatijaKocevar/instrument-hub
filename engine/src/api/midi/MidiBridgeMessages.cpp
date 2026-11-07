@@ -13,6 +13,16 @@ bool MidiBridge::forwardMidiMessage (const juce::String& deviceName,
     if (roleForName (deviceName) == "launchpad")
         return false;
 
+    return sendToSession (message);
+}
+
+bool MidiBridge::sendToSession (const juce::MidiMessage& message)
+{
+    const auto size = message.getRawDataSize();
+
+    if (message.isSysEx() || size <= 0 || size > 3)
+        return false;
+
     const std::lock_guard<std::mutex> sinkLock (sinkMutex);
 
     if (! midiSink)

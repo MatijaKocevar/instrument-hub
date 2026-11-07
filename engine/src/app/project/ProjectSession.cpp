@@ -104,14 +104,17 @@ bool loadProjectSession (const juce::File& projectFile,
         return false;
     }
 
-    config.layout = document.layout == Controller::MappingLayout::tracks
-                        ? SessionLayout::tracks
-                        : SessionLayout::families;
-    config.sharedPluginHost = config.layout == SessionLayout::tracks;
+    if (document.layout != Controller::MappingLayout::tracks)
+    {
+        error = "only track projects are supported";
+        return false;
+    }
+
+    config.layout = SessionLayout::tracks;
+    config.sharedPluginHost = true;
     config.warmSlots.clear();
     config.tracks.clear();
 
-    if (config.layout == SessionLayout::tracks)
     {
         config.slots.assign (Controller::SetMapping::maximumTracks,
                              SessionSlotConfig {});
@@ -143,36 +146,10 @@ bool loadProjectSession (const juce::File& projectFile,
             config.warmSlots.push_back (track.slot);
         }
     }
-    else
-    {
-        config.slots.assign (maximumProjectSlots, SessionSlotConfig {});
-
-        for (int pad = 0; pad < Controller::SetMapping::maximumPads; ++pad)
-        {
-            const auto* binding = document.padBinding (pad);
-
-            if (binding == nullptr)
-                continue;
-
-            const auto* instrument = document.instrumentFor (*binding);
-
-            if (instrument == nullptr)
-                continue;
-
-            const int slotIndex = instrument->slot >= 0 ? instrument->slot : binding->slot;
-
-            if (slotIndex < 0 || slotIndex >= maximumProjectSlots)
-                continue;
-
-            auto& slot = config.slots[static_cast<std::size_t> (slotIndex)];
-            slot = SessionSlotConfig {};
-            importMappingSlot (*instrument, *binding, document, slot);
-        }
-    }
 
     for (const auto& source : set.slots)
     {
-        if (source.index < 0 || source.index >= maximumProjectSlots)
+        if (source.index < 0 || source.index >= Controller::SetMapping::maximumTracks)
             continue;
 
         auto& slot = config.slots[static_cast<std::size_t> (source.index)];

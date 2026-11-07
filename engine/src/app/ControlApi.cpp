@@ -1,6 +1,7 @@
 #include "ControlApi.h"
 
 #include "CommandLine.h"
+#include "project/ProjectDialog.h"
 #include "project/ProjectLifecycle.h"
 
 #include "Session.h"
@@ -12,6 +13,7 @@
 #include "plugins/PluginInventory.h"
 #include "settings/SettingsStore.h"
 
+#include <cstdint>
 #include <iostream>
 #include <utility>
 
@@ -53,6 +55,20 @@ bool ControlApi::start (const juce::String& commandLine,
                                             : ihub::Session::defaultLogicalSlots;
     apiState = std::make_unique<Api::StateStore> (apiSlots, settings);
     apiServer = std::make_unique<Api::Server> (*apiState, options);
+    projectDialog = std::make_unique<ProjectDialog>();
+    apiServer->setProjectDialogHandlers (
+        [this] (const Api::ProjectDialogRequest& request,
+                std::uint64_t& id,
+                std::string& error)
+        {
+            return projectDialog != nullptr && projectDialog->begin (request, id, error);
+        },
+        [this] (std::uint64_t id,
+                Api::ProjectDialogStatus& status,
+                std::string& error)
+        {
+            return projectDialog != nullptr && projectDialog->poll (id, status, error);
+        });
     pluginInventory = std::make_unique<ihub::plugins::PluginInventory>();
     Api::attachPluginInventory (*apiServer, *pluginInventory);
 
@@ -214,6 +230,7 @@ void ControlApi::resetServer()
 {
     resetProject();
     apiServer.reset();
+    projectDialog.reset();
 }
 
 void ControlApi::resetAudio()

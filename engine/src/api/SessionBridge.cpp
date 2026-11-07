@@ -394,11 +394,6 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
 
     state.setArmHandler ([&session] (int slot)
     {
-        const int previous = session.getArmedSlot();
-
-        if (previous >= 0 && previous != slot)
-            (void) session.capturePluginState (previous);
-
         session.armSlot (slot);
     });
 

@@ -38,7 +38,13 @@ public:
     void shutdown();
 
 private:
+    static constexpr int categoryPreviousButton = 0;
+    static constexpr int categoryNextButton = 1;
+    static constexpr int presetPreviousButton = 2;
+    static constexpr int presetNextButton = 3;
+
     void createMapping();
+    bool handleBrowseButton (int cc, bool pressed);
 
     std::unique_ptr<Controller::Mapping> mapping;
     std::unique_ptr<Controller::LaunchpadDriver> launchpad;

@@ -70,7 +70,7 @@ bool PluginWindow::showEditor (juce::AudioProcessor& processorToShow,
     const int editorWidth = juce::jmax (1, editor->getWidth());
     const int editorHeight = juce::jmax (1, editor->getHeight());
 
-    newWindow->setContentOwned (editor, false);
+    newWindow->setContentOwned (editor, true);
     newWindow->setResizable (editor->isResizable(), false);
 
     if (owner != nullptr && owner->isShowing())

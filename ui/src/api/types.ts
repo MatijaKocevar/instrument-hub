@@ -25,6 +25,10 @@ export type ControlPatchSourceRequest =
   components["schemas"]["PatchSourceRequest"];
 export type ControlProjectOverview = components["schemas"]["ProjectOverview"];
 export type ControlProjectCommand = components["schemas"]["ProjectCommand"];
+export type ControlProjectDialogRequest =
+  components["schemas"]["ProjectDialogRequest"];
+export type ControlProjectDialogStatus =
+  components["schemas"]["ProjectDialogStatus"];
 export type ControlPatchInstrument = components["schemas"]["PatchInstrument"];
 export type ControlTrack = components["schemas"]["Track"];
 export type ControlTrackUpdate = components["schemas"]["TrackUpdate"];

@@ -415,6 +415,74 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /project/dialog:
+    post:
+      tags: [state]
+      operationId: beginProjectDialog
+      summary: Open a native project file dialog
+      description: |
+        Opens the platform file chooser on the engine host. The dialog runs
+        asynchronously; poll `/project/dialog/{id}` until `state` is `done` or
+        `cancelled`. Only one dialog can be open at a time.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectDialogRequest"
+      responses:
+        "200":
+          description: The dialog was started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDialogStatus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /project/dialog/{id}:
+    get:
+      tags: [state]
+      operationId: getProjectDialog
+      summary: Poll a native project file dialog
+      description: |
+        Returns the current state of a dialog started with
+        `POST /project/dialog`. `done` carries the selected path, `cancelled`
+        means the user dismissed the chooser.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        "200":
+          description: The current dialog state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDialogStatus"
+        "404":
+          description: The dialog id is unknown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /arm:
     post:
       tags: [control]
@@ -2617,6 +2685,39 @@ components:
         name:
           type: string
           description: Optional display name for `new`.
+
+    ProjectDialogRequest:
+      type: object
+      required: [mode]
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          enum: [open, save]
+          description: Whether to open an existing project or choose a save target.
+        currentPath:
+          type: string
+          description: Starting file or folder, usually the open project.
+        suggestedName:
+          type: string
+          description: Proposed file name for `save`, with or without `.ihub`.
+
+    ProjectDialogStatus:
+      type: object
+      required: [id, state, path]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Poll this id with `GET /project/dialog/{id}`.
+        state:
+          type: string
+          enum: [pending, done, cancelled]
+          description: Dialog lifecycle state.
+        path:
+          type: string
+          description: Selected absolute path when `state` is `done`, empty otherwise.
 
     AudioChannel:
       type: object

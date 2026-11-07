@@ -30,12 +30,60 @@ export class ProjectActions {
   openProject = (path: string): Promise<boolean> =>
     this.run({ action: "open", path }, true);
 
-  saveProject = (): Promise<boolean> => this.run({ action: "save" });
+  openProjectDialog = async (): Promise<boolean> => {
+    const path = await this.chooseProjectPath("open");
+
+    return path === null ? false : this.openProject(path);
+  };
+
+  saveProject = (): Promise<boolean> => {
+    const project = this.context.getSnapshot().project;
+
+    return project === null || project.path.length === 0
+      ? this.saveProjectAsDialog()
+      : this.run({ action: "save" });
+  };
 
   saveProjectAs = (path: string): Promise<boolean> =>
     this.run({ action: "save-as", path });
 
+  saveProjectAsDialog = async (): Promise<boolean> => {
+    const path = await this.chooseProjectPath("save");
+
+    return path === null ? false : this.saveProjectAs(path);
+  };
+
   closeProject = (): Promise<boolean> => this.run({ action: "close" });
+
+  private chooseProjectPath = async (
+    mode: "open" | "save",
+  ): Promise<string | null> => {
+    this.patch({ projectBusy: true, projectError: null });
+
+    try {
+      const project = this.context.getSnapshot().project;
+      const currentPath = project?.path || project?.recent[0]?.path || "";
+      const suggestedName = project?.name || "Untitled";
+
+      let status = await this.context.api.beginProjectDialog({
+        mode,
+        currentPath,
+        suggestedName,
+      });
+
+      while (status.state === "pending") {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        status = await this.context.api.getProjectDialog(status.id);
+      }
+
+      this.patch({ projectBusy: false });
+
+      return status.state === "done" ? status.path : null;
+    } catch (error) {
+      this.patch({ projectBusy: false, projectError: messageOf(error) });
+      return null;
+    }
+  };
 
   private run = async (
     command: ControlProjectCommand,

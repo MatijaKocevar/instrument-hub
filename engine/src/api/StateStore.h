@@ -75,6 +75,7 @@ public:
     ProjectSaveState getProjectState() const;
     void setProjectStateProvider (ProjectStateProvider provider);
     void notifyProjectStateChanged();
+    void notePluginStateEdit (int slot);
 
     using ChangeHandler = std::function<void (const char* kind, int slot)>;
     void setChangeHandler (ChangeHandler handler);

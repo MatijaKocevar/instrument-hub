@@ -44,6 +44,11 @@ void StateStore::setEditHandler (EditHandler handler)
     editHandler = std::move (handler);
 }
 
+void StateStore::notePluginStateEdit (int slot)
+{
+    notifyEdited ("plugin", slot);
+}
+
 void StateStore::notifyEdited (const char* kind, int slot)
 {
     EditHandler handler;

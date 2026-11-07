@@ -174,6 +174,10 @@ bool captureProject (ihub::Session& session,
                 slot.instrument.pluginState = chunk.uuid;
                 set.pluginStates.push_back (std::move (chunk));
             }
+            else
+            {
+                slot.instrument.pluginState.clear();
+            }
         }
 
         set.slots.push_back (std::move (slot));

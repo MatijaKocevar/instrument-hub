@@ -193,6 +193,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/project/dialog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a native project file dialog
+         * @description Opens the platform file chooser on the engine host. The dialog runs
+         *     asynchronously; poll `/project/dialog/{id}` until `state` is `done` or
+         *     `cancelled`. Only one dialog can be open at a time.
+         */
+        post: operations["beginProjectDialog"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/project/dialog/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Poll a native project file dialog
+         * @description Returns the current state of a dialog started with
+         *     `POST /project/dialog`. `done` carries the selected path, `cancelled`
+         *     means the user dismissed the chooser.
+         */
+        get: operations["getProjectDialog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/arm": {
         parameters: {
             query?: never;
@@ -1358,6 +1402,31 @@ export interface components {
             /** @description Optional display name for `new`. */
             name?: string;
         };
+        ProjectDialogRequest: {
+            /**
+             * @description Whether to open an existing project or choose a save target.
+             * @enum {string}
+             */
+            mode: "open" | "save";
+            /** @description Starting file or folder, usually the open project. */
+            currentPath?: string;
+            /** @description Proposed file name for `save`, with or without `.ihub`. */
+            suggestedName?: string;
+        };
+        ProjectDialogStatus: {
+            /**
+             * Format: int64
+             * @description Poll this id with `GET /project/dialog/{id}`.
+             */
+            id: number;
+            /**
+             * @description Dialog lifecycle state.
+             * @enum {string}
+             */
+            state: "pending" | "done" | "cancelled";
+            /** @description Selected absolute path when `state` is `done`, empty otherwise. */
+            path: string;
+        };
         AudioChannel: {
             /** @description Zero-based channel index inside the device. */
             index: number;
@@ -2034,6 +2103,64 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    beginProjectDialog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectDialogRequest"];
+            };
+        };
+        responses: {
+            /** @description The dialog was started */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDialogStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getProjectDialog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current dialog state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDialogStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The dialog id is unknown */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     armSlot: {
