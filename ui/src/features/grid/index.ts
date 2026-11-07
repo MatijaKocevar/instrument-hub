@@ -32,7 +32,7 @@ export {
   type GridHotFx,
   type GridTrack,
   type TrackGridRole,
-  type TrackGridRow,
+  type TrackGridRowSpec,
   type TrackGridTrackInput,
   type TrackStatus,
 } from "./trackModel";
@@ -41,13 +41,16 @@ export {
   TRACK_DEFAULT_STEP,
   TRACK_MAX_STEP,
   TRACK_OVER_STEP,
+  TRACK_VOLUME_STAGE_POSITIONS,
   TRACK_VOLUME_STEPS,
   trackDbForStep,
   trackGainForStep,
+  trackVolumeStagePosition,
   trackVolumeStep,
   volumeStepForRow,
   type TrackVolumeStep,
 } from "./trackVolume";
+export { TrackGridRow, type TrackGridRowProps } from "./TrackGridRow";
 export {
   TrackGridTable,
   type TrackGridActions,

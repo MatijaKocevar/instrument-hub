@@ -1,87 +1,106 @@
 import type { ReactElement } from "react";
 
 import type { GridTrack } from "./trackModel";
-import { trackVolumeStep, volumeStepForRow } from "./trackVolume";
+import { TRACK_GRID_ROWS } from "./trackModel";
+import { TRACK_VOLUME_STEPS, trackVolumeStagePosition } from "./trackVolume";
+import { TrackVolumeStage } from "./TrackVolumeStage";
 
 interface TrackVolumeFaderProps {
   readonly track: GridTrack;
-  readonly step: number;
   readonly onSetTrackVolume:
     ((index: number, step: number) => void) | undefined;
 }
 
 export function TrackVolumeFader({
   track,
-  step,
   onSetTrackVolume,
 }: TrackVolumeFaderProps): ReactElement {
   const inactive = !track.hasInstrument;
   const current = track.volumeStep;
-  const active = !inactive && current === step;
-  const over = !inactive && step === 4 && current === 4;
-  const filled =
-    !inactive && (current > step || (current === step && current > 0));
-  const cap = current === step;
-  const label = trackVolumeStep(step).label;
+  const fill = inactive ? 0 : trackVolumeStagePosition(current);
+  const over = !inactive && current === 4;
   const readoutDb = `${track.volumeDb.toFixed(1)} dB`;
+  const stages = TRACK_GRID_ROWS.filter((row) => row.role === "volume");
 
   return (
     <div
-      className={`grid__cell track-grid__cell track-grid__cell--volume${inactive ? " track-grid__cell--inactive" : ""}${active ? " track-grid__cell--volume-active" : ""}${over ? " track-grid__cell--over" : ""}${filled ? " track-grid__cell--fader-filled" : ""}${cap ? " track-grid__cell--fader-cap" : ""}${cap && step === 0 ? " track-grid__cell--fader-cap-bottom" : ""}`}
-      role="gridcell"
-      data-testid="track-cell"
+      className={`track-grid__volume${inactive ? " track-grid__volume--inactive" : ""}${over ? " track-grid__volume--over" : ""}`}
+      data-testid="track-fader"
       data-track-index={track.index}
-      data-row={step}
-      data-role="volume"
-      data-step={step}
-      data-active={active ? "true" : "false"}
-      data-over={over ? "true" : "false"}
       data-volume-step={track.volumeStep}
-      data-filled={filled ? "true" : "false"}
-      data-cap={cap ? "true" : "false"}
+      data-db={track.volumeDb.toFixed(1)}
       data-inactive={inactive ? "true" : "false"}
     >
-      <button
-        className="grid__cell-main track-grid__fader"
-        type="button"
-        data-testid="track-volume"
+      <span
+        className="track-grid__fader-readout"
+        data-testid="track-fader-readout"
         data-track-index={track.index}
-        data-step={step}
-        data-active={active ? "true" : "false"}
-        data-over={over ? "true" : "false"}
-        aria-pressed={active}
-        aria-label={`Track ${String(track.index + 1)} volume ${inactive ? "unavailable" : label}`}
-        disabled={inactive || onSetTrackVolume === undefined}
-        onClick={
-          onSetTrackVolume === undefined
-            ? undefined
-            : () => {
-                onSetTrackVolume(track.index, volumeStepForRow(step));
-              }
-        }
+        data-volume-step={track.volumeStep}
+        data-db={track.volumeDb.toFixed(1)}
       >
-        {step === 4 ? (
+        <span className="track-grid__fader-db">{readoutDb}</span>
+      </span>
+
+      <div className="track-grid__fader-visual" aria-hidden="true">
+        <div className="track-grid__fader-track">
           <span
-            className="track-grid__fader-readout"
-            data-testid="track-fader-readout"
-            data-track-index={track.index}
-            data-volume-step={track.volumeStep}
-            data-db={track.volumeDb.toFixed(1)}
+            className="track-grid__fader-rail"
+            data-testid="track-fader-rail"
           >
-            <span className="track-grid__fader-db">{readoutDb}</span>
+            <span
+              className={`track-grid__fader-fill${over ? " track-grid__fader-fill--over" : ""}`}
+              data-testid="track-fader-fill"
+              data-step={track.volumeStep}
+              style={{ height: `${String(fill)}%` }}
+            />
           </span>
-        ) : null}
-        <span className="track-grid__fader-rail" aria-hidden="true">
+
           <span
-            className="track-grid__fader-fill"
-            style={{ height: filled ? "100%" : "0%" }}
+            className={`track-grid__fader-cap${over ? " track-grid__fader-cap--over" : ""}${current === 0 ? " track-grid__fader-cap--bottom" : ""}`}
+            data-testid="track-fader-cap"
+            data-step={track.volumeStep}
+            style={{ bottom: `${String(fill)}%` }}
           />
-        </span>
-        {cap ? <span className="track-grid__fader-cap" /> : null}
-        <span className="track-grid__fader-tick" aria-hidden="true">
-          <span className="track-grid__fader-label">{label}</span>
-        </span>
-      </button>
+
+          <div className="track-grid__fader-scale">
+            {TRACK_VOLUME_STEPS.map((stage) => {
+              const position = trackVolumeStagePosition(stage.step);
+              const active = !inactive && stage.step === current;
+              const reached = !inactive && stage.step <= current;
+              const stageOver = stage.step === 4;
+
+              return (
+                <span
+                  key={stage.step}
+                  className={`track-grid__fader-tick${reached ? " track-grid__fader-tick--reached" : ""}${active ? " track-grid__fader-tick--active" : ""}${stageOver ? " track-grid__fader-tick--over" : ""}`}
+                  data-testid="track-fader-tick"
+                  data-stage={stage.step}
+                  data-position={position}
+                  data-label={stage.label}
+                  data-active={active ? "true" : "false"}
+                  data-reached={reached ? "true" : "false"}
+                  data-over={stageOver ? "true" : "false"}
+                  style={{ bottom: `${String(position)}%` }}
+                >
+                  <span className="track-grid__fader-tick-line" />
+                  <span className="track-grid__fader-label">{stage.label}</span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="track-grid__fader-stages">
+        {stages.map((row) => (
+          <TrackVolumeStage
+            key={`volume-${String(row.step ?? 0)}`}
+            track={track}
+            step={row.step ?? 0}
+            onSetTrackVolume={onSetTrackVolume}
+          />
+        ))}
+      </div>
     </div>
   );
 }

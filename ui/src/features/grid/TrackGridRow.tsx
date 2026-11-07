@@ -7,18 +7,18 @@ import { TrackFxToggle } from "./TrackFxToggle";
 import { TrackSelectCell } from "./TrackSelectCell";
 import { TrackVolumeFader } from "./TrackVolumeFader";
 
-export interface TrackGridColumnProps extends TrackGridActions {
+export interface TrackGridRowProps extends TrackGridActions {
   readonly track: GridTrack;
 }
 
-export function TrackGridColumn({
+export function TrackGridRow({
   track,
   onSelectTrack,
   onOpenTrack,
   onToggleTrackFx,
   onSetTrackVolume,
   onRenameTrack,
-}: TrackGridColumnProps): ReactElement {
+}: TrackGridRowProps): ReactElement {
   return (
     <section
       className={`track-grid__column${track.selected ? " track-grid__column--selected" : ""}`}
@@ -45,14 +45,7 @@ export function TrackGridColumn({
         />
       ))}
 
-      {TRACK_GRID_ROWS.filter((row) => row.role === "volume").map((row) => (
-        <TrackVolumeFader
-          key={`volume-${String(row.step ?? 0)}`}
-          track={track}
-          step={row.step ?? 0}
-          onSetTrackVolume={onSetTrackVolume}
-        />
-      ))}
+      <TrackVolumeFader track={track} onSetTrackVolume={onSetTrackVolume} />
     </section>
   );
 }

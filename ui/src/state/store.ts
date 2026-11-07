@@ -212,8 +212,7 @@ export class AppStore {
   openProject = (path: string): Promise<boolean> =>
     this.project.openProject(path);
 
-  openProjectDialog = (): Promise<boolean> =>
-    this.project.openProjectDialog();
+  openProjectDialog = (): Promise<boolean> => this.project.openProjectDialog();
 
   saveProject = (): Promise<boolean> => this.project.saveProject();
 

@@ -37,7 +37,7 @@ export interface GridTrack {
 
 export type TrackGridRole = "track" | "fx" | "volume";
 
-export interface TrackGridRow {
+export interface TrackGridRowSpec {
   readonly row: number;
   readonly role: TrackGridRole;
   readonly hot?: number;
@@ -61,7 +61,7 @@ export interface TrackGridTrackInput {
   readonly hotFx: readonly ControlTrackHotFx[];
 }
 
-export const TRACK_GRID_ROWS: readonly TrackGridRow[] = [
+export const TRACK_GRID_ROWS: readonly TrackGridRowSpec[] = [
   { row: 7, role: "track", label: "Track" },
   { row: 6, role: "fx", hot: 0, label: "FX 1" },
   { row: 5, role: "fx", hot: 1, label: "FX 2" },
