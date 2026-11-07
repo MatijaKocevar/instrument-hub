@@ -133,6 +133,7 @@ public:
 
     void noteOn (int slot, int channel, int note, float velocity);
     void noteOff (int slot, int channel, int note);
+    void allNotesOff (int slot);
     void prepareSlot (int slot, double sampleRate, int maximumBlockSize);
     void processSlot (int slot, int internalIndex, juce::AudioBuffer<float>& buffer,
                       juce::MidiBuffer& midi);
@@ -179,6 +180,7 @@ private:
         std::atomic<int> droppedRequests { 0 };
         std::atomic<int> droppedMidiEvents { 0 };
         std::atomic<std::int64_t> playedBlocks { 0 };
+        std::atomic<int> controlInFlight { 0 };
 
         std::array<PendingMidiEvent, maxPendingMidiEvents> pendingMidi {};
         std::atomic<std::uint32_t> pendingWriteIndex { 0 };
@@ -190,7 +192,7 @@ private:
     explicit PageHost (Options optionsToUse);
 
     bool startProcess (juce::String& error);
-    void stopProcess() noexcept;
+    void stopProcess (bool resetWinePrefix = false) noexcept;
     void killChildProcessTree() noexcept;
 
     void startThreads();
@@ -254,6 +256,7 @@ private:
 
     juce::File bundleViewRoot;
     juce::String vstbridgeGroup;
+    juce::String winePrefix;
     std::map<juce::String, juce::File> bundleViews;
 
     std::thread watchdogThread;

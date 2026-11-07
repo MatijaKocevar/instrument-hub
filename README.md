@@ -74,8 +74,11 @@ builds for those platforms are not validated yet.
 3. Open a track from the Grid, choose **Change source**, and load a VST3,
    sampler kit or live audio input.
 4. Connect the Launchpad Mini MK3. Its `MI` port is detected automatically;
-   the top row is the track selector, the two rows below toggle the hot FX,
-   and the bottom five rows set the volume step.
+   the grid's top row selects tracks, the two rows below toggle the hot FX,
+   and the bottom five rows set the volume step. The two leftmost round
+   buttons above the grid step the armed track's Analog Lab category filter
+   (CC 20 / CC 21, learned once in Analog Lab's MIDI settings); the next two
+   step the preset back and forward (CC 29 / CC 28).
 5. Save the project from the footer. Autosave keeps the current `.ihub` up to
    date after each edit.
 
@@ -152,6 +155,7 @@ The engine serves `127.0.0.1:8080` by default:
 - `GET /plugins`, `POST /plugins/rescan`
 - `GET /midi`, `POST /midi/inputs`, `POST /midi/pad-test`
 - `GET/POST /project` — new, open, save, save-as, close
+- `POST /project/dialog`, `GET /project/dialog/{id}` — native open/save chooser
 - `GET /meters` and `GET /events` — WebSocket streams
 - `GET/POST /pairing`, `POST /pair` — tablet pairing and LAN mode
 

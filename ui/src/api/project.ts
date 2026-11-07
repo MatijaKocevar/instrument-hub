@@ -2,7 +2,12 @@ import type { Client } from "openapi-fetch";
 
 import type { RequestGuard } from "./client";
 import type { paths } from "./schema";
-import type { ControlProjectCommand, ControlProjectOverview } from "./types";
+import type {
+  ControlProjectCommand,
+  ControlProjectDialogRequest,
+  ControlProjectDialogStatus,
+  ControlProjectOverview,
+} from "./types";
 
 export interface ProjectEndpoints {
   getProject(options?: {
@@ -13,6 +18,16 @@ export interface ProjectEndpoints {
     command: ControlProjectCommand,
     options?: { signal?: AbortSignal },
   ): Promise<ControlProjectOverview>;
+
+  beginProjectDialog(
+    request: ControlProjectDialogRequest,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlProjectDialogStatus>;
+
+  getProjectDialog(
+    id: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlProjectDialogStatus>;
 }
 
 function requireProject(
@@ -29,6 +44,24 @@ function requireProject(
     typeof data.dirty === "boolean" &&
     typeof data.saved === "boolean" &&
     Array.isArray(data.recent)
+  )
+    return data;
+
+  return guard.fail(error, status, what);
+}
+
+function requireDialog(
+  guard: RequestGuard,
+  data: ControlProjectDialogStatus | undefined,
+  error: unknown,
+  status: number,
+  what: string,
+): ControlProjectDialogStatus {
+  if (
+    data !== undefined &&
+    typeof data.id === "number" &&
+    typeof data.state === "string" &&
+    typeof data.path === "string"
   )
     return data;
 
@@ -70,6 +103,43 @@ export function createProjectEndpoints(
         error,
         response.status,
         "POST /project",
+      );
+    },
+
+    async beginProjectDialog(request, requestOptions) {
+      const { data, error, response } = await client.POST("/project/dialog", {
+        body: request,
+        ...(requestOptions?.signal !== undefined
+          ? { signal: requestOptions.signal }
+          : {}),
+      });
+
+      return requireDialog(
+        guard,
+        data,
+        error,
+        response.status,
+        "POST /project/dialog",
+      );
+    },
+
+    async getProjectDialog(id, requestOptions) {
+      const { data, error, response } = await client.GET(
+        "/project/dialog/{id}",
+        {
+          params: { path: { id } },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
+        },
+      );
+
+      return requireDialog(
+        guard,
+        data,
+        error,
+        response.status,
+        "GET /project/dialog",
       );
     },
   };

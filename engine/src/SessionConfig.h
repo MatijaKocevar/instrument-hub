@@ -113,7 +113,7 @@ struct SessionConfig
     std::vector<SessionSlotConfig> slots;
     std::vector<SessionTrackConfig> tracks;
 
-    SessionLayout layout = SessionLayout::families;
+    SessionLayout layout = SessionLayout::tracks;
 
     bool sharedPluginHost = false;
 

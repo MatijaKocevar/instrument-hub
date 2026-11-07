@@ -131,24 +131,19 @@ Session::~Session()
 std::vector<SessionSlotConfig> Session::makeDefaultSet (SessionSlotKind defaultKind)
 {
     std::vector<SessionSlotConfig> slots;
-    slots.reserve (static_cast<std::size_t> (defaultLogicalSlots));
+    slots.reserve (static_cast<std::size_t> (defaultTrackSlots));
 
-    for (int index = 0; index < defaultLogicalSlots; ++index)
+    for (int index = 0; index < defaultTrackSlots; ++index)
     {
-        const int familyIndex = index / patchesPerFamily;
-        const int patchIndex = index % patchesPerFamily;
-        const double familyScale = std::pow (1.25, static_cast<double> (familyIndex));
-
         SessionSlotConfig slot;
-        slot.name = "Init " + std::to_string (index + 1);
+        slot.name = "Track " + std::to_string (index + 1);
         slot.kind = defaultKind;
         slot.instrumentKind = toString (defaultKind);
-        slot.frequency = defaultFrequencies[patchIndex] * familyScale;
         slot.gain = 1.0f;
 
-        slot.family = familyIds[familyIndex];
-        slot.familyName = familyNames[familyIndex];
-        slot.patch = "init-" + std::to_string (index);
+        slot.family = "track-" + std::to_string (index + 1);
+        slot.familyName = slot.name;
+        slot.patch = slot.family;
         slot.patchName = slot.name;
 
         slots.push_back (std::move (slot));

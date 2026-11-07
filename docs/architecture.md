@@ -496,7 +496,9 @@ Set in `shared/set.yaml` remains available through Open or
 Project lifecycle lives in `app/project/`: `ProjectLifecycle` owns the open
 path, the recent list handoff and the `new`/`open`/`save`/`save-as`/`close`
 commands; `ProjectAutosave` owns the debounced atomic write; `ProjectPaths`
-resolves `--project`, the stored last path and the default untitled file.
+resolves `--project`, the stored last path and the default untitled file;
+`ProjectDialog` drives the platform file chooser (zenity/kdialog on Linux) for
+the UI's Open and Save as actions.
 [TrackLayoutSave.h](../engine/src/app/project/TrackLayoutSave.h) /
 [TrackLayoutSave.cpp](../engine/src/app/project/TrackLayoutSave.cpp) and
 [TrackLayoutText.cpp](../engine/src/app/project/TrackLayoutText.cpp) own the

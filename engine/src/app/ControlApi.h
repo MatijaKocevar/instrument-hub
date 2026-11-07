@@ -37,6 +37,7 @@ class SettingsStore;
 namespace ihub::app
 {
 
+class ProjectDialog;
 class ProjectLifecycle;
 
 class ControlApi
@@ -72,6 +73,7 @@ private:
     std::unique_ptr<Api::Server> apiServer;
     std::unique_ptr<Api::MidiBridge> midiBridge;
     std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
+    std::unique_ptr<ProjectDialog> projectDialog;
     std::unique_ptr<ProjectLifecycle> projectLifecycle;
 };
 

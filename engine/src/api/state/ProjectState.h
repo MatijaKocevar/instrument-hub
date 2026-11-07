@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -37,9 +38,31 @@ struct ProjectCommand
     std::string name;
 };
 
+struct ProjectDialogRequest
+{
+    std::string mode;
+    std::string currentPath;
+    std::string suggestedName;
+};
+
+struct ProjectDialogStatus
+{
+    std::uint64_t id = 0;
+    std::string state;
+    std::string path;
+};
+
 using ProjectStateProvider = std::function<ProjectSaveState()>;
 using ProjectOverviewProvider = std::function<ProjectOverview()>;
 using ProjectCommandHandler =
     std::function<bool (const ProjectCommand& command, std::string& error)>;
+using ProjectDialogBeginHandler =
+    std::function<bool (const ProjectDialogRequest& request,
+                        std::uint64_t& id,
+                        std::string& error)>;
+using ProjectDialogPollHandler =
+    std::function<bool (std::uint64_t id,
+                        ProjectDialogStatus& status,
+                        std::string& error)>;
 
 }

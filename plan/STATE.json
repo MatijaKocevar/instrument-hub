@@ -1,5 +1,5 @@
 {
-  "_roadmap_count": 157,
+  "_roadmap_count": 168,
   "tasks": {
     "T000": {
       "attempts": 1,
@@ -626,6 +626,52 @@
       "status": "done"
     },
     "T308": {
+      "attempts": 0,
+      "status": "todo"
+    },
+    "T311": {
+      "attempts": 0,
+      "status": "todo"
+    },
+    "T312": {
+      "attempts": 0,
+      "status": "todo"
+    },
+    "T313": {
+      "attempts": 1,
+      "note": "implemented in the working tree and verified by T314/BUG-024",
+      "status": "done"
+    },
+    "T314": {
+      "attempts": 1,
+      "note": "verified; see plan/.autopilot/T314.result",
+      "status": "done"
+    },
+    "T315": {
+      "attempts": 1,
+      "status": "done"
+    },
+    "T316": {
+      "attempts": 0,
+      "status": "todo"
+    },
+    "T317": {
+      "attempts": 0,
+      "status": "todo"
+    },
+    "T318": {
+      "attempts": 0,
+      "status": "todo"
+    },
+    "T319": {
+      "attempts": 0,
+      "status": "todo"
+    },
+    "T320": {
+      "attempts": 0,
+      "status": "todo"
+    },
+    "T321": {
       "attempts": 0,
       "status": "todo"
     }

@@ -11,13 +11,18 @@ constexpr int watchdogIntervalMs = 20;
 
 void PageHost::requestRecovery (const juce::String& reason, bool manual)
 {
+    juce::ignoreUnused (manual);
+
     {
         const std::lock_guard<std::mutex> lock (recoveryMutex);
 
         if (shuttingDown)
             return;
 
-        if (! manual && status.load (std::memory_order_acquire) == Status::recovering)
+        if (recoveryRequested)
+            return;
+
+        if (status.load (std::memory_order_acquire) == Status::recovering)
             return;
 
         recoveryRequested = true;
@@ -64,6 +69,7 @@ bool PageHost::restartAndWait (int timeoutMs, juce::String& error)
 void PageHost::watchdogLoop()
 {
     std::vector<std::uint32_t> lastHeartbeat (slots.size(), 0);
+    std::vector<std::uint64_t> lastOutstanding (slots.size(), 0);
     std::vector<double> lastProgress (slots.size(),
                                       juce::Time::getMillisecondCounterHiRes());
 
@@ -92,8 +98,30 @@ void PageHost::watchdogLoop()
 
         if (childProcess == nullptr || ! childProcess->isRunning())
         {
-            requestRecovery ("shared plugin host exited unexpectedly", false);
-            return;
+            juce::String reason = "shared plugin host exited unexpectedly";
+
+            {
+                const std::lock_guard<std::mutex> lock (outputMutex);
+                const auto tail = outputTail.trim();
+
+                if (tail.isNotEmpty())
+                {
+                    reason << ": "
+                           << (tail.length() > 4000
+                                   ? tail.substring (tail.length() - 4000)
+                                   : tail);
+
+                    const auto log = juce::File::getSpecialLocation (
+                                         juce::File::tempDirectory)
+                                         .getChildFile ("ihub-page-host-crash.log");
+                    log.appendText ("--- "
+                                    + juce::Time::getCurrentTime().toString (true, true)
+                                    + " ---\n" + tail + "\n");
+                }
+            }
+
+            requestRecovery (reason, false);
+            continue;
         }
 
         auto* page = sharedPage.load (std::memory_order_acquire);
@@ -101,7 +129,7 @@ void PageHost::watchdogLoop()
         if (page == nullptr)
         {
             requestRecovery ("shared plugin page is not mapped", false);
-            return;
+            continue;
         }
 
         const auto now = juce::Time::getMillisecondCounterHiRes();
@@ -110,19 +138,41 @@ void PageHost::watchdogLoop()
         {
             auto& shared = page->slots[index];
             const auto heartbeat = sandbox::loadRelaxed (shared.heartbeat);
+            const auto outstanding = sandbox::loadAcquire (shared.requestPublished)
+                                   - sandbox::loadAcquire (shared.requestConsumed);
 
             if (heartbeat != lastHeartbeat[index])
             {
                 lastHeartbeat[index] = heartbeat;
+                lastOutstanding[index] = outstanding;
                 lastProgress[index] = now;
                 continue;
             }
 
-            const auto outstanding = sandbox::loadAcquire (shared.requestPublished)
-                                   - sandbox::loadAcquire (shared.requestConsumed);
+            if (slots[index]->controlInFlight.load (std::memory_order_relaxed) > 0)
+            {
+                lastOutstanding[index] = outstanding;
+                lastProgress[index] = now;
+                continue;
+            }
 
-            if (outstanding > 0
-                && now - lastProgress[index] > static_cast<double> (options.hangTimeoutMs))
+            if (outstanding == 0)
+            {
+                lastOutstanding[index] = 0;
+                lastProgress[index] = now;
+                continue;
+            }
+
+            if (lastOutstanding[index] == 0)
+            {
+                lastOutstanding[index] = outstanding;
+                lastProgress[index] = now;
+                continue;
+            }
+
+            lastOutstanding[index] = outstanding;
+
+            if (now - lastProgress[index] > static_cast<double> (options.hangTimeoutMs))
             {
                 requestRecovery ("shared plugin host stopped responding (slot "
                                      + juce::String (slots[index]->descriptor.slotIndex) + ")",
@@ -151,6 +201,7 @@ void PageHost::recoveryLoop()
             recoveryRequested = false;
         }
 
+        markStatus (Status::recovering, {});
         runRecovery();
     }
 }
@@ -217,11 +268,13 @@ bool PageHost::applyCommittedStates (juce::String& error)
             {
                 const std::lock_guard<std::mutex> lock (slot->stateLock);
                 slot->localError = reason;
+                slot->lastCommittedState.reset();
+                slot->lastCommittedRevision = 0;
             }
 
             slot->failed.store (true, std::memory_order_relaxed);
             error = reason;
-            return false;
+            continue;
         }
     }
 
@@ -263,7 +316,7 @@ void PageHost::runRecovery()
 
         {
             const std::lock_guard<std::mutex> lock (lifecycleMutex);
-            stopProcess();
+            stopProcess (true);
             started = startProcess (error);
         }
 
@@ -280,7 +333,7 @@ void PageHost::runRecovery()
             markStatus (Status::recovering, error);
 
             const std::lock_guard<std::mutex> lock (lifecycleMutex);
-            stopProcess();
+            stopProcess (true);
             continue;
         }
 

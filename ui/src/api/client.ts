@@ -38,6 +38,8 @@ export type {
   ControlPluginPage,
   ControlPluginList,
   ControlProjectCommand,
+  ControlProjectDialogRequest,
+  ControlProjectDialogStatus,
   ControlProjectOverview,
   ControlSettings,
   ControlSlot,

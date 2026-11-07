@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactElement } from "react";
 import type { ShellData } from "./useShellData";
 import "./project-menu.css";
 
-type ProjectPanel = "none" | "open" | "recent" | "saveAs";
+type ProjectPanel = "none" | "recent";
 
 export function ProjectMenu({
   shell,
@@ -19,12 +19,7 @@ export function ProjectMenu({
   const busy = app.projectBusy;
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<ProjectPanel>("none");
-  const [draftPath, setDraftPath] = useState(path);
   const root = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setDraftPath(path);
-  }, [path]);
 
   useEffect(() => {
     if (!open) return;
@@ -62,16 +57,6 @@ export function ProjectMenu({
 
   const togglePanel = (next: ProjectPanel): void => {
     setPanel((current) => (current === next ? "none" : next));
-  };
-
-  const openPath = (): void => {
-    if (draftPath.length > 0) void store.openProject(draftPath);
-    closeMenu();
-  };
-
-  const saveAs = (): void => {
-    if (draftPath.length > 0) void store.saveProjectAs(draftPath);
-    closeMenu();
   };
 
   return (
@@ -127,9 +112,10 @@ export function ProjectMenu({
           className="project-menu__item"
           data-testid="project-open"
           role="menuitem"
-          aria-expanded={panel === "open"}
+          disabled={busy}
           onClick={() => {
-            togglePanel("open");
+            void store.openProjectDialog();
+            closeMenu();
           }}
         >
           Open project…
@@ -170,9 +156,10 @@ export function ProjectMenu({
           className="project-menu__item"
           data-testid="project-save-as"
           role="menuitem"
-          aria-expanded={panel === "saveAs"}
+          disabled={busy || path.length === 0}
           onClick={() => {
-            togglePanel("saveAs");
+            void store.saveProjectAsDialog();
+            closeMenu();
           }}
         >
           Save as…
@@ -228,40 +215,6 @@ export function ProjectMenu({
           ) : (
             <p className="project-menu__empty">No recent projects</p>
           )}
-        </div>
-
-        <div
-          className="project-menu__subpanel project-menu__subpanel--path"
-          data-testid="project-path-panel"
-          hidden={panel !== "open" && panel !== "saveAs"}
-        >
-          <span className="project-menu__panel-title">
-            {panel === "saveAs" ? "Save project as" : "Open project"}
-          </span>
-          <input
-            className="project-menu__path"
-            data-testid="project-path"
-            value={draftPath}
-            placeholder="/path/to/project.ihub"
-            onChange={(event) => {
-              setDraftPath(event.target.value);
-            }}
-          />
-          <div className="project-menu__panel-actions">
-            <button
-              type="button"
-              className="project-menu__confirm"
-              data-testid={
-                panel === "saveAs"
-                  ? "project-save-as-confirm"
-                  : "project-open-path"
-              }
-              disabled={busy || draftPath.length === 0}
-              onClick={panel === "saveAs" ? saveAs : openPath}
-            >
-              {panel === "saveAs" ? "Save as" : "Open"}
-            </button>
-          </div>
         </div>
       </div>
     </div>

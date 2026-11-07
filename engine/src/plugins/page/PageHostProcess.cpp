@@ -2,6 +2,7 @@
 #include "../SandboxHost.h"
 
 #include "PageHostProcessTree.h"
+#include "PageHostWine.h"
 
 #include <cstdio>
 #include <cstring>
@@ -15,6 +16,8 @@ namespace ihub::plugins
 namespace
 {
 constexpr int processOutputDrainMs = 50;
+constexpr int helperGracefulStopMs = 8000;
+constexpr int groupGracefulStopMs = 6000;
 
 std::int32_t currentProcessId() noexcept
 {
@@ -157,6 +160,27 @@ bool PageHost::startProcess (juce::String& error)
     if (! bundleViewRoot.exists() && ! prepareBundleView (error))
         return false;
 
+    if (winePrefix.isEmpty())
+    {
+        for (const auto& slot : slots)
+        {
+            if (slot->descriptor.pluginBundle == juce::File())
+                continue;
+
+            winePrefix = page_detail::winePrefixForBundle (slot->descriptor.pluginBundle);
+
+            if (winePrefix.isNotEmpty())
+                break;
+        }
+    }
+
+    if (winePrefix.isNotEmpty())
+    {
+        page_detail::stopWinePrefixes (vstbridgeGroup, winePrefix);
+        page_detail::startWinePrefix (winePrefix);
+        (void) page_detail::warmWinePrefix (winePrefix, 20000);
+    }
+
     if (! mapNewPage (error))
         return false;
 
@@ -256,7 +280,7 @@ bool PageHost::startProcess (juce::String& error)
         if (abortRequested()
             || (options.shouldAbortStart && options.shouldAbortStart()))
         {
-            stopProcess();
+            stopProcess (true);
             error = "shared plugin host startup cancelled";
             return false;
         }
@@ -265,7 +289,7 @@ bool PageHost::startProcess (juce::String& error)
 
         if (page == nullptr)
         {
-            stopProcess();
+            stopProcess (true);
             error = "the plugin page shared memory is not mapped";
             return false;
         }
@@ -296,7 +320,7 @@ bool PageHost::startProcess (juce::String& error)
         {
             const auto detail = juce::String::fromUTF8 (page->error).trim();
 
-            stopProcess();
+            stopProcess (true);
             error = detail.isNotEmpty() ? detail
                                         : juce::String ("the shared plugin host failed to start");
             appendOutput (error);
@@ -305,7 +329,7 @@ bool PageHost::startProcess (juce::String& error)
 
         if (childProcess == nullptr || ! childProcess->isRunning())
         {
-            stopProcess();
+            stopProcess (true);
             error = "the shared plugin host exited during startup";
             appendOutput (error);
             return false;
@@ -313,7 +337,7 @@ bool PageHost::startProcess (juce::String& error)
 
         if (juce::Time::getMillisecondCounterHiRes() > deadline)
         {
-            stopProcess();
+            stopProcess (true);
             error = "the shared plugin host did not start within "
                   + juce::String (options.startupTimeoutMs) + " ms";
             appendOutput (error);
@@ -337,7 +361,7 @@ void PageHost::killChildProcessTree() noexcept
         childProcess->kill();
 }
 
-void PageHost::stopProcess() noexcept
+void PageHost::stopProcess (bool resetWinePrefix) noexcept
 {
     auto* page = sharedPage.load (std::memory_order_acquire);
 
@@ -345,18 +369,36 @@ void PageHost::stopProcess() noexcept
         sandbox::storeRelease (page->state,
                                static_cast<std::int32_t> (sandbox::ProcessState::stopping));
 
+    bool helperExited = false;
+
     if (childProcess != nullptr)
+        helperExited = childProcess->waitForProcessToFinish (helperGracefulStopMs);
+
+    if (childProcess != nullptr && ! helperExited)
     {
-        if (childProcess->isRunning())
-        {
-            childProcess->waitForProcessToFinish (300);
-
-            if (childProcess->isRunning())
-                killChildProcessTree();
-
-            childProcess->waitForProcessToFinish (1000);
-        }
+        killChildProcessTree();
+        childProcess->waitForProcessToFinish (1000);
     }
+
+    if (sharedMemoryFile != juce::File())
+        page_detail::killProcessesMatching (sharedMemoryFile.getFullPathName().toRawUTF8());
+
+    if (vstbridgeGroup.isNotEmpty())
+    {
+        if (resetWinePrefix)
+        {
+            page_detail::waitForProcessesMatching (vstbridgeGroup.toRawUTF8(),
+                                                    groupGracefulStopMs);
+            page_detail::stopWinePrefixes (vstbridgeGroup, winePrefix);
+
+            if (winePrefix.isNotEmpty())
+                page_detail::killProcessesWithWinePrefix (winePrefix.toRawUTF8());
+        }
+
+        page_detail::killProcessesMatching (vstbridgeGroup.toRawUTF8());
+    }
+
+    removeBundleView();
 
     if (outputThread.joinable())
     {
@@ -420,7 +462,7 @@ void PageHost::shutdown() noexcept
 
     std::lock_guard<std::mutex> lock (lifecycleMutex);
 
-    stopProcess();
+    stopProcess (true);
     removeBundleView();
     closeRetiredMappings();
     markStatus (Status::stopped, {});

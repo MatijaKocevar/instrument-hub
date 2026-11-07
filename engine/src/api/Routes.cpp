@@ -10,6 +10,7 @@ void registerRoutes (httplib::Server& server, RouteContext context)
     Routes::registerStateRoutes (server, context);
     Routes::registerTrackRoutes (server, context);
     Routes::registerProjectRoutes (server, context);
+    Routes::registerProjectDialogRoutes (server, context);
     Routes::registerPatchRoutes (server, context);
     Routes::registerFxRoutes (server, context);
     Routes::registerAudioRoutes (server, context);

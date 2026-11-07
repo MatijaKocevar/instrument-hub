@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instrument Hub Autopilot</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b1120;
+    --panel: #111a2e;
+    --panel-2: #16233d;
+    --line: #26344f;
+    --text: #e2e8f0;
+    --muted: #93a4bd;
+    --accent: #38bdf8;
+    --done: #34d399;
+    --todo: #94a3b8;
+    --working: #fbbf24;
+    --blocked: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(circle at 20% 0%, #172554 0, var(--bg) 38rem);
+    color: var(--text);
+    font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+  }
+  main { max-width: 1500px; margin: 0 auto; padding: 28px 22px 50px; }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+  h1 { margin: 0; font-size: 24px; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .run { display: flex; align-items: center; gap: 8px; color: var(--muted); white-space: nowrap; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--todo); }
+  .dot.on { background: var(--done); box-shadow: 0 0 0 4px rgba(52, 211, 153, .12); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); } }
+  .panel { background: linear-gradient(180deg, var(--panel), #0e1728); border: 1px solid var(--line); border-radius: 14px; }
+  .summary { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-bottom: 16px; }
+  .progress-card { padding: 18px 20px; }
+  .progress-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+  .percent { font-size: 30px; font-weight: 700; letter-spacing: -0.04em; }
+  .counts { color: var(--muted); font-size: 12px; text-align: right; }
+  .bar { height: 12px; background: #0a1324; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #0ea5e9, #34d399); border-radius: inherit; transition: width .35s ease; }
+  .current-card { padding: 18px 20px; border-left: 3px solid var(--working); }
+  .eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 10px; color: var(--muted); font-weight: 700; }
+  .current-title { margin: 7px 0 4px; font-size: 18px; font-weight: 650; }
+  .current-goal { color: var(--muted); font-size: 12.5px; max-width: 70ch; }
+  .current-meta { margin-top: 10px; display: flex; gap: 14px; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+  .table-card { overflow: hidden; }
+  .table-scroll { max-height: 58vh; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    position: sticky; top: 0; z-index: 1; text-align: left; background: #0e1728;
+    color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    padding: 11px 14px; border-bottom: 1px solid var(--line);
+  }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(38, 52, 79, .55); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr.is-current { background: rgba(251, 191, 36, .075); }
+  tbody tr.is-done { color: #b6c5d9; }
+  .task-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .task-title { font-weight: 600; }
+  .task-goal { color: var(--muted); font-size: 12px; margin-top: 2px; max-width: 76ch; }
+  .task-size { color: #64748b; font-size: 10px; margin-left: 5px; text-transform: uppercase; letter-spacing: .08em; }
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 650; text-transform: capitalize; border: 1px solid; white-space: nowrap; }
+  .s-done { color: var(--done); border-color: rgba(52, 211, 153, .35); background: rgba(52, 211, 153, .08); }
+  .s-todo { color: var(--todo); border-color: rgba(148, 163, 184, .3); background: rgba(148, 163, 184, .07); }
+  .s-working { color: var(--working); border-color: rgba(251, 191, 36, .45); background: rgba(251, 191, 36, .1); }
+  .s-blocked { color: var(--blocked); border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .09); }
+  .note { color: var(--muted); font-size: 11.5px; max-width: 50ch; overflow-wrap: anywhere; }
+  .attempts { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .empty { color: var(--muted); padding: 22px; }
+  .log-card { margin-top: 16px; padding: 16px 18px; }
+  .log-card h2 { margin: 0 0 10px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  pre { margin: 0; max-height: 210px; overflow: auto; color: #a9bbd4; font: 11.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  .offline { color: var(--blocked); }
+  @media (max-width: 900px) {
+    .summary { grid-template-columns: 1fr; }
+    .task-goal { max-width: none; }
+    .note { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Instrument Hub <span>Autopilot</span></h1>
+      <div class="sub">Task queue progress · updates every 2 seconds</div>
+    </div>
+    <div class="run"><span id="dot" class="dot"></span><span id="run-state">connecting…</span></div>
+  </header>
+
+  <section class="summary">
+    <div class="panel progress-card">
+      <div class="progress-head">
+        <div>
+          <div class="eyebrow">Overall progress</div>
+          <div id="percent" class="percent">0%</div>
+        </div>
+        <div id="counts" class="counts"></div>
+      </div>
+      <div class="bar"><div id="bar"></div></div>
+    </div>
+    <div class="panel current-card">
+      <div class="eyebrow">Working on</div>
+      <div id="current-title" class="current-title">Waiting for autopilot…</div>
+      <div id="current-goal" class="current-goal"></div>
+      <div id="current-meta" class="current-meta"></div>
+    </div>
+  </section>
+
+  <section class="panel table-card">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Attempts</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="tasks"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel log-card">
+    <h2>Recent driver log</h2>
+    <pre id="log">No log yet.</pre>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const LABEL = { done: "done", todo: "todo", working: "working", blocked: "blocked" };
+
+function duration(seconds) {
+  if (seconds == null) return "";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function cell(text, className) {
+  const td = document.createElement("td");
+  if (className) td.className = className;
+  td.textContent = text;
+  return td;
+}
+
+function render(data) {
+  const counts = data.counts;
+  $("percent").textContent = `${counts.percent.toFixed(1)}%`;
+  $("bar").style.width = `${counts.percent}%`;
+  $("counts").textContent =
+    `${counts.done} done · ${counts.working} working · ${counts.todo} todo · ` +
+    `${counts.blocked} blocked · ${counts.total} total`;
+  $("dot").className = data.running ? "dot on" : "dot";
+  $("run-state").textContent = data.running ? "autopilot running" : "autopilot stopped";
+
+  if (data.current) {
+    $("current-title").textContent = `${data.current.id} · ${data.current.title}`;
+    $("current-goal").textContent = data.current.goal;
+    const bits = [];
+    if (data.current.started) bits.push(`started ${data.current.started}`);
+    if (data.current.elapsedSeconds != null) bits.push(`elapsed ${duration(data.current.elapsedSeconds)}`);
+    if (data.current.attempts) bits.push(`attempt ${data.current.attempts}`);
+    if (!data.running) bits.push("autopilot is not running");
+    $("current-meta").textContent = bits.join(" · ");
+  } else {
+    $("current-title").textContent = data.running ? "Waiting for the next task…" : "Autopilot is not running";
+    $("current-goal").textContent = "";
+    $("current-meta").textContent = `updated ${data.updated}`;
+  }
+
+  const tbody = $("tasks");
+  tbody.replaceChildren();
+  for (const task of data.tasks) {
+    const tr = document.createElement("tr");
+    if (task.current) tr.className = "is-current";
+    else if (task.status === "done") tr.className = "is-done";
+
+    const id = document.createElement("td");
+    const idText = document.createElement("span");
+    idText.className = "task-id";
+    idText.textContent = task.id;
+    id.appendChild(idText);
+    if (task.size) {
+      const size = document.createElement("span");
+      size.className = "task-size";
+      size.textContent = task.size;
+      id.appendChild(size);
+    }
+    tr.appendChild(id);
+
+    const description = document.createElement("td");
+    const title = document.createElement("div");
+    title.className = "task-title";
+    title.textContent = task.title;
+    const goal = document.createElement("div");
+    goal.className = "task-goal";
+    goal.textContent = task.goal;
+    description.append(title, goal);
+    tr.appendChild(description);
+
+    const status = document.createElement("td");
+    const pill = document.createElement("span");
+    pill.className = `pill s-${task.status}`;
+    pill.textContent = LABEL[task.status] || task.status;
+    status.appendChild(pill);
+    tr.appendChild(status);
+
+    tr.appendChild(cell(task.attempts ? String(task.attempts) : "—", "attempts"));
+    tr.appendChild(cell(task.note || "", "note"));
+    tbody.appendChild(tr);
+  }
+
+  $("log").textContent = data.log.length ? data.log.join("\n") : "No driver log yet.";
+}
+
+async function refresh() {
+  try {
+    const response = await fetch("/api/status", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    render(await response.json());
+  } catch (error) {
+    $("run-state").textContent = "progress server offline";
+    $("run-state").className = "offline";
+    $("dot").className = "dot";
+  }
+}
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

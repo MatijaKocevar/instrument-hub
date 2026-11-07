@@ -295,10 +295,33 @@ int SandboxClient::run (const juce::StringArray& commandLine)
 
             consumeEditorCapture (shared, plugin.get());
 
-            sandbox_client::handleControl (shared,
-                                           plugin.get(),
-                                           lastControlSequence,
-                                           editorControl);
+            if (sandbox::loadAcquire (shared.control.sequence) != lastControlSequence)
+            {
+                if (gui != nullptr)
+                {
+                    const auto handled = juce::MessageManager::callSync ([&]
+                    {
+                        sandbox_client::handleControl (shared,
+                                                       plugin.get(),
+                                                       lastControlSequence,
+                                                       editorControl);
+                        return true;
+                    });
+
+                    if (! handled.has_value())
+                        sandbox_client::handleControl (shared,
+                                                       plugin.get(),
+                                                       lastControlSequence,
+                                                       editorControl);
+                }
+                else
+                {
+                    sandbox_client::handleControl (shared,
+                                                   plugin.get(),
+                                                   lastControlSequence,
+                                                   editorControl);
+                }
+            }
 
             const auto now = juce::Time::getMillisecondCounterHiRes();
 

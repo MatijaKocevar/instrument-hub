@@ -137,6 +137,26 @@ control surface:
 | Right column, top to bottom | 89, 79, 69, 59, 49, 39, 29, 19 | Scene 0..7 |
 | Logo | 99 | Decoded; no mapping yet |
 
+In the track layout there are no macro banks by default, so the first four
+top-row buttons control the armed track's hosted instrument:
+
+| CC | Button | Sends | Meaning |
+| --- | --- | --- | --- |
+| 91 | 1st, green | CC 20 | Previous category |
+| 92 | 2nd, green | CC 21 | Next category |
+| 93 | 3rd, yellow | CC 29 | Previous preset |
+| 94 | 4th, yellow | CC 28 | Next preset |
+
+Analog Lab V maps CC 28/29 to its preset arrows by default, so the yellow
+preset pair works immediately; it turns green on press. Preset changes mark
+the project dirty so the new sound is autosaved.
+
+The green category pair is not on a default Analog Lab CC. Learn CC 20/21 in
+Analog Lab's MIDI settings (Function Learn or the Category navigation
+controls) once per plugin instance; the buttons then scroll the category
+filter. The green pair turns yellow on press. If a mapping assigns a bank to
+one of these CCs, the bank wins and the browse action is not used.
+
 Button LEDs use the same palette velocity on a CC message:
 `B0 <cc> <velocity>` (with `B1`/`B2` for flashing/pulsing).
 

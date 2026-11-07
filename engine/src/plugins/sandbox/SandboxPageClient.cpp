@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <exception>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -162,6 +163,38 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
         return exitCode;
     };
 
+    std::map<juce::String, juce::PluginDescription> descriptions;
+
+    const auto findDescription = [&] (const juce::File& bundle,
+                                      juce::PluginDescription& description,
+                                      juce::String& loadError) -> bool
+    {
+        const auto path = bundle.getFullPathName();
+        const auto cached = descriptions.find (path);
+
+        if (cached != descriptions.end())
+        {
+            description = cached->second;
+            return true;
+        }
+
+        juce::OwnedArray<juce::PluginDescription> types;
+
+        for (auto* format : formatManager.getFormats())
+            if (format->fileMightContainThisPluginType (path))
+                format->findAllTypesForFile (types, path);
+
+        if (types.isEmpty())
+        {
+            loadError = "no plugin types found in " + path;
+            return false;
+        }
+
+        description = *types.getFirst();
+        descriptions.emplace (path, description);
+        return true;
+    };
+
     for (const auto& slotArguments : arguments.pageSlots)
     {
         if (slotArguments.slotIndex < 0 || slotArguments.slotIndex >= page.numSlots)
@@ -180,14 +213,23 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
         {
             if (slotArguments.pluginBundle != juce::File())
             {
-                runtime.plugin = std::make_unique<PluginInstrument>();
+                juce::PluginDescription description;
                 juce::String loadError;
 
-                if (! runtime.plugin->loadFromFile (formatManager,
-                                                    slotArguments.pluginBundle,
-                                                    sampleRate,
-                                                    maximumBlockSize,
-                                                    loadError))
+                if (! findDescription (slotArguments.pluginBundle, description, loadError))
+                {
+                    return failPage ("slot " + juce::String (slotArguments.slotIndex)
+                                         + " could not find plugin types: " + loadError,
+                                     4);
+                }
+
+                runtime.plugin = std::make_unique<PluginInstrument>();
+
+                if (! runtime.plugin->load (formatManager,
+                                            description,
+                                            sampleRate,
+                                            maximumBlockSize,
+                                            loadError))
                 {
                     return failPage ("slot " + juce::String (slotArguments.slotIndex)
                                          + " could not load plugin: " + loadError,
@@ -394,7 +436,31 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
             }
 
             sandbox_client::consumeEditorCapture (shared, plugin);
-            sandbox_client::handleControl (shared, plugin, lastControlSequence, editorControl);
+
+            if (sandbox::loadAcquire (shared.control.sequence) != lastControlSequence)
+            {
+                if (gui != nullptr)
+                {
+                    const auto handled = juce::MessageManager::callSync ([&]
+                    {
+                        sandbox_client::handleControl (shared, plugin,
+                                                       lastControlSequence,
+                                                       editorControl);
+                        return true;
+                    });
+
+                    if (! handled.has_value())
+                        sandbox_client::handleControl (shared, plugin,
+                                                       lastControlSequence,
+                                                       editorControl);
+                }
+                else
+                {
+                    sandbox_client::handleControl (shared, plugin,
+                                                   lastControlSequence,
+                                                   editorControl);
+                }
+            }
 
             const auto now = juce::Time::getMillisecondCounterHiRes();
 

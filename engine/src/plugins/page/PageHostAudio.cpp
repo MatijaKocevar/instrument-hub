@@ -89,6 +89,31 @@ void PageHost::noteOff (int slot, int channel, int note)
     (void) pushPendingEvent (*state, message, 3);
 }
 
+void PageHost::allNotesOff (int slot)
+{
+    auto* state = findSlot (slot);
+
+    if (state == nullptr)
+        return;
+
+    for (int channel = 1; channel <= 16; ++channel)
+    {
+        const std::uint8_t noteOff[3] {
+            channelStatus (0xB0, channel), 123, 0
+        };
+        const std::uint8_t soundOff[3] {
+            channelStatus (0xB0, channel), 120, 0
+        };
+        const std::uint8_t sustainOff[3] {
+            channelStatus (0xB0, channel), 64, 0
+        };
+
+        (void) pushPendingEvent (*state, noteOff, 3);
+        (void) pushPendingEvent (*state, soundOff, 3);
+        (void) pushPendingEvent (*state, sustainOff, 3);
+    }
+}
+
 void PageHost::prepareSlot (int slot, double sampleRate, int maximumBlockSize)
 {
     preparedBlockSize.store (juce::jmax (1, maximumBlockSize), std::memory_order_relaxed);

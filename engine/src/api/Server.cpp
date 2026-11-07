@@ -125,7 +125,7 @@ struct Server::Impl
         });
 
         RouteContext context { state, {}, {}, {}, {}, {}, {}, {}, &pairing,
-                               {}, {}, {}, {}, {}, {}, {}, {} };
+                               {}, {}, {}, {}, {}, {}, {}, {}, {}, {} };
 
         {
             const std::lock_guard<std::mutex> lock (configMutex);
@@ -142,6 +142,8 @@ struct Server::Impl
             context.midiPadTest = midiPadTest;
             context.projectProvider = projectProvider;
             context.projectCommand = projectCommand;
+            context.projectDialogBegin = projectDialogBegin;
+            context.projectDialogPoll = projectDialogPoll;
         }
 
         context.setLanMode = [this] (bool enabled) { return applyLanMode (enabled); };
@@ -298,6 +300,8 @@ struct Server::Impl
     MidiPadTestHandler midiPadTest;
     ProjectOverviewProvider projectProvider;
     ProjectCommandHandler projectCommand;
+    ProjectDialogBeginHandler projectDialogBegin;
+    ProjectDialogPollHandler projectDialogPoll;
 
     PairingManager pairing;
     Discovery discovery;
@@ -467,6 +471,14 @@ void Server::setProjectHandlers (ProjectOverviewProvider provider,
     const std::lock_guard<std::mutex> lock (impl->configMutex);
     impl->projectProvider = std::move (provider);
     impl->projectCommand = std::move (command);
+}
+
+void Server::setProjectDialogHandlers (ProjectDialogBeginHandler begin,
+                                       ProjectDialogPollHandler poll)
+{
+    const std::lock_guard<std::mutex> lock (impl->configMutex);
+    impl->projectDialogBegin = std::move (begin);
+    impl->projectDialogPoll = std::move (poll);
 }
 
 void Server::setAuthToken (std::string token)

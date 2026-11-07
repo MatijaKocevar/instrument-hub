@@ -45,8 +45,10 @@ void ControllerSurface::start (Api::StateStore* state,
 
     driverListeners.buttonEvent = [this] (int cc, bool pressed)
     {
-        if (mapping != nullptr)
-            mapping->handleButton (cc, pressed);
+        if (mapping != nullptr && mapping->handleButton (cc, pressed))
+            return;
+
+        (void) handleBrowseButton (cc, pressed);
     };
 
     launchpad->setListeners (std::move (driverListeners));

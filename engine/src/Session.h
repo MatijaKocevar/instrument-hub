@@ -54,6 +54,7 @@ class Session final : public juce::AudioIODeviceCallback
 {
 public:
     static constexpr int defaultLogicalSlots = 64;
+    static constexpr int defaultTrackSlots = 8;
 
     Session();
     ~Session() override;

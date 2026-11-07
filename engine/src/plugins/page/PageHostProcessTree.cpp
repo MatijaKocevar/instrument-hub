@@ -1,6 +1,7 @@
 #include "PageHostProcessTree.h"
 
 #if defined(__linux__)
+ #include <algorithm>
  #include <chrono>
  #include <csignal>
  #include <dirent.h>
@@ -183,6 +184,231 @@ void killProcessTree (pid_t root) noexcept
    #else
     (void) root;
    #endif
+}
+
+bool hasProcessesMatching (const char* token) noexcept
+{
+   #if defined(__linux__)
+    if (token == nullptr || *token == '\0')
+        return false;
+
+    const std::string needle (token);
+
+    for (const auto& process : readProcesses())
+        for (const auto& argument : process.arguments)
+            if (argument.find (needle) != std::string::npos)
+                return true;
+   #else
+    (void) token;
+   #endif
+
+    return false;
+}
+
+void waitForProcessesMatching (const char* token, int timeoutMs) noexcept
+{
+    for (int elapsed = 0; elapsed < timeoutMs; elapsed += 20)
+    {
+        if (! hasProcessesMatching (token))
+            return;
+
+        std::this_thread::sleep_for (std::chrono::milliseconds (20));
+    }
+}
+
+void killProcessesMatching (const char* token) noexcept
+{
+   #if defined(__linux__)
+    if (token == nullptr || *token == '\0')
+        return;
+
+    const std::string needle (token);
+    const auto processes = readProcesses();
+    std::set<pid_t> targets;
+
+    for (const auto& process : processes)
+    {
+        for (const auto& argument : process.arguments)
+        {
+            if (argument.find (needle) != std::string::npos)
+            {
+                targets.insert (process.pid);
+                break;
+            }
+        }
+    }
+
+    bool changed = true;
+
+    while (changed)
+    {
+        changed = false;
+
+        for (const auto& process : processes)
+        {
+            if (targets.count (process.pid) != 0)
+                continue;
+
+            bool belongsToTree = targets.count (process.parent) != 0;
+
+            if (! belongsToTree)
+            {
+                for (const auto pid : targets)
+                {
+                    if (containsArgument (process, std::to_string (pid)))
+                    {
+                        belongsToTree = true;
+                        break;
+                    }
+                }
+            }
+
+            if (belongsToTree)
+            {
+                targets.insert (process.pid);
+                changed = true;
+            }
+        }
+    }
+
+    if (targets.empty())
+        return;
+
+    const std::vector<pid_t> ordered (targets.begin(), targets.end());
+    signalProcesses (ordered, SIGTERM);
+
+    for (int attempt = 0; attempt < 500; ++attempt)
+    {
+        bool anyAlive = false;
+
+        for (const auto pid : ordered)
+            anyAlive = anyAlive || processExists (pid);
+
+        if (! anyAlive)
+            break;
+
+        std::this_thread::sleep_for (std::chrono::milliseconds (10));
+    }
+
+    signalProcesses (ordered, SIGKILL);
+   #else
+    (void) token;
+   #endif
+}
+
+void killProcessesWithWinePrefix (const char* prefix) noexcept
+{
+   #if defined(__linux__)
+    if (prefix == nullptr || *prefix == '\0')
+        return;
+
+    const std::string wanted = std::string ("WINEPREFIX=") + prefix;
+
+    for (int attempt = 0; attempt < 100; ++attempt)
+    {
+        std::vector<pid_t> targets;
+
+        for (const auto& process : readProcesses())
+        {
+            std::ifstream environment ("/proc/" + std::to_string (process.pid) + "/environ",
+                                       std::ios::in | std::ios::binary);
+            const std::string data ((std::istreambuf_iterator<char> (environment)),
+                                    std::istreambuf_iterator<char>());
+            std::size_t position = 0;
+
+            while (position < data.size())
+            {
+                const auto end = data.find ('\0', position);
+                const auto entry = data.substr (position,
+                                                end == std::string::npos
+                                                    ? std::string::npos
+                                                    : end - position);
+
+                if (entry == wanted)
+                {
+                    targets.push_back (process.pid);
+                    break;
+                }
+
+                if (end == std::string::npos)
+                    break;
+
+                position = end + 1;
+            }
+        }
+
+        if (targets.empty())
+            return;
+
+        signalProcesses (targets, SIGKILL);
+        std::this_thread::sleep_for (std::chrono::milliseconds (20));
+    }
+   #else
+    (void) prefix;
+   #endif
+}
+
+std::vector<std::string> winePrefixesMatching (const char* token) noexcept
+{
+    std::vector<std::string> prefixes;
+
+   #if defined(__linux__)
+    if (token == nullptr || *token == '\0')
+        return prefixes;
+
+    const std::string needle (token);
+
+    for (const auto& process : readProcesses())
+    {
+        bool matches = false;
+
+        for (const auto& argument : process.arguments)
+        {
+            if (argument.find (needle) != std::string::npos)
+            {
+                matches = true;
+                break;
+            }
+        }
+
+        if (! matches)
+            continue;
+
+        std::ifstream environment ("/proc/" + std::to_string (process.pid) + "/environ",
+                                   std::ios::in | std::ios::binary);
+        const std::string data ((std::istreambuf_iterator<char> (environment)),
+                                std::istreambuf_iterator<char>());
+
+        std::size_t position = 0;
+
+        while ((position = data.find ("WINEPREFIX=", position)) != std::string::npos)
+        {
+            if (position != 0 && data[position - 1] != '\0')
+            {
+                position += 11;
+                continue;
+            }
+
+            const auto end = data.find ('\0', position);
+            const auto prefix = data.substr (position + 11,
+                                             end == std::string::npos
+                                                 ? std::string::npos
+                                                 : end - position - 11);
+
+            if (! prefix.empty()
+                && std::find (prefixes.begin(), prefixes.end(), prefix) == prefixes.end())
+            {
+                prefixes.push_back (prefix);
+            }
+
+            position = end == std::string::npos ? data.size() : end;
+        }
+    }
+   #else
+    (void) token;
+   #endif
+
+    return prefixes;
 }
 
 } // namespace ihub::plugins::page_detail

@@ -23,8 +23,10 @@ std::filesystem::path Mapping::findDefaultSetFile()
         return {};
 
     const std::filesystem::path candidates[] {
-        directory / "set.yaml",
-        directory / "shared" / "set.yaml"
+        directory / "tracks-set.yaml",
+        directory / "shared" / "tracks-set.yaml",
+        directory / "blank-set.yaml",
+        directory / "shared" / "blank-set.yaml"
     };
 
     for (const auto& candidate : candidates)

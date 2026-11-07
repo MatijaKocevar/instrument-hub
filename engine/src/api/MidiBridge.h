@@ -51,6 +51,8 @@ public:
     bool forwardMidiMessage (const juce::String& deviceName,
                              const juce::MidiMessage& message);
 
+    bool sendToSession (const juce::MidiMessage& message);
+
     bool processMidiMessage (const std::string& deviceId,
                              const juce::String& deviceName,
                              const juce::MidiMessage& message);

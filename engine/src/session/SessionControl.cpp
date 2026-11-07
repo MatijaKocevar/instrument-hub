@@ -325,18 +325,18 @@ void Session::armSlot (int slot)
 
     if (slot < 0)
     {
-        const int previous = warmPool.getActiveSlot();
-
-        if (previous >= 0)
-            (void) capturePluginState (previous);
-
         if (editorHost != nullptr)
             editorHost->closeEditorsExcept (-1);
 
         closeSandboxEditors (-1);
 
         if (auto page = getPageHost(); page != nullptr)
+        {
+            for (const int pageSlot : page->getSlotIndices())
+                page->allNotesOff (pageSlot);
+
             page->setActiveSlot (-1);
+        }
 
         warmPool.disarm();
         return;
@@ -345,13 +345,13 @@ void Session::armSlot (int slot)
     if (slot >= getNumSlots())
         return;
 
-    const int previous = warmPool.getActiveSlot();
-
-    if (previous >= 0 && previous != slot)
-        (void) capturePluginState (previous);
-
     if (auto page = getPageHost(); page != nullptr)
+    {
+        for (const int pageSlot : page->getSlotIndices())
+            page->allNotesOff (pageSlot);
+
         page->setActiveSlot (slot);
+    }
 
     if (editorHost != nullptr)
         editorHost->closeEditorsExcept (slot);
