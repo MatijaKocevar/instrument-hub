@@ -1,18 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { HubApi } from "../api/client.js";
 import { readLatestMeterFrame } from "../api/meters.js";
 import type { HubConfig } from "../config.js";
-import { errorResult, jsonResult } from "../format.js";
+import { toolResult } from "../format.js";
+import { readOnlyTool } from "./annotations.js";
 import { waitForPageReady } from "./wait.js";
-
-const readOnly = {
-  readOnlyHint: true,
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: false,
-} as const;
 
 export function registerReadTools(
   server: McpServer,
@@ -25,9 +18,9 @@ export function registerReadTools(
       title: "Read Instrument Hub state",
       description:
         "Read the complete Instrument Hub control state: slots, tracks, pages, settings and transport.",
-      annotations: readOnly,
+      annotations: readOnlyTool,
     },
-    () => safe(() => api.getState()),
+    () => toolResult(() => api.getState()),
   );
 
   server.registerTool(
@@ -36,9 +29,9 @@ export function registerReadTools(
       title: "Read Instrument Hub project",
       description:
         "Read the open .ihub project path, name, dirty/saved flags and recent projects.",
-      annotations: readOnly,
+      annotations: readOnlyTool,
     },
-    () => safe(() => api.getProject()),
+    () => toolResult(() => api.getProject()),
   );
 
   server.registerTool(
@@ -47,9 +40,9 @@ export function registerReadTools(
       title: "Read Instrument Hub audio state",
       description:
         "Read the audio device, sample rate, buffer size, latency, channels, profiles and xrun counters.",
-      annotations: readOnly,
+      annotations: readOnlyTool,
     },
-    () => safe(() => api.getAudio()),
+    () => toolResult(() => api.getAudio()),
   );
 
   server.registerTool(
@@ -58,9 +51,9 @@ export function registerReadTools(
       title: "Read Instrument Hub MIDI inputs",
       description:
         "Read the MIDI inputs, controller roles, open/enabled flags and pad-test status.",
-      annotations: readOnly,
+      annotations: readOnlyTool,
     },
-    () => safe(() => api.getMidi()),
+    () => toolResult(() => api.getMidi()),
   );
 
   server.registerTool(
@@ -76,9 +69,9 @@ export function registerReadTools(
           .optional()
           .describe("Optional case-insensitive filter over plugin metadata."),
       },
-      annotations: readOnly,
+      annotations: readOnlyTool,
     },
-    ({ search }) => safe(() => api.getPlugins(search)),
+    ({ search }) => toolResult(() => api.getPlugins(search)),
   );
 
   server.registerTool(
@@ -96,9 +89,9 @@ export function registerReadTools(
           .default(5000)
           .describe("Maximum time to wait for a frame, in milliseconds."),
       },
-      annotations: readOnly,
+      annotations: readOnlyTool,
     },
-    ({ timeoutMs }) => safe(() => readLatestMeterFrame(config, timeoutMs)),
+    ({ timeoutMs }) => toolResult(() => readLatestMeterFrame(config, timeoutMs)),
   );
 
   server.registerTool(
@@ -107,9 +100,9 @@ export function registerReadTools(
       title: "Read Instrument Hub transport",
       description:
         "Read the transport playing state, BPM, PPQ position and sample position.",
-      annotations: readOnly,
+      annotations: readOnlyTool,
     },
-    () => safe(() => api.getTransport()),
+    () => toolResult(() => api.getTransport()),
   );
 
   server.registerTool(
@@ -132,17 +125,9 @@ export function registerReadTools(
           .default(10000)
           .describe("Maximum wait, in milliseconds."),
       },
-      annotations: readOnly,
+      annotations: readOnlyTool,
     },
     ({ page, timeoutMs }) =>
-      safe(() => waitForPageReady(api, page, timeoutMs)),
+      toolResult(() => waitForPageReady(api, page, timeoutMs)),
   );
-}
-
-async function safe(load: () => Promise<unknown>): Promise<CallToolResult> {
-  try {
-    return jsonResult(await load());
-  } catch (error) {
-    return errorResult(error);
-  }
 }
