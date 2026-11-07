@@ -13,6 +13,16 @@ export function errorResult(error: unknown): CallToolResult {
   };
 }
 
+export async function toolResult(
+  load: () => Promise<unknown>,
+): Promise<CallToolResult> {
+  try {
+    return jsonResult(await load());
+  } catch (error) {
+    return errorResult(error);
+  }
+}
+
 export function formatJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }

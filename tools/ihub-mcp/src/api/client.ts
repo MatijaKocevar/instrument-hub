@@ -8,6 +8,8 @@ type AudioState = components["schemas"]["AudioState"];
 type MidiState = components["schemas"]["MidiState"];
 type PluginList = components["schemas"]["PluginList"];
 type Transport = components["schemas"]["Transport"];
+type TransportPatch = components["schemas"]["TransportPatch"];
+type MidiInputUpdate = components["schemas"]["MidiInputUpdate"];
 
 export interface HubApi {
   getState(): Promise<State>;
@@ -16,6 +18,12 @@ export interface HubApi {
   getMidi(): Promise<MidiState>;
   getPlugins(search?: string): Promise<PluginList>;
   getTransport(): Promise<Transport>;
+  selectTrack(index: number): Promise<State>;
+  armSlot(slot: number | null): Promise<State>;
+  setTrackVolume(index: number, step: number): Promise<State>;
+  toggleTrackFx(index: number, hot: number): Promise<State>;
+  setTransport(patch: TransportPatch): Promise<Transport>;
+  setMidiInput(update: MidiInputUpdate): Promise<MidiState>;
 }
 
 export class HubApiError extends Error {
@@ -48,6 +56,31 @@ export function createHubApi(config: HubConfig): HubApi {
           : await client.GET("/plugins"),
       ),
     getTransport: async () => unwrap(await client.GET("/transport")),
+    selectTrack: async (index: number) =>
+      unwrap(
+        await client.POST("/tracks/{index}/select", {
+          params: { path: { index } },
+        }),
+      ),
+    armSlot: async (slot: number | null) =>
+      unwrap(await client.POST("/arm", { body: { slot } })),
+    setTrackVolume: async (index: number, step: number) =>
+      unwrap(
+        await client.POST("/tracks/{index}/volume", {
+          params: { path: { index } },
+          body: { step },
+        }),
+      ),
+    toggleTrackFx: async (index: number, hot: number) =>
+      unwrap(
+        await client.POST("/tracks/{index}/fx/{hot}/toggle", {
+          params: { path: { index, hot } },
+        }),
+      ),
+    setTransport: async (patch: TransportPatch) =>
+      unwrap(await client.POST("/transport", { body: patch })),
+    setMidiInput: async (update: MidiInputUpdate) =>
+      unwrap(await client.POST("/midi/inputs", { body: update })),
   };
 }
 
