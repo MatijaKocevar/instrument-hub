@@ -429,10 +429,11 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
             if (sandbox::loadAcquire (shared.editorCaptureRequested) == 0)
                 return;
 
-            (void) juce::MessageManager::callSync ([&]
+            sandbox::storeRelaxed (shared.editorCaptureRequested, 0);
+
+            (void) juce::MessageManager::callAsync ([&shared, plugin]
             {
-                sandbox_client::consumeEditorCapture (shared, plugin);
-                return true;
+                sandbox_client::publishEditorState (shared, plugin);
             });
         };
 
@@ -447,20 +448,43 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
 
             consumeEditorCapture();
 
-            if (sandbox::loadAcquire (shared.control.sequence) != lastControlSequence)
-            {
-                const auto handled = juce::MessageManager::callSync ([&]
-                {
-                    sandbox_client::handleControl (shared, plugin,
-                                                   lastControlSequence,
-                                                   editorControl);
-                    return true;
-                });
+            const auto controlSequence =
+                sandbox::loadAcquire (shared.control.sequence);
 
-                if (! handled.has_value())
+            if (controlSequence != lastControlSequence)
+            {
+                const auto command = static_cast<sandbox::ControlCommand> (
+                    sandbox::loadRelaxed (shared.control.command));
+
+                if (command == sandbox::ControlCommand::openEditor
+                    || command == sandbox::ControlCommand::closeEditor)
                 {
-                    juce::Thread::sleep (1);
-                    continue;
+                    lastControlSequence = controlSequence;
+                    const bool open = command
+                                      == sandbox::ControlCommand::openEditor;
+
+                    (void) juce::MessageManager::callAsync (
+                        [&shared, controlSequence, open, editorControl]
+                        {
+                            sandbox_client::handleEditorControl (
+                                shared, controlSequence, open, editorControl);
+                        });
+                }
+                else
+                {
+                    const auto handled = juce::MessageManager::callSync ([&]
+                    {
+                        sandbox_client::handleControl (shared, plugin,
+                                                       lastControlSequence,
+                                                       editorControl);
+                        return true;
+                    });
+
+                    if (! handled.has_value())
+                    {
+                        juce::Thread::sleep (1);
+                        continue;
+                    }
                 }
             }
 

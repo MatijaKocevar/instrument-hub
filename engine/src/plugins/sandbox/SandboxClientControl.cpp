@@ -5,6 +5,7 @@
 #include <juce_core/juce_core.h>
 
 #include <cstdio>
+#include <utility>
 
 namespace ihub::plugins::sandbox_client
 {
@@ -155,29 +156,10 @@ void handleControl (sandbox::SharedMemory& shared,
         case sandbox::ControlCommand::openEditor:
         case sandbox::ControlCommand::closeEditor:
         {
-            if (! editorControl)
-            {
-                setControlStatus (shared, sandbox::ControlStatus::failed);
-                return;
-            }
-
-            juce::String error;
             const bool open = sandbox::loadRelaxed (shared.control.command)
                               == static_cast<std::int32_t> (sandbox::ControlCommand::openEditor);
 
-            if (editorControl (open, error))
-            {
-                setControlStatus (shared, sandbox::ControlStatus::done);
-            }
-            else
-            {
-                setControlError (shared,
-                                 error.isNotEmpty()
-                                     ? error
-                                     : juce::String ("the plugin host could not handle the editor request"));
-                setControlStatus (shared, sandbox::ControlStatus::failed);
-            }
-
+            handleEditorControl (shared, sequence, open, std::move (editorControl));
             return;
         }
 
@@ -185,6 +167,37 @@ void handleControl (sandbox::SharedMemory& shared,
             break;
     }
 
+    setControlStatus (shared, sandbox::ControlStatus::failed);
+}
+
+void handleEditorControl (sandbox::SharedMemory& shared,
+                          std::uint32_t sequence,
+                          bool open,
+                          EditorControl editorControl)
+{
+    if (sandbox::loadAcquire (shared.control.sequence) != sequence)
+        return;
+
+    if (! editorControl)
+    {
+        setControlStatus (shared, sandbox::ControlStatus::failed);
+        return;
+    }
+
+    setControlStatus (shared, sandbox::ControlStatus::pending);
+
+    juce::String error;
+
+    if (editorControl (open, error))
+    {
+        setControlStatus (shared, sandbox::ControlStatus::done);
+        return;
+    }
+
+    setControlError (shared,
+                     error.isNotEmpty()
+                         ? error
+                         : juce::String ("the plugin host could not handle the editor request"));
     setControlStatus (shared, sandbox::ControlStatus::failed);
 }
 
