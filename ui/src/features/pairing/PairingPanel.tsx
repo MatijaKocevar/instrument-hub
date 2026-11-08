@@ -5,6 +5,7 @@ import { PairingCodeSection } from "./PairingCodeSection";
 import { PairingHeader } from "./PairingHeader";
 import { PairingLanToggle } from "./PairingLanToggle";
 import { PairingQrSection } from "./PairingQrSection";
+import { PairingSkeleton } from "./PairingSkeleton";
 import { PairingTokenSection } from "./PairingTokenSection";
 import "./pairing.css";
 
@@ -35,10 +36,13 @@ export function PairingPanel({
   const canForget = lanEnabled && pairedClients > 0 && !busy;
   const canToggle = !busy && !loading && onToggleLan !== undefined;
 
+  if (loading && pairing === null) return <PairingSkeleton error={error} />;
+
   return (
     <section
       className="pairing"
       aria-label="Tablet pairing"
+      aria-busy={busy}
       data-testid="pairing"
       data-lan={lanEnabled ? "true" : "false"}
       data-paired-clients={pairedClients}
@@ -64,16 +68,6 @@ export function PairingPanel({
       {error !== null ? (
         <p className="pairing__error" role="alert" data-testid="pairing-error">
           {error}
-        </p>
-      ) : null}
-
-      {loading && pairing === null ? (
-        <p
-          className="pairing__loading"
-          aria-busy="true"
-          data-testid="pairing-loading"
-        >
-          Reading the pairing state…
         </p>
       ) : null}
 

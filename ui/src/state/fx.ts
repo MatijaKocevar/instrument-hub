@@ -43,7 +43,13 @@ export class FxActions {
       });
       return true;
     } catch (error) {
-      this.patch({ fxBusy: false, fxError: messageOf(error) });
+      this.patch({
+        fxBusy: false,
+        fxError: messageOf(error),
+        ...(this.snapshot.fxSlot === slot
+          ? {}
+          : { fxChain: null, fxSlot: slot }),
+      });
       return false;
     }
   };

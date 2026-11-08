@@ -8,7 +8,11 @@ import {
   type ShellNavProps,
 } from "./navigation";
 
-export function BottomTabs({ route, navigate }: ShellNavProps): ReactElement {
+export function BottomTabs({
+  route,
+  navigate,
+  prefetch,
+}: ShellNavProps): ReactElement {
   return (
     <nav
       className="shell__tabs"
@@ -22,6 +26,7 @@ export function BottomTabs({ route, navigate }: ShellNavProps): ReactElement {
           item={item}
           route={route}
           navigate={navigate}
+          prefetch={prefetch}
           variant="tab"
         />
       ))}

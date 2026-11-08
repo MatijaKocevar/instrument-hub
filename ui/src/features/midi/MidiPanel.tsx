@@ -5,6 +5,7 @@ import type {
   ControlMidiState,
 } from "../../api/client";
 import { MidiInputList } from "./MidiInputList";
+import { MidiPanelSkeleton } from "./MidiPanelSkeleton";
 import { midiInputSummary, midiLaunchpadSummary } from "./model";
 import { useMidiLearnPolling } from "./useMidiLearnPolling";
 import "./midi.css";
@@ -31,29 +32,7 @@ export function MidiPanel({
 
   useMidiLearnPolling(learning, onRefreshMidi);
 
-  if (loading || midi === null) {
-    return (
-      <section
-        className="midi"
-        aria-label="MIDI inputs"
-        aria-busy="true"
-        data-testid="midi-panel"
-        data-loading="true"
-      >
-        <header className="midi__head">
-          <div>
-            <p className="midi__eyebrow">Controllers</p>
-            <h2 className="midi__title">MIDI</h2>
-          </div>
-        </header>
-        <p className="midi__empty" data-testid="midi-loading">
-          {error !== null && error.length > 0
-            ? error
-            : "Reading the MIDI inputs…"}
-        </p>
-      </section>
-    );
-  }
+  if (loading || midi === null) return <MidiPanelSkeleton error={error} />;
 
   const enabled = midi.inputs.filter((input) => input.enabled).length;
 

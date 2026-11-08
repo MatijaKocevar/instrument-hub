@@ -1,5 +1,7 @@
 import type { ReactElement } from "react";
 
+import { Spinner } from "../loading";
+
 interface PluginsToolbarProps {
   readonly search: string;
   readonly busy: boolean;
@@ -58,6 +60,11 @@ export function PluginsToolbar({
           onRescan?.();
         }}
       >
+        {busy || scanning ? (
+          <Spinner
+            label={scanning ? "Scanning plug-ins" : "Reloading plug-ins"}
+          />
+        ) : null}
         {scanning ? "Scanning…" : "Rescan"}
       </button>
     </div>

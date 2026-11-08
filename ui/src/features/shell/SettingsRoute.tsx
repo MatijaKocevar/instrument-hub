@@ -21,6 +21,7 @@ export function SettingsRoute({
       application={state?.application ?? null}
       schemaVersion={state?.schemaVersion ?? null}
       uptimeMs={state?.uptimeMs ?? null}
+      loading={state === null}
       onToggleLan={(enabled) => {
         void store.toggleLan(enabled);
       }}

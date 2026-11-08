@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 
 import type { ControlAudioWizard } from "../../api/client";
+import { Spinner } from "../loading";
 import { formatMs, formatSampleRate } from "./model";
 
 interface AudioSetupDialogProps {
@@ -126,6 +127,7 @@ export function AudioSetupDialog({
                 onApply?.();
               }}
             >
+              {busy ? <Spinner label="Applying the audio setup" /> : null}
               {busy ? "Applying…" : "Apply"}
             </button>
             <button
