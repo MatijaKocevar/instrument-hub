@@ -53,23 +53,6 @@ export class PatchUpdateActions {
     }
   };
 
-  updateFamilyColour = async (
-    familyId: string,
-    colorIndex: number,
-  ): Promise<boolean> => {
-    const family = this.snapshot.state?.families.find(
-      (candidate) => candidate.id === familyId,
-    );
-
-    if (family === undefined) return false;
-
-    for (const patch of family.patches) {
-      if (!(await this.updatePatch(patch.slot, { colorIndex }))) return false;
-    }
-
-    return true;
-  };
-
   preservePending = (state: ControlState): ControlState => {
     if (this.patchInFlight === 0 || this.pendingPatch === null) return state;
 

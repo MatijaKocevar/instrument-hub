@@ -115,7 +115,6 @@ export function createTrackGridModel(
 ): GridModel {
   return {
     layout: "tracks",
-    families: [],
     pluginPage,
     tracks: tracks.map((track) => {
       const volumeStep = clampTrackVolumeStep(track.volumeStep);

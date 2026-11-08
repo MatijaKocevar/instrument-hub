@@ -98,6 +98,7 @@ export function isControlState(value: unknown): value is ControlState {
     typeof candidate.revision === "number" &&
     typeof candidate.application?.name === "string" &&
     typeof candidate.application?.version === "string" &&
+    candidate.layout === "tracks" &&
     typeof candidate.armedSlot === "number" &&
     Array.isArray(candidate.slots) &&
     candidate.slots.every(
@@ -122,6 +123,18 @@ export function isControlState(value: unknown): value is ControlState {
             typeof page.activeSlot === "number" &&
             typeof page.error === "string",
         ))) &&
+    Array.isArray(candidate.tracks) &&
+    candidate.tracks.every(
+      (track) =>
+        track !== null &&
+        typeof track === "object" &&
+        typeof track.index === "number" &&
+        typeof track.id === "string" &&
+        typeof track.name === "string" &&
+        typeof track.slot === "number" &&
+        typeof track.selected === "boolean" &&
+        Array.isArray(track.hotFx),
+    ) &&
     Array.isArray(candidate.families) &&
     candidate.families.every(
       (family) =>

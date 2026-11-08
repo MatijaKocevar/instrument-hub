@@ -106,8 +106,7 @@ bool Session::setSlotSource (int slot,
         resetPageHost();
     }
 
-    if (config.layout == SessionLayout::tracks
-        && current.kind == SessionSlotKind::empty)
+    if (current.kind == SessionSlotKind::empty)
         warmPool.setRequest (slot, {});
     else
         warmPool.replaceRequest (slot, requestId, wasActive, wasRequested);

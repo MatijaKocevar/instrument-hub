@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 
-import { gridFromState, metersUrlFor, useMeters } from "../grid";
+import { gridFromState } from "../grid";
 import {
   instrumentSlotForRoute,
   patchForInstrumentSlot,
@@ -20,8 +20,6 @@ export function useShellData(router: RouterState) {
     () => pluginAssignmentsFromState(state),
     [state],
   );
-  const meters = useMeters({ url: metersUrlFor(store.baseUrl) });
-
   const armedSlot = state?.armedSlot ?? -1;
   const requestedSlot = slotFromSearch(router.search);
   const instrumentSlot = instrumentSlotForRoute(
@@ -67,7 +65,6 @@ export function useShellData(router: RouterState) {
     live: app.live,
     grid,
     pluginAssignments,
-    meters,
     armedSlot,
     instrumentSlot,
     instrumentPatch,

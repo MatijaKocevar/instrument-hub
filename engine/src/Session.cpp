@@ -15,15 +15,6 @@ constexpr double defaultFrequencies[] = {
     110.0, 123.47, 138.59, 146.83, 164.81, 185.0, 207.65, 220.0
 };
 
-constexpr const char* familyIds[] = {
-    "keys", "drums", "bass", "pads", "lead", "fx", "perc", "vox"
-};
-
-constexpr const char* familyNames[] = {
-    "Keys", "Drums", "Bass", "Pads", "Lead", "FX", "Percussion", "Vox"
-};
-
-constexpr int patchesPerFamily = 8;
 }
 
 const char* toString (SessionSlotKind kind) noexcept
@@ -56,13 +47,8 @@ const char* toString (SessionWarmState state) noexcept
 
 const char* toString (SessionLayout layout) noexcept
 {
-    switch (layout)
-    {
-        case SessionLayout::families: return "families";
-        case SessionLayout::tracks:   return "tracks";
-    }
-
-    return "families";
+    (void) layout;
+    return "tracks";
 }
 
 Session::Session()
@@ -140,11 +126,6 @@ std::vector<SessionSlotConfig> Session::makeDefaultSet (SessionSlotKind defaultK
         slot.kind = defaultKind;
         slot.instrumentKind = toString (defaultKind);
         slot.gain = 1.0f;
-
-        slot.family = "track-" + std::to_string (index + 1);
-        slot.familyName = slot.name;
-        slot.patch = slot.family;
-        slot.patchName = slot.name;
 
         slots.push_back (std::move (slot));
     }

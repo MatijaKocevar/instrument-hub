@@ -5,7 +5,7 @@ namespace Controller
 
 bool padRoleArms (PadRole role) noexcept
 {
-    return role == PadRole::patch || role == PadRole::track;
+    return role == PadRole::track;
 }
 
 std::optional<TrackPadAction> trackPadActionFor (const PadBinding& binding) noexcept
@@ -18,7 +18,6 @@ std::optional<TrackPadAction> trackPadActionFor (const PadBinding& binding) noex
 
     switch (binding.role)
     {
-        case PadRole::patch:
         case PadRole::track:
             action.kind = TrackPadActionKind::arm;
             return action;

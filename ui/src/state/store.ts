@@ -177,12 +177,6 @@ export class AppStore {
   updatePatch = (slot: number, patch: ControlPatchUpdate): Promise<boolean> =>
     this.patchUpdate.updatePatch(slot, patch);
 
-  updateFamilyColour = (
-    familyId: string,
-    colorIndex: number,
-  ): Promise<boolean> =>
-    this.patchUpdate.updateFamilyColour(familyId, colorIndex);
-
   changeInstrumentSource = (
     slot: number,
     source: ControlPatchSourceRequest,

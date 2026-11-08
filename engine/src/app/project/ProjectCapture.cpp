@@ -111,7 +111,7 @@ bool captureProject (ihub::Session& session,
         slot.instrument.gain = slot.gain;
 
         slot.instrument.kind = toSourceKind (source.kind);
-        slot.instrument.id = patch.instrument.id.empty() ? source.patch
+        slot.instrument.id = patch.instrument.id.empty() ? patch.id
                                                          : patch.instrument.id;
         slot.instrument.name = slot.name;
         slot.instrument.pluginFormat = patch.instrument.pluginFormat.empty()
