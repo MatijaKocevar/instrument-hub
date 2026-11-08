@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <map>
@@ -572,6 +573,9 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
         if (thread.joinable())
             thread.join();
 
+    if (failed.load())
+        std::_Exit (5);
+
     for (auto& runtime : runtimes)
         if (runtime.editor != nullptr)
         {
@@ -580,7 +584,7 @@ int SandboxPageClient::run (const juce::StringArray& commandLine)
         }
 
     setPageState (page, sandbox::ProcessState::stopping);
-    return failed.load() ? 5 : 0;
+    return 0;
 }
 
 } // namespace ihub::plugins
