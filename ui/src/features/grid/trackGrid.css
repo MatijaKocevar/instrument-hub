@@ -397,10 +397,7 @@
 
 .track-grid__fader-track {
   position: absolute;
-  top: 1.15rem;
-  right: 0;
-  bottom: 0.65rem;
-  left: 0;
+  inset: 0;
 }
 
 .track-grid__fader-rail {
@@ -611,6 +608,7 @@
   background: #23252f;
   box-shadow: none;
   opacity: 0.45;
+  transform: translate(-50%, -50%);
 }
 
 .track-grid__volume--inactive .track-grid__fader-tick-line {

@@ -29,7 +29,7 @@ export const TRACK_OVER_STEP = 4;
 export const TRACK_MAX_STEP = 4;
 export const TRACK_DEFAULT_STEP = 3;
 
-export const TRACK_VOLUME_STAGE_POSITIONS = [0, 25, 50, 75, 100] as const;
+const STAGE_COUNT = TRACK_VOLUME_STEPS.length;
 
 export function clampTrackVolumeStep(step: number): number {
   if (!Number.isInteger(step)) return TRACK_DEFAULT_STEP;
@@ -51,8 +51,12 @@ export function trackDbForStep(step: number): number {
   return trackVolumeStep(step).db;
 }
 
-export function trackVolumeStagePosition(step: number): number {
-  return TRACK_VOLUME_STAGE_POSITIONS[clampTrackVolumeStep(step)] ?? 0;
+export function trackVolumeStageTop(step: number): number {
+  return ((clampTrackVolumeStep(step) + 1) / STAGE_COUNT) * 100;
+}
+
+export function trackVolumeStageCenter(step: number): number {
+  return ((clampTrackVolumeStep(step) + 0.5) / STAGE_COUNT) * 100;
 }
 
 export function volumeStepForRow(row: number): number {
