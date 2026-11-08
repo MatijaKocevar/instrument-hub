@@ -73,7 +73,7 @@ bool Session::build (const SessionConfig& newConfig,
         const bool requested = overrideValue.isEmpty()
                                    ? newConfig.sharedPluginHost
                                    : overrideValue != "0";
-        sharedPluginHostEnabled = requested && newConfig.layout == SessionLayout::tracks;
+        sharedPluginHostEnabled = requested;
     }
 
     {
@@ -114,7 +114,7 @@ bool Session::build (const SessionConfig& newConfig,
     if (config.slots.empty())
         config.slots = makeDefaultSet();
 
-    if (config.layout == SessionLayout::tracks && config.warmSlots.empty())
+    if (config.warmSlots.empty())
         for (int slot = 0; slot < static_cast<int> (config.slots.size()); ++slot)
             config.warmSlots.push_back (slot);
 
@@ -259,8 +259,7 @@ bool Session::build (const SessionConfig& newConfig,
     {
         const auto& slotConfig = config.slots[static_cast<std::size_t> (index)];
 
-        if (config.layout == SessionLayout::tracks
-            && slotConfig.kind == SessionSlotKind::empty)
+        if (slotConfig.kind == SessionSlotKind::empty)
         {
             warmPool.setRequest (index, {});
             continue;

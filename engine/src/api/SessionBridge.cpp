@@ -66,10 +66,11 @@ bool toSessionKind (const std::string& text, ihub::SessionSlotKind& kind)
     return false;
 }
 
-PatchInstrumentState toPatchInstrument (const ihub::SessionSlotConfig& slotConfig)
+PatchInstrumentState toPatchInstrument (const ihub::SessionSlotConfig& slotConfig,
+                                       const std::string& id)
 {
     PatchInstrumentState instrument;
-    instrument.id = slotConfig.patch;
+    instrument.id = id.empty() ? slotConfig.name : id;
     instrument.name = slotConfig.name;
     instrument.kind = slotConfig.instrumentKind;
     instrument.pluginFormat = slotConfig.pluginFormat;
@@ -145,7 +146,18 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
     state.setLayout (ihub::toString (session.getLayout()));
 
     const auto& slotConfigs = session.getSlotConfigs();
+    const auto& trackConfigs = session.getConfig().tracks;
     const double sampleRate = session.getEngine().getSampleRate();
+
+    const auto trackForSlot =
+        [&trackConfigs] (int slot) -> const ihub::SessionTrackConfig*
+    {
+        for (const auto& track : trackConfigs)
+            if (track.slot == slot)
+                return &track;
+
+        return nullptr;
+    };
 
     std::vector<FamilyState> families;
 
@@ -154,14 +166,17 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
         if (index < static_cast<int> (slotConfigs.size()))
         {
             const auto& slotConfig = slotConfigs[static_cast<std::size_t> (index)];
+            const auto* track = trackForSlot (index);
 
             state.setSlotName (index, slotConfig.name);
             state.setSlotIdentity (index,
-                                   slotConfig.family,
-                                   slotConfig.familyName,
-                                   slotConfig.patch,
-                                   slotConfig.patchName);
-            state.setPatchInstrument (index, toPatchInstrument (slotConfig));
+                                   track != nullptr ? track->id : "",
+                                   track != nullptr ? track->name : "",
+                                   track != nullptr ? track->id : "",
+                                   track != nullptr ? track->name : "");
+            state.setPatchInstrument (
+                index,
+                toPatchInstrument (slotConfig, track != nullptr ? track->id : ""));
             state.setPatchMix (index,
                                gainToDb (slotConfig.gain),
                                static_cast<double> (slotConfig.pan),
@@ -169,31 +184,29 @@ void attachSession (StateStore& state, Server& server, ihub::Session& session)
                                slotConfig.solo,
                                slotConfig.colorIndex);
 
-            if (! slotConfig.family.empty())
+            if (track != nullptr)
             {
                 auto family = std::find_if (families.begin(), families.end(),
-                                            [&slotConfig] (const FamilyState& candidate)
+                                            [track] (const FamilyState& candidate)
                                             {
-                                                return candidate.id == slotConfig.family;
+                                                return candidate.id == track->id;
                                             });
 
                 if (family == families.end())
                 {
                     FamilyState entry;
-                    entry.id = slotConfig.family;
-                    entry.name = slotConfig.familyName.empty() ? slotConfig.family
-                                                               : slotConfig.familyName;
+                    entry.id = track->id;
+                    entry.name = track->name.empty() ? track->id : track->name;
                     families.push_back (std::move (entry));
                     family = std::prev (families.end());
                 }
 
                 PatchState patch;
                 patch.slot = index;
-                patch.id = slotConfig.patch;
-                patch.name = slotConfig.patchName.empty() ? slotConfig.name
-                                                          : slotConfig.patchName;
-                patch.family = slotConfig.family;
-                patch.familyName = slotConfig.familyName;
+                patch.id = track->id;
+                patch.name = track->name.empty() ? slotConfig.name : track->name;
+                patch.family = track->id;
+                patch.familyName = track->name;
                 family->patches.push_back (std::move (patch));
             }
         }

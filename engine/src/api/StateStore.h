@@ -205,7 +205,7 @@ private:
     mutable std::mutex mutex;
 
     std::atomic<int> numSlots;
-    std::string layout = "families";
+    std::string layout = "tracks";
     ihub::settings::SettingsStore* const settingsStore;
     int armedSlot = -1;
     std::vector<std::string> slotNames;

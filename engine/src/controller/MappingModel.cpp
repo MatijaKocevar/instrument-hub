@@ -3,15 +3,6 @@
 namespace Controller
 {
 
-const InstrumentSpec* FamilySpec::findInstrument (const std::string& instrumentId) const noexcept
-{
-    for (const auto& instrument : instruments)
-        if (instrument.id == instrumentId)
-            return &instrument;
-
-    return nullptr;
-}
-
 const PadBinding* SetMapping::padBinding (int pad) const noexcept
 {
     if (pad < 0 || pad >= SetMapping::maximumPads)
@@ -71,45 +62,10 @@ const TrackSpec* SetMapping::trackFor (const PadBinding& binding) const noexcept
     return binding.track.empty() ? nullptr : trackForId (binding.track);
 }
 
-const InstrumentSpec* SetMapping::instrumentFor (const PadBinding& binding) const noexcept
-{
-    const auto family = families.find (binding.family);
-
-    if (family == families.end())
-        return nullptr;
-
-    return family->second.findInstrument (binding.instrument);
-}
-
 const MacroSpec* SetMapping::macroFor (const EncoderBinding& binding) const noexcept
 {
     const auto macro = macros.find (binding.macro);
     return macro == macros.end() ? nullptr : &macro->second;
-}
-
-int SetMapping::colorIndexFor (const PadBinding& binding) const noexcept
-{
-    const auto family = families.find (binding.family);
-
-    if (family == families.end())
-        return 0;
-
-    const auto* instrument = family->second.findInstrument (binding.instrument);
-    return instrument != nullptr ? instrument->resolvedColorIndex
-                                 : family->second.colorIndex;
-}
-
-int SetMapping::countPatches() const noexcept
-{
-    int count = 0;
-
-    for (const auto& [familyId, family] : families)
-    {
-        (void) familyId;
-        count += static_cast<int> (family.instruments.size());
-    }
-
-    return count;
 }
 
 int SetMapping::countPads() const noexcept
@@ -159,17 +115,6 @@ int SetMapping::countScenes() const noexcept
 int SetMapping::countTracks() const noexcept
 {
     return static_cast<int> (tracks.size());
-}
-
-std::vector<const InstrumentSpec*> SetMapping::allInstruments() const
-{
-    std::vector<const InstrumentSpec*> result;
-
-    for (const auto& [familyId, family] : families)
-        for (const auto& instrument : family.instruments)
-            result.push_back (&instrument);
-
-    return result;
 }
 
 }

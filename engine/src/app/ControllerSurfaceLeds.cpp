@@ -6,8 +6,6 @@
 #include "controller/LaunchpadDriver.h"
 #include "controller/Mapping.h"
 
-#include <array>
-
 namespace ihub::app
 {
 
@@ -19,69 +17,33 @@ void ControllerSurface::refreshLeds()
     const auto snapshot = apiState->snapshot();
     const auto setMapping = mapping != nullptr ? mapping->getMapping() : nullptr;
 
-    if (snapshot.layout == "tracks")
+    if (setMapping != nullptr)
+        paintTrackLeds (*launchpad, *setMapping, trackLedSnapshotFor (snapshot));
+
+    bool hasInstrument = false;
+
+    for (const auto& track : snapshot.tracks)
+        if (track.slot == snapshot.armedSlot)
+            hasInstrument = track.instrument.kind != "empty";
+
+    const auto setButton = [&] (int index, Controller::PadState state)
     {
-        if (setMapping != nullptr)
-            paintTrackLeds (*launchpad, *setMapping,
-                            trackLedSnapshotFor (snapshot));
+        if (setMapping != nullptr
+            && setMapping->bankBinding (index) != nullptr)
+            return;
 
-        bool hasInstrument = false;
+        launchpad->setButtonState (Launchpad::topRowCCForIndex (index), state);
+    };
 
-        for (const auto& track : snapshot.tracks)
-            if (track.slot == snapshot.armedSlot)
-                hasInstrument = track.instrument.kind != "empty";
+    const auto presetState = hasInstrument ? Controller::PadState::warming
+                                           : Controller::PadState::idle;
+    const auto categoryState = hasInstrument ? Controller::PadState::active
+                                             : Controller::PadState::idle;
 
-        const auto setButton = [&] (int index, Controller::PadState state)
-        {
-            if (setMapping != nullptr
-                && setMapping->bankBinding (index) != nullptr)
-                return;
-
-            launchpad->setButtonState (Launchpad::topRowCCForIndex (index), state);
-        };
-
-        const auto presetState = hasInstrument ? Controller::PadState::warming
-                                               : Controller::PadState::idle;
-        const auto categoryState = hasInstrument ? Controller::PadState::active
-                                                 : Controller::PadState::idle;
-
-        setButton (presetPreviousButton, presetState);
-        setButton (presetNextButton, presetState);
-        setButton (categoryPreviousButton, categoryState);
-        setButton (categoryNextButton, categoryState);
-
-        return;
-    }
-
-    std::array<const Api::PatchState*, Launchpad::padCount> patches {};
-
-    for (const auto& family : snapshot.families)
-    {
-        for (const auto& patch : family.patches)
-        {
-            if (patch.slot < 0 || patch.slot >= Launchpad::padCount)
-                continue;
-
-            patches[static_cast<std::size_t> (patch.slot)] = &patch;
-        }
-    }
-
-    for (int pad = 0; pad < Launchpad::padCount; ++pad)
-    {
-        const auto* patch = patches[static_cast<std::size_t> (pad)];
-
-        if (patch == nullptr)
-        {
-            launchpad->setPadLed (pad, {});
-            continue;
-        }
-
-        const bool armed = pad == snapshot.armedSlot;
-        const bool warming = armed && patch->warmState == "warming";
-        const bool error = patch->warmState == "error";
-
-        launchpad->setPatchLed (pad, patch->colorIndex, armed, warming, error);
-    }
+    setButton (presetPreviousButton, presetState);
+    setButton (presetNextButton, presetState);
+    setButton (categoryPreviousButton, categoryState);
+    setButton (categoryNextButton, categoryState);
 }
 
 }

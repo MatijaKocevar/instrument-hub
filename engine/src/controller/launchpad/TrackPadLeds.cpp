@@ -49,7 +49,6 @@ PatchLed launchpadLedForTrackPad (const PadBinding& binding,
 
     switch (binding.role)
     {
-        case PadRole::patch:
         case PadRole::track:
             if (! track->hasInstrument)
                 return offLed();

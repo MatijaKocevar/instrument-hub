@@ -20,21 +20,19 @@ bool decodeScenes (const YamlValue& root, SetMapping& out, MappingError& error)
             if (sceneValue.kind != YamlKind::mapping)
                 return fail (error, sceneValue, "a scene entry must be a mapping");
 
-            if (! checkKeys (sceneValue, { "scene", "name", "family" }, error))
+            if (! checkKeys (sceneValue, { "scene", "name" }, error))
                 return false;
 
             const auto* sceneNumber = sceneValue.find ("scene");
             const auto* name = sceneValue.find ("name");
-            const auto* family = sceneValue.find ("family");
 
-            if (sceneNumber == nullptr || name == nullptr || family == nullptr)
-                return fail (error, sceneValue, "a scene entry needs scene, name and family");
+            if (sceneNumber == nullptr || name == nullptr)
+                return fail (error, sceneValue, "a scene entry needs scene and name");
 
             SceneSpec scene;
 
             if (! readInt (*sceneNumber, scene.scene, error, "scene")
-                || ! readString (*name, scene.name, error, "scene name")
-                || ! readString (*family, scene.family, error, "scene family"))
+                || ! readString (*name, scene.name, error, "scene name"))
                 return false;
 
             if (scene.scene < 0 || scene.scene >= SetMapping::maximumScenes)
@@ -46,11 +44,6 @@ bool decodeScenes (const YamlValue& root, SetMapping& out, MappingError& error)
                 return fail (error, *sceneNumber,
                              "duplicate scene binding for scene "
                                  + std::to_string (scene.scene));
-
-            if (out.families.find (scene.family) == out.families.end())
-                return fail (error, *family,
-                             "scene " + std::to_string (scene.scene)
-                                 + " names unknown family '" + scene.family + "'");
 
             out.scenes[static_cast<std::size_t> (scene.scene)] = std::move (scene);
         }

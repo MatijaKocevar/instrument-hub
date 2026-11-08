@@ -636,10 +636,6 @@
   white-space: nowrap;
 }
 
-.grid__cell--armed .track-grid__sub {
-  color: #ffd7d8;
-}
-
 @media (pointer: coarse) {
   .track-grid__column {
     grid-template-rows:
