@@ -32,9 +32,6 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
 
-# Autopilot driver scratch (briefs, results, per-task logs)
-plan/.autopilot/
-plan/__pycache__/
 __pycache__/
 *.pyc
 
@@ -46,7 +43,6 @@ __pycache__/
 /out/
 /tmp/
 *.log
-!plan/*.log
 
 # Editors and OS
 .DS_Store
