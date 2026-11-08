@@ -3,6 +3,7 @@
   font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background: #101014;
   color: #eceef4;
+  --shell-inner-padding: 1.4rem 1rem 1.1rem;
 }
 
 * {
@@ -47,7 +48,7 @@ body {
   gap: 1.75rem;
   align-self: start;
   height: 100vh;
-  padding: 1.4rem 1rem 1.1rem;
+  padding: var(--shell-inner-padding);
   border-right: 1px solid #232532;
   background:
     radial-gradient(circle at 0 0, rgba(110, 231, 200, 0.07), transparent 40%),
@@ -282,7 +283,7 @@ body {
   flex-direction: column;
   gap: 2.25rem;
   min-height: 100%;
-  padding: clamp(1.5rem, 3vw, 2.75rem);
+  padding: var(--shell-inner-padding);
 }
 
 .app__route {
