@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 
 import type { GridTrack } from "./trackModel";
 import { TRACK_GRID_ROWS } from "./trackModel";
+import { TrackLevelMeter } from "./TrackLevelMeter";
 import {
   TRACK_VOLUME_STEPS,
   trackVolumeStageCenter,
@@ -21,7 +22,7 @@ export function TrackVolumeFader({
 }: TrackVolumeFaderProps): ReactElement {
   const inactive = !track.hasInstrument;
   const current = track.volumeStep;
-  const fill = inactive ? 0 : trackVolumeStageTop(current);
+  const capTop = inactive ? 0 : trackVolumeStageTop(current);
   const over = !inactive && current === 4;
   const readoutDb = `${track.volumeDb.toFixed(1)} dB`;
   const stages = TRACK_GRID_ROWS.filter((row) => row.role === "volume");
@@ -48,22 +49,10 @@ export function TrackVolumeFader({
       <div className="track-grid__fader-visual" aria-hidden="true">
         <div className="track-grid__fader-track">
           <span
-            className="track-grid__fader-rail"
-            data-testid="track-fader-rail"
-          >
-            <span
-              className={`track-grid__fader-fill${over ? " track-grid__fader-fill--over" : ""}`}
-              data-testid="track-fader-fill"
-              data-step={track.volumeStep}
-              style={{ height: `${String(fill)}%` }}
-            />
-          </span>
-
-          <span
             className={`track-grid__fader-cap${over ? " track-grid__fader-cap--over" : ""}${current === 0 ? " track-grid__fader-cap--bottom" : ""}`}
             data-testid="track-fader-cap"
             data-step={track.volumeStep}
-            style={{ bottom: `${String(fill)}%` }}
+            style={{ bottom: `${String(capTop)}%` }}
           />
 
           <div className="track-grid__fader-scale">
@@ -105,6 +94,12 @@ export function TrackVolumeFader({
           />
         ))}
       </div>
+
+      <TrackLevelMeter
+        slot={track.slot}
+        index={track.index}
+        active={!inactive}
+      />
     </div>
   );
 }
