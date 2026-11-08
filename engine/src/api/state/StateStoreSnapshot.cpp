@@ -122,9 +122,9 @@ StateSnapshot StateStore::snapshot() const
         track.id = config.id;
         track.name = config.name;
         track.slot = config.slot;
-        track.volumeStep = config.volumeStep;
-        track.volumeDb = trackDbForStep (config.volumeStep);
-        track.gain = trackGainForStep (config.volumeStep);
+        track.volumeStep = trackVolumeStepForGain (config.gain);
+        track.volumeDb = trackDbForGain (config.gain);
+        track.gain = config.gain;
         track.hotFx.resize (2);
 
         for (std::size_t hot = 0; hot < track.hotFx.size(); ++hot)

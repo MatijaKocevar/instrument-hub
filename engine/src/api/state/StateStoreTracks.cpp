@@ -1,5 +1,6 @@
 #include "api/StateStore.h"
 
+#include <cmath>
 #include <utility>
 
 namespace Api
@@ -17,9 +18,11 @@ void StateStore::setTracks (std::vector<TrackConfig> next)
 
         for (auto& track : next)
         {
-            track.volumeStep = juce::jlimit (trackVolumeMinimumStep,
-                                             trackVolumeMaximumStep,
-                                             track.volumeStep);
+            track.gain = std::isfinite (track.gain)
+                             ? juce::jlimit (trackVolumeMinimumGain,
+                                             trackVolumeMaximumGain,
+                                             track.gain)
+                             : 1.0;
 
             if (track.hotFx.size() > maximumTrackHotFx)
                 track.hotFx.resize (maximumTrackHotFx);

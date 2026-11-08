@@ -37,8 +37,7 @@ void attachTrackState (StateStore& state, ihub::Session& session)
                              : source.name;
             track.slot = source.slot;
             track.hotFx = source.hotFx;
-            track.volumeStep = trackStepForGain (
-                config.slots[static_cast<std::size_t> (source.slot)].gain);
+            track.gain = config.slots[static_cast<std::size_t> (source.slot)].gain;
             tracks.push_back (std::move (track));
         }
     }
@@ -52,8 +51,7 @@ void attachTrackState (StateStore& state, ihub::Session& session)
             track.id = "track-" + std::to_string (slot + 1);
             track.name = config.slots[static_cast<std::size_t> (slot)].name;
             track.slot = slot;
-            track.volumeStep = trackStepForGain (
-                config.slots[static_cast<std::size_t> (slot)].gain);
+            track.gain = config.slots[static_cast<std::size_t> (slot)].gain;
             tracks.push_back (std::move (track));
         }
     }

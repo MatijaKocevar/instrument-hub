@@ -26,18 +26,25 @@ export {
   type TrackStatus,
 } from "./trackModel";
 export {
-  clampTrackVolumeStep,
-  TRACK_DEFAULT_STEP,
+  clampTrackVolumeGain,
+  TRACK_DEFAULT_GAIN,
+  TRACK_MAX_DB,
+  TRACK_MAX_GAIN,
   TRACK_MAX_STEP,
-  TRACK_OVER_STEP,
+  TRACK_MIN_DB,
+  TRACK_MIN_GAIN,
   TRACK_VOLUME_STEPS,
-  trackDbForStep,
+  TRACK_VOLUME_TICKS,
+  trackDbForGain,
+  trackGainForDb,
+  trackGainForPointerRatio,
+  trackGainForPosition,
   trackGainForStep,
-  trackVolumeStageCenter,
-  trackVolumeStageTop,
-  trackVolumeStep,
-  volumeStepForRow,
+  trackVolumePercentForPosition,
+  trackVolumePositionForGain,
+  trackVolumeStepForGain,
   type TrackVolumeStep,
+  type TrackVolumeTick,
 } from "./trackVolume";
 export { TrackGridRow, type TrackGridRowProps } from "./TrackGridRow";
 export { TrackMeterProvider } from "./TrackMeterProvider";

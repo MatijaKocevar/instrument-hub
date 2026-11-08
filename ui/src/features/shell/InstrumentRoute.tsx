@@ -108,8 +108,8 @@ export function InstrumentRoute({
       onToggleTrackFx={(trackIndex, hot) => {
         void store.toggleTrackFx(trackIndex, hot);
       }}
-      onSetTrackVolume={(trackIndex, step) => {
-        void store.setTrackVolume(trackIndex, step);
+      onSetTrackVolume={(trackIndex, gain) => {
+        void store.setTrackVolume(trackIndex, gain);
       }}
     />
   );

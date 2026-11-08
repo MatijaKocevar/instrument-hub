@@ -32,8 +32,8 @@ export function GridRoute({
       onToggleTrackFx={(index, hot) => {
         void store.toggleTrackFx(index, hot);
       }}
-      onSetTrackVolume={(index, step) => {
-        void store.setTrackVolume(index, step);
+      onSetTrackVolume={(index, gain) => {
+        void store.setTrackVolume(index, gain);
       }}
       onRenameTrack={(index, name) => {
         void store.renameTrack(index, name);
