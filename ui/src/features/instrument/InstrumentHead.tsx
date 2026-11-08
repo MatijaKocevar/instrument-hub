@@ -1,25 +1,63 @@
 import type { ReactElement } from "react";
 
-import type { ControlPatch } from "../../api/client";
+import type { ControlPatch, ControlTrack } from "../../api/client";
+import { InlineRenameInput, useInlineRename } from "../rename";
 import { latencyReadout } from "./latencyReadout";
 
 interface InstrumentHeadProps {
   readonly patch: ControlPatch;
   readonly armed: boolean;
   readonly following: boolean;
+  readonly track: ControlTrack | null;
+  readonly onRenameTrack?: (index: number, name: string) => void;
 }
 
 export function InstrumentHead({
   patch,
   armed,
   following,
+  track,
+  onRenameTrack,
 }: InstrumentHeadProps): ReactElement {
+  const name = track?.name ?? patch.name;
+  const canRename = track !== null && onRenameTrack !== undefined;
+  const rename = useInlineRename(name, (next) => {
+    if (track !== null) onRenameTrack?.(track.index, next);
+  });
+
   return (
     <header className="instrument__head">
       <p className="instrument__eyebrow">Instrument · {patch.familyName}</p>
-      <h2 className="instrument__title" data-testid="instrument-name">
-        {patch.name}
-      </h2>
+
+      {rename.editing ? (
+        <InlineRenameInput
+          className="instrument__title-rename"
+          inputClassName="instrument__title-input"
+          testId="instrument-rename-input"
+          value={rename.draft}
+          ariaLabel={`Track name for ${name}`}
+          onValueChange={rename.setDraft}
+          onSave={rename.save}
+          onCancel={rename.cancel}
+        />
+      ) : (
+        <h2
+          className={`instrument__title${canRename ? " instrument__title--editable" : ""}`}
+          data-testid="instrument-name"
+          title={canRename ? `${name} · double-click to rename` : name}
+          onDoubleClick={
+            canRename
+              ? (event) => {
+                  event.preventDefault();
+                  rename.start();
+                }
+              : undefined
+          }
+        >
+          {name}
+        </h2>
+      )}
+
       <p className="instrument__lede">
         {patch.familyName} · slot {String(patch.slot + 1).padStart(2, "0")}
         {armed ? " · armed" : " · not armed"}

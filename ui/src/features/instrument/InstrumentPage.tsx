@@ -63,6 +63,7 @@ export interface InstrumentPageProps {
     hot: number,
     insertId: string | null,
   ) => void;
+  readonly onRenameTrack?: (trackIndex: number, name: string) => void;
 }
 
 export function InstrumentPage({
@@ -98,6 +99,7 @@ export function InstrumentPage({
   onMoveInsert,
   onRetryChain,
   onAssignHotFx,
+  onRenameTrack,
 }: InstrumentPageProps): ReactElement {
   return (
     <InstrumentFrame
@@ -105,6 +107,8 @@ export function InstrumentPage({
       armedSlot={armedSlot}
       following={following}
       loading={loading}
+      track={track}
+      {...(onRenameTrack !== undefined ? { onRenameTrack } : {})}
     >
       {patch === null ? null : (
         <>
