@@ -70,7 +70,7 @@ export interface InstrumentPageProps {
   readonly onSelectTrack?: (trackIndex: number) => void;
   readonly onOpenTrack?: (trackIndex: number) => void;
   readonly onToggleTrackFx?: (trackIndex: number, hot: number) => void;
-  readonly onSetTrackVolume?: (trackIndex: number, step: number) => void;
+  readonly onSetTrackVolume?: (trackIndex: number, gain: number) => void;
 }
 
 export function InstrumentPage({

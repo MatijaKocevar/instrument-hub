@@ -5,9 +5,10 @@ import type {
 import { clampColourIndex } from "./colours";
 import type { GridModel, GridPageStatus } from "./model";
 import {
-  clampTrackVolumeStep,
-  trackDbForStep,
+  clampTrackVolumeGain,
+  trackDbForGain,
   trackGainForStep,
+  trackVolumeStepForGain,
 } from "./trackVolume";
 
 export interface GridHotFx {
@@ -117,7 +118,11 @@ export function createTrackGridModel(
     layout: "tracks",
     pluginPage,
     tracks: tracks.map((track) => {
-      const volumeStep = clampTrackVolumeStep(track.volumeStep);
+      const gain = clampTrackVolumeGain(
+        Number.isFinite(track.gain) && track.gain >= 0
+          ? track.gain
+          : trackGainForStep(track.volumeStep),
+      );
 
       return {
         index: track.index,
@@ -129,15 +134,9 @@ export function createTrackGridModel(
         status: trackStatus(track, pluginPage),
         hasInstrument: track.instrument.kind !== "empty",
         instrument: track.instrument,
-        volumeStep,
-        volumeDb:
-          Number.isFinite(track.volumeDb) && track.volumeDb !== 0
-            ? track.volumeDb
-            : trackDbForStep(volumeStep),
-        gain:
-          Number.isFinite(track.gain) && track.gain > 0
-            ? track.gain
-            : trackGainForStep(volumeStep),
+        volumeStep: trackVolumeStepForGain(gain),
+        volumeDb: trackDbForGain(gain),
+        gain,
         hotFx: [hotForIndex(track.hotFx, 0), hotForIndex(track.hotFx, 1)],
       };
     }),

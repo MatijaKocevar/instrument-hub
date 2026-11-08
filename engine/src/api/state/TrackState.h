@@ -11,6 +11,8 @@ namespace Api
 inline constexpr int trackVolumeMinimumStep = 0;
 inline constexpr int trackVolumeMaximumStep = 4;
 inline constexpr int trackVolumeDefaultStep = 3;
+inline constexpr double trackVolumeMinimumGain = 0.0;
+inline constexpr double trackVolumeMaximumGain = 1.4125375446227544;
 
 struct TrackHotFxState
 {
@@ -43,11 +45,11 @@ struct TrackConfig
     std::string name;
     int slot = -1;
     std::vector<std::string> hotFx;
-    int volumeStep = trackVolumeDefaultStep;
+    double gain = 1.0;
 };
 
 double trackGainForStep (int step) noexcept;
-double trackDbForStep (int step) noexcept;
-int trackStepForGain (double gain) noexcept;
+double trackDbForGain (double gain) noexcept;
+int trackVolumeStepForGain (double gain) noexcept;
 
 }

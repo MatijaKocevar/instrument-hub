@@ -318,10 +318,11 @@ paths:
     post:
       tags: [state]
       operationId: setTrackVolume
-      summary: Set a track's stepped volume
+      summary: Set a track's volume
       description: |
-        Sets the track volume step and applies the corresponding linear gain
-        to the track slot. Emits a `track` state event.
+        Sets the track volume from a continuous linear gain or from one of the
+        five controller steps, and applies it to the track slot. Emits a
+        `track` state event.
       parameters:
         - name: index
           in: path
@@ -349,7 +350,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/State"
         "400":
-          description: The step is missing or outside 0-4
+          description: Gain or step is missing or outside its range
           content:
             application/json:
               schema:
@@ -2496,18 +2497,19 @@ components:
           minimum: 0
           maximum: 4
           description: |
-            Stepped volume: 0 silent, 1 50%, 2 75%, 3 100% (0 dB),
-            4 +3 dB.
+            Highest controller stage reached by the continuous gain:
+            0 silent, 1 at least 50%, 2 at least 75%, 3 at least 100%
+            (0 dB), 4 +3 dB.
         volumeDb:
           type: number
           minimum: -60
-          maximum: 12
-          description: The published gain in dB; step 0 reports -60.
+          maximum: 3
+          description: The published gain in dB; silence reports -60.
         gain:
           type: number
           minimum: 0
-          maximum: 2
-          description: Linear slot gain for the current step.
+          maximum: 1.4125375446227544
+          description: Continuous linear slot gain.
         hotFx:
           type: array
           minItems: 2
@@ -2556,17 +2558,30 @@ components:
           description: Insert id from the live chain; an empty string clears the slot.
 
     TrackVolumeRequest:
-      type: object
-      required: [step]
-      additionalProperties: false
-      properties:
-        step:
-          type: integer
-          minimum: 0
-          maximum: 4
-          description: |
-            Volume step. 0 is silent, 1 is 50% (-6.0 dB), 2 is 75%
-            (-2.5 dB), 3 is 100% (0 dB) and 4 is +3 dB.
+      description: |
+        Set volume either as a continuous linear gain or as one of the five
+        controller steps.
+      oneOf:
+        - type: object
+          required: [gain]
+          additionalProperties: false
+          properties:
+            gain:
+              type: number
+              minimum: 0
+              maximum: 1.4125375446227544
+              description: Continuous linear gain.
+        - type: object
+          required: [step]
+          additionalProperties: false
+          properties:
+            step:
+              type: integer
+              minimum: 0
+              maximum: 4
+              description: |
+                Volume step. 0 is silent, 1 is 50% (-6.0 dB), 2 is 75%
+                (-2.5 dB), 3 is 100% (0 dB) and 4 is +3 dB.
 
     ProjectState:
       type: object

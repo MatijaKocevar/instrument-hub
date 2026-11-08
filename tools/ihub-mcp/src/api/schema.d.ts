@@ -154,9 +154,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Set a track's stepped volume
-         * @description Sets the track volume step and applies the corresponding linear gain
-         *     to the track slot. Emits a `track` state event.
+         * Set a track's volume
+         * @description Sets the track volume from a continuous linear gain or from one of the
+         *     five controller steps, and applies it to the track slot. Emits a
+         *     `track` state event.
          */
         post: operations["setTrackVolume"];
         delete?: never;
@@ -1291,13 +1292,14 @@ export interface components {
             selected: boolean;
             instrument: components["schemas"]["PatchInstrument"];
             /**
-             * @description Stepped volume: 0 silent, 1 50%, 2 75%, 3 100% (0 dB),
-             *     4 +3 dB.
+             * @description Highest controller stage reached by the continuous gain:
+             *     0 silent, 1 at least 50%, 2 at least 75%, 3 at least 100%
+             *     (0 dB), 4 +3 dB.
              */
             volumeStep: number;
-            /** @description The published gain in dB; step 0 reports -60. */
+            /** @description The published gain in dB; silence reports -60. */
             volumeDb: number;
-            /** @description Linear slot gain for the current step. */
+            /** @description Continuous linear slot gain. */
             gain: number;
             /** @description The two hot-FX slots for this track. */
             hotFx: components["schemas"]["TrackHotFx"][];
@@ -1319,7 +1321,14 @@ export interface components {
             /** @description Insert id from the live chain; an empty string clears the slot. */
             insertId: string;
         };
+        /**
+         * @description Set volume either as a continuous linear gain or as one of the five
+         *     controller steps.
+         */
         TrackVolumeRequest: {
+            /** @description Continuous linear gain. */
+            gain: number;
+        } | {
             /**
              * @description Volume step. 0 is silent, 1 is 50% (-6.0 dB), 2 is 75%
              *     (-2.5 dB), 3 is 100% (0 dB) and 4 is +3 dB.
@@ -2001,7 +2010,7 @@ export interface operations {
                     "application/json": components["schemas"]["State"];
                 };
             };
-            /** @description The step is missing or outside 0-4 */
+            /** @description Gain or step is missing or outside its range */
             400: {
                 headers: {
                     [name: string]: unknown;

@@ -165,8 +165,8 @@ export class AppStore {
   toggleTrackFx = (index: number, hot: number): Promise<boolean> =>
     this.track.toggleTrackFx(index, hot);
 
-  setTrackVolume = (index: number, step: number): Promise<boolean> =>
-    this.track.setTrackVolume(index, step);
+  setTrackVolume = (index: number, gain: number): Promise<boolean> =>
+    this.track.setTrackVolume(index, gain);
 
   assignTrackHotFx = (
     index: number,

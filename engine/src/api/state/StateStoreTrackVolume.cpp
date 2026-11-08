@@ -9,10 +9,8 @@ namespace Api
 
 namespace
 {
-constexpr double boostGain = 1.4125375446227544;
-
 const std::array<double, trackVolumeMaximumStep + 1> stepGains {
-    0.0, 0.5, 0.75, 1.0, boostGain
+    0.0, 0.5, 0.75, 1.0, trackVolumeMaximumGain
 };
 }
 
@@ -24,38 +22,31 @@ double trackGainForStep (int step) noexcept
     return stepGains[static_cast<std::size_t> (step)];
 }
 
-double trackDbForStep (int step) noexcept
+double trackDbForGain (double gain) noexcept
 {
-    const double gain = trackGainForStep (step);
-
     if (gain <= 0.0)
         return -60.0;
 
     return 20.0 * std::log10 (gain);
 }
 
-int trackStepForGain (double gain) noexcept
+int trackVolumeStepForGain (double gain) noexcept
 {
-    if (gain <= 0.001)
-        return 0;
+    if (gain <= 0.0)
+        return trackVolumeMinimumStep;
 
-    int closest = trackVolumeMaximumStep;
-    double bestDistance =
-        std::abs (gain - stepGains[static_cast<std::size_t> (closest)]);
+    int step = trackVolumeMinimumStep;
 
-    for (int step = 0; step <= trackVolumeMaximumStep; ++step)
+    for (int candidate = trackVolumeMinimumStep + 1;
+         candidate <= trackVolumeMaximumStep;
+         ++candidate)
     {
-        const double distance =
-            std::abs (gain - stepGains[static_cast<std::size_t> (step)]);
-
-        if (distance < bestDistance)
-        {
-            bestDistance = distance;
-            closest = step;
-        }
+        if (gain + 1.0e-6
+            >= stepGains[static_cast<std::size_t> (candidate)])
+            step = candidate;
     }
 
-    return closest;
+    return step;
 }
 
 void StateStore::setTrackGainHandler (TrackGainHandler handler)
@@ -64,8 +55,17 @@ void StateStore::setTrackGainHandler (TrackGainHandler handler)
     trackGainHandler = std::move (handler);
 }
 
-bool StateStore::setTrackVolumeStep (int index, int step, std::string& error)
+bool StateStore::setTrackGain (int index, double gain, std::string& error)
 {
+    if (! std::isfinite (gain)
+        || gain < trackVolumeMinimumGain
+        || gain > trackVolumeMaximumGain)
+    {
+        error = "gain must be between 0 and "
+                + std::to_string (trackVolumeMaximumGain);
+        return false;
+    }
+
     int slot = -1;
     TrackGainHandler handler;
 
@@ -78,12 +78,6 @@ bool StateStore::setTrackVolumeStep (int index, int step, std::string& error)
             return false;
         }
 
-        if (step < trackVolumeMinimumStep || step > trackVolumeMaximumStep)
-        {
-            error = "step must be between 0 and 4";
-            return false;
-        }
-
         auto& track = tracks[static_cast<std::size_t> (index)];
 
         if (track.slot < 0 || track.slot >= numSlots)
@@ -92,18 +86,30 @@ bool StateStore::setTrackVolumeStep (int index, int step, std::string& error)
             return false;
         }
 
-        track.volumeStep = step;
+        track.gain = gain;
         slot = track.slot;
-        slotMixes[static_cast<std::size_t> (slot)].volumeDb = trackDbForStep (step);
+        slotMixes[static_cast<std::size_t> (slot)].volumeDb =
+            trackDbForGain (gain);
         handler = trackGainHandler;
     }
 
     if (handler != nullptr)
-        handler (slot, static_cast<float> (trackGainForStep (step)));
+        handler (slot, static_cast<float> (gain));
 
     notifyEdited ("track", slot);
     notifyChanged ("track", index);
     return true;
+}
+
+bool StateStore::setTrackVolumeStep (int index, int step, std::string& error)
+{
+    if (step < trackVolumeMinimumStep || step > trackVolumeMaximumStep)
+    {
+        error = "step must be between 0 and 4";
+        return false;
+    }
+
+    return setTrackGain (index, trackGainForStep (step), error);
 }
 
 }

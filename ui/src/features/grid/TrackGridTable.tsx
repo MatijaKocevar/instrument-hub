@@ -8,7 +8,7 @@ export interface TrackGridActions {
   readonly onSelectTrack?: (index: number) => void;
   readonly onOpenTrack?: (index: number) => void;
   readonly onToggleTrackFx?: (index: number, hot: number) => void;
-  readonly onSetTrackVolume?: (index: number, step: number) => void;
+  readonly onSetTrackVolume?: (index: number, gain: number) => void;
   readonly onRenameTrack?: (index: number, name: string) => void;
 }
 

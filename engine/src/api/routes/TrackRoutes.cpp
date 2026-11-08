@@ -175,24 +175,47 @@ void registerTrackRoutes (httplib::Server& server, const RouteContext& context)
 
         auto* object = body.getDynamicObject();
 
-        if (! object->hasProperty ("step"))
+        if (object->hasProperty ("gain"))
         {
-            setError (response, 400, "body must contain \"step\" (0..4)");
-            return;
+            double gain = 0.0;
+
+            if (! detail::readNumber (object->getProperty ("gain"), "gain",
+                                      0.0, trackVolumeMaximumGain, gain,
+                                      error))
+            {
+                setError (response, 400, error);
+                return;
+            }
+
+            if (! context.state.setTrackGain (index, gain, error))
+            {
+                setError (response, statusForTrackError (error), error);
+                return;
+            }
         }
-
-        std::int64_t step = 0;
-
-        if (! detail::readInteger (object->getProperty ("step"), "step",
-                                   0, 5, step, error))
+        else if (object->hasProperty ("step"))
         {
-            setError (response, 400, error);
-            return;
+            std::int64_t step = 0;
+
+            if (! detail::readInteger (object->getProperty ("step"), "step",
+                                       0, 4, step, error))
+            {
+                setError (response, 400, error);
+                return;
+            }
+
+            if (! context.state.setTrackVolumeStep (index,
+                                                    static_cast<int> (step),
+                                                    error))
+            {
+                setError (response, statusForTrackError (error), error);
+                return;
+            }
         }
-
-        if (! context.state.setTrackVolumeStep (index, static_cast<int> (step), error))
+        else
         {
-            setError (response, statusForTrackError (error), error);
+            setError (response, 400,
+                      "body must contain \"gain\" (0..1.4125) or \"step\" (0..4)");
             return;
         }
 

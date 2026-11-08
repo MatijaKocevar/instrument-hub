@@ -46,7 +46,7 @@ export interface StateEndpoints {
 
   setTrackVolume(
     index: number,
-    step: number,
+    gain: number,
     options?: { signal?: AbortSignal },
   ): Promise<ControlState>;
 
@@ -339,12 +339,12 @@ export function createStateEndpoints(
       );
     },
 
-    async setTrackVolume(index, step, requestOptions) {
+    async setTrackVolume(index, gain, requestOptions) {
       const { data, error, response } = await client.POST(
         "/tracks/{index}/volume",
         {
           params: { path: { index } },
-          body: { step },
+          body: { gain },
           ...(requestOptions?.signal !== undefined
             ? { signal: requestOptions.signal }
             : {}),

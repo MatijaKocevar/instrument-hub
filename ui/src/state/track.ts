@@ -4,9 +4,9 @@ import type {
   ControlTrackHotFx,
 } from "../api/client";
 import {
-  clampTrackVolumeStep,
-  trackDbForStep,
-  trackGainForStep,
+  clampTrackVolumeGain,
+  trackDbForGain,
+  trackVolumeStepForGain,
 } from "../features/grid";
 import type { ActionContext } from "./actionContext";
 import { messageOf } from "./errors";
@@ -79,12 +79,12 @@ function withTrackName(
   };
 }
 
-function withTrackVolume(
+function withTrackGain(
   state: ControlState,
   index: number,
-  step: number,
+  gain: number,
 ): ControlState {
-  const clamped = clampTrackVolumeStep(step);
+  const clamped = clampTrackVolumeGain(gain);
 
   return {
     ...state,
@@ -93,9 +93,9 @@ function withTrackVolume(
         ? track
         : {
             ...track,
-            volumeStep: clamped,
-            volumeDb: trackDbForStep(clamped),
-            gain: trackGainForStep(clamped),
+            volumeStep: trackVolumeStepForGain(clamped),
+            volumeDb: trackDbForGain(clamped),
+            gain: clamped,
           },
     ),
   };
@@ -179,13 +179,15 @@ export class TrackActions {
     );
   };
 
-  setTrackVolume = async (index: number, step: number): Promise<boolean> => {
-    if (!Number.isInteger(step) || step < 0 || step > 4) return false;
+  setTrackVolume = async (index: number, gain: number): Promise<boolean> => {
+    if (!Number.isFinite(gain)) return false;
     if (trackAt(this.snapshot.state, index) === null) return false;
 
+    const clamped = clampTrackVolumeGain(gain);
+
     return this.run(
-      (state) => withTrackVolume(state, index, step),
-      () => this.context.api.setTrackVolume(index, step),
+      (state) => withTrackGain(state, index, clamped),
+      () => this.context.api.setTrackVolume(index, clamped),
     );
   };
 
