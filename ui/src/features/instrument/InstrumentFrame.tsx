@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 
-import type { ControlPatch } from "../../api/client";
+import type { ControlPatch, ControlTrack } from "../../api/client";
 import { InstrumentHead } from "./InstrumentHead";
 
 interface InstrumentFrameProps {
@@ -8,6 +8,8 @@ interface InstrumentFrameProps {
   readonly armedSlot: number;
   readonly following: boolean;
   readonly loading: boolean;
+  readonly track: ControlTrack | null;
+  readonly onRenameTrack?: (index: number, name: string) => void;
   readonly children?: ReactNode;
 }
 
@@ -16,6 +18,8 @@ export function InstrumentFrame({
   armedSlot,
   following,
   loading,
+  track,
+  onRenameTrack,
   children,
 }: InstrumentFrameProps): ReactElement {
   if (patch === null) {
@@ -54,7 +58,13 @@ export function InstrumentFrame({
       data-warm-state={patch.warmState}
       data-colour-index={patch.colorIndex}
     >
-      <InstrumentHead patch={patch} armed={armed} following={following} />
+      <InstrumentHead
+        patch={patch}
+        armed={armed}
+        following={following}
+        track={track}
+        {...(onRenameTrack !== undefined ? { onRenameTrack } : {})}
+      />
 
       {children}
     </section>

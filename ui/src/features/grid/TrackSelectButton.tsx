@@ -6,12 +6,14 @@ export interface TrackSelectButtonProps {
   readonly track: GridTrack;
   readonly onSelectTrack: ((index: number) => void) | undefined;
   readonly onOpenTrack: ((index: number) => void) | undefined;
+  readonly onStartRename?: () => void;
 }
 
 export function TrackSelectButton({
   track,
   onSelectTrack,
   onOpenTrack,
+  onStartRename,
 }: TrackSelectButtonProps): ReactElement {
   const empty = !track.hasInstrument;
   const instrument =
@@ -43,7 +45,24 @@ export function TrackSelectButton({
             }
       }
     >
-      <span className="grid__cell-name" data-testid="track-name">
+      <span
+        className={`grid__cell-name${onStartRename === undefined ? "" : " grid__cell-name--editable"}`}
+        data-testid="track-name"
+        title={
+          onStartRename === undefined
+            ? track.name
+            : `${track.name} · double-click to rename`
+        }
+        onDoubleClick={
+          onStartRename === undefined
+            ? undefined
+            : (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onStartRename();
+              }
+        }
+      >
         {track.name}
       </span>
       <span
