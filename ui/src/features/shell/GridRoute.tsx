@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 
-import { GridView } from "../grid";
+import { GridView, metersUrlFor } from "../grid";
 import type { RouterState } from "../../state/router";
 import type { ShellData } from "./useShellData";
 
@@ -25,6 +25,7 @@ export function GridRoute({
   return (
     <GridView
       model={grid}
+      metersUrl={metersUrlFor(store.baseUrl)}
       loading={state === null}
       onSelectTrack={selectTrack}
       onOpenTrack={openTrack}

@@ -3,10 +3,12 @@ import type { ReactElement } from "react";
 import { RecoveringBanner } from "./RecoveringBanner";
 import type { GridModel } from "./model";
 import { TrackGridTable } from "./TrackGridTable";
+import { TrackMeterProvider } from "./TrackMeterProvider";
 import "./grid.css";
 
 export interface GridViewProps {
   readonly model: GridModel;
+  readonly metersUrl?: string;
   readonly loading?: boolean;
   readonly onSelectTrack?: (index: number) => void;
   readonly onOpenTrack?: (index: number) => void;
@@ -17,6 +19,7 @@ export interface GridViewProps {
 
 export function GridView({
   model,
+  metersUrl = "",
   loading = false,
   onSelectTrack,
   onOpenTrack,
@@ -46,14 +49,16 @@ export function GridView({
           No performance tracks in this set yet.
         </div>
       ) : (
-        <TrackGridTable
-          model={model}
-          {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
-          {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
-          {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
-          {...(onSetTrackVolume !== undefined ? { onSetTrackVolume } : {})}
-          {...(onRenameTrack !== undefined ? { onRenameTrack } : {})}
-        />
+        <TrackMeterProvider url={metersUrl}>
+          <TrackGridTable
+            model={model}
+            {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
+            {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
+            {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
+            {...(onSetTrackVolume !== undefined ? { onSetTrackVolume } : {})}
+            {...(onRenameTrack !== undefined ? { onRenameTrack } : {})}
+          />
+        </TrackMeterProvider>
       )}
     </section>
   );
