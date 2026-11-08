@@ -53,8 +53,9 @@
   height: 100%;
   overflow: hidden;
   border: 1px solid var(--ih-border);
-  border-radius: var(--ih-radius-sm);
-  background: var(--ih-panel);
+  border-radius: var(--ih-radius);
+  background: var(--ih-panel-gradient);
+  box-shadow: var(--ih-shadow);
   transition: border-color 100ms linear;
 }
 
@@ -172,7 +173,7 @@
   border-radius: var(--ih-radius-sm);
   background: transparent;
   color: var(--ih-muted);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -195,7 +196,7 @@
   border-radius: var(--ih-radius-sm);
   background: transparent;
   color: var(--ih-muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
   cursor: pointer;
 }
@@ -220,7 +221,7 @@
   background: var(--ih-inset);
   color: var(--ih-text-bright);
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .track-grid__rename-input:focus {
@@ -236,7 +237,7 @@
 }
 
 .track-grid__selector-button .grid__cell-name {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0;
 }
@@ -301,7 +302,7 @@
 
 .track-grid__fx-button .grid__cell-name {
   overflow: hidden;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -309,7 +310,7 @@
 }
 
 .track-grid__fx-state {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -458,7 +459,7 @@
   overflow: hidden;
   color: var(--ih-muted);
   font-family: var(--ih-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -508,7 +509,7 @@
   background: var(--ih-inset);
   color: var(--ih-success);
   font-family: var(--ih-mono);
-  font-size: 9px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -598,7 +599,7 @@
 .track-grid__sub {
   overflow: hidden;
   color: var(--ih-muted);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -629,6 +630,12 @@
   padding: 8px 6px;
 }
 
+@media (max-width: 1150px) {
+  .track-grid__selector-state {
+    display: none;
+  }
+}
+
 @media (pointer: coarse) {
   .track-grid__column {
     grid-template-rows:
@@ -649,7 +656,7 @@
 
   .track-grid__fader-label,
   .track-grid__fader-db {
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 

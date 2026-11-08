@@ -17,14 +17,17 @@ export function InsertChainSkeleton(): ReactElement {
             key={index}
             aria-hidden="true"
           >
-            <Skeleton width="1.2rem" height="0.8rem" />
-            <div className="instrument__skeleton-insert-name">
-              <Skeleton width="65%" height="0.85rem" />
-              <Skeleton width="45%" height="0.65rem" />
+            <div className="instrument__insert-head">
+              <Skeleton width="1.2rem" height="0.8rem" />
+              <Skeleton width="5rem" height="0.8rem" />
+              <Skeleton width="3.5rem" height="0.8rem" />
             </div>
-            <Skeleton width="3.5rem" height="0.75rem" />
-            <Skeleton width="3rem" height="0.75rem" />
-            <Skeleton width="6.5rem" height="2rem" radius="10px" />
+            <Skeleton width="70%" height="0.9rem" />
+            <div className="instrument__insert-meta">
+              <Skeleton width="3.5rem" height="0.7rem" />
+              <Skeleton width="3rem" height="0.7rem" />
+            </div>
+            <Skeleton width="100%" height="2rem" radius="6px" />
           </li>
         ))}
       </ol>

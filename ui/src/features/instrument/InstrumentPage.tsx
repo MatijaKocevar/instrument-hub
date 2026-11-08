@@ -9,8 +9,10 @@ import type {
   ControlPlugin,
   ControlTrack,
 } from "../../api/client";
+import type { GridTrack } from "../grid";
 import { InsertChain } from "./InsertChain";
 import { InstrumentFrame } from "./InstrumentFrame";
+import { InstrumentTrackStrip } from "./InstrumentTrackStrip";
 import { Mixer } from "./Mixer";
 import { SaveSoundAction } from "./SaveSoundAction";
 import { SourceCard } from "./SourceCard";
@@ -35,9 +37,10 @@ export interface InstrumentPageProps {
   readonly plugins?: readonly ControlPlugin[] | null;
   readonly pluginError?: string | null;
   readonly track?: ControlTrack | null;
+  readonly gridTrack?: GridTrack | null;
+  readonly metersUrl?: string;
   readonly loading?: boolean;
 
-  readonly onVolumeChange?: (slot: number, volumeDb: number) => void;
   readonly onPanChange?: (slot: number, pan: number) => void;
   readonly onMuteChange?: (slot: number, muted: boolean) => void;
   readonly onSoloChange?: (slot: number, solo: boolean) => void;
@@ -64,6 +67,10 @@ export interface InstrumentPageProps {
     insertId: string | null,
   ) => void;
   readonly onRenameTrack?: (trackIndex: number, name: string) => void;
+  readonly onSelectTrack?: (trackIndex: number) => void;
+  readonly onOpenTrack?: (trackIndex: number) => void;
+  readonly onToggleTrackFx?: (trackIndex: number, hot: number) => void;
+  readonly onSetTrackVolume?: (trackIndex: number, step: number) => void;
 }
 
 export function InstrumentPage({
@@ -83,8 +90,9 @@ export function InstrumentPage({
   plugins = null,
   pluginError = null,
   track = null,
+  gridTrack = null,
+  metersUrl = "",
   loading = false,
-  onVolumeChange,
   onPanChange,
   onMuteChange,
   onSoloChange,
@@ -100,6 +108,10 @@ export function InstrumentPage({
   onRetryChain,
   onAssignHotFx,
   onRenameTrack,
+  onSelectTrack,
+  onOpenTrack,
+  onToggleTrackFx,
+  onSetTrackVolume,
 }: InstrumentPageProps): ReactElement {
   return (
     <InstrumentFrame
@@ -112,47 +124,63 @@ export function InstrumentPage({
     >
       {patch === null ? null : (
         <>
-          <div className="instrument__grid">
-            <Mixer
-              patch={patch}
-              {...(onVolumeChange !== undefined ? { onVolumeChange } : {})}
-              {...(onPanChange !== undefined ? { onPanChange } : {})}
-              {...(onMuteChange !== undefined ? { onMuteChange } : {})}
-              {...(onSoloChange !== undefined ? { onSoloChange } : {})}
-            />
-            <SourceCard patch={patch}>
-              <SourceEditor
+          <div className="instrument__workspace">
+            <div className="instrument__grid">
+              <SourceCard patch={patch}>
+                <SourceEditor
+                  patch={patch}
+                  editorOpen={editorOpen}
+                  editorBusy={editorBusy}
+                  editorError={editorError}
+                  {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
+                  {...(onReloadPlugin !== undefined
+                    ? {
+                        onReload: () => {
+                          onReloadPlugin(patch.slot);
+                        },
+                      }
+                    : {})}
+                  reloadBusy={reloadBusy}
+                />
+
+                <SaveSoundAction
+                  patch={patch}
+                  captureBusy={captureBusy}
+                  capture={capture}
+                  captureError={captureError}
+                  {...(onCaptureState !== undefined ? { onCaptureState } : {})}
+                />
+
+                <SourcePicker
+                  patch={patch}
+                  plugins={plugins}
+                  pluginError={pluginError}
+                  sourceBusy={sourceBusy}
+                  {...(onSourceChange !== undefined ? { onSourceChange } : {})}
+                />
+              </SourceCard>
+
+              <Mixer
                 patch={patch}
-                editorOpen={editorOpen}
-                editorBusy={editorBusy}
-                editorError={editorError}
-                {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
-                {...(onReloadPlugin !== undefined
-                  ? {
-                      onReload: () => {
-                        onReloadPlugin(patch.slot);
-                      },
-                    }
+                {...(onPanChange !== undefined ? { onPanChange } : {})}
+                {...(onMuteChange !== undefined ? { onMuteChange } : {})}
+                {...(onSoloChange !== undefined ? { onSoloChange } : {})}
+              />
+            </div>
+
+            {gridTrack !== null ? (
+              <InstrumentTrackStrip
+                track={gridTrack}
+                metersUrl={metersUrl}
+                {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
+                {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
+                {...(onToggleTrackFx !== undefined ? { onToggleTrackFx } : {})}
+                {...(onSetTrackVolume !== undefined
+                  ? { onSetTrackVolume }
                   : {})}
-                reloadBusy={reloadBusy}
+                {...(onRenameTrack !== undefined ? { onRenameTrack } : {})}
               />
-
-              <SaveSoundAction
-                patch={patch}
-                captureBusy={captureBusy}
-                capture={capture}
-                captureError={captureError}
-                {...(onCaptureState !== undefined ? { onCaptureState } : {})}
-              />
-
-              <SourcePicker
-                patch={patch}
-                plugins={plugins}
-                pluginError={pluginError}
-                sourceBusy={sourceBusy}
-                {...(onSourceChange !== undefined ? { onSourceChange } : {})}
-              />
-            </SourceCard>
+            ) : null}
           </div>
 
           <InsertChain

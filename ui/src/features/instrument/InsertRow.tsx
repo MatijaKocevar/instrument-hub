@@ -54,23 +54,34 @@ export function InsertRow({
       data-wet={insert.wet.toFixed(2)}
       data-latency-samples={insert.latencySamples}
     >
-      <span className="instrument__insert-index">
-        {String(index + 1).padStart(2, "0")}
-      </span>
-      <span className="instrument__insert-name">
+      <div className="instrument__insert-head">
+        <span className="instrument__insert-index">
+          {String(index + 1).padStart(2, "0")}
+        </span>
         <span className="instrument__insert-type">
           {insertLabel(insert.type)}
         </span>
-        <span className="instrument__insert-id">{insert.name}</span>
-      </span>
-      <span className="instrument__insert-wet" data-testid="fx-wet">
-        {String(wetPercent(insert.wet))}% wet
-      </span>
-      <span className="instrument__insert-latency">
-        {String(insert.bypassed ? 0 : insert.latencySamples)} smp
+        <span
+          className={`instrument__insert-state${insert.bypassed ? " instrument__insert-state--bypassed" : ""}`}
+        >
+          {insert.bypassed ? "Bypassed" : "Active"}
+        </span>
+      </div>
+
+      <span className="instrument__insert-name" data-testid="fx-insert-name">
+        {insert.name}
       </span>
 
-      <span className="instrument__insert-actions">
+      <div className="instrument__insert-meta">
+        <span className="instrument__insert-wet" data-testid="fx-wet">
+          {String(wetPercent(insert.wet))}% wet
+        </span>
+        <span className="instrument__insert-latency">
+          {String(insert.bypassed ? 0 : insert.latencySamples)} smp
+        </span>
+      </div>
+
+      <div className="instrument__insert-actions">
         {track === null
           ? null
           : [0, 1].map((hot) => {
@@ -110,28 +121,28 @@ export function InsertRow({
         <button
           className="instrument__icon-button"
           type="button"
-          title={`Move ${insert.name} up`}
-          aria-label={`Move ${insert.name} up`}
+          title={`Move ${insert.name} left`}
+          aria-label={`Move ${insert.name} left`}
           data-testid="fx-move-up"
           disabled={index === 0}
           onClick={() => {
             onMoveInsert?.(patch.slot, index, index - 1);
           }}
         >
-          ↑
+          ←
         </button>
         <button
           className="instrument__icon-button"
           type="button"
-          title={`Move ${insert.name} down`}
-          aria-label={`Move ${insert.name} down`}
+          title={`Move ${insert.name} right`}
+          aria-label={`Move ${insert.name} right`}
           data-testid="fx-move-down"
           disabled={index === count - 1}
           onClick={() => {
             onMoveInsert?.(patch.slot, index, index + 1);
           }}
         >
-          ↓
+          →
         </button>
         <button
           className={`instrument__toggle instrument__toggle--small${insert.bypassed ? "" : " instrument__toggle--on"}`}
@@ -159,7 +170,7 @@ export function InsertRow({
         >
           ×
         </button>
-      </span>
+      </div>
     </li>
   );
 }

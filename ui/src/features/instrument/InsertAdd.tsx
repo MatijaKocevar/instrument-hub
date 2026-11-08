@@ -54,8 +54,12 @@ export function InsertAdd({
 
   return (
     <div className="instrument__add" data-testid="fx-add">
-      <label className="instrument__field" htmlFor="instrument-insert-select">
-        <span className="instrument__field-label">Add insert</span>
+      <span className="instrument__add-title">Load insert</span>
+      <label
+        className="instrument__add-field"
+        htmlFor="instrument-insert-select"
+      >
+        <span className="instrument__field-label">Insert</span>
         <select
           id="instrument-insert-select"
           className="instrument__select"
@@ -85,7 +89,7 @@ export function InsertAdd({
         disabled={chainBusy === true || onAddInsert === undefined}
         onClick={add}
       >
-        Add insert
+        + Add insert
       </button>
     </div>
   );

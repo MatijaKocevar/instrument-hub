@@ -70,7 +70,7 @@ export function InsertChain({
       data-busy={chainBusy === true ? "true" : "false"}
     >
       <header className="instrument__card-head">
-        <h3 className="instrument__card-title">Inserts</h3>
+        <h3 className="instrument__card-title">Insert chain</h3>
         <span className="instrument__card-hint" data-testid="fx-latency-total">
           {missing ? (
             showSkeleton ? (
@@ -158,39 +158,41 @@ export function InsertChain({
         </div>
       ) : null}
 
-      {missing ? (
-        showSkeleton ? (
-          <InsertChainSkeleton />
-        ) : null
-      ) : inserts.length === 0 ? (
-        <p className="instrument__empty" data-testid="fx-empty">
-          No inserts. The instrument goes straight to the bus.
-        </p>
-      ) : (
-        <ol className="instrument__inserts" data-testid="fx-inserts">
-          {inserts.map((insert, index) => (
-            <InsertRow
-              key={`${insert.id}-${String(index)}`}
-              patch={patch}
-              insert={insert}
-              index={index}
-              count={inserts.length}
-              track={track}
-              {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
-              {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
-              {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
-              {...(onAssignHotFx !== undefined ? { onAssignHotFx } : {})}
-            />
-          ))}
-        </ol>
-      )}
+      <div className="instrument__chain-row">
+        {missing ? (
+          showSkeleton ? (
+            <InsertChainSkeleton />
+          ) : null
+        ) : inserts.length === 0 ? (
+          <p className="instrument__empty" data-testid="fx-empty">
+            No inserts yet. Load one to start the chain.
+          </p>
+        ) : (
+          <ol className="instrument__inserts" data-testid="fx-inserts">
+            {inserts.map((insert, index) => (
+              <InsertRow
+                key={`${insert.id}-${String(index)}`}
+                patch={patch}
+                insert={insert}
+                index={index}
+                count={inserts.length}
+                track={track}
+                {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
+                {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
+                {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
+                {...(onAssignHotFx !== undefined ? { onAssignHotFx } : {})}
+              />
+            ))}
+          </ol>
+        )}
 
-      <InsertAdd
-        patch={patch}
-        {...(plugins !== undefined ? { plugins } : {})}
-        {...(chainBusy !== undefined ? { chainBusy } : {})}
-        {...(onAddInsert !== undefined ? { onAddInsert } : {})}
-      />
+        <InsertAdd
+          patch={patch}
+          {...(plugins !== undefined ? { plugins } : {})}
+          {...(chainBusy !== undefined ? { chainBusy } : {})}
+          {...(onAddInsert !== undefined ? { onAddInsert } : {})}
+        />
+      </div>
     </section>
   );
 }

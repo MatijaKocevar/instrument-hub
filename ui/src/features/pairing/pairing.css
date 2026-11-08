@@ -8,7 +8,8 @@
   padding: var(--ih-space-3);
   border: 1px solid var(--pairing-line);
   border-radius: var(--ih-radius);
-  background: var(--pairing-card);
+  background: linear-gradient(180deg, #2d2d2d 0%, #282828 100%);
+  box-shadow: var(--ih-shadow);
 }
 
 .pairing__header {
@@ -24,7 +25,7 @@
 .pairing__eyebrow {
   margin: 0 0 2px;
   color: var(--ih-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -33,7 +34,7 @@
 .pairing__title {
   margin: 0;
   color: var(--ih-text-bright);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -51,7 +52,7 @@
   margin: 0;
   max-width: 46rem;
   color: var(--pairing-muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -71,7 +72,7 @@
   background: var(--ih-panel-raised);
   color: var(--ih-text);
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   touch-action: manipulation;
   cursor: pointer;
@@ -101,14 +102,14 @@
 .pairing__token-state {
   color: var(--pairing-muted);
   font-family: var(--ih-mono);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .pairing__error,
 .pairing-gate__error {
   margin: 0;
   color: var(--ih-danger);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .pairing__skeleton-qr {
@@ -167,7 +168,7 @@
   margin: 0;
   color: var(--pairing-muted);
   font-family: var(--ih-mono);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .pairing__details {
@@ -180,7 +181,7 @@
 .pairing__label {
   margin: 0;
   color: var(--pairing-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -212,14 +213,14 @@
 
 .pairing__meta dt {
   color: var(--pairing-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .pairing__meta dd {
   margin: 0;
   color: var(--ih-text);
   font-family: var(--ih-mono);
-  font-size: 10px;
+  font-size: 12px;
   text-align: right;
   overflow-wrap: anywhere;
 }
@@ -242,7 +243,7 @@
 .pairing-gate__eyebrow {
   margin: 0 0 3px;
   color: var(--ih-muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -262,7 +263,7 @@
 .pairing-gate__auto {
   margin: 0;
   color: var(--ih-muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -274,7 +275,7 @@
 
 .pairing-gate__label {
   color: var(--ih-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -288,7 +289,7 @@
   color: var(--ih-text-bright);
   font: inherit;
   font-family: var(--ih-mono);
-  font-size: 24px;
+  font-size: 26px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.3em;
   text-align: center;
@@ -310,7 +311,7 @@
   background: var(--ih-accent);
   color: var(--ih-on-accent);
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
