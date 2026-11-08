@@ -1503,7 +1503,7 @@ paths:
             { "index": 0, "pressed": false, "updatedMs": 0.0 },
             { "index": 3, "pressed": true, "updatedMs": 1400.5 }
           ],
-          "state": { "schemaVersion": 1, "revision": 8, "layout": "families", "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
+          "state": { "schemaVersion": 1, "revision": 8, "layout": "tracks", "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
         }
         ```
       security:
@@ -2412,8 +2412,8 @@ components:
     State:
       type: object
       required:
-        [schemaVersion, revision, application, armedSlot, uptimeMs, slots,
-         families, settings, transport]
+        [schemaVersion, revision, application, layout, armedSlot, uptimeMs,
+         slots, tracks, families, settings, transport]
       additionalProperties: false
       properties:
         schemaVersion:
@@ -2428,8 +2428,8 @@ components:
           $ref: "#/components/schemas/Application"
         layout:
           type: string
-          enum: [families, tracks]
-          description: The session layout; legacy projects use families, new projects use tracks.
+          const: tracks
+          description: The session layout. Only the eight-track performance grid is supported.
         armedSlot:
           type: integer
           minimum: -1
@@ -2443,16 +2443,14 @@ components:
             $ref: "#/components/schemas/Slot"
         tracks:
           type: array
-          description: |
-            The eight performance tracks when `layout` is `tracks`. Legacy
-            family projects omit the field so their v1 state is unchanged.
+          description: The eight performance tracks.
           minItems: 8
           maxItems: 8
           items:
             $ref: "#/components/schemas/Track"
         pages:
           type: array
-          description: Shared plugin-host pages, empty for the legacy family layout.
+          description: Shared plugin-host pages.
           items:
             $ref: "#/components/schemas/PluginPage"
         families:

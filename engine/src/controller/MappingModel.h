@@ -14,13 +14,11 @@ namespace Controller
 
 enum class MappingLayout
 {
-    families,
     tracks
 };
 
 enum class PadRole
 {
-    patch,
     track,
     fx,
     volume
@@ -36,65 +34,6 @@ struct TrackSpec
     bool operator== (const TrackSpec&) const = default;
 };
 
-struct PatchFxSpec
-{
-    std::string kind = "builtin";
-    std::string id;
-    std::string name;
-    std::string pluginState;
-    bool bypassed = false;
-    std::map<std::string, float> parameters;
-
-    bool operator== (const PatchFxSpec&) const = default;
-};
-
-struct InstrumentSpec
-{
-    std::string id;
-    std::string name;
-    int slot = -1;
-
-    std::string kind = "empty";
-
-    std::string pluginFormat = "VST3";
-    std::string pluginId;
-    std::string pluginName;
-    std::string pluginManufacturer;
-    std::string pluginVersion;
-    std::string pluginState;
-
-    std::string samplePath;
-
-    float volumeDb = 0.0f;
-
-    float pan = 0.0f;
-
-    bool muted = false;
-    bool solo = false;
-
-    static constexpr int inheritColorIndex = -1;
-
-    int colorIndex = inheritColorIndex;
-
-    int resolvedColorIndex = 0;
-
-    std::vector<PatchFxSpec> fxChain;
-
-    bool operator== (const InstrumentSpec&) const = default;
-};
-
-struct FamilySpec
-{
-    std::string id;
-    std::string name;
-
-    int colorIndex = 0;
-
-    std::vector<InstrumentSpec> instruments;
-
-    const InstrumentSpec* findInstrument (const std::string& instrumentId) const noexcept;
-};
-
 struct MacroSpec
 {
     std::string id;
@@ -108,9 +47,7 @@ struct MacroSpec
 struct PadBinding
 {
     int pad = -1;
-    PadRole role = PadRole::patch;
-    std::string family;
-    std::string instrument;
+    PadRole role = PadRole::track;
     std::string track;
     int slot = -1;
     int hot = -1;
@@ -140,15 +77,13 @@ struct SceneSpec
 {
     int scene = -1;
     std::string name;
-    std::string family;
 
     bool operator== (const SceneSpec&) const = default;
 };
 
 struct SetMapping
 {
-    static constexpr int supportedSchemaVersion = 1;
-    static constexpr int supportedTrackSchemaVersion = 2;
+    static constexpr int supportedSchemaVersion = 2;
     static constexpr int maximumSlot = 63;
 
     static constexpr int maximumColourIndex = 15;
@@ -165,10 +100,9 @@ struct SetMapping
     static constexpr int maximumVolumeStep = 4;
 
     int schemaVersion = supportedSchemaVersion;
-    MappingLayout layout = MappingLayout::families;
+    MappingLayout layout = MappingLayout::tracks;
     std::string name;
 
-    std::map<std::string, FamilySpec> families;
     std::map<std::string, MacroSpec> macros;
     std::vector<TrackSpec> tracks;
 
@@ -185,20 +119,13 @@ struct SetMapping
     const TrackSpec* trackForId (std::string_view id) const noexcept;
     const TrackSpec* trackFor (const PadBinding& binding) const noexcept;
 
-    const InstrumentSpec* instrumentFor (const PadBinding& binding) const noexcept;
     const MacroSpec* macroFor (const EncoderBinding& binding) const noexcept;
-
-    int colorIndexFor (const PadBinding& binding) const noexcept;
-
-    int countPatches() const noexcept;
 
     int countPads() const noexcept;
     int countEncoders() const noexcept;
     int countBanks() const noexcept;
     int countScenes() const noexcept;
     int countTracks() const noexcept;
-
-    std::vector<const InstrumentSpec*> allInstruments() const;
 };
 
 }

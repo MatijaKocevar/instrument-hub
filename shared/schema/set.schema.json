@@ -2,156 +2,67 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://instrument-hub.local/schema/set.schema.json",
   "title": "Instrument Hub set mapping",
-  "description": "The hot-reloadable set.yaml document. Version 1 uses the family/patch grid; version 2 with layout: tracks uses eight performance tracks arranged as columns.",
-  "oneOf": [
-    { "$ref": "#/$defs/familyGrid" },
-    { "$ref": "#/$defs/trackGrid" }
-  ],
+  "description": "The hot-reloadable set mapping for the eight-track performance grid. Tracks are columns; pads select tracks, toggle hot FX and set volume steps.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "layout", "tracks", "pads"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Document format version. Only version 2 is accepted.",
+      "const": 2
+    },
+    "layout": {
+      "const": "tracks"
+    },
+    "name": {
+      "description": "Human-readable set name.",
+      "type": "string",
+      "minLength": 1
+    },
+    "tracks": {
+      "description": "Eight performance tracks, one per grid column.",
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/track" }
+    },
+    "macros": {
+      "description": "Optional named encoder destinations, keyed by macro id.",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/macro" }
+    },
+    "banks": {
+      "description": "Top-row macro pages, keyed by bank index (Launchpad CC 91..98). Optional; when present bank 0 is the leftmost button.",
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/bank" }
+    },
+    "scenes": {
+      "description": "Right-column scenes, keyed by scene index (Launchpad CC 89..19, top to bottom). Optional.",
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/scene" }
+    },
+    "pads": {
+      "description": "Track pad roles: row 7 selects a track, rows 6/5 toggle hot FX 0/1, rows 4..0 select volume steps.",
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/padTrack" },
+          { "$ref": "#/$defs/padFx" },
+          { "$ref": "#/$defs/padVolume" }
+        ]
+      }
+    },
+    "encoders": {
+      "description": "Optional encoder bindings.",
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/encoder" }
+    }
+  },
   "$defs": {
-    "fxInsert": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id"],
-      "properties": {
-        "kind": {
-          "type": "string",
-          "enum": ["builtin", "plugin"],
-          "default": "builtin"
-        },
-        "id": {
-          "description": "Built-in effect id (eq, compressor, delay, reverb) or the plugin id.",
-          "type": "string",
-          "minLength": 1
-        },
-        "name": {
-          "type": "string"
-        },
-        "pluginState": {
-          "description": "UUID of the stored plugin state blob; omitted while the insert is cold.",
-          "type": "string"
-        },
-        "bypassed": {
-          "type": "boolean",
-          "default": false
-        },
-        "parameters": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "number"
-          }
-        }
-      }
-    },
-    "instrument": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "name", "slot"],
-      "properties": {
-        "id": {
-          "description": "Unique within this family.",
-          "type": "string",
-          "minLength": 1
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "slot": {
-          "description": "Fixed audio-graph slot that hosts this instrument. A pad press arms this slot.",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 63
-        },
-        "colorIndex": {
-          "description": "Patch palette override (-1 inherits the family default).",
-          "type": "integer",
-          "minimum": -1,
-          "maximum": 15,
-          "default": -1
-        },
-        "volumeDb": {
-          "description": "Patch volume in dB.",
-          "type": "number",
-          "minimum": -60,
-          "maximum": 12,
-          "default": 0
-        },
-        "pan": {
-          "description": "Stereo balance, -1 left .. +1 right.",
-          "type": "number",
-          "minimum": -1,
-          "maximum": 1,
-          "default": 0
-        },
-        "mute": {
-          "type": "boolean",
-          "default": false
-        },
-        "solo": {
-          "type": "boolean",
-          "default": false
-        },
-        "kind": {
-          "description": "Instrument source. A cold patch still declares its kind and plugin descriptor, but no state blob.",
-          "type": "string",
-          "enum": ["empty", "init-tone", "sampler", "plugin", "audio-input"],
-          "default": "empty"
-        },
-        "pluginFormat": {
-          "type": "string",
-          "default": "VST3"
-        },
-        "pluginId": {
-          "description": "Stable plugin identifier for a plugin patch.",
-          "type": "string"
-        },
-        "pluginName": {
-          "type": "string"
-        },
-        "pluginManufacturer": {
-          "type": "string"
-        },
-        "pluginVersion": {
-          "type": "string"
-        },
-        "pluginState": {
-          "description": "UUID of the stored state blob. Omitted for a cold patch that has never been loaded or edited.",
-          "type": "string"
-        },
-        "samplePath": {
-          "description": "Kit document for a sampler patch.",
-          "type": "string"
-        },
-        "fx": {
-          "description": "Ordered insert chain for this patch.",
-          "type": "array",
-          "items": { "$ref": "#/$defs/fxInsert" }
-        }
-      }
-    },
-    "family": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "instruments"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "colorIndex": {
-          "description": "Default palette index (0..15) for every patch in this family. A patch may override it.",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 15,
-          "default": 0
-        },
-        "instruments": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "$ref": "#/$defs/instrument" }
-        }
-      }
-    },
     "macro": {
       "type": "object",
       "additionalProperties": false,
@@ -224,7 +135,7 @@
     "scene": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["scene", "name", "family"],
+      "required": ["scene", "name"],
       "properties": {
         "scene": {
           "type": "integer",
@@ -232,32 +143,6 @@
           "maximum": 7
         },
         "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "family": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "padFamily": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["pad", "family", "instrument"],
-      "properties": {
-        "pad": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 63
-        },
-        "family": {
-          "description": "Must match a key in families.",
-          "type": "string",
-          "minLength": 1
-        },
-        "instrument": {
-          "description": "Must match an instrument id inside the referenced family.",
           "type": "string",
           "minLength": 1
         }
@@ -361,121 +246,6 @@
             "type": "string",
             "minLength": 1
           }
-        }
-      }
-    },
-    "familyGrid": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["schemaVersion", "families", "macros", "pads", "encoders"],
-      "properties": {
-        "schemaVersion": {
-          "description": "Document format version. Version 1 is the family/patch grid.",
-          "const": 1
-        },
-        "name": {
-          "description": "Human-readable set name.",
-          "type": "string",
-          "minLength": 1
-        },
-        "families": {
-          "description": "Instrument families, keyed by family id. Family order is not significant; the pad list decides what is reachable.",
-          "type": "object",
-          "minProperties": 1,
-          "additionalProperties": { "$ref": "#/$defs/family" }
-        },
-        "macros": {
-          "description": "Named encoder destinations, keyed by macro id.",
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/macro" }
-        },
-        "banks": {
-          "description": "Top-row macro pages, keyed by bank index (Launchpad CC 91..98). Optional; when present bank 0 is the leftmost button.",
-          "type": "array",
-          "maxItems": 8,
-          "items": { "$ref": "#/$defs/bank" }
-        },
-        "scenes": {
-          "description": "Right-column scenes, keyed by scene index (Launchpad CC 89..19, top to bottom). Optional; a scene names the family row it selects.",
-          "type": "array",
-          "maxItems": 8,
-          "items": { "$ref": "#/$defs/scene" }
-        },
-        "pads": {
-          "description": "Grid pad bindings. The Launchpad exposes 64 pads in row-major order from the bottom-left: pad 0 is the bottom-left key, pad 63 the top-right. In the starter set each row is one family.",
-          "type": "array",
-          "maxItems": 64,
-          "items": { "$ref": "#/$defs/padFamily" }
-        },
-        "encoders": {
-          "description": "Encoder bindings. Encoder 0 is the leftmost knob.",
-          "type": "array",
-          "maxItems": 8,
-          "items": { "$ref": "#/$defs/encoder" }
-        }
-      }
-    },
-    "trackGrid": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["schemaVersion", "layout", "tracks", "pads"],
-      "properties": {
-        "schemaVersion": {
-          "description": "Document format version. Version 2 is the eight-track performance layout.",
-          "const": 2
-        },
-        "layout": {
-          "const": "tracks"
-        },
-        "name": {
-          "description": "Human-readable set name.",
-          "type": "string",
-          "minLength": 1
-        },
-        "tracks": {
-          "description": "Eight performance tracks, one per grid column.",
-          "type": "array",
-          "minItems": 8,
-          "maxItems": 8,
-          "items": { "$ref": "#/$defs/track" }
-        },
-        "families": {
-          "description": "Optional instrument families. The track layout may omit them.",
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/family" }
-        },
-        "macros": {
-          "description": "Optional named encoder destinations.",
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/macro" }
-        },
-        "banks": {
-          "type": "array",
-          "maxItems": 8,
-          "items": { "$ref": "#/$defs/bank" }
-        },
-        "scenes": {
-          "type": "array",
-          "maxItems": 8,
-          "items": { "$ref": "#/$defs/scene" }
-        },
-        "pads": {
-          "description": "Track pad roles: row 7 selects a track, rows 6/5 toggle hot FX 0/1, rows 4..0 select volume steps.",
-          "type": "array",
-          "maxItems": 64,
-          "items": {
-            "oneOf": [
-              { "$ref": "#/$defs/padTrack" },
-              { "$ref": "#/$defs/padFx" },
-              { "$ref": "#/$defs/padVolume" }
-            ]
-          }
-        },
-        "encoders": {
-          "description": "Optional encoder bindings.",
-          "type": "array",
-          "maxItems": 8,
-          "items": { "$ref": "#/$defs/encoder" }
         }
       }
     }

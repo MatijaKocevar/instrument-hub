@@ -11,15 +11,9 @@ namespace Controller::MappingDetail
 bool decodeMacros (const YamlValue& root, SetMapping& out, MappingError& error)
 {
     const auto* macros = root.find ("macros");
-    const bool trackLayout = out.layout == MappingLayout::tracks;
 
-    if (macros == nullptr || (trackLayout && macros->kind == YamlKind::nullValue))
-    {
-        if (trackLayout)
-            return true;
-
-        return fail (error, root, "macros is required");
-    }
+    if (macros == nullptr || macros->kind == YamlKind::nullValue)
+        return true;
 
     if (macros->kind != YamlKind::mapping)
         return fail (error, *macros, "macros must be a mapping of macro ids");

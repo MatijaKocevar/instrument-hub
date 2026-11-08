@@ -12,8 +12,8 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
     if (root.kind != YamlKind::mapping)
         return fail (error, root, "the document root must be a mapping");
 
-    if (! checkKeys (root, { "schemaVersion", "name", "layout", "families", "macros",
-                             "tracks", "pads", "encoders", "banks", "scenes" }, error))
+    if (! checkKeys (root, { "schemaVersion", "name", "layout", "macros", "tracks",
+                             "pads", "encoders", "banks", "scenes" }, error))
         return false;
 
     const auto* version = root.find ("schemaVersion");
@@ -26,42 +26,34 @@ bool decodeDocument (const YamlValue& root, SetMapping& out, MappingError& error
     if (! readInt (*version, schemaVersion, error, "schemaVersion"))
         return false;
 
-    if (schemaVersion != SetMapping::supportedSchemaVersion
-        && schemaVersion != SetMapping::supportedTrackSchemaVersion)
+    if (schemaVersion != SetMapping::supportedSchemaVersion)
         return fail (error, *version,
                      "unsupported schemaVersion " + std::to_string (schemaVersion)
-                         + " (expected " + std::to_string (SetMapping::supportedSchemaVersion)
-                         + " or " + std::to_string (SetMapping::supportedTrackSchemaVersion)
-                         + ")");
+                         + " (expected "
+                         + std::to_string (SetMapping::supportedSchemaVersion) + ")");
 
     out.schemaVersion = schemaVersion;
 
-    if (const auto* layout = root.find ("layout"))
-    {
-        if (schemaVersion != SetMapping::supportedTrackSchemaVersion)
-            return fail (error, *layout, "layout is only valid for schemaVersion 2");
+    const auto* layout = root.find ("layout");
 
-        std::string layoutName;
+    if (layout == nullptr)
+        return fail (error, root, "layout: tracks is required");
 
-        if (! readString (*layout, layoutName, error, "layout"))
-            return false;
+    std::string layoutName;
 
-        if (layoutName != "tracks")
-            return fail (error, *layout, "layout must be tracks");
+    if (! readString (*layout, layoutName, error, "layout"))
+        return false;
 
-        out.layout = MappingLayout::tracks;
-    }
-    else if (schemaVersion == SetMapping::supportedTrackSchemaVersion)
-    {
-        return fail (error, root, "schemaVersion 2 needs layout: tracks");
-    }
+    if (layoutName != "tracks")
+        return fail (error, *layout, "layout must be tracks");
+
+    out.layout = MappingLayout::tracks;
 
     if (const auto* name = root.find ("name"))
         if (! readString (*name, out.name, error, "name"))
             return false;
 
     return decodeTracks (root, out, error)
-           && decodeFamilies (root, out, error)
            && decodeMacros (root, out, error)
            && decodePads (root, out, error)
            && decodeEncoders (root, out, error)

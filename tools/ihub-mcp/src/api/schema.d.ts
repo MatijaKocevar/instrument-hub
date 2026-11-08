@@ -745,7 +745,7 @@ export interface paths {
          *         { "index": 0, "pressed": false, "updatedMs": 0.0 },
          *         { "index": 3, "pressed": true, "updatedMs": 1400.5 }
          *       ],
-         *       "state": { "schemaVersion": 1, "revision": 8, "layout": "families", "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
+         *       "state": { "schemaVersion": 1, "revision": 8, "layout": "tracks", "armedSlot": -1, "slots": [], "settings": {}, "transport": {}, "uptimeMs": 1400.5 }
          *     }
          *     ```
          */
@@ -1260,21 +1260,18 @@ export interface components {
             revision: number;
             application: components["schemas"]["Application"];
             /**
-             * @description The session layout; legacy projects use families, new projects use tracks.
-             * @enum {string}
+             * @description The session layout. Only the eight-track performance grid is supported.
+             * @constant
              */
-            layout?: "families" | "tracks";
+            layout: "tracks";
             /** @description Armed slot index, or -1 when disarmed. */
             armedSlot: number;
             /** @description Milliseconds since the API state was created. */
             uptimeMs: number;
             slots: components["schemas"]["Slot"][];
-            /**
-             * @description The eight performance tracks when `layout` is `tracks`. Legacy
-             *     family projects omit the field so their v1 state is unchanged.
-             */
-            tracks?: components["schemas"]["Track"][];
-            /** @description Shared plugin-host pages, empty for the legacy family layout. */
+            /** @description The eight performance tracks. */
+            tracks: components["schemas"]["Track"][];
+            /** @description Shared plugin-host pages. */
             pages?: components["schemas"]["PluginPage"][];
             /** @description Family -> patch tree, one entry per patch. */
             families: components["schemas"]["Family"][];

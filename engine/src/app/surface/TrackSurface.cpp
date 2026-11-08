@@ -109,8 +109,7 @@ void paintTrackLeds (Controller::LaunchpadDriver& driver,
 
         const bool wantsTrackRgb =
             track != nullptr && track->hasInstrument
-            && (binding->role == Controller::PadRole::track
-                || binding->role == Controller::PadRole::patch)
+            && binding->role == Controller::PadRole::track
             && ! track->selected && track->slot != snapshot.armedSlot;
 
         if (wantsTrackRgb)

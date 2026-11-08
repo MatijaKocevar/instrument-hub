@@ -36,7 +36,7 @@ struct StateSnapshot
     std::string applicationName = "Instrument Hub";
     std::string applicationVersion = "0.1.0";
 
-    std::string layout = "families";
+    std::string layout = "tracks";
 
     int armedSlot = -1;
     std::vector<SlotSnapshot> slots;
