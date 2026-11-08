@@ -18,7 +18,8 @@ export function RouteOutlet({
   if (router.route === "grid")
     return <GridRoute router={router} shell={shell} />;
 
-  if (router.route === "instrument") return <InstrumentRoute shell={shell} />;
+  if (router.route === "instrument")
+    return <InstrumentRoute router={router} shell={shell} />;
 
   if (router.route === "plugins") return <PluginsRoute shell={shell} />;
 

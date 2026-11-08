@@ -46,7 +46,7 @@
   background: var(--ih-inset);
   color: var(--ih-muted);
   font-family: var(--ih-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -67,7 +67,7 @@
   color: #fff;
   font: inherit;
   font-family: var(--ih-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;

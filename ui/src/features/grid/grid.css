@@ -19,7 +19,7 @@
   border-radius: var(--ih-radius-sm);
   background: var(--ih-warning-soft);
   color: var(--ih-warning);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .grid__page-status strong {
@@ -97,7 +97,7 @@
   overflow: hidden;
   padding-right: var(--ih-space-2);
   color: var(--ih-text-bright);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -107,7 +107,7 @@
 .grid__cell-slot {
   color: var(--ih-dim);
   font-family: var(--ih-mono);
-  font-size: 9px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;
 }
@@ -118,7 +118,7 @@
   border-radius: var(--ih-radius);
   background: var(--ih-panel);
   color: var(--ih-muted);
-  font-size: 11px;
+  font-size: 13px;
   text-align: center;
 }
 
@@ -133,7 +133,7 @@
   }
 
   .grid__cell-name {
-    font-size: 12px;
+    font-size: 14px;
   }
 }
 

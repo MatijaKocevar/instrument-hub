@@ -40,6 +40,7 @@ export {
   type TrackVolumeStep,
 } from "./trackVolume";
 export { TrackGridRow, type TrackGridRowProps } from "./TrackGridRow";
+export { TrackMeterProvider } from "./TrackMeterProvider";
 export {
   TrackGridTable,
   type TrackGridActions,

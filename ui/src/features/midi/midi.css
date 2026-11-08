@@ -22,7 +22,7 @@
 .midi__eyebrow {
   margin: 0 0 2px;
   color: var(--ih-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -31,7 +31,7 @@
 .midi__title {
   margin: 0;
   color: var(--ih-text-bright);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
 }
 
@@ -39,7 +39,7 @@
   margin: var(--ih-space-1) 0 0;
   max-width: 42rem;
   color: var(--ih-muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -50,14 +50,14 @@
   background: var(--ih-panel);
   color: var(--ih-muted);
   font-family: var(--ih-mono);
-  font-size: 9px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
 .midi__error {
   margin: 0;
   color: var(--ih-danger);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .midi__empty {
@@ -69,7 +69,7 @@
   border-radius: var(--ih-radius-sm);
   background: var(--ih-panel);
   color: var(--ih-muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .midi__inputs {
@@ -88,7 +88,8 @@
   border: 1px solid var(--ih-border);
   border-radius: var(--ih-radius-sm);
   padding: 5px 8px;
-  background: var(--ih-panel);
+  background: var(--ih-panel-gradient);
+  box-shadow: var(--ih-shadow);
 }
 
 .midi__input--enabled {
@@ -144,7 +145,7 @@
 
 .midi__input-name {
   color: var(--ih-text-bright);
-  font-size: 12px;
+  font-size: 14px;
   overflow-wrap: anywhere;
   cursor: pointer;
 }
@@ -155,7 +156,7 @@
   gap: var(--ih-space-1) var(--ih-space-2);
   align-items: center;
   color: var(--ih-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .midi__role,
@@ -165,7 +166,7 @@
   padding: 1px 5px;
   color: var(--ih-muted);
   font: inherit;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.02em;
   background: var(--ih-inset);
 }
@@ -183,7 +184,7 @@
 
 .midi__input-id {
   font-family: var(--ih-mono);
-  font-size: 8px;
+  font-size: 10px;
   overflow-wrap: anywhere;
 }
 
@@ -199,7 +200,7 @@
   border-radius: var(--ih-radius-sm);
   padding: 1px 5px;
   color: var(--ih-muted);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -218,7 +219,7 @@
   border-radius: var(--ih-radius-sm);
   padding: 1px 5px;
   color: var(--ih-muted);
-  font-size: 8px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
@@ -235,7 +236,7 @@
 .midi__events {
   color: var(--ih-muted);
   font-family: var(--ih-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -255,7 +256,7 @@
   align-items: center;
   gap: var(--ih-space-1);
   color: var(--ih-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .midi__grid-field input {
@@ -268,7 +269,7 @@
   color: var(--ih-text-bright);
   font: inherit;
   font-family: var(--ih-mono);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .midi__mini {
@@ -279,7 +280,7 @@
   background: var(--ih-panel-raised);
   color: var(--ih-text);
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -306,21 +307,21 @@
 .midi__grid-status {
   color: var(--ih-accent-bright);
   font-family: var(--ih-mono);
-  font-size: 9px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
 .midi__grid-hint {
   flex-basis: 100%;
   color: var(--ih-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .midi__input-error {
   grid-column: 1 / -1;
   margin: 0;
   color: var(--ih-danger);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
@@ -328,7 +329,7 @@
   grid-column: 1 / -1;
   color: var(--ih-accent-bright);
   font-family: var(--ih-mono);
-  font-size: 9px;
+  font-size: 11px;
   padding-left: 26px;
 }
 
@@ -350,13 +351,13 @@
 .midi__test-title {
   margin: 0;
   color: var(--ih-text-bright);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .midi__test-lede {
   margin: 2px 0 0;
   color: var(--ih-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .midi__button {
@@ -368,7 +369,7 @@
   background: var(--ih-accent-soft);
   color: var(--ih-accent-bright);
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
@@ -387,7 +388,7 @@
 .midi__test-result {
   color: var(--ih-accent-bright);
   font-family: var(--ih-mono);
-  font-size: 10px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -398,7 +399,7 @@
 .midi__test-hint {
   flex-basis: 100%;
   color: var(--ih-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 @media (max-width: 640px) {

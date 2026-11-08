@@ -1,11 +1,15 @@
 import type { ReactElement } from "react";
 
+import { metersUrlFor } from "../grid";
 import { followsArmedSlot, InstrumentPage } from "../instrument";
+import type { RouterState } from "../../state/router";
 import type { ShellData } from "./useShellData";
 
 export function InstrumentRoute({
+  router,
   shell,
 }: {
+  readonly router: RouterState;
   readonly shell: ShellData;
 }): ReactElement {
   const {
@@ -15,8 +19,11 @@ export function InstrumentRoute({
     armedSlot,
     instrumentSlot,
     instrumentPatch,
+    grid,
     track,
   } = shell;
+  const gridTrack =
+    grid.tracks.find((candidate) => candidate.slot === instrumentSlot) ?? null;
 
   const slotError =
     instrumentPatch?.error !== undefined && instrumentPatch.error.length > 0
@@ -46,10 +53,9 @@ export function InstrumentRoute({
       plugins={app.plugins?.plugins ?? null}
       pluginError={app.pluginError}
       track={track}
+      gridTrack={gridTrack}
+      metersUrl={metersUrlFor(store.baseUrl)}
       loading={state === null}
-      onVolumeChange={(slot, volumeDb) => {
-        void store.updatePatch(slot, { volumeDb });
-      }}
       onPanChange={(slot, pan) => {
         void store.updatePatch(slot, { pan });
       }}
@@ -91,6 +97,19 @@ export function InstrumentRoute({
       }}
       onRenameTrack={(trackIndex, name) => {
         void store.renameTrack(trackIndex, name);
+      }}
+      onSelectTrack={(trackIndex) => {
+        void store.selectTrack(trackIndex);
+      }}
+      onOpenTrack={(trackIndex) => {
+        void store.selectTrack(trackIndex);
+        router.navigate("/instrument");
+      }}
+      onToggleTrackFx={(trackIndex, hot) => {
+        void store.toggleTrackFx(trackIndex, hot);
+      }}
+      onSetTrackVolume={(trackIndex, step) => {
+        void store.setTrackVolume(trackIndex, step);
       }}
     />
   );

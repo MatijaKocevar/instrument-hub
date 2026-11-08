@@ -11,27 +11,18 @@ function MixerSkeleton(): ReactElement {
       data-testid="instrument-mix"
     >
       <header className="instrument__card-head">
-        <h3 className="instrument__card-title">Level</h3>
-        <Skeleton width="7.5rem" height="0.7rem" />
+        <h3 className="instrument__card-title">Channel</h3>
       </header>
 
-      <div className="instrument__skeleton-field">
-        <Skeleton width="4rem" height="0.8rem" />
-        <Skeleton height="0.6rem" radius="999px" />
-        <Skeleton width="3rem" height="0.8rem" />
-      </div>
-
-      <Skeleton width="9rem" height="0.7rem" />
-
-      <div className="instrument__skeleton-field">
+      <div className="instrument__field">
         <Skeleton width="4rem" height="0.8rem" />
         <Skeleton height="0.6rem" radius="999px" />
         <Skeleton width="3rem" height="0.8rem" />
       </div>
 
       <div className="instrument__toggles">
-        <Skeleton width="5rem" height="2.75rem" radius="10px" />
-        <Skeleton width="5rem" height="2.75rem" radius="10px" />
+        <Skeleton width="5rem" height="2.75rem" radius="6px" />
+        <Skeleton width="5rem" height="2.75rem" radius="6px" />
       </div>
     </section>
   );
@@ -65,17 +56,52 @@ function InsertRowsSkeleton(): ReactElement {
           className="instrument__insert instrument__insert--skeleton"
           key={index}
         >
-          <Skeleton width="1.2rem" height="0.8rem" />
-          <div className="instrument__skeleton-insert-name">
-            <Skeleton width="65%" height="0.85rem" />
-            <Skeleton width="45%" height="0.65rem" />
+          <div className="instrument__insert-head">
+            <Skeleton width="1.2rem" height="0.8rem" />
+            <Skeleton width="5rem" height="0.8rem" />
+            <Skeleton width="3.5rem" height="0.8rem" />
           </div>
-          <Skeleton width="3.5rem" height="0.75rem" />
-          <Skeleton width="3rem" height="0.75rem" />
-          <Skeleton width="6.5rem" height="2rem" radius="10px" />
+          <Skeleton width="70%" height="0.9rem" />
+          <div className="instrument__insert-meta">
+            <Skeleton width="3.5rem" height="0.7rem" />
+            <Skeleton width="3rem" height="0.7rem" />
+          </div>
+          <Skeleton width="100%" height="2rem" radius="6px" />
         </li>
       ))}
     </ol>
+  );
+}
+
+function TrackStripSkeleton(): ReactElement {
+  return (
+    <aside
+      className="instrument__strip"
+      aria-hidden="true"
+      data-testid="instrument-track-strip"
+    >
+      <div className="instrument__strip-head">
+        <Skeleton width="5rem" height="0.7rem" />
+        <Skeleton width="2rem" height="0.7rem" />
+      </div>
+      <div className="instrument__strip-body">
+        <div className="track-grid__column">
+          <div className="track-grid__skeleton-track">
+            <Skeleton width="4.5rem" height="0.9rem" />
+            <Skeleton width="6rem" height="0.7rem" />
+          </div>
+          <div className="track-grid__skeleton-cell">
+            <Skeleton width="100%" height="1.6rem" />
+          </div>
+          <div className="track-grid__skeleton-cell">
+            <Skeleton width="100%" height="1.6rem" />
+          </div>
+          <div className="track-grid__skeleton-volume">
+            <Skeleton width="0.4rem" height="12rem" />
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -102,9 +128,12 @@ export function InstrumentSkeleton({
         </div>
       </header>
 
-      <div className="instrument__grid">
-        <MixerSkeleton />
-        <SourceSkeleton />
+      <div className="instrument__workspace">
+        <div className="instrument__grid">
+          <MixerSkeleton />
+          <SourceSkeleton />
+        </div>
+        <TrackStripSkeleton />
       </div>
 
       <section
@@ -119,7 +148,7 @@ export function InstrumentSkeleton({
         data-busy="true"
       >
         <header className="instrument__card-head">
-          <h3 className="instrument__card-title">Inserts</h3>
+          <h3 className="instrument__card-title">Insert chain</h3>
           <Skeleton width="8rem" height="0.75rem" />
         </header>
 
@@ -137,8 +166,14 @@ export function InstrumentSkeleton({
           ))}
         </dl>
 
-        <InsertRowsSkeleton />
-        <Skeleton width="100%" height="2.75rem" radius="10px" />
+        <div className="instrument__chain-row">
+          <InsertRowsSkeleton />
+          <div className="instrument__add" aria-hidden="true">
+            <Skeleton width="5rem" height="0.8rem" />
+            <Skeleton width="100%" height="2.5rem" radius="6px" />
+            <Skeleton width="100%" height="2.75rem" radius="6px" />
+          </div>
+        </div>
       </section>
 
       <p className="loading-sr-only" role="status">
