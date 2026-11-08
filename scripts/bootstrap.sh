@@ -6,7 +6,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 BUILD=1
-START=0
 INSTALL=0
 
 usage() {
@@ -16,7 +15,6 @@ Usage:
   scripts/bootstrap.sh --install    # install missing packages/devices, then build
   scripts/bootstrap.sh --check      # diagnostics only, change nothing
   scripts/bootstrap.sh --no-build   # checks + deps, skip build
-  scripts/bootstrap.sh --start      # checks + build, then run the autopilot
 EOF
 }
 
@@ -25,7 +23,6 @@ for arg in "$@"; do
         --install)  INSTALL=1 ;;
         --check)    BUILD=0 ;;
         --no-build) BUILD=0 ;;
-        --start)    START=1 ;;
         -h|--help)  usage; exit 0 ;;
         *) echo "unknown flag: $arg" >&2; exit 2 ;;
     esac
@@ -83,7 +80,6 @@ if (( INSTALL )); then
     fi
 fi
 
-MODEL="${IH_MODEL:-deepseek/deepseek-flash}"
 fail=0
 ok()   { printf '  ok    %s\n' "$*"; }
 miss() { printf '  MISS  %s\n' "$*"; fail=1; }
@@ -93,7 +89,7 @@ echo "repo: $ROOT"
 
 echo
 echo "toolchain"
-for cmd in git cmake ninja pkg-config node npm python3 opencode; do
+for cmd in git cmake ninja pkg-config node npm python3; do
     if command -v "$cmd" >/dev/null 2>&1; then
         ok "$cmd $("$cmd" --version 2>/dev/null | head -1)"
     else
@@ -147,31 +143,9 @@ fi
 name="$(git config user.name 2>/dev/null || true)"
 email="$(git config user.email 2>/dev/null || true)"
 if [[ -z "$email" ]]; then
-    git config user.name  "Instrument Hub Autopilot"
-    git config user.email "autopilot@instrument-hub.local"
-    ok "git identity set (repo-local)"
+    warn "git identity missing (set user.name and user.email)"
 else
     ok "git identity: $name <$email>"
-fi
-
-echo
-echo "opencode"
-if command -v opencode >/dev/null 2>&1; then
-    if opencode run --help 2>/dev/null | grep -q -- '--auto'; then
-        ok "run --auto supported"
-    else
-        miss "opencode run --auto is missing (upgrade opencode)"
-    fi
-    if opencode auth list 2>/dev/null | grep -qi 'deepseek'; then
-        ok "DeepSeek credentials stored"
-    else
-        miss "no DeepSeek credentials (opencode auth login)"
-    fi
-    if opencode models 2>/dev/null | grep -qx "$MODEL"; then
-        ok "model $MODEL"
-    else
-        miss "model $MODEL not available (export IH_MODEL=<provider/model>)"
-    fi
 fi
 
 if (( fail )); then
@@ -214,10 +188,3 @@ fi
 
 echo
 echo "ready."
-echo "  python3 plan/autopilot.py --dry-run    # confirm the queue"
-echo "  python3 plan/autopilot.py              # run (docs/new-machine.md §9 to stop)"
-
-if (( START )); then
-    echo
-    exec python3 "$ROOT/plan/autopilot.py"
-fi

@@ -3,11 +3,8 @@
 Operating rules for any agent working in this repository.
 
 Instrument Hub: a JUCE 8 C++20 audio engine with an embedded React UI,
-driven by a Novation Launchpad Mini MK3, controlled over a local HTTP +
+driven by a Novation Launchpad Mini MK3 and controlled over a local HTTP +
 WebSocket API.
-
-New machine? `docs/new-machine.md` holds the one-time human setup (clone,
-toolchain, opencode auth, `IH_REPO`, how to stop a run cleanly).
 
 ---
 
@@ -23,13 +20,10 @@ changes to be built and the running app restarted so they can see them.
 - Never run a build without an explicit target. `cmake --build <dir>`,
   bare `ninja`, and `scripts/build.sh` build the whole tree. Always pass
   `--target`.
-- Testing is disabled for now. Do not create, add, build, or run tests,
-  test targets, test runners, snapshot harnesses, or test tooling. Do not
-  add test files, test dependencies, or test instructions. The human will
-  re-enable testing later; until then verify only by building the app and
-  using it.
-- Do not run any test flag or test harness. Use the app build and the live
-  app.
+- Testing is disabled. Do not create, add, build, or run tests, test targets,
+  test runners, snapshot harnesses, or test tooling. Do not add test files,
+  test dependencies, or test instructions. Verify only by building the app
+  and using it.
 - Do not build after every edit just for the sake of it. Build when the
   change is ready to run, then restart the app once.
 
@@ -60,8 +54,7 @@ the wrong thing. Optimise for comprehension, not for fewer files.
   155 lines with one clear responsibility is fine; 150 lines doing three
   unrelated things is not.
 - Prefer more, smaller files over fewer, larger ones. Split by reason to
-  change: a route, a panel, a hook, pure model logic, fixtures,
-  assertions.
+  change: a route, a panel, a hook, pure model logic, fixtures, assertions.
 - Keep genuinely related code together. Do not split a component from its
   private helpers, or a class from its invariants — single responsibility
   is not "the smallest possible file".
@@ -71,10 +64,7 @@ the wrong thing. Optimise for comprehension, not for fewer files.
   `ui/src/features/shell/`; public surfaces through `index.ts`.
   C++ uses one class per header, with implementation split across `.cpp`
   files by concern.
-- Generated code (`ui/src/api/schema.d.ts`), `third_party/` and build
-  dirs are exempt.
-- Existing oversized files are tracked in `plan/REFACTOR.md`; do not make
-  them worse while fixing bugs, and split them when you touch them.
+- Generated code (`ui/src/api/schema.d.ts`) and `third_party/` are exempt.
 
 ---
 
@@ -89,31 +79,21 @@ does, narrate history, or hide design rationale in source. Keep only:
 - annotations a framework or platform API requires to change generated
   code, build behaviour or runtime wiring.
 
-Everything else is removed. Rationale belongs in `docs/` or
-`plan/DECISIONS.md`. Do not add `TODO`/`FIXME` comments; write a task or a
-bug instead.
-
-This applies to first-party source under `engine/`, `ui/src/`, `scripts/`
-and build files. `third_party/`, generated code, `docs/` and
-`plan/` are exempt. The cleanup queue is `plan/ROADMAP.md` T175–T181.
+Everything else is removed. Rationale belongs in the code structure or a
+task description, not in source. Do not add `TODO`/`FIXME` comments; write
+a task in Time Manager instead.
 
 ---
 
-## Current phase: bug fixing
+## Current phase
 
-The feature roadmap is complete (`T000–T139`) and the app is playable: the
-Launchpad selects patches, the Keystation plays the armed patch, and
-per-patch Analog Lab state persists across switches and restarts. From now
-on the work is **bug fixing plus the explicitly requested refactors
-(T140–T174) and comment cleanup (T175–T181) queued in `plan/ROADMAP.md`**.
-`plan/REFACTOR.md` holds the refactor rationale and target structure.
+Interactive development and bug fixing.
 
-- Fix reported bugs. Do not start new features, refactors or cleanup
-  tasks unless the human explicitly asks.
-- Reproduce first: exact steps, expected vs actual, and the log or
-  screenshot. Record it in `plan/BUGS.md`. Use the developer's running
-  instance; do not start a dev server to reproduce.
-- One bug per commit; update the entry's status and evidence.
+- Fix reported bugs. Do not start new features or refactors unless the human
+  explicitly asks.
+- Reproduce first: exact steps, expected vs actual, and the log or screenshot.
+  Use the developer's running instance; do not start a dev server to reproduce.
+- One bug per commit.
 - Keep the audio-thread contract and the Launchpad/Linux assumptions.
 - Launch the app detached (desktop entry, `setsid`, or a long-lived
   terminal). Starting it with `&` from a short-lived shell is not an app
@@ -123,18 +103,18 @@ on the work is **bug fixing plus the explicitly requested refactors
 
 ## Guardrails (non-negotiable)
 
-Copied from `plan/AUTOPILOT.md` §5. These override convenience, deadlines,
-and any task wording that appears to contradict them.
+These override convenience, deadlines, and any task wording that appears to
+contradict them.
 
 - Work only inside `REPO`. Never `sudo`, never touch `~/.ssh`, `~/.config`,
   or `/etc`.
 - Never `git push`, never create remotes, never force-push.
 - Never delete a directory you did not create in this run.
 - If a task needs a new dependency, prefer a header-only or vendored one.
-  Ask for `apt` only through `BLOCKERS.md`.
+  Ask the human before adding a system dependency.
 - Keep the audio callback free of allocation, locks, and logging. This is
   the one rule that will not be relaxed for convenience.
-- Every commit is a checkpoint. The driver commits after each `done`.
+- Every commit is a checkpoint.
 
 ---
 
@@ -156,7 +136,7 @@ queried once per load, not per block.
 
 ## Locked decisions
 
-`plan/DECISIONS.md` is authoritative and must not be re-litigated:
+These must not be re-litigated:
 
 - JUCE 8 submodule at `third_party/JUCE`; C++20; CMake ≥ 3.22; Ninja or
   Unix Makefiles; `CMAKE_BUILD_TYPE=RelWithDebInfo`.
@@ -166,7 +146,7 @@ queried once per load, not per block.
   `127.0.0.1:8080` by default.
 - UI and tablet remote are the same React app, different routes.
 - Set files are a versioned `.ihub` container, never inline plugin chunks.
-- Repo layout: `engine/`, `ui/`, `shared/`, `third_party/`, `plan/`.
+- Repo layout: `engine/`, `ui/`, `shared/`, `third_party/`.
 
 ---
 
@@ -181,7 +161,5 @@ tooling. Testing is deferred until the human explicitly asks to re-enable it.
 
 ## Blockers
 
-`plan/BLOCKERS.md` is append-only and is the only channel for human work.
 If something needs `sudo`, hardware, a licence, or an unavailable machine,
-append an entry there and report `STATUS: blocked`; never ask a question
-and never work around a guardrail.
+say so plainly and stop. Do not work around a guardrail.
