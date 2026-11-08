@@ -1,46 +1,49 @@
 .instrument__hot-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--ih-space-1);
   margin: 0;
-  color: #8b93a7;
-  font-size: 0.72rem;
+  color: var(--ih-muted);
+  font-family: var(--ih-mono);
+  font-size: 9px;
 }
 
 .instrument__hot-summary span {
-  padding: 0.2rem 0.5rem;
-  border: 1px solid #2c3040;
-  border-radius: 999px;
-  background: #171922;
+  padding: 2px 6px;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  background: var(--ih-inset);
   white-space: nowrap;
 }
 
 .instrument__hot-button {
   min-height: 36px;
   min-width: 38px;
-  padding: 0.25rem 0.45rem;
-  border: 1px solid #343a4d;
-  border-radius: 9px;
-  background: #1c1f2b;
-  color: #8b93a7;
+  padding: 2px 5px;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  background: var(--ih-panel-raised);
+  color: var(--ih-muted);
   font: inherit;
-  font-size: 0.72rem;
+  font-family: var(--ih-mono);
+  font-size: 9px;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .instrument__hot-button:hover {
-  border-color: #f59e0b;
-  color: #fcd34d;
+  border-color: var(--ih-accent);
+  color: var(--ih-accent-bright);
 }
 
 .instrument__hot-button--on {
-  border-color: #f59e0b;
-  background: #3a2a0a;
-  color: #fcd34d;
+  border-color: var(--ih-accent);
+  background: var(--ih-accent);
+  color: var(--ih-on-accent);
 }
 
 .instrument__hot-button--on:hover {
-  border-color: #fbbf24;
+  border-color: var(--ih-accent-bright);
+  color: var(--ih-on-accent);
 }

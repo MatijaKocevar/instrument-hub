@@ -1,13 +1,12 @@
 .midi {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: clamp(1rem, 2.5vw, 1.75rem);
-  border: 1px solid #2a2d3a;
-  border-radius: 18px;
-  background:
-    linear-gradient(140deg, rgba(168, 130, 255, 0.09), transparent 45%), #171820;
-  color: #eceef4;
+  gap: var(--ih-space-3);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ih-text);
 }
 
 .midi__head {
@@ -15,45 +14,50 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--ih-space-2);
+  padding-bottom: var(--ih-space-3);
+  border-bottom: 1px solid var(--ih-border);
 }
 
 .midi__eyebrow {
-  margin: 0 0 0.35rem;
-  color: #8b93a7;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  margin: 0 0 2px;
+  color: var(--ih-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .midi__title {
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
+  color: var(--ih-text-bright);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .midi__lede {
-  margin: 0.35rem 0 0;
+  margin: var(--ih-space-1) 0 0;
   max-width: 42rem;
-  color: #9aa2b5;
-  font-size: 0.82rem;
+  color: var(--ih-muted);
+  font-size: 11px;
   line-height: 1.45;
 }
 
 .midi__summary {
-  border: 1px solid #333849;
-  border-radius: 999px;
-  padding: 0.35rem 0.7rem;
-  color: #c8b6ff;
-  font-size: 0.78rem;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  padding: 2px 6px;
+  background: var(--ih-panel);
+  color: var(--ih-muted);
+  font-family: var(--ih-mono);
+  font-size: 9px;
   white-space: nowrap;
 }
 
 .midi__error {
   margin: 0;
-  color: #ff8d8d;
-  font-size: 0.82rem;
+  color: var(--ih-danger);
+  font-size: 10px;
 }
 
 .midi__empty {
@@ -61,15 +65,16 @@
   display: grid;
   place-items: center;
   margin: 0;
-  border: 1px dashed #333849;
-  border-radius: 12px;
-  color: #8b93a7;
-  font-size: 0.85rem;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  background: var(--ih-panel);
+  color: var(--ih-muted);
+  font-size: 11px;
 }
 
 .midi__inputs {
   display: grid;
-  gap: 0.4rem;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -78,17 +83,17 @@
 .midi__input {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.25rem 0.9rem;
+  gap: 2px var(--ih-space-2);
   align-items: center;
-  border: 1px solid #2a2d3a;
-  border-radius: 12px;
-  padding: 0.55rem 0.8rem;
-  background: #101116;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  padding: 5px 8px;
+  background: var(--ih-panel);
 }
 
 .midi__input--enabled {
-  border-color: rgba(168, 130, 255, 0.45);
-  background: rgba(168, 130, 255, 0.06);
+  border-left: 3px solid var(--ih-success);
+  background: var(--ih-panel-raised);
 }
 
 .midi__input--inert {
@@ -103,12 +108,12 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 3px;
 }
 
 .midi__skeleton-meta {
   display: flex;
-  gap: 0.4rem;
+  gap: var(--ih-space-1);
 }
 
 .midi__input--inert .midi__input-label {
@@ -118,28 +123,28 @@
 .midi__input-label {
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
+  gap: var(--ih-space-2);
   min-width: 0;
 }
 
 .midi__input-label input {
   width: 18px;
   height: 18px;
-  margin-top: 0.1rem;
-  accent-color: #a882ff;
+  margin-top: 1px;
+  accent-color: var(--ih-success);
   touch-action: manipulation;
 }
 
 .midi__input-main {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 1px;
   min-width: 0;
 }
 
 .midi__input-name {
-  color: #e6e8f0;
-  font-size: 0.88rem;
+  color: var(--ih-text-bright);
+  font-size: 12px;
   overflow-wrap: anywhere;
   cursor: pointer;
 }
@@ -147,28 +152,28 @@
 .midi__input-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--ih-space-1) var(--ih-space-2);
   align-items: center;
-  color: #7d8599;
-  font-size: 0.72rem;
+  color: var(--ih-muted);
+  font-size: 9px;
 }
 
 .midi__role,
 .midi__role-select {
-  border: 1px solid #333849;
-  border-radius: 999px;
-  padding: 0.05rem 0.45rem;
-  color: #b9bfd0;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  padding: 1px 5px;
+  color: var(--ih-muted);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 9px;
   letter-spacing: 0.02em;
-  background: #171820;
+  background: var(--ih-inset);
 }
 
 .midi__role-select {
   cursor: pointer;
-  color: #d8cbff;
-  border-color: rgba(168, 130, 255, 0.45);
+  color: var(--ih-accent-bright);
+  border-color: var(--ih-accent);
 }
 
 .midi__role-select:disabled {
@@ -177,57 +182,60 @@
 }
 
 .midi__input-id {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.68rem;
+  font-family: var(--ih-mono);
+  font-size: 8px;
   overflow-wrap: anywhere;
 }
 
 .midi__input-side {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--ih-space-1);
   justify-self: end;
 }
 
 .midi__state {
-  border: 1px solid #333849;
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  color: #8b93a7;
-  font-size: 0.7rem;
-  font-weight: 600;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  padding: 1px 5px;
+  color: var(--ih-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
 .midi__state--on {
-  border-color: rgba(110, 231, 200, 0.5);
-  background: rgba(110, 231, 200, 0.1);
-  color: #6ee7c8;
+  border-color: var(--ih-success);
+  background: var(--ih-success-soft);
+  color: var(--ih-success);
 }
 
 .midi__handshake,
 .midi__leds {
-  border: 1px solid #333849;
-  border-radius: 999px;
-  padding: 0.1rem 0.45rem;
-  color: #7d8599;
-  font-size: 0.68rem;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  padding: 1px 5px;
+  color: var(--ih-muted);
+  font-size: 8px;
   white-space: nowrap;
 }
 
 .midi__handshake--ok {
-  border-color: rgba(110, 231, 200, 0.5);
-  color: #6ee7c8;
+  border-color: var(--ih-success);
+  color: var(--ih-success);
 }
 
 .midi__leds {
-  border-color: rgba(168, 130, 255, 0.45);
-  color: #c8b6ff;
+  border-color: var(--ih-accent);
+  color: var(--ih-accent-bright);
 }
 
 .midi__events {
-  color: #8b93a7;
-  font-size: 0.68rem;
+  color: var(--ih-muted);
+  font-family: var(--ih-mono);
+  font-size: 8px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -236,49 +244,50 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.45rem 0.6rem;
-  margin-top: 0.15rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid #242734;
+  gap: var(--ih-space-1) var(--ih-space-2);
+  margin-top: 1px;
+  padding-top: var(--ih-space-1);
+  border-top: 1px solid var(--ih-border);
 }
 
 .midi__grid-field {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  color: #8b93a7;
-  font-size: 0.72rem;
+  gap: var(--ih-space-1);
+  color: var(--ih-muted);
+  font-size: 9px;
 }
 
 .midi__grid-field input {
   width: 4.4rem;
   min-height: 32px;
-  border: 1px solid #333849;
-  border-radius: 8px;
-  padding: 0 0.45rem;
-  background: #171820;
-  color: #eceef4;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  padding: 0 6px;
+  background: var(--ih-inset);
+  color: var(--ih-text-bright);
   font: inherit;
-  font-size: 0.78rem;
+  font-family: var(--ih-mono);
+  font-size: 10px;
 }
 
 .midi__mini {
   min-height: 32px;
-  border: 1px solid #333849;
-  border-radius: 8px;
-  padding: 0 0.65rem;
-  background: #171820;
-  color: #c8cede;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  padding: 0 8px;
+  background: var(--ih-panel-raised);
+  color: var(--ih-text);
   font: inherit;
-  font-size: 0.74rem;
+  font-size: 10px;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .midi__mini--accent {
-  border-color: rgba(168, 130, 255, 0.55);
-  background: rgba(168, 130, 255, 0.14);
-  color: #e2d9ff;
+  border-color: var(--ih-accent);
+  background: var(--ih-accent-soft);
+  color: var(--ih-accent-bright);
 }
 
 .midi__mini:disabled {
@@ -290,46 +299,48 @@
 .midi__button:focus-visible,
 .midi__role-select:focus-visible,
 .midi__grid-field input:focus-visible {
-  outline: 2px solid #a882ff;
-  outline-offset: 2px;
+  outline: 2px solid var(--ih-accent);
+  outline-offset: 1px;
 }
 
 .midi__grid-status {
-  color: #c8b6ff;
-  font-size: 0.74rem;
+  color: var(--ih-accent-bright);
+  font-family: var(--ih-mono);
+  font-size: 9px;
   font-variant-numeric: tabular-nums;
 }
 
 .midi__grid-hint {
   flex-basis: 100%;
-  color: #7d8599;
-  font-size: 0.72rem;
+  color: var(--ih-muted);
+  font-size: 9px;
 }
 
 .midi__input-error {
   grid-column: 1 / -1;
   margin: 0;
-  color: #ff8d8d;
-  font-size: 0.74rem;
+  color: var(--ih-danger);
+  font-size: 9px;
   line-height: 1.4;
 }
 
 .midi__last {
   grid-column: 1 / -1;
-  color: #c8b6ff;
-  font-size: 0.7rem;
-  padding-left: 1.7rem;
+  color: var(--ih-accent-bright);
+  font-family: var(--ih-mono);
+  font-size: 9px;
+  padding-left: 26px;
 }
 
 .midi__test {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1rem;
-  border: 1px solid #2a2d3a;
-  border-radius: 14px;
-  padding: 0.85rem 1rem;
-  background: #101116;
+  gap: var(--ih-space-2) var(--ih-space-3);
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius);
+  padding: var(--ih-space-2);
+  background: var(--ih-panel);
 }
 
 .midi__test-copy {
@@ -338,27 +349,34 @@
 
 .midi__test-title {
   margin: 0;
-  font-size: 0.9rem;
+  color: var(--ih-text-bright);
+  font-size: 11px;
 }
 
 .midi__test-lede {
-  margin: 0.2rem 0 0;
-  color: #8b93a7;
-  font-size: 0.75rem;
+  margin: 2px 0 0;
+  color: var(--ih-muted);
+  font-size: 10px;
 }
 
 .midi__button {
   min-height: 44px;
   min-width: 9rem;
-  border: 1px solid rgba(168, 130, 255, 0.55);
-  border-radius: 10px;
-  padding: 0 1rem;
-  background: rgba(168, 130, 255, 0.14);
-  color: #e2d9ff;
+  border: 1px solid var(--ih-accent);
+  border-radius: var(--ih-radius);
+  padding: 0 12px;
+  background: var(--ih-accent-soft);
+  color: var(--ih-accent-bright);
   font: inherit;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
+}
+
+.midi__button:hover:not(:disabled) {
+  border-color: var(--ih-accent-bright);
+  color: var(--ih-accent-bright);
 }
 
 .midi__button:disabled {
@@ -367,19 +385,20 @@
 }
 
 .midi__test-result {
-  color: #c8b6ff;
-  font-size: 0.78rem;
+  color: var(--ih-accent-bright);
+  font-family: var(--ih-mono);
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 
 .midi__test-result--error {
-  color: #ff8d8d;
+  color: var(--ih-danger);
 }
 
 .midi__test-hint {
   flex-basis: 100%;
-  color: #7d8599;
-  font-size: 0.72rem;
+  color: var(--ih-muted);
+  font-size: 9px;
 }
 
 @media (max-width: 640px) {
@@ -389,10 +408,10 @@
 
   .midi__input-side {
     justify-self: start;
-    padding-left: 1.7rem;
+    padding-left: 26px;
   }
 
   .midi__input-error {
-    padding-left: 1.7rem;
+    padding-left: 26px;
   }
 }

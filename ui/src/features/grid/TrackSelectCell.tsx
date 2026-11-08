@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 
 import { InlineRenameInput, useInlineRename } from "../rename";
 import { EMPTY_COLOUR, trackColourForIndex } from "./colours";
@@ -48,11 +48,11 @@ export function TrackSelectCell({
       data-selected={selected ? "true" : "false"}
       data-status={track.status}
       data-colour-index={track.colorIndex}
-      style={{
-        background: empty
-          ? `linear-gradient(150deg, ${EMPTY_COLOUR}33 0%, #1c1d28 70%)`
-          : `linear-gradient(150deg, ${colour}88 0%, #1c1d28 70%)`,
-      }}
+      style={
+        {
+          "--track-colour": empty ? EMPTY_COLOUR : colour,
+        } as CSSProperties
+      }
     >
       <span className="track-grid__selector-top">
         <span
