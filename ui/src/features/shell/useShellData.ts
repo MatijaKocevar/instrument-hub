@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { gridFromState } from "../grid";
 import {
@@ -9,7 +9,11 @@ import {
 } from "../instrument";
 import { pluginAssignmentsFromState } from "../plugins";
 import { useAppState, useAppStore } from "../../state/AppStoreContext";
-import { slotFromSearch, type RouterState } from "../../state/router";
+import {
+  slotFromSearch,
+  type RouterState,
+  type ShellRoute,
+} from "../../state/router";
 
 export function useShellData(router: RouterState) {
   const app = useAppState();
@@ -38,10 +42,46 @@ export function useShellData(router: RouterState) {
           state?.families.flatMap((family) => family.patches) ?? [],
           instrumentSlot,
         );
+  const prefetched = useRef(false);
+  const prefetchInstrumentSlot = armedSlot >= 0 ? armedSlot : requestedSlot;
+
+  const prefetchRoute = useCallback(
+    (route: ShellRoute): void => {
+      if (
+        (route === "plugins" || route === "instrument") &&
+        app.plugins === null &&
+        !app.pluginBusy
+      )
+        void store.loadPlugins();
+
+      if (route === "audio" && app.midi === null && !app.midiBusy)
+        void store.loadMidi();
+
+      if (route === "instrument" && prefetchInstrumentSlot !== null)
+        void store.loadFxChain(prefetchInstrumentSlot);
+    },
+    [
+      app.midi,
+      app.midiBusy,
+      app.pluginBusy,
+      app.plugins,
+      prefetchInstrumentSlot,
+      store,
+    ],
+  );
 
   useEffect(() => {
     store.clearInstrumentError();
   }, [instrumentSlot, store]);
+
+  useEffect(() => {
+    if (state === null || prefetched.current) return;
+
+    prefetched.current = true;
+
+    if (app.plugins === null && !app.pluginBusy) void store.loadPlugins();
+    if (app.midi === null && !app.midiBusy) void store.loadMidi();
+  }, [app.midi, app.midiBusy, app.pluginBusy, app.plugins, state, store]);
 
   useEffect(() => {
     if (router.route !== "instrument" && router.route !== "plugins") return;
@@ -49,14 +89,19 @@ export function useShellData(router: RouterState) {
     if (router.route === "instrument" && instrumentSlot !== null)
       void store.loadFxChain(instrumentSlot);
 
-    if (app.plugins === null && !app.pluginBusy) void store.loadPlugins();
-  }, [router.route, instrumentSlot, store, app.plugins, app.pluginBusy]);
+    const snapshot = store.getSnapshot();
+
+    if (snapshot.plugins === null && !snapshot.pluginBusy)
+      void store.loadPlugins();
+  }, [router.route, instrumentSlot, store]);
 
   useEffect(() => {
-    if (router.route !== "audio" || app.midi !== null || app.midiBusy) return;
+    if (router.route !== "audio") return;
 
-    void store.loadMidi();
-  }, [router.route, store, app.midi, app.midiBusy]);
+    const snapshot = store.getSnapshot();
+
+    if (snapshot.midi === null && !snapshot.midiBusy) void store.loadMidi();
+  }, [router.route, store]);
 
   return {
     app,
@@ -69,6 +114,7 @@ export function useShellData(router: RouterState) {
     instrumentSlot,
     instrumentPatch,
     track,
+    prefetchRoute,
     version: state?.application.version ?? "0.1.0",
   };
 }

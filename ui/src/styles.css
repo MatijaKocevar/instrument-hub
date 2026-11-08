@@ -415,14 +415,6 @@ body {
   letter-spacing: 0.02em;
 }
 
-.app__empty {
-  padding: 2rem 1.1rem;
-  border: 1px dashed #2f3141;
-  border-radius: 0.9rem;
-  color: #8b93a7;
-  text-align: center;
-}
-
 .app__footer {
   display: flex;
   align-items: center;

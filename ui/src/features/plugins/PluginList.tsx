@@ -3,6 +3,9 @@ import type { ReactElement } from "react";
 import type { ControlPlugin } from "../../api/client";
 import type { PluginAssignment } from "./model";
 import { PluginCard } from "./PluginCard";
+import { PluginCardSkeleton } from "./PluginCardSkeleton";
+
+const SKELETON_CARDS = 6;
 
 interface PluginListProps {
   readonly loading: boolean;
@@ -19,13 +22,20 @@ export function PluginList({
 }: PluginListProps): ReactElement {
   if (loading) {
     return (
-      <p
-        className="plugins__empty"
+      <div
+        className="plugins__loading"
         data-testid="plugin-loading"
         aria-busy="true"
       >
-        Reading the VST3 folders…
-      </p>
+        <ol className="plugins__list" aria-hidden="true">
+          {Array.from({ length: SKELETON_CARDS }, (_, index) => (
+            <PluginCardSkeleton key={index} />
+          ))}
+        </ol>
+        <p className="loading-sr-only" role="status">
+          Reading the VST3 folders…
+        </p>
+      </div>
     );
   }
 

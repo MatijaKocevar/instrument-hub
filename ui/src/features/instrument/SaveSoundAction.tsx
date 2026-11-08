@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 
 import type { ControlPatch, ControlPatchStateCapture } from "../../api/client";
+import { Spinner } from "../loading";
 import { formatStateSize } from "./format";
 import { isPluginSource } from "./source";
 
@@ -41,7 +42,10 @@ export function SaveSoundAction({
           onCaptureState?.(patch.slot);
         }}
       >
-        Save sound to patch
+        {captureBusy === true ? (
+          <Spinner label="Saving the running sound" />
+        ) : null}
+        {captureBusy === true ? "Saving…" : "Save sound to patch"}
       </button>
 
       <p className="instrument__field-hint" data-testid="source-save-hint">

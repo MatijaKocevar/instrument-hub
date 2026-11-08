@@ -619,6 +619,31 @@
   white-space: nowrap;
 }
 
+.track-grid__column--skeleton {
+  pointer-events: none;
+}
+
+.track-grid__skeleton-track {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0.65rem;
+}
+
+.track-grid__skeleton-cell {
+  display: flex;
+  align-items: center;
+  padding: 0.65rem;
+}
+
+.track-grid__skeleton-volume {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 0.65rem;
+}
+
 @media (pointer: coarse) {
   .track-grid__column {
     grid-template-rows:

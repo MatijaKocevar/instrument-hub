@@ -7,7 +7,9 @@ import type {
   ControlPlugin,
   ControlTrack,
 } from "../../api/client";
+import { Skeleton } from "../loading";
 import { InsertAdd } from "./InsertAdd";
+import { InsertChainSkeleton } from "./InsertChainSkeleton";
 import { InsertRow } from "./InsertRow";
 import { latencyReadout } from "./latencyReadout";
 import { hotFxName } from "./tracks";
@@ -51,11 +53,15 @@ export function InsertChain({
   onAssignHotFx,
 }: InsertChainProps): ReactElement {
   const inserts = chain?.inserts ?? [];
+  const missing = chain === null || chain === undefined;
+  const showSkeleton =
+    missing && (chainError === null || chainError === undefined);
 
   return (
     <section
       className="instrument__card instrument__chain-card"
       aria-label="Insert chain"
+      aria-busy={chainBusy === true}
       data-testid="fx-chain"
       data-slot={patch.slot}
       data-count={inserts.length}
@@ -66,9 +72,15 @@ export function InsertChain({
       <header className="instrument__card-head">
         <h3 className="instrument__card-title">Inserts</h3>
         <span className="instrument__card-hint" data-testid="fx-latency-total">
-          {chain === null || chain === undefined
-            ? "latency unavailable"
-            : latencyReadout(chain.latencySamples, chain.latencyMs)}
+          {missing ? (
+            showSkeleton ? (
+              <Skeleton width="8rem" height="0.75rem" />
+            ) : (
+              "latency unavailable"
+            )
+          ) : (
+            latencyReadout(chain.latencySamples, chain.latencyMs)
+          )}
         </span>
       </header>
 
@@ -89,18 +101,44 @@ export function InsertChain({
         <div>
           <dt>Instrument</dt>
           <dd data-testid="fx-latency-instrument">
-            {String(chain?.instrumentLatencySamples ?? 0)} smp
+            {missing ? (
+              showSkeleton ? (
+                <Skeleton width="4rem" height="0.85rem" />
+              ) : (
+                "0 smp"
+              )
+            ) : (
+              `${String(chain.instrumentLatencySamples)} smp`
+            )}
           </dd>
         </div>
         <div>
           <dt>Inserts</dt>
           <dd data-testid="fx-latency-inserts">
-            {String(chain?.fxLatencySamples ?? 0)} smp
+            {missing ? (
+              showSkeleton ? (
+                <Skeleton width="4rem" height="0.85rem" />
+              ) : (
+                "0 smp"
+              )
+            ) : (
+              `${String(chain.fxLatencySamples)} smp`
+            )}
           </dd>
         </div>
         <div>
           <dt>Chain</dt>
-          <dd>{String(inserts.length)}</dd>
+          <dd>
+            {missing ? (
+              showSkeleton ? (
+                <Skeleton width="2rem" height="0.85rem" />
+              ) : (
+                String(inserts.length)
+              )
+            ) : (
+              String(inserts.length)
+            )}
+          </dd>
         </div>
       </dl>
 
@@ -120,14 +158,10 @@ export function InsertChain({
         </div>
       ) : null}
 
-      {chain === null || chain === undefined ? (
-        <p
-          className="instrument__empty"
-          data-testid="fx-loading"
-          aria-busy="true"
-        >
-          Loading the insert chain…
-        </p>
+      {missing ? (
+        showSkeleton ? (
+          <InsertChainSkeleton />
+        ) : null
       ) : inserts.length === 0 ? (
         <p className="instrument__empty" data-testid="fx-empty">
           No inserts. The instrument goes straight to the bus.
