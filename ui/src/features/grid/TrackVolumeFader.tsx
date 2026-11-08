@@ -2,7 +2,11 @@ import type { ReactElement } from "react";
 
 import type { GridTrack } from "./trackModel";
 import { TRACK_GRID_ROWS } from "./trackModel";
-import { TRACK_VOLUME_STEPS, trackVolumeStagePosition } from "./trackVolume";
+import {
+  TRACK_VOLUME_STEPS,
+  trackVolumeStageCenter,
+  trackVolumeStageTop,
+} from "./trackVolume";
 import { TrackVolumeStage } from "./TrackVolumeStage";
 
 interface TrackVolumeFaderProps {
@@ -17,7 +21,7 @@ export function TrackVolumeFader({
 }: TrackVolumeFaderProps): ReactElement {
   const inactive = !track.hasInstrument;
   const current = track.volumeStep;
-  const fill = inactive ? 0 : trackVolumeStagePosition(current);
+  const fill = inactive ? 0 : trackVolumeStageTop(current);
   const over = !inactive && current === 4;
   const readoutDb = `${track.volumeDb.toFixed(1)} dB`;
   const stages = TRACK_GRID_ROWS.filter((row) => row.role === "volume");
@@ -64,7 +68,7 @@ export function TrackVolumeFader({
 
           <div className="track-grid__fader-scale">
             {TRACK_VOLUME_STEPS.map((stage) => {
-              const position = trackVolumeStagePosition(stage.step);
+              const position = trackVolumeStageCenter(stage.step);
               const active = !inactive && stage.step === current;
               const reached = !inactive && stage.step <= current;
               const stageOver = stage.step === 4;
