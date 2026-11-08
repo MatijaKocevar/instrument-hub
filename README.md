@@ -29,7 +29,7 @@ remote.
 - **Projects that survive restarts** — versioned `.ihub` containers,
   autosave, recent projects, and per-patch plugin state.
 - **Audio & MIDI setup** — ALSA, JACK and PipeWire device selection, latency
-  measurement, xrun counts, a "Test & recommend" buffer-size wizard, and
+  measurement, xrun counts, a "Analyze & recommend" buffer-size wizard, and
   per-interface profiles.
 - **Local HTTP + WebSocket API** — the desktop UI and tablet remote share one
   contract, with optional token pairing and LAN mode.
@@ -69,7 +69,7 @@ builds for those platforms are not validated yet.
    in `~/Music/Instrument Hub/Untitled.ihub`.
 2. Open **Audio & MIDI**, select your interface and buffer size. On
    PipeWire/JACK, put the card in its `pro-audio` profile first and select the
-   `… Pro` device. **Test & recommend** probes 64, 96 and 128 frames and
+   `… Pro` device. **Analyze & recommend** probes 64, 96 and 128 frames and
    stores the best stable setting for that interface.
 3. Open a track from the Grid, choose **Change source**, and load a VST3,
    sampler kit or live audio input.

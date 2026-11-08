@@ -39,14 +39,11 @@ Read in this order. It is deliberately small: roughly one focused morning.
 | 7 | [engine/src/api/StateStore.h](../engine/src/api/StateStore.h) (`StateStore`), then [engine/src/api/SessionBridge.cpp](../engine/src/api/SessionBridge.cpp) | How HTTP reaches the session without the route code knowing what a `Session` is. |
 | 8 | [engine/src/controller/LaunchpadProtocol.h](../engine/src/controller/LaunchpadProtocol.h), then [LaunchpadDriver.h](../engine/src/controller/LaunchpadDriver.h), then [Mapping.h](../engine/src/controller/Mapping.h) | The pad path, from a raw note to a slot number. |
 | 9 | [engine/src/session/SessionPluginState.cpp](../engine/src/session/SessionPluginState.cpp) and [engine/src/session/PluginStateFile.cpp](../engine/src/session/PluginStateFile.cpp): `capturePluginState()`, `writePluginStateFile()`, `applyStoredPluginState()` | Per-patch sound persistence, including the explicit save action. |
-| 10 | [tests/e2e/PadToAudio.cpp](../tests/e2e/PadToAudio.cpp), [tests/session_warm/SessionWarmPoolTest.cpp](../tests/session_warm/SessionWarmPoolTest.cpp), [tests/api/SessionApiTest.cpp](../tests/api/SessionApiTest.cpp) | The executable version of this document. |
 
 Useful references while reading:
 
 - [docs/launchpad-mini-mk3.md](launchpad-mini-mk3.md) — controller protocol and
   mapping.
-- [plan/TESTING.md](../plan/TESTING.md) — how to prove behaviour without
-  hardware (ALSA Loopback, virtual Launchpad, snapshots).
 - [shared/api/openapi.yaml](../shared/api/openapi.yaml) — the HTTP contract the
   UI's TypeScript schema is generated from.
 - [HANDOVER.md](../HANDOVER.md) — the current state, known gaps and run modes.
@@ -122,9 +119,8 @@ is followed by the types worth knowing.
 ### 3.1 `engine/src/` (root)
 
 - [Main.cpp](../engine/src/Main.cpp) — application entry point, JUCE
-  application lifecycle, CLI modes (`--serve`, `--selftest`, `--snapshot`,
-  `--diagnostics`, `--session-smoke`, `--list-devices`, `--rt-strict`,
-  `--measure-latency`, `--scan-plugins`, `--ui-check`), default-set/source
+  application lifecycle, CLI modes (`--serve`, `--diagnostics`,
+  `--list-devices`, `--measure-latency`, `--scan-plugins`), default-set/source
   loading, API and controller composition, the 100 ms LED mirror, and the
   native window. If a subsystem is created, it is created here. There is no
   other composition root in the app. The one-shot diagnostic modes are one file
@@ -196,7 +192,7 @@ knows what a `Session` is.
   update path in `MidiBridgeInputs.cpp`, keyboard/grid message routing in
   `MidiBridgeMessages.cpp`, the `/midi` snapshot in `MidiBridgeState.cpp`, the
   generic 64-pad map in `MidiGridMap.{h,cpp}`, settings persistence in
-  `MidiInputPersistence.cpp`, and the Launchpad pad test in `MidiPadTest.cpp`.
+  `MidiInputPersistence.cpp`, and the Launchpad pad lighting in `MidiPadTest.cpp`.
   Any non-Launchpad input is a keyboard by default and feeds
   `Session::pushMidi()`; a grid-role input feeds the same
   `Controller::Mapping::handlePad()` path as the Launchpad.
@@ -221,8 +217,7 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
 - [AudioEngine.h](../engine/src/audio/AudioEngine.h) /
   [AudioEngine.cpp](../engine/src/audio/AudioEngine.cpp) — fixed array of
   `Slot`s, summing `Bus`, timing monitor, MIDI device buffer. Its
-  `processBlock()` is the standalone engine path used by tests and offline
-  tools; the app's `Session` drives `SlotSwitcher` and `Bus` directly.
+  `processBlock()` is the standalone engine path used by offline tools; the app's `Session` drives `SlotSwitcher` and `Bus` directly.
 - [Slot.h](../engine/src/audio/Slot.h) / [Slot.cpp](../engine/src/audio/Slot.cpp)
   — one graph slot: `SlotSource` → ordered `FxChain` → gain → bus. Owns its
   render buffer and its own 2–5 ms activation ramp. `processUnfaded()` is the
@@ -266,7 +261,7 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   [audio/device/](../engine/src/audio/device/), so the file keeps lifetime and
   callback plumbing. The Linux build enables JUCE's native JACK device type
   (`JUCE_JACK=1`) next to ALSA. ALSA stays the default: the Loopback rig and
-  every existing test keep their device. JACK is enumerated even when `jackd`
+  diagnostics keep their device. JACK is enumerated even when `jackd`
   is not running; it then reports no devices and the Audio page shows the type
   only. When a server runs, its client names become device cards next to the
   ALSA cards, described as `JACK audio device`. Launch through
@@ -303,7 +298,7 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   impulse capture and the pure correlation live in
   [audio/latency/](../engine/src/audio/latency/).
 - [RtGuard.h](../engine/src/audio/RtGuard.h) / [RtGuard.cpp](../engine/src/audio/RtGuard.cpp)
-  — allocation/lock/log detector and counters for `--rt-strict`. The
+  — allocation/lock/log detector and counters used by debug builds. The
   `operator new`/malloc interposition and the pthread wrappers are separate
   units under [audio/rtguard/](../engine/src/audio/rtguard/).
 - [Instrument.h](../engine/src/audio/Instrument.h) — compatibility shim only;
@@ -332,7 +327,7 @@ API dependency (`AudioSettings`) is the exception noted in §4.3.
   [launchpad/](../engine/src/controller/launchpad/) — MIDI I/O facade split
   into device detection, connection/handshake, LED state, MIDI decoding and
   low-level output. `injectMidiMessage()` / `setMessageSink()` stay on the
-  facade for hardware-free tests.
+  facade for hardware-free diagnostics.
 - [Mapping.h](../engine/src/controller/Mapping.h) /
   [Mapping.cpp](../engine/src/controller/Mapping.cpp) and
   [mapping/](../engine/src/controller/mapping/) — the live mapping facade:
@@ -450,7 +445,7 @@ the kit and sample loaders. Both implement `Instrument` and `SlotSource`.
   `ihub-sandbox`. The legacy one-host-per-slot path stays behind
   `IHUB_SHARED_PLUGIN_HOST=0` for migration. Child-process lifecycle, the
   watchdog, audio transport and MIDI queue live in `plugins/sandbox/`; so do
-  the helper's argument parsing and fake-tone test seam.
+  the helper's argument parsing and fake-tone diagnostic seam.
 - [PageHost.h](../engine/src/plugins/PageHost.h) /
   [PageHost.cpp](../engine/src/plugins/PageHost.cpp) and
   [PageHostSlot.h](../engine/src/plugins/PageHostSlot.h) — the live page host:
@@ -554,10 +549,9 @@ instrument registry.
 | [shared/tracks-set.yaml](../shared/tracks-set.yaml) | The blank eight-track template used for new projects. |
 | [shared/schema/set.schema.json](../shared/schema/set.schema.json) | Set mapping schema. |
 | [shared/schema/kit.schema.json](../shared/schema/kit.schema.json) | Sampler kit schema. |
-| [tests](../tests) | ctest targets, including the pad/click/LED acceptance in `tests/e2e/`. |
-| [scripts](../scripts) | `build.sh`, `test.sh`, `dev.sh`, `bootstrap.sh`. |
+| [scripts](../scripts) | `build.sh`, `dev.sh`, `bootstrap.sh`. |
 | [tools/ihub-mcp](../tools/ihub-mcp) | Standalone MCP adapter over stdio: read tools, control tools and resources. |
-| [plan](../plan) | Decisions, roadmap, testing recipes, blockers, autopilot. |
+| [plan](../plan) | Decisions, roadmap, blockers, autopilot. |
 | `docs/` | This map, the Launchpad reference and new-machine setup. |
 
 ### 3.13 `tools/ihub-mcp`
@@ -599,7 +593,7 @@ the right-hand column is a layering mistake.
 | `plugins/` | `audio/`, `instruments/` | `api/`, `Session`, `Main` |
 | `project/` | `audio/`, `plugins/` | `api/`, `Session` (today) |
 | `diag/` | `audio/DeviceManager`, `audio/TimingMonitor`, JUCE | `api/`, `Session` |
-| `api/` | `controller/` (pad test only), `plugins/` (inventory only), `Session` (bridge only) | `Main` |
+| `api/` | `controller/` (pad lighting only), `plugins/` (inventory only), `Session` (bridge only) | `Main` |
 | `Session` | `audio/`, `sampler/`, `plugins/`, `instruments/` | `api/`, `Main`, `controller/` |
 | `Main.cpp` | everything | nothing (it is the root) |
 
@@ -654,7 +648,7 @@ These are real today and should not be copied into new code:
 - `audio/Instrument.h` is a one-line compatibility shim that includes
   `instruments/Instrument.h`. New code should include the canonical header.
 - `api/MidiBridge.cpp` includes `controller/LaunchpadDriver.h` for the pad
-  test. It is a test/inspection seam, not an audio dependency.
+  lighting panel. It is an inspection seam, not an audio dependency.
 
 ---
 
@@ -679,8 +673,8 @@ which maps notes 11..88 to pads 0..63, then `LaunchpadDriver::dispatchPad()`
 copies the listener list and invokes `DriverListeners::padEvent(pad, pressed)`.
 A release is dispatched with `pressed == false`; only a press arms.
 
-`injectMidiMessage()` is the same entry point without a device, used by the
-tests.
+`injectMidiMessage()` is the same entry point without a device, used by
+diagnostics.
 
 **Step 2 — pad → slot (controller MIDI thread).**
 
@@ -1027,7 +1021,7 @@ repeated automatic calls are cheap.
 
 **The callback.** `Session::audioDeviceIOCallbackWithContext()`
 ([Session.cpp](../engine/src/Session.cpp)) is the device's real-time entry
-point. The offline/test path is `Session::render()`; both call
+point. The offline render path is `Session::render()`; both call
 `renderInternal()`, so an offline render cannot diverge from the device path.
 
 Sequence for one block:
@@ -1124,9 +1118,6 @@ or any allocator.
   control-thread locks. If you add a new field the audio thread reads, make it
   an atomic or pre-allocated buffer; never add a mutex.
 
-**Test seam:** `SessionConfig::loadDelayMilliseconds` (default 0) makes the
-`warming` → `active` transition observable in the headless warm-pool test. It
-is not a production mode.
 
 ### 5.5 The track grid (layout v2)
 
@@ -1178,11 +1169,6 @@ only) → `StateStore::setArmedSlot`; fx/volume presses go through
 result. Because every track is protected in the pool, all eight switches are
 warm pointer hand-overs and never report `warming`.
 
-`ihub-e2e` proves the complete path: it creates the blank track project,
-loads eight `TestPlugin` sandboxes, switches all eight tracks once from pads
-and once through `/tracks/{i}/select`, applies hot-FX and volume actions from
-both paths, records the LED stream and measures the peak RSS of the eight warm
-hosts. The run writes `ihub-e2e-track-grid-record.txt` next to the test.
 
 ---
 
@@ -1247,7 +1233,7 @@ is the paired facade header for `Session.cpp` and had to split with it.
 |---|---:|---|---|
 | [Session.cpp](../engine/src/Session.cpp) | 3167 | Composition, arm/cold hand-off, plugin state, editors, FX racks, meters, device, switch measurement, offline render. | **T136:** keep `Session` as a facade. Extract `session/WarmPoolController` (arm, pins, cold hand-off), `session/PatchStateStore` (sidecar, revisions, restore), `session/EditorHost` (native windows), `session/MeterBridge`, `session/TransportController`, `session/FxController`. Target `Session.cpp` < 800. |
 | [api/Routes.cpp](../engine/src/api/Routes.cpp) | 2150 | Every resource and every JSON shape in one registration function. | **T135:** split into `api/routes/{state,patches,fx,audio,midi,plugins,transport,pairing}.cpp`, each registering through one helper. Shared JSON/validation stays in `Routes.h`. Target each route module < 600; no endpoint or status change. |
-| [Main.cpp](../engine/src/Main.cpp) | 2001 | Application shell plus eight one-shot modes plus snapshot capture, LED poll and default-set loading. | **T137:** extract `app/modes/*` (diagnostics, selftest, snapshot, serve, session smoke, scan, RT strict, latency) and `app/AppShell` (window/web view). Leave an entry point and composition. Target `Main.cpp` < 600; identical CLI behaviour and output. |
+| [Main.cpp](../engine/src/Main.cpp) | 2001 | Application shell plus diagnostic modes, LED poll and default-set loading. | **T137:** extract `app/modes/*` (diagnostics, serve, scan, latency) and `app/AppShell` (window/web view). Leave an entry point and composition. Target `Main.cpp` < 600; identical CLI behaviour and output. |
 | [api/Server.cpp](../engine/src/api/Server.cpp) | 1779 | `StateStore`, the HTTP server, auth, LAN rebind, meter thread and WebSocket loops. | **T135:** split `StateStore` + DTOs into `api/StateStore.{h,cpp}`; leave `Server` with transport/auth/listener/meter/WebSocket. Then move route bodies out. Target `Server.h`/`Server.cpp` each < 700. |
 | [api/Server.h](../engine/src/api/Server.h) | 1037 | All state DTOs, `StateStore` and `Server` in one header. | Same as above: DTOs and `StateStore` move to their own header; `Server.h` keeps the server surface. |
 | [Session.h](../engine/src/Session.h) | 776 | Public surface for all of the above. | Follows `Session.cpp`: the facade header keeps build/device/render/arm/inspection; collaborators get their own headers in `session/`. |
@@ -1268,7 +1254,7 @@ no superseded controller or unused persistence path (§8).
 These are real parts of the tree that a new contributor will meet and should
 not mistake for the live path. T138 removed the superseded controller layer
 and the unused `.ihub` plugin-state binder; the remaining items are
-capabilities that are tested but not selected by the live factory.
+capabilities that are present but not selected by the live factory.
 
 - **`plugins/SandboxHost`** — the legacy one-process-per-slot factory, kept
   behind `IHUB_SHARED_PLUGIN_HOST=0` for migration. The live track layout uses
@@ -1309,8 +1295,7 @@ capabilities that are tested but not selected by the live factory.
 5. Invoke the store's change handler (the `ChangeHandler` installed by
    `StateBroadcast`) so `/events` and polling clients agree, and update the
    affected slot latency if it changed.
-6. Add an API test under [tests/api](../tests/api) and, if it changes sound or
-   arm behaviour, an e2e assertion.
+6. Verify the endpoint by using the running app; do not add test files.
 
 ### 9.2 Add a built-in effect
 
@@ -1319,7 +1304,7 @@ capabilities that are tested but not selected by the live factory.
 2. Add the type/id to `FxRack` (`FxInsertType`, string parsing, factory,
    parameters, snapshot).
 3. Extend the set schema and the FX route validation.
-4. Add a DSP test and an FX-chain/API test.
+4. Verify the effect by using the app.
 5. Confirm the empty chain remains bit-exact and the new effect is only
    prepared off the audio thread.
 
@@ -1330,8 +1315,8 @@ capabilities that are tested but not selected by the live factory.
 3. Give the warm-pool request a unique id for the new source.
 4. Add the descriptor to `SessionSlotConfig`, the set schema and the API
    source request, plus the UI picker.
-5. Test: cold/warm arm, state restore if hosted, and the live-instance bound
-   (protected count, legacy `1 + K`, hard cap 32).
+5. Verify cold/warm arm, state restore if hosted, and the live-instance bound
+   (protected count, legacy `1 + K`, hard cap 32) in the app.
 
 ### 9.4 Add a controller binding
 
@@ -1341,7 +1326,7 @@ capabilities that are tested but not selected by the live factory.
 3. Routing and validation in `Mapping` (`shared/set.yaml`, listener events).
 4. Wire the listener in `Main::startController()`; keep the audio effect on
    the control thread.
-5. Add a protocol table test, a mapping test and a driver injection test.
+5. Verify the binding with the physical controller.
 
 ### 9.5 Add a UI page
 
@@ -1351,35 +1336,13 @@ capabilities that are tested but not selected by the live factory.
    [App.tsx](../ui/src/App.tsx).
 3. Use `ui/src/state/store.ts` for API state and polling; do not call
    `fetch` from a component.
-4. Add a server-rendered snapshot in `ui/src/testing/snapshot.tsx` and a page
-   assertion. A native web-view snapshot is only needed when the page is the
-   release shell itself.
+4. Verify the page in the running app.
 
 ### 9.6 Before you call it done
 
-Run the acceptance check for the area and then the whole suite:
-
-```bash
-scripts/test.sh                 # ctest with a 120 s per-test timeout
-ctest --test-dir build --output-on-failure
-```
-
-For audio-path changes also run:
-
-```bash
-./build/engine/instrument-hub --session-smoke
-./build/engine/instrument-hub --rt-strict
-```
-
-`--session-smoke` proves the composed graph renders and switches over the ALSA
-Loopback. `--rt-strict` aborts on an allocation, lock or log inside the
-callback. If either fails, the change is not done, regardless of unit tests.
-For track-grid changes, `ihub-e2e` also runs the eight-track pad/API/LED/memory
-pass and writes `ihub-e2e-track-grid-record.txt`.
-
-The hardware-free recipes for the controller, the loopback and the snapshots
-are in [plan/TESTING.md](../plan/TESTING.md). Physical checks that need a human
-are tracked in [plan/BLOCKERS.md](../plan/BLOCKERS.md).
+Build the affected target and verify the change in the running app. Do not
+create, add, build, or run tests or test tooling; testing is deferred until
+the human re-enables it.
 
 ---
 
@@ -1403,9 +1366,8 @@ are tracked in [plan/BLOCKERS.md](../plan/BLOCKERS.md).
 
 ## 11. Related documents
 
-- [HANDOVER.md](../HANDOVER.md) — state, gaps, run modes, verification record.
+- [HANDOVER.md](../HANDOVER.md) — state, gaps and run modes.
 - [plan/DECISIONS.md](../plan/DECISIONS.md) — locked architecture decisions.
-- [plan/TESTING.md](../plan/TESTING.md) — hardware-free acceptance recipes.
 - [plan/ROADMAP.md](../plan/ROADMAP.md) — T134–T138 decomposition tasks.
 - [plan/BLOCKERS.md](../plan/BLOCKERS.md) — the human queue.
 - [plan/AUTOPILOT.md](../plan/AUTOPILOT.md) — session/blocker protocol.

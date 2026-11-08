@@ -8,16 +8,11 @@ namespace ihub::app
 enum class AppMode
 {
     gui,
-    uiCheck,
-    selftest,
     serve,
-    snapshot,
     pluginScan,
-    rtStrict,
     listDevices,
     measureLatency,
-    diagnostics,
-    sessionSmoke
+    diagnostics
 };
 
 AppMode selectMode (const juce::String& commandLine) noexcept;

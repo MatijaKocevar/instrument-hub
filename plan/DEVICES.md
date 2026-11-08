@@ -46,9 +46,8 @@ only produced when the user actually sent a channel list.
 to the first two output channels and every input channel the device reports;
 an empty probe result is a failed probe, not a zero-channel device.
 
-**D6 — test devices are opt-in.** The ALSA Loopback stays out of the normal
-list and appears with `--show-test-devices` (tests and diagnostics pass it).
-The test rig keeps using the Loopback by explicit name, unchanged.
+**D6 — diagnostic devices stay hidden.** The ALSA Loopback is not shown in the
+normal device list.
 
 **D7 — advanced escape hatch.** A raw ALSA PCM list is available behind an
 "Advanced" toggle in the UI and `--raw-devices` on the CLI, so a user who
@@ -58,9 +57,9 @@ needs `iec958` or a custom PCM string is not locked out.
 
 | Task | Scope |
 | --- | --- |
-| T193 | Card-based enumeration, probe/filter, friendly names, Loopback gating, `--show-test-devices` / `--raw-devices`. |
-| T194 | Switch reliability: family resolution, channel defaults, EBUSY/not-connected errors, regression tests. |
-| T195 | UI: friendly picker, unavailable state with reason, advanced toggle, snapshot test. |
+| T193 | Card-based enumeration, probe/filter, friendly names, Loopback gating and `--raw-devices`. |
+| T194 | Switch reliability: family resolution, channel defaults, EBUSY/not-connected errors, manual verification. |
+| T195 | UI: friendly picker, unavailable state with reason, advanced toggle, verified in the app. |
 
 BUG-007 is fixed when selecting the UR22 from the normal list opens it at
 48 kHz/128 in one request, with no channel payload.

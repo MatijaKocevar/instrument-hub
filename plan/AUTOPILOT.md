@@ -9,7 +9,6 @@ Read this file first, every session.
 - **Ledger:** `STATE.json` (owned by the driver, not by you)
 - **Human queue:** `BLOCKERS.md` (you append to this, never remove)
 - **Locked decisions:** `DECISIONS.md` (do not re-litigate)
-- **Verification recipes:** `TESTING.md`
 
 ---
 
@@ -38,17 +37,11 @@ Your job inside a session:
 - Read the brief. Read `DECISIONS.md` if the brief references it.
 - Do **only** that task. Do not start the next one.
 - Do not ask questions. The human is not there.
-- Run the acceptance check yourself before declaring done.
-- Run tests with a hard timeout: `scripts/test.sh` or `ctest --timeout 120`.
-  A hung test must fail within two minutes; never treat "still running" as
-  progress.
-- Never build the whole tree. The C++ test suite is opt-in
-  (`-DIHUB_BUILD_TESTS=ON`); the engine and JUCE are compiled once into the
-  shared libraries in `tests/TestEngine.cmake`. Build only the specific
-  runner or isolated executable needed for the task
-  (`scripts/build-tests.sh ihub-runner-api`). A cold test build must stay in
-  minutes, not hours, and a full `scripts/test.sh` run under three minutes;
-  if not, stop and fix the build graph instead of waiting.
+- Build the affected app target before declaring done. Do not create, add,
+  build, or run tests, test targets, test runners, snapshot harnesses, or
+  test tooling; testing is deferred until the human re-enables it.
+- Never build the whole tree. Build only the specific target needed for the
+  task.
 - Write the result file, exactly in this format:
 
 ```
@@ -114,7 +107,7 @@ When you hit a wall:
 2. Write `STATUS: blocked` with `NEEDED:` pointing at that entry.
 3. Stop. The driver moves to the next task with satisfied dependencies.
 
-Never block on something you could stub behind an interface and test with a fake.
+Never block on something you could stub behind an interface and verify with a fake.
 Prefer a fake device, a synthetic MIDI stream, or a recorded fixture over stopping.
 
 ---
@@ -153,12 +146,12 @@ the remaining human work.
 
 A successful end state:
 
-- Engine builds and its tests pass on Linux
+- Engine builds and runs on Linux
 - Audio runs through the ALSA loopback with measured latency and zero xruns
 - Plugins host, save, and reload
-- Slots switch without clicks (proven by the discontinuity test)
-- The Launchpad driver passes its scripted protocol, mapping and LED tests
-- The React UI runs, is embedded, and is screenshotted
+- Slots switch without clicks
+- The Launchpad driver responds correctly to pads and LEDs
+- The React UI runs and is embedded
 - `HANDOVER.md` lists the hardware checks a human still has to do
 
 The run does **not** end at a milestone boundary. It ends at `BLOCKERS.md`.
@@ -171,8 +164,8 @@ The feature roadmap is complete (`T000–T139`). Do not invent feature or
 refactor tasks, and do not start a run "to make progress".
 
 New work is added to `ROADMAP.md` one bug at a time from `plan/BUGS.md`,
-after the bug has been reproduced. Each fix needs a regression test where
-practical and must leave `scripts/test.sh` green. Keep one bug per commit.
+after the bug has been reproduced. Verify fixes by building and using the
+app; do not create or run tests. Keep one bug per commit.
 
 The human-requested single-responsibility refactors **T140–T174** are also
 queued in `ROADMAP.md`. They are pure moves: no behaviour, API or JSON

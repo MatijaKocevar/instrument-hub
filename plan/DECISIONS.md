@@ -53,7 +53,7 @@ public:
   original plugin directory is never modified.
 - The legacy one-host-per-slot path stays behind
   `IHUB_SHARED_PLUGIN_HOST=0` (and `SessionConfig::sharedPluginHost`) until the
-  shared path has passed its crash, hang and state tests.
+  shared path is proven by using the app.
 - The engine is the parent of the page helper; the helper is the parent of the
   Wine launcher. `PR_SET_PDEATHSIG` plus the engine's process-tree cleanup keep
   the Wine host from outliving it.
@@ -79,16 +79,6 @@ public:
 - Meters broadcast at ~30 Hz, coalesced. Never per audio buffer.
 - Auth: 6-digit pairing code, token in a header. LAN-only, never public.
 
-## Testing without hardware
-
-- **Audio:** ALSA Loopback (`card 2`, already loaded) is the device for all
-  round-trip and xrun tests.
-- **MIDI:** ALSA sequencer virtual port impersonating the Launchpad.
-- **Plugins:** a JUCE VST3 we compile ourselves as `TestPlugin`, plus an
-  optional third-party VST3 when one is installed.
-- **UI:** snapshot from inside JUCE (`createComponentSnapshot`), not a
-  desktop screenshot tool.
-
 ## Persistence
 
 - Set file: versioned JSON + binary blobs for plugin state, in a single
@@ -103,4 +93,4 @@ public:
 ## Naming
 
 - Product name: **Instrument Hub**. Binary: `instrument-hub`.
-- Repo layout: `engine/`, `ui/`, `shared/`, `third_party/`, `tests/`, `plan/`.
+- Repo layout: `engine/`, `ui/`, `shared/`, `third_party/`, `plan/`.

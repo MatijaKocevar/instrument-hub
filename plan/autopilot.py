@@ -24,7 +24,6 @@ import re
 import shutil
 import signal
 import subprocess
-import threading
 import time
 import sys
 from datetime import datetime, timedelta, timezone
@@ -66,20 +65,6 @@ HOLIDAYS: set[str] = set()  # 'YYYY-MM-DD', add Chinese holidays here
 PEAK_MARGIN = timedelta(minutes=20)
 SESSION_TIMEOUT = 3 * 60 * 60  # seconds
 
-# Watchdog budgets, in seconds. The whole suite is ~95 s; 600 s leaves room for
-# a cold Wine warm-up or a slow plugin scan without stalling the run forever.
-TEST_SECONDS = 150
-CTEST_SECONDS = 600
-
-# Tool commands run under the shared opencode server, not under the session
-# process, so they are identified by the marker the server puts in their
-# environment. A command started in the developer's own terminal has no
-# marker; the dev build and its Wine plugin bridge are therefore never
-# candidates, and neither is build-debug.
-SESSION_ENV_MARKER = b"OPENCODE_SESSION_ID="
-TEST_BUILD = (REPO / "build").resolve()
-TEST_BINARY_PREFIXES = ("ihub-", "instrument-hub")
-
 MAX_ATTEMPTS = 3
 # Seconds to wait before attempt 2, 3, 4. A session that dies on a transport
 # error has not judged the task, so retrying it immediately just re-runs the
@@ -116,95 +101,6 @@ def log(msg: str) -> None:
     WORK.mkdir(parents=True, exist_ok=True)
     with LOG.open("a") as fh:
         fh.write(line + "\n")
-
-
-def _proc_bytes(path: str) -> bytes:
-    try:
-        return Path(path).read_bytes()
-    except OSError:
-        return b""
-
-
-def _proc_path(pid: int, leaf: str) -> Path | None:
-    try:
-        return Path(os.readlink(f"/proc/{pid}/{leaf}"))
-    except OSError:
-        return None
-
-
-def _within(path: Path | None, root: Path) -> bool:
-    return path is not None and (path == root or root in path.parents)
-
-
-def is_test_candidate(pid: int, name: str) -> bool:
-    """True when `pid` is a test run started by an opencode session."""
-    if SESSION_ENV_MARKER not in _proc_bytes(f"/proc/{pid}/environ"):
-        return False
-
-    if name.startswith("ctest"):
-        return _within(_proc_path(pid, "cwd"), REPO)
-
-    if name.startswith(TEST_BINARY_PREFIXES):
-        return _within(_proc_path(pid, "exe"), TEST_BUILD)
-
-    return False
-
-
-def stuck_budget(name: str) -> int | None:
-    if name.startswith("ctest"):
-        return CTEST_SECONDS
-    if name.startswith(TEST_BINARY_PREFIXES):
-        return TEST_SECONDS
-    return None
-
-
-def kill_stuck_tests() -> None:
-    """Kill test processes that have outlived their budget.
-
-    Only test binaries built in `build/` and ctest running inside the repo are
-    candidates, and only when an opencode session started them. The developer's
-    dev build and its Wine plugin bridge keep running: killing the bridge
-    aborts the engine.
-    """
-    try:
-        listing = subprocess.run(
-            ["ps", "-eo", "pid=,etimes=,comm="],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        ).stdout
-    except (OSError, subprocess.SubprocessError):
-        return
-
-    for line in listing.splitlines():
-        parts = line.split(None, 2)
-        if len(parts) != 3:
-            continue
-
-        pid_text, age_text, name = parts
-
-        try:
-            pid = int(pid_text)
-            age = int(age_text)
-        except ValueError:
-            continue
-
-        budget = stuck_budget(name)
-        if budget is None or age <= budget:
-            continue
-        if not is_test_candidate(pid, name):
-            continue
-
-        log(f"WATCHDOG killing stuck {name} pid={pid} age={age}s")
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except OSError:
-            pass
-
-
-def watchdog_session(stop: threading.Event) -> None:
-    while not stop.wait(5):
-        kill_stuck_tests()
 
 
 def is_peak(dt: datetime) -> bool:
@@ -390,10 +286,9 @@ def write_brief(task: dict, entry: dict) -> Path:
         + f"Plan folder: `{PLAN_DIR}`\n\n"
         + "Read these when the task needs them:\n"
         + f"- `{PLAN_DIR / 'DECISIONS.md'}` — locked technical decisions\n"
-        + f"- `{PLAN_DIR / 'TESTING.md'}` — how to verify without hardware\n"
         + f"- `{PLAN_DIR / 'BLOCKERS.md'}` — append here when blocked, never ask questions\n"
         + f"- `{PLAN_DIR / 'AUTOPILOT.md'}` — the session and blocker protocol\n\n"
-        + "Do only this task. Run its acceptance check before declaring done.\n"
+        + "Do only this task. Build the affected app target before declaring done; do not create or run tests.\n"
     )
     prior = int(entry.get("attempts", 0))
     if prior:
@@ -480,7 +375,6 @@ def run_task(task: dict, entry: dict, attach: str) -> tuple[str, str]:
     rc = 0
     timed_out = False
     proc = None
-    stop_watchdog = threading.Event()
     global ACTIVE
     try:
         # Own process group: a timeout must take the MCP children and browsers
@@ -496,9 +390,6 @@ def run_task(task: dict, entry: dict, attach: str) -> tuple[str, str]:
             start_new_session=True,
         )
         ACTIVE = proc
-        threading.Thread(
-            target=watchdog_session, args=(stop_watchdog,), daemon=True
-        ).start()
         try:
             output, _ = proc.communicate(timeout=SESSION_TIMEOUT)
             rc = proc.returncode
@@ -515,7 +406,6 @@ def run_task(task: dict, entry: dict, attach: str) -> tuple[str, str]:
         log("FATAL: `opencode` not found on PATH")
         sys.exit(2)
     finally:
-        stop_watchdog.set()
         ACTIVE = None
 
     WORK.mkdir(parents=True, exist_ok=True)

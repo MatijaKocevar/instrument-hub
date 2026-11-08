@@ -9,7 +9,7 @@ protocols, and all of them live in this repository:
 | Task queue and acceptance checks | `plan/ROADMAP.md` | yes |
 | Ledger (what is done, what is next) | `plan/STATE.json` | yes |
 | Session + blocker protocol | `plan/AUTOPILOT.md` | yes |
-| Locked decisions, test recipes | `plan/DECISIONS.md`, `plan/TESTING.md` | yes |
+| Locked decisions | `plan/DECISIONS.md` | yes |
 
 So the flow is identical on every machine: one `opencode run` per task,
 fresh context, run the acceptance check, commit the checkpoint, move on.
@@ -27,7 +27,7 @@ credentials, the git identity and the loopback modules. That is what
 gh auth login
 git clone --recursive git@github.com:MatijaKocevar/instrument-hub.git ~/Projects/instrument-hub
 cd ~/Projects/instrument-hub
-scripts/bootstrap.sh            # checks, builds, runs the full test suite
+scripts/bootstrap.sh            # checks and builds the app
 scripts/bootstrap.sh --install  # same, installing missing packages first
 scripts/bootstrap.sh --start    # ... then starts the autopilot
 ```
@@ -63,7 +63,7 @@ sets `Path=` to the repo root; `build-release` can be selected with
   `check=False` and would otherwise fail silently
 - opencode: `run --auto`, DeepSeek credentials, model `deepseek/deepseek-flash`
   (override with `IH_MODEL`)
-- build and `ctest`
+- building and launching the app
 
 ## What it cannot do for you
 

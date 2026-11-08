@@ -5,8 +5,6 @@
 namespace ihub::app
 {
 
-int runRtStrictCheck (const juce::String& commandLine);
-
 int runPluginScan (const juce::String& commandLine);
 
 int runLatencyMeasurement();
@@ -14,7 +12,5 @@ int runLatencyMeasurement();
 int runListDevices (const juce::String& commandLine);
 
 int runDiagnostics (const juce::String& commandLine);
-
-int runSessionSmoke (const juce::String& commandLine);
 
 }

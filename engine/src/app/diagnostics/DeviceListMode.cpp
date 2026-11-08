@@ -12,7 +12,6 @@ int runListDevices (const juce::String& commandLine)
     AudioEngine::DeviceManager deviceManager;
 
     AudioEngine::DeviceListOptions options;
-    options.showTestDevices = commandLine.contains ("--show-test-devices");
     options.raw = commandLine.contains ("--raw-devices");
     deviceManager.setDeviceListOptions (options);
 

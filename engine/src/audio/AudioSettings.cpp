@@ -23,14 +23,6 @@ void AudioSettingsBridge::setDeviceManager (DeviceManager* manager)
     }
 }
 
-void AudioSettingsBridge::setShowTestDevices (bool show)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-
-    liveManager().setShowTestDevices (show);
-    refreshDevices();
-}
-
 void AudioSettingsBridge::setSettingsStore (ihub::settings::SettingsStore* store)
 {
     const std::lock_guard<std::mutex> lock (mutex);

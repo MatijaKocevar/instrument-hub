@@ -37,10 +37,10 @@ The Mini MK3 exposes two USB MIDI ports. The driver deliberately selects the
 `LaunchpadDriver::findDevice()` matches the name fragment
 `"launchpad mini mk3"`, prefers a port whose name ends in `MI` (checked as
 `mk3 mi` / `lpminimk3 mi`, not the `mi` inside `Mini`), and never falls back to
-the `DA` port. There is no virtual Launchpad on the ALSA sequencer: the tests
-inject MIDI bytes into `LaunchpadDriver::injectMidiMessage()` and capture LED
-bytes with `setMessageSink()`, which uses the same decoder and encoder as the
-MIDI thread.
+the `DA` port. There is no virtual Launchpad on the ALSA sequencer; the driver
+can still be exercised by injecting MIDI bytes into
+`LaunchpadDriver::injectMidiMessage()` and capturing LED bytes with
+`setMessageSink()`, which uses the same decoder and encoder as the MIDI thread.
 
 ## Generic MIDI controllers
 
@@ -252,30 +252,11 @@ The Grid page and the Launchpad are two views of the same arm:
 - both paths publish the same `armedSlot`, the same non-silent source, and the
   same LED (armed pad red, other pads their patch colour).
 
-`ihub-e2e` proves this headlessly: it arms slot 10 through the HTTP route,
-moves away with pad 0, re-arms slot 10 with the physical pad path, renders both
-windows non-silent, and captures the LED stream (armed velocity 5 / static,
-idle patch velocity 13). See `ihub-e2e-pages-record.txt` beside the test
-binary. `ihub-ui-pages` renders the Grid, Instrument, Plugins and Audio pages
-and checks the snapshots in `tests/artifacts/`.
-
 ## Hardware status
 
-No Launchpad Mini MK3 is attached to the build machine. The protocol tables and
-the full pad → mapping → LED path are covered by:
-
-- `ihub-launchpad-protocol` — frame bytes, grid notes, palette.
-- `ihub-launchpad-mapping` — all 64 pads, CC 91..98 banks, CC 89..19 scenes.
-- `ihub-launchpad-driver` — scripted event sequence and the exact LED stream.
-- `ihub-launchpad-track` — v2 routing, the five volume steps and the track LED policy.
-- `ihub-ui-pages` — Grid, Instrument, Plugins and Audio page snapshots.
-- `ihub-e2e` — Grid click plus pad event through the mapping into the composed
-  session, non-silent audio rendered and captured on the ALSA Loopback, and
-  the armed-red / patch-colour LED stream. Its track-grid pass creates a blank
-  track project, loads eight sandboxed TestPlugins, switches all eight tracks
-  from pads and the API with zero `warming` events, exercises hot FX and
-  volume, captures the track LED stream and records peak RSS in
-  `ihub-e2e-track-grid-record.txt`.
+No Launchpad Mini MK3 is attached to the build machine. The pad -> mapping ->
+LED path is exercised by launching the app and using the Launchpad when one is
+attached.
 
 Physical verification (programmer-mode entry, real LED colours, font/brightness,
 firmware quirks) is tracked in `plan/BLOCKERS.md` as **B009**.
