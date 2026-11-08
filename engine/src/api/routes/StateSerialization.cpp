@@ -70,45 +70,42 @@ juce::var stateToVar (const StateSnapshot& state)
 
     object->setProperty ("slots", juce::var (slots));
 
-    if (state.layout == "tracks")
+    juce::Array<juce::var> tracks;
+
+    for (const auto& track : state.tracks)
     {
-        juce::Array<juce::var> tracks;
+        auto trackVar = Routes::makeObject();
+        auto* trackObject = trackVar.getDynamicObject();
 
-        for (const auto& track : state.tracks)
+        trackObject->setProperty ("index", track.index);
+        trackObject->setProperty ("id", juce::String (track.id));
+        trackObject->setProperty ("name", juce::String (track.name));
+        trackObject->setProperty ("slot", track.slot);
+        trackObject->setProperty ("selected", track.selected);
+        trackObject->setProperty ("instrument", instrumentToVar (track.instrument));
+        trackObject->setProperty ("volumeStep", track.volumeStep);
+        trackObject->setProperty ("volumeDb", track.volumeDb);
+        trackObject->setProperty ("gain", track.gain);
+
+        juce::Array<juce::var> hotFx;
+
+        for (const auto& hot : track.hotFx)
         {
-            auto trackVar = Routes::makeObject();
-            auto* trackObject = trackVar.getDynamicObject();
+            auto hotVar = Routes::makeObject();
+            auto* hotObject = hotVar.getDynamicObject();
 
-            trackObject->setProperty ("index", track.index);
-            trackObject->setProperty ("id", juce::String (track.id));
-            trackObject->setProperty ("name", juce::String (track.name));
-            trackObject->setProperty ("slot", track.slot);
-            trackObject->setProperty ("selected", track.selected);
-            trackObject->setProperty ("instrument", instrumentToVar (track.instrument));
-            trackObject->setProperty ("volumeStep", track.volumeStep);
-            trackObject->setProperty ("volumeDb", track.volumeDb);
-            trackObject->setProperty ("gain", track.gain);
-
-            juce::Array<juce::var> hotFx;
-
-            for (const auto& hot : track.hotFx)
-            {
-                auto hotVar = Routes::makeObject();
-                auto* hotObject = hotVar.getDynamicObject();
-
-                hotObject->setProperty ("index", hot.index);
-                hotObject->setProperty ("id", juce::String (hot.id));
-                hotObject->setProperty ("name", juce::String (hot.name));
-                hotObject->setProperty ("bypassed", hot.bypassed);
-                hotFx.add (hotVar);
-            }
-
-            trackObject->setProperty ("hotFx", juce::var (hotFx));
-            tracks.add (trackVar);
+            hotObject->setProperty ("index", hot.index);
+            hotObject->setProperty ("id", juce::String (hot.id));
+            hotObject->setProperty ("name", juce::String (hot.name));
+            hotObject->setProperty ("bypassed", hot.bypassed);
+            hotFx.add (hotVar);
         }
 
-        object->setProperty ("tracks", juce::var (tracks));
+        trackObject->setProperty ("hotFx", juce::var (hotFx));
+        tracks.add (trackVar);
     }
+
+    object->setProperty ("tracks", juce::var (tracks));
 
     juce::Array<juce::var> pages;
 

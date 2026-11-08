@@ -4,27 +4,16 @@ export {
   type RecoveringBannerProps,
 } from "./RecoveringBanner";
 export {
-  ARMED_COLOUR,
   clampColourIndex,
-  colourForIndex,
   EMPTY_COLOUR,
-  nextColourIndex,
-  PATCH_COLOURS,
   trackColourForIndex,
   TRACK_COLOURS,
 } from "./colours";
 export {
-  createGridModel,
   gridFromState,
-  gridPatches,
-  GRID_COLUMNS,
-  GRID_ROWS,
-  patchForSlot,
-  type GridFamily,
   type GridLayout,
   type GridModel,
   type GridPageStatus,
-  type GridPatch,
 } from "./model";
 export {
   createTrackGridModel,

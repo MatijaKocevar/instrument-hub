@@ -15,16 +15,8 @@ bool decodeTracks (const YamlValue& root, SetMapping& out, MappingError& error)
 {
     const auto* tracks = root.find ("tracks");
 
-    if (out.layout != MappingLayout::tracks)
-    {
-        if (tracks != nullptr)
-            return fail (error, *tracks, "tracks is only valid with layout: tracks");
-
-        return true;
-    }
-
     if (tracks == nullptr)
-        return fail (error, root, "tracks is required for layout: tracks");
+        return fail (error, root, "tracks is required");
 
     if (tracks->kind != YamlKind::sequence)
         return fail (error, *tracks, "tracks must be a sequence");

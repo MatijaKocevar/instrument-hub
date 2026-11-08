@@ -19,12 +19,6 @@ void attachTrackState (StateStore& state, ihub::Session& session)
 
     const auto& config = session.getConfig();
 
-    if (config.layout != ihub::SessionLayout::tracks)
-    {
-        state.setTracks ({});
-        return;
-    }
-
     std::vector<TrackConfig> tracks;
     tracks.reserve (config.tracks.empty() ? 8 : config.tracks.size());
 

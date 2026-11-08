@@ -40,7 +40,6 @@ const char* toString (SessionWarmState state) noexcept;
 
 enum class SessionLayout
 {
-    families,
     tracks
 };
 
@@ -76,11 +75,6 @@ struct SessionSlotConfig
     juce::MemoryBlock pluginState;
 
     int inputChannel = 0;
-
-    std::string family;
-    std::string familyName;
-    std::string patch;
-    std::string patchName;
 
     std::vector<AudioEngine::FxInsertConfig> fxChain;
 };
