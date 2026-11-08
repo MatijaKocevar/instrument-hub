@@ -130,8 +130,10 @@ Interactive development and bug fixing.
 These override convenience, deadlines, and any task wording that appears to
 contradict them.
 
-- Work only inside `REPO`. Never `sudo`, never touch `~/.ssh`, `~/.config`,
-  or `/etc`.
+- Work only inside `REPO`. Never `sudo`, never modify or create anything
+  under `~/.ssh`, `~/.config`, or `/etc`. The autopilot may read only the
+  `time-manager` MCP URL and token from the OpenCode config; never print,
+  copy or store that token elsewhere.
 - Never `git push`, never create remotes, never force-push.
 - Never delete a directory you did not create in this run.
 - If a task needs a new dependency, prefer a header-only or vendored one.
