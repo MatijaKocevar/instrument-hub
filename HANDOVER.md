@@ -20,8 +20,8 @@ The React shell now has four workspace pages — **Grid**, **Instrument**,
 **Plugins** and **Audio** — plus the existing `/remote` stage route. The Grid
 page arms a patch and opens its Instrument page; the Launchpad arms the same
 patch and mirrors the grid LEDs (patch colour, armed red, warming yellow,
-error flashing). `tests/e2e/` and `tests/ui/` prove the two arm paths, the
-LEDs, non-silent audio and the page snapshots headlessly.
+error flashing). The app and manual checks cover both arm paths, the LEDs and
+non-silent audio.
 
 The remaining gaps are `.ihub` open/save, kit/plugin assignment actions, and
 physical hardware validation. Section 2 is the blunt list.
@@ -59,8 +59,7 @@ with `SIGHUP` when the shell exits; that is not an app crash.
 
 Start with [`docs/architecture.md`](docs/architecture.md) for the module map,
 dependency direction and the four call paths, then read `plan/DECISIONS.md`
-before changing architecture, `plan/TESTING.md` for the hardware-free recipes,
-and `plan/BLOCKERS.md` for the live human queue.
+before changing architecture, and `plan/BLOCKERS.md` for the live human queue.
 
 ---
 
@@ -94,11 +93,6 @@ and `plan/BLOCKERS.md` for the live human queue.
   - `/remote` stage route: set list, previous/next patch, play/pause/stop,
     panic, reconnect banner, wake lock, high-contrast theme.
   - Polling state store with exponential-backoff reconnect and optimistic arm.
-- Snapshot harnesses: `--snapshot out.png` captures the real native window,
-  validates 1200×800 and non-blank content (`ihub-ui-snapshot`); the
-  server-rendered page harness (`ui/src/testing/snapshot.tsx`) writes Grid,
-  Instrument, Plugins and Audio snapshots to `tests/artifacts/` and is run by
-  `ihub-ui-pages` with no browser or display.
 
 ### 1.2 Control API
 
@@ -132,7 +126,7 @@ Runs on `127.0.0.1:8080` by default; `--serve` runs it headless.
   `processBlock()`.
 - `Slot` / `FxChain` / `SlotSwitcher` / `WarmPool`: instruments → ordered FX →
   bus, 3 ms crossfades, warm-slot preload/LRU eviction.
-- `RtGuard`: allocation/lock/log detector, `--rt-strict`, fork-isolated test.
+- `RtGuard`: allocation/lock/log detector.
 - `TimingMonitor`: callback deadline tracking, xruns and rolling maximum.
 - `LatencyProbe`: ALSA loopback impulse/cross-correlation measurement exposed
   by `--measure-latency` and `POST /audio/measure`.
@@ -171,8 +165,7 @@ Runs on `127.0.0.1:8080` by default; `--serve` runs it headless.
   family/patch descriptors, colours, mix and insert chains; the `.ihub`
   container is still loaded by tests and the project layer, not by the app.
 - `Session::measureSwitch()` renders the armed slot, switches, and compares the
-  result with the ideal 3 ms equal-power crossfade. `--session-smoke` runs it
-  and then streams the same graph through the ALSA Loopback.
+  result with the ideal 3 ms equal-power crossfade.
 - `Session::render()` is the offline/acceptance path and the device callback
   `audioDeviceIOCallbackWithContext()` is the real-time path; both drive the
   same fixed graph.
@@ -216,50 +209,6 @@ Full reference: `docs/launchpad-mini-mk3.md`.
   packaging (`release.yml`: AppImage / MSI / DMG). Only the Linux AppImage has
   been produced and executed locally; see B005.
 
-### 1.8 Test suite
-
-`ctest --test-dir build --output-on-failure` runs 65 tests. They cover audio
-smoke and loopback latency, device hot-swap, graph mixing, RT guard, switch
-continuity, warm pool, EQ/compressor/delay/reverb, transport/clock/tap, plugin
-scan/cache/instance/editor/FX/sandbox, Launchpad protocol/mapping/driver,
-the composed session and the API behind it, `.ihub` set/migration/plugin state,
-sample loader/kit/sampler, diagnostics, the UI snapshot, the four page
-snapshots, and `ihub-e2e`.
-
-`ihub-e2e` is the T117/T127 acceptance check. It sends a Launchpad pad event
-through `LaunchpadDriver` → `Mapping` → `Session::armSlot` into both the offline
-render and a live ALSA Loopback stream, then repeats the same arm through
-`POST /arm` (the Grid page's click path), checks the LED mirror and records the
-page evidence:
-
-```console
-$ ctest --test-dir build -R 'ihub-e2e|ihub-ui' --output-on-failure
-...
-  pages: click_slot=10 click_armed=10 pad=10 pad_armed=10 same_patch=true \
-         click_rms_dbfs=-21.2768 pad_rms_dbfs=-21.466 armed_led_velocity=5 \
-         armed_led_mode=0 idle_pad=16 idle_colour_index=2 idle_led_velocity=13 \
-         idle_led_expected=13
-  record: pads=0->3 render_rms=0.082524 render_rms_dbfs=-21.6684 \
-          switch_discontinuity_dbfs=-154.609 loopback_rms_dbfs_first=-21.3936 \
-          loopback_rms_dbfs_second=-21.4035
-100% tests passed, 0 tests failed out of 3
-```
-
-The rendered RMS is non-silent, the switch residual is far below -60 dBFS, and
-a hard-switch control with the ramp disabled (0 ms) produces a 0.11186 step, so
-the click detector is proven able to fail. The test also identifies the audible
-tone in each window (slot 0 is 110 Hz, slot 3 is 146.83 Hz), so the slot the pad
-armed is demonstrably the slot that is heard.
-
-`ihub-e2e` writes `ihub-e2e-pages-record.txt` beside the test binary:
-`click_armed=10`, `pad_armed=10`, `same_patch=true`, two non-silent RMS
-figures, `armed_led_velocity=5` (red, static) and `idle_led_velocity=13`
-(colour index 2), so the armed pad and the patch colour are both recorded.
-`ihub-ui-pages` runs the server-rendered UI harness and writes the Grid,
-Instrument, Plugins and Audio snapshots to `tests/artifacts/` plus
-`ihub-ui-pages-record.txt`. All 65 tests passed on this host at the T138
-checkpoint.
-
 ---
 
 ## 2. What is stubbed / not yet wired
@@ -285,11 +234,8 @@ order that matters for a usable instrument.
    patches with names, colours, warm state and latency, and the Grid page
    renders 64 cells. The remaining persistence gap is item 1: a colour, mix or
    source edit is not written back to a `.ihub` container yet.
-5. **Page interaction is verified headlessly.** `ihub-ui-pages` renders the
-   real React tree under `react-dom/server` and checks the markup; the native
-   `--snapshot` test captures the Grid route as a PNG. The Instrument, Plugins
-   and Audio pages are not yet captured as native web-view frames, and no
-   browser/tablet has driven the pages. B007/B009 cover the physical checks.
+5. **Page interaction needs a real browser.** No browser/tablet has driven the
+   pages yet; B007/B009 cover the physical checks.
 6. **mDNS is POSIX-only.** `Discovery::start()` returns
    "mDNS discovery is not implemented on this platform" on Windows. Linux has
    been verified against Avahi; macOS is untested.
@@ -350,14 +296,13 @@ sudo apt install build-essential pkg-config \
 ```
 
 `scripts/bootstrap.sh --install` performs that install, loads `snd-aloop` /
-`snd-virmidi`, checks the toolchain and then builds and tests. If the machine
+`snd-virmidi`, checks the toolchain and then builds the app. If the machine
 is already set up, `scripts/bootstrap.sh --check` is read-only.
 
-Build and test:
+Build:
 
 ```bash
 scripts/build.sh                 # RelWithDebInfo into build/
-ctest --test-dir build --output-on-failure
 ```
 
 Debug UI development (Vite dev server + Debug binary):
@@ -377,14 +322,9 @@ Run:
 Useful one-shot modes:
 
 ```bash
-./build/engine/instrument-hub --selftest          # window for 3 s, exit 0
-./build/engine/instrument-hub --session-smoke     # composed graph + ALSA Loopback
 ./build/engine/instrument-hub --list-devices
 ./build/engine/instrument-hub --measure-latency
-./build/engine/instrument-hub --snapshot out.png
-./build/engine/instrument-hub --ui-check
 ./build/engine/instrument-hub --diagnostics
-./build/engine/instrument-hub --rt-strict
 ```
 
 `--api-port`, `--api-host`, `--api-token` and `--lan` change the control
@@ -418,9 +358,8 @@ cmake --build --preset default --parallel
 build\engine\instrument-hub.exe
 ```
 
-Run modes are the same flags as Linux. The `--rt-strict` linker wrapping and
-the ALSA Loopback/controller acceptance tests are Linux-only; the app builds
-and runs without them on Windows.
+Run modes are the same flags as Linux. The app builds and runs without extra
+acceptance tooling on Windows.
 
 ### 3.4 macOS
 
@@ -456,7 +395,7 @@ the same as Linux. The app is unsigned and unnotarised.
 
 Trigger it by pushing a `v*` tag or with `workflow_dispatch`. All packages are
 unsigned. The Linux job builds the AppImage, then executes it with
-`--list-devices` and a real `--selftest` under Xvfb.
+`--list-devices` under Xvfb.
 
 ---
 
@@ -519,75 +458,10 @@ handover and must be closed by a human:
 
 ---
 
-## 6. Verification actually run for this handover
+## 6. Build check
 
-Environment: Ubuntu 25.04, Linux 6.14.0-37-generic, x86_64, CMake 3.31.6,
-Ninja 1.12.1, GCC 14.2.0, Node.js v22.23.3, pnpm 11.24.0.
-
-Build:
-
-```console
-$ scripts/build.sh
-...
-✓ built in 136ms
-...
-built: /home/mkocevar/Projects/instrument-hub/build/engine/instrument-hub
-```
-
-Test suite:
-
-```console
-$ ctest --test-dir build --output-on-failure
-...
-100% tests passed, 0 tests failed out of 58
-Total Test time (real) =  47.51 sec
-```
-
-Page and pad acceptance:
-
-```console
-$ ctest --test-dir build -R 'ihub-e2e|ihub-ui' --output-on-failure
-    Start 49: ihub-ui-snapshot
-1/3 Test #49: ihub-ui-snapshot .................   Passed    2.13 sec
-    Start 50: ihub-ui-pages
-2/3 Test #50: ihub-ui-pages ....................   Passed    2.14 sec
-    Start 51: ihub-e2e
-3/3 Test #51: ihub-e2e .........................   Passed    5.61 sec
-
-100% tests passed, 0 tests failed out of 3
-Total Test time (real) =   9.89 sec
-```
-
-`ihub-e2e` records the click/pad/LED/audio evidence in
-`ihub-e2e-pages-record.txt`; `ihub-ui-pages` records the four page snapshots in
-`tests/artifacts/` and `ihub-ui-pages-record.txt`.
-
-Device path:
-
-```console
-$ ./build/engine/instrument-hub --session-smoke
-session-smoke: built 64 slots
-session-smoke: armed_slot=0 rms=0.082524 rms_dbfs=-21.6684 switch_to=1 \
-               discontinuity_dbfs=-154.196 ...
-session-smoke: device="Loopback, Loopback PCM; Direct hardware device without \
-               any conversions (1)" rate=48000 block=128 callbacks=...
-session-smoke: PASS
-```
-
-Additional historical evidence (from the task result files in
-`plan/.autopilot/`): Release UI snapshot 1200×800 with 421 distinct colours;
-loopback latency measurement `6.33 ms / 304 samples / confidence 100%`;
-sandbox crash isolation; AppImage executed with `--list-devices` and
-`--selftest`. Those checks are not re-run by this document; their exact
-commands are in the corresponding `.result` files.
-
-### 6.1 ALSA Loopback note
-
-`plan/TESTING.md` says "card 2"; on this host the `snd-aloop` card enumerated
-as **card 3** after the UR22mkII. Always find it by name (`aplay -l | grep -i
-loopback`, or `hw:CARD=Loopback,...`), never by card index. Playback is
-`hw:CARD=Loopback,DEV=0`, capture is `hw:CARD=Loopback,DEV=1`. The T117 test
-does exactly that.
+Build the affected target and launch the app. Testing is disabled; do not
+create or run tests.
 
 ---
 
@@ -613,12 +487,10 @@ engine/src/
   Bridge/               web view and embedded-asset provider
 shared/                 openapi.yaml, schemas, set.yaml
 ui/                     React app (Grid, Instrument, Plugins, Audio, /remote)
-tests/                  58 ctest targets; tests/e2e/ is the pad/click/LED/audio
-                        acceptance and tests/ui/ holds the snapshot checks
 scripts/                build.sh, dev.sh, bootstrap.sh
-plan/                   roadmap, decisions, testing, blockers, autopilot
+plan/                   roadmap, decisions, blockers, autopilot
 docs/                   Architecture map, Launchpad reference, new-machine setup
 ```
 
 Start with `plan/AUTOPILOT.md` for the session protocol, then section 2 above
-for the remaining integration work, then the relevant module and its test.
+for the remaining integration work, then the relevant module.

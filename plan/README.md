@@ -7,7 +7,6 @@ Everything needed to run this project unattended.
 | `AUTOPILOT.md` | Operating contract: session protocol, blocker protocol, guardrails |
 | `ROADMAP.md` | 55 tasks, dependency-ordered, with acceptance criteria |
 | `DECISIONS.md` | Locked technical decisions — the agent must not re-litigate |
-| `TESTING.md` | How to verify everything with no hardware attached |
 | `BLOCKERS.md` | The human queue. Read this when you come back |
 | `autopilot.py` | The driver |
 | `STATE.json` | Ledger (generated) |

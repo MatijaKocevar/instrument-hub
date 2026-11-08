@@ -11,7 +11,6 @@ namespace AudioEngine
 
 struct DeviceListOptions
 {
-    bool showTestDevices = true;
     bool raw = false;
 };
 
@@ -78,7 +77,6 @@ public:
 
     void setDeviceListOptions (const DeviceListOptions& options);
     const DeviceListOptions& getDeviceListOptions() const noexcept;
-    void setShowTestDevices (bool show);
     void setRawDeviceList (bool raw);
 
     std::vector<DeviceInfo> getDevices();

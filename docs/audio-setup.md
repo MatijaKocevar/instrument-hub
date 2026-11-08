@@ -1,6 +1,6 @@
 # Audio setup wizard
 
-Audio & MIDI → **Test & recommend** probes the connected soundcard and proposes
+Audio & MIDI → **Analyze & recommend** probes the connected soundcard and proposes
 the lowest stable buffer. The dialog lists every probed setting, its latency
 budget, its xrun count and the recommended row; **Apply** opens that setting and
 stores it as the profile for the interface.

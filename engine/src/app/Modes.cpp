@@ -8,9 +8,6 @@ AppMode selectMode (const juce::String& commandLine) noexcept
     if (commandLine.contains ("--scan-plugins"))
         return AppMode::pluginScan;
 
-    if (commandLine.contains ("--rt-strict"))
-        return AppMode::rtStrict;
-
     if (commandLine.contains ("--list-devices"))
         return AppMode::listDevices;
 
@@ -19,9 +16,6 @@ AppMode selectMode (const juce::String& commandLine) noexcept
 
     if (commandLine.contains ("--diagnostics"))
         return AppMode::diagnostics;
-
-    if (commandLine.contains ("--session-smoke"))
-        return AppMode::sessionSmoke;
 
     if (commandLine.contains ("--serve"))
         return AppMode::serve;
@@ -34,16 +28,11 @@ const char* toString (AppMode mode) noexcept
     switch (mode)
     {
         case AppMode::gui:            return "gui";
-        case AppMode::uiCheck:        return "ui-check";
-        case AppMode::selftest:       return "selftest";
         case AppMode::serve:          return "serve";
-        case AppMode::snapshot:       return "snapshot";
         case AppMode::pluginScan:     return "scan-plugins";
-        case AppMode::rtStrict:       return "rt-strict";
         case AppMode::listDevices:    return "list-devices";
         case AppMode::measureLatency: return "measure-latency";
         case AppMode::diagnostics:    return "diagnostics";
-        case AppMode::sessionSmoke:   return "session-smoke";
     }
 
     return "unknown";

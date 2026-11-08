@@ -25,7 +25,6 @@ build.ninja
 # Node / React UI
 node_modules/
 ui/dist/
-ui/dist-test/
 ui/.vite/
 npm-debug.log*
 yarn-debug.log*
@@ -39,12 +38,9 @@ plan/__pycache__/
 __pycache__/
 *.pyc
 
-# Playwright MCP page dumps
-.playwright-mcp/
 
 # Packaging and runtime artifacts
 /dist/
-/tests/artifacts/
 *.ihub.tmp
 *.wav.tmp
 /out/

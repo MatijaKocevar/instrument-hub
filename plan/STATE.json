@@ -1,5 +1,5 @@
 {
-  "_roadmap_count": 168,
+  "_roadmap_count": 166,
   "tasks": {
     "T000": {
       "attempts": 1,
@@ -628,14 +628,6 @@
     "T308": {
       "attempts": 1,
       "status": "done"
-    },
-    "T311": {
-      "attempts": 0,
-      "status": "todo"
-    },
-    "T312": {
-      "attempts": 0,
-      "status": "todo"
     },
     "T313": {
       "attempts": 1,

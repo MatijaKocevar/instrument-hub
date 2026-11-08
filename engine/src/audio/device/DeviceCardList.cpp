@@ -45,7 +45,7 @@ std::vector<DeviceInfo> DeviceManager::getCardDevices()
         if (isMidiCard (card))
             continue;
 
-        if (! listOptions.showTestDevices && isLoopbackCard (card))
+        if (isLoopbackCard (card))
             continue;
 
         auto friendlyName = detail::friendlyCardName (card);

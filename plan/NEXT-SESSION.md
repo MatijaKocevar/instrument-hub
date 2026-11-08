@@ -14,7 +14,7 @@ Current state for context:
 - The measure control now has a source choice: selected device (physical out→in cable)
   or internal ALSA loopback.
 - The Instrument source picker now offers live audio input (Input 1/2). It is wired but
-  has no regression test or docs pass yet.
+  has no docs pass yet.
 
 ## T308 · Attach controllers in serve/browser mode
 
@@ -25,18 +25,18 @@ Current state for context:
   `AppMode::serve` as well as `AppMode::gui`, run its LED refresh timer in serve mode,
   and keep GUI mode unchanged. Investigate whether `ControllerSurface::start` needs any
   window or message-loop assumptions and remove them if so.
-- files: `engine/src/Main.cpp`, `engine/src/app/ControllerSurface.*`, `ui/src/features/midi/`, tests
+- files: `engine/src/Main.cpp`, `engine/src/app/ControllerSurface.*`, `ui/src/features/midi/`
 - accept: with `--serve`, `GET /midi` reports `launchpad.connected=true`,
   `launchpad.handshake=true`, `inputName`/`outputName` set; enabling the MI row works;
   pressing pads arms/switches tracks and LEDs repaint; Keystation notes reach the armed
   slot; the browser MIDI page no longer says “driver is not attached”; GUI mode still
-  connects. Ask before running `scripts/test.sh`.
+  connects. Ask before builds.
 
 ## T309 · Audio auto-setup wizard
 
 - depends: none
 - size: L
-- goal: On Audio & MIDI, add a **Test & recommend** action that probes the connected
+- goal: On Audio & MIDI, add an **Analyze & recommend** action that probes the connected
   soundcard at 64/96/128 frames (and available rates), measures round trip and xruns,
   and recommends the lowest stable setting. Show a dialog with the recommendation and
   one **Apply** button that sets device type/name, sample rate, buffer and channels.
@@ -47,11 +47,11 @@ Current state for context:
   soundcard or per track before implementing.
 - files: `engine/src/api/state/AudioState.h`, `engine/src/api/routes/AudioRoutes.cpp`,
   `engine/src/audio/settings/`, `engine/src/app/ControlApi.cpp`, `ui/src/features/audio-settings/`,
-  `shared/api/openapi.yaml`, tests
+  `shared/api/openapi.yaml`
 - accept: with the Rubix22, the wizard recommends 96 frames/pro-audio and applying it
   reproduces the 7.29 ms / 0 xruns state; with a bad buffer it reports xruns and picks
   the stable one; the dialog explains the tradeoff; profiles survive restart; legacy
-  ALSA loopback still works; ask before builds/tests.
+  ALSA loopback still works; ask before builds.
 
 ## T310 · Generic MIDI controllers and compact settings
 
@@ -64,11 +64,11 @@ Current state for context:
   Replace the large Launchpad/Keystation status cards with a compact input list showing
   role, enabled state and handshake status.
 - files: `ui/src/features/midi/`, `engine/src/api/MidiBridge.*`,
-  `engine/src/controller/launchpad/`, `engine/src/controller/mapping/`, tests
+  `engine/src/controller/launchpad/`, `engine/src/controller/mapping/`
 - accept: a generic USB keyboard plays notes; a generic 64-note controller can be learned
   and triggers the same arm/switch paths; Launchpad LEDs still work; the MIDI page is a
   compact list; unusable/unknown controllers fail with a readable reason; ask before
-  builds/tests.
+  builds.
 
 ## T311 · Finish live audio input track
 
@@ -77,11 +77,11 @@ Current state for context:
 - goal: Finish and document the live audio-input source under the track layout. Verify
   the new “Live audio input · Input 1/2” source assigns an `AudioInputInstrument`, the
   track’s FX chain processes it, track volume/arm works, and the source persists in the
-  project. Add regression coverage and a short doc for the guitar/looper workflow.
+  project. Add a short doc for the guitar/looper workflow.
 - files: `ui/src/features/instrument/`, `engine/src/session/SessionBuild.cpp`,
-  `engine/src/session/SessionControl.cpp`, `tests/`, `docs/`
+  `engine/src/session/SessionControl.cpp`, `docs/`
 - accept: assigning live input to an empty track and playing through its inserts works;
-  it survives save/restart; the selected-track rule is documented; ask before builds/tests.
+  it survives save/restart; the selected-track rule is documented; ask before builds.
 
 ## T312 · Persist the low-latency PipeWire profile
 
@@ -95,7 +95,7 @@ Current state for context:
 - files: `scripts/`, `docs/`, `plan/DECISIONS.md` if a decision changes
 - accept: a fresh login/PipeWire restart can start the app at the Rubix22 96-frame
   setting with one command; no `~/.config` edits without the developer’s explicit
-  approval; ask before builds/tests.
+  approval; ask before builds.
 
 ## T313 · Shared plugin host per instrument page
 
@@ -113,11 +113,11 @@ Current state for context:
   `engine/src/plugins/sandbox/`, `engine/src/plugins/sandbox_main.cpp`,
   `engine/src/session/SessionBuild.cpp`, `engine/src/session/WarmPoolController.*`,
   `engine/src/audio/warm/`, `engine/src/api/state/`,
-  `ui/src/features/grid/`, `tests/plugins/sandbox/`, `tests/plugin_state/`,
+  `ui/src/features/grid/`,
   `docs/architecture.md`
 - accept: eight Analog Lab V tracks warm in one host process; switching all
   eight produces no loads/warming and no xruns; `kill -9` the host recovers all
   eight states and re-arms the active track without crashing or leaving orphan
-  Wine processes; RSS is materially lower than eight separate hosts; targeted
-  tests pass.
+  Wine processes; RSS is materially lower than eight separate hosts; verify
+  in the app.
 - full brief: `plan/T313-SHARED-PLUGIN-HOST.md`

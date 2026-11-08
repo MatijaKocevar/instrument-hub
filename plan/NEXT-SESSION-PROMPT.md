@@ -6,7 +6,7 @@ Read `AGENTS.md`, `plan/NEXT-SESSION.md`, `plan/BUGS.md` and
 `plan/T313-SHARED-PLUGIN-HOST.md` first. This is an interactive session, not
 the autopilot driver. Do not edit `plan/STATE.json`. Do not start the app or a
 dev server yourself; use the developer's running instance, or ask them to
-start one. Ask before builds and before `scripts/test.sh`.
+start one. Ask before builds.
 
 ## Implement T313 — shared plugin host per instrument page
 

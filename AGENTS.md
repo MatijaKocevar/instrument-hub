@@ -23,11 +23,13 @@ changes to be built and the running app restarted so they can see them.
 - Never run a build without an explicit target. `cmake --build <dir>`,
   bare `ninja`, and `scripts/build.sh` build the whole tree. Always pass
   `--target`.
-- The only verification is that the app builds and runs. There is no test
-  build in the CMake tree. Do not add, build, or run tests, test runners,
-  snapshot harnesses, or test targets.
-- Do not run `--selftest`, `--snapshot`, or any test harness. Use the app
-  build and the live app.
+- Testing is disabled for now. Do not create, add, build, or run tests,
+  test targets, test runners, snapshot harnesses, or test tooling. Do not
+  add test files, test dependencies, or test instructions. The human will
+  re-enable testing later; until then verify only by building the app and
+  using it.
+- Do not run any test flag or test harness. Use the app build and the live
+  app.
 - Do not build after every edit just for the sake of it. Build when the
   change is ready to run, then restart the app once.
 
@@ -170,11 +172,10 @@ queried once per load, not per block.
 
 ## Verification
 
-The only verification is that the app builds and runs: build the affected
-target, then restart the app so the developer can inspect it.
+Build the affected target and run the app so the developer can inspect it.
 
-Do not build or run tests, test runners, snapshot harnesses, `--selftest` or
-`--snapshot`. The test tree is not part of the build.
+Do not create or run tests, test runners, snapshot harnesses, or any test
+tooling. Testing is deferred until the human explicitly asks to re-enable it.
 
 ---
 

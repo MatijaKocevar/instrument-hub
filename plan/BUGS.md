@@ -12,8 +12,7 @@ reported by the human or reproduced on this machine.
 
 - One bug per entry, one fix per commit.
 - Reproduce first: exact steps, expected, actual, and the log/screenshot.
-- Add a regression test where practical; the fix is not done until
-  `scripts/test.sh` passes.
+- Verify the fix by building and using the app; do not create or run tests.
 - Keep the audio-thread contract and the Launchpad/Linux assumptions.
 - Do not start speculative refactors or features while fixing bugs.
 

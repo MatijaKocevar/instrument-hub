@@ -10,7 +10,6 @@
 #include "app/SessionSetup.h"
 #include "app/StartupWindow.h"
 #include "app/TerminationSignal.h"
-#include "app/UiModes.h"
 #include "diag/CrashDump.h"
 #include "diag/Diagnostics.h"
 #include "plugins/ProcessLimits.h"
@@ -114,37 +113,12 @@ public:
         if (! ihub::app::installTerminationSignalHandler())
             std::cerr << "shutdown: could not install the termination signal handler" << std::endl;
 
-        juce::File snapshotFile;
-
-        if (commandLine.contains ("--snapshot"))
-        {
-            const auto path = ihub::app::getCommandLineValue (commandLine, "--snapshot");
-
-            if (path.isEmpty())
-            {
-                std::cerr << "snapshot: FAILED, --snapshot needs an output path" << std::endl;
-                setApplicationReturnValue (1);
-                quit();
-                return;
-            }
-
-            snapshotFile = juce::File (path);
-
-            if (! juce::File::isAbsolutePath (path))
-                snapshotFile = juce::File::getCurrentWorkingDirectory().getChildFile (path);
-        }
-
         const auto mode = ihub::app::selectMode (commandLine);
 
         switch (mode)
         {
             case ihub::app::AppMode::pluginScan:
                 setApplicationReturnValue (ihub::app::runPluginScan (commandLine));
-                quit();
-                return;
-
-            case ihub::app::AppMode::rtStrict:
-                setApplicationReturnValue (ihub::app::runRtStrictCheck (commandLine));
                 quit();
                 return;
 
@@ -163,16 +137,8 @@ public:
                 quit();
                 return;
 
-            case ihub::app::AppMode::sessionSmoke:
-                setApplicationReturnValue (ihub::app::runSessionSmoke (commandLine));
-                quit();
-                return;
-
             case ihub::app::AppMode::gui:
             case ihub::app::AppMode::serve:
-            case ihub::app::AppMode::snapshot:
-            case ihub::app::AppMode::uiCheck:
-            case ihub::app::AppMode::selftest:
                 break;
         }
 
@@ -241,44 +207,17 @@ public:
         mainWindow = std::make_unique<MainWindow> (getApplicationName(),
             [this] (const juce::String& url)
             {
-                if (uiMode != nullptr)
-                    uiMode->pageLoaded (url);
-
                 std::cout << "webview: loaded " << url << std::endl;
             },
             mode == ihub::app::AppMode::gui);
 
-        if (mode == ihub::app::AppMode::snapshot
-            || mode == ihub::app::AppMode::uiCheck
-            || mode == ihub::app::AppMode::selftest)
-        {
-            uiMode = std::make_unique<ihub::app::UiModeController> (
-                mode,
-                *mainWindow,
-                mainWindow->getMainComponent(),
-                mainWindow->getMainComponent().getWebView(),
-                std::move (snapshotFile),
-                [this] (int returnValue)
-                {
-                    stopTimer();
-                    setApplicationReturnValue (returnValue);
-                    quit();
-                });
-
-            uiMode->start();
-            startTimer (uiMode->getTimerIntervalMs());
-        }
-        else
-        {
-            ledPollMode = true;
-            startTimer (100);
-        }
+        ledPollMode = true;
+        startTimer (100);
     }
 
     void shutdown() override
     {
         stopTimer();
-        uiMode.reset();
 
         controller.resetMapping();
 
@@ -309,12 +248,6 @@ public:
 private:
     void timerCallback() override
     {
-        if (uiMode != nullptr)
-        {
-            uiMode->tick();
-            return;
-        }
-
         if (ledPollMode)
         {
             controller.refreshLeds();
@@ -329,7 +262,6 @@ private:
     std::unique_ptr<ihub::settings::SettingsStore> settingsStore;
     ihub::app::ControllerSurface controller;
     ihub::app::ControlApi controlApi;
-    std::unique_ptr<ihub::app::UiModeController> uiMode;
     bool ledPollMode = false;
     bool controlApiPersistProjectPath = true;
 };

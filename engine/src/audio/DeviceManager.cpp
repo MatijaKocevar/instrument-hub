@@ -34,16 +34,6 @@ const DeviceListOptions& DeviceManager::getDeviceListOptions() const noexcept
     return listOptions;
 }
 
-void DeviceManager::setShowTestDevices (bool show)
-{
-    if (listOptions.showTestDevices == show)
-        return;
-
-    listOptions.showTestDevices = show;
-    cardCache.clear();
-    cardCacheValid = false;
-}
-
 void DeviceManager::setRawDeviceList (bool raw)
 {
     if (listOptions.raw == raw)

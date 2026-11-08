@@ -82,17 +82,12 @@ set(IHUB_ENGINE_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/src/app/project/TrackLayoutText.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/SessionSetup.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/StartupWindow.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/SnapshotCapture.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/SourcePersistence.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/TerminationSignal.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/UiModes.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/DeviceListMode.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/DiagnosticsMode.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/LatencyMode.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/PluginScanMode.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/RtProbeSource.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/RtStrictMode.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/SessionSmokeMode.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/Bridge/WebView.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/audio/AudioEngine.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/audio/AudioSettings.cpp"
@@ -311,17 +306,12 @@ set(IHUB_ENGINE_APP_ONLY_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/src/app/ControllerSurfaceLeds.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/ControllerSurfacePreset.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/SessionSetup.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/SnapshotCapture.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/SourcePersistence.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/StartupWindow.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/UiModes.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/DeviceListMode.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/DiagnosticsMode.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/LatencyMode.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/PluginScanMode.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/RtProbeSource.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/RtStrictMode.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/app/diagnostics/SessionSmokeMode.cpp"
 )
 
 set(IHUB_ENGINE_WINDOW_SOURCES
@@ -330,7 +320,3 @@ set(IHUB_ENGINE_WINDOW_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/src/plugins/window/PluginWindowEditor.cpp"
 )
 
-set(IHUB_ENGINE_TEST_SOURCES ${IHUB_ENGINE_SOURCES})
-list(REMOVE_ITEM IHUB_ENGINE_TEST_SOURCES ${IHUB_ENGINE_APP_ONLY_SOURCES})
-set(IHUB_ENGINE_TEST_HEADLESS_SOURCES ${IHUB_ENGINE_TEST_SOURCES})
-list(REMOVE_ITEM IHUB_ENGINE_TEST_HEADLESS_SOURCES ${IHUB_ENGINE_WINDOW_SOURCES})

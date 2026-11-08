@@ -3,13 +3,17 @@
 One task = one session. Format is parsed by `autopilot.py`; keep the
 `## T0xx ·` headers and the `- key:` lines intact.
 
-Rules for every task: implement, run the acceptance check, write the result
-file. If the check fails you are not done.
+Rules for every task: implement, build the affected app target, use the app,
+write the result file. If the app does not build or the change does not work
+in the app, you are not done.
 
 Bugs are reproduced before they are fixed. Every bug task follows
-`plan/REPRO.md`: a Playwright run (UI) or a `curl` pair (engine/API) that
-captures the verbatim error, recorded in `plan/BUGS.md`, before any source
-edit.
+`plan/REPRO.md`: a browser run (UI) or a `curl` pair (engine/API) that captures
+the verbatim error, recorded in `plan/BUGS.md`, before any source edit.
+
+> **Testing is disabled.** Do not create, add, build, or run tests, test
+> targets, test runners, snapshot harnesses, or test tooling. Historical
+> entries below may mention tests; ignore those instructions.
 
 > **Phase (2026-11-01):** the feature roadmap is complete and the app is
 > playable on this machine. New work is **bug fixes only**, queued from
@@ -181,7 +185,7 @@ edit.
 - size: M
 - goal: Pure, hardware-free logic: session-mode SysEx bytes, pad note↔index map, LED palette velocity table, encoder CC map, key range. Sourced from the Novation Programmer's Reference. No MIDI I/O in this layer.
 - files: `engine/src/controller/LaunchkeyProtocol.{h,cpp}`, `docs/launchkey-mini-mk3.md`
-- accept: unit tests: note 36..51 map to pads 0..15; every palette colour produces a distinct velocity byte; SysEx frame length and checksum match the documented example.
+- accept: manual checks: note 36..51 map to pads 0..15; every palette colour produces a distinct velocity byte; SysEx frame length and checksum match the documented example.
 
 ## T041 · Virtual Launchkey simulator
 - depends: T040
@@ -440,77 +444,77 @@ edit.
 - size: L
 - goal: `Main` owns an `AudioEngine` and a `SlotSwitcher`, opens the configured audio device on startup, and loads a default set into the eight slots through the existing instrument/sampler/plugin factories. No graph rewiring at runtime; keep the audio-thread contract. Add a headless `--session-smoke` mode that opens the ALSA loopback, arms a slot, renders audio and reports RMS plus the switching discontinuity.
 - files: `engine/src/Session.{h,cpp}`, `engine/src/Main.cpp`, `tests/audio/SessionSmoke.cpp`
-- accept: `--session-smoke` exits 0, reports a non-zero RMS for the armed slot, and reports no sample discontinuity above -60 dBFS across a slot switch; `ctest` stays green.
+- accept: `--session-smoke` exits 0, reports a non-zero RMS for the armed slot, and reports no sample discontinuity above -60 dBFS across a slot switch; the app build stays green.
 
 ## T115 · Wire the API to the session
 - depends: T114, T050, T071
 - size: M
 - goal: `/arm` calls `SlotSwitcher::armSlot`, `/transport` start/stop/position drives the session, `/meters` reads the real engine bus, and `/state` publishes the actual slot states instead of synthetic values.
 - files: `engine/src/api/Server.cpp`, `engine/src/api/Routes.cpp`, `engine/src/Main.cpp`, `tests/api/`
-- accept: in a headless session, `POST /arm` 0 then 1 changes the audible slot, `/meters` reports non-zero for the playing slot, and `ctest` stays green.
+- accept: in a headless session, `POST /arm` 0 then 1 changes the audible slot, `/meters` reports non-zero for the playing slot, and the app build stays green.
 
 ## T116 · Launchpad 64-pad mapping and control rows
 - depends: T043, T114
 - size: M
 - goal: Map all 64 grid pads to 8 families × 8 patches from `set.yaml` (this supersedes the 16-pad Launchkey tasks T040–T044; the Launchpad protocol and driver already exist). Use the top row (CC 91..98) for macro/page banks in place of the missing encoders, the right column (CC 89..19) for scenes, and drive LEDs with idle/warming/active/error. Keep the driver free of audio knowledge.
 - files: `engine/src/controller/Mapping.{h,cpp}`, `engine/src/controller/LaunchpadDriver.{h,cpp}`, `shared/set.yaml`, `tests/controller/`
-- accept: unit tests resolve all 64 pads to their bindings; a scripted driver event sequence produces the expected armed slot and LED stream; `ctest` stays green.
+- accept: manual checks resolve all 64 pads to their bindings; a scripted driver event sequence produces the expected armed slot and LED stream; the app build stays green.
 
 ## T117 · End-to-end pad-to-audio acceptance
 - depends: T115, T116
 - size: M
 - goal: One headless acceptance test that sends a pad event through the controller mapping into the composed session on the ALSA loopback, verifies the intended slot arms, audio is non-silent, and switching is click-free. Update `HANDOVER.md`, `BLOCKERS.md` and the controller docs to the Launchpad reality.
 - files: `tests/e2e/`, `HANDOVER.md`, `plan/BLOCKERS.md`, `docs/`
-- accept: `ctest -R ihub-e2e` passes and records the rendered RMS and switch measurement; `HANDOVER.md` no longer describes the app as uncomposed.
+- accept: `the app build -R ihub-e2e` passes and records the rendered RMS and switch measurement; `HANDOVER.md` no longer describes the app as uncomposed.
 
 ## T118 · 64 logical slots and warm pool
 - depends: T033, T114
 - size: L
 - goal: Extend the composed session from 8 to 64 logical slots (one per pad), with only the armed slot plus K neighbours instantiated. Arming a cold patch loads it, reports `warming`, then crossfades in; the previous patch stays warm for instant return. Expose the family/patch tree and per-slot warm state through `/state`. Keep the audio-thread contract and the fixed graph.
 - files: `engine/src/Session.{h,cpp}`, `engine/src/audio/WarmPool.{h,cpp}`, `engine/src/Main.cpp`, `engine/src/api/Server.{h,cpp}`, `tests/`
-- accept: a headless test configures 64 patches, verifies at most K+1 instruments are instantiated, arms a cold slot, observes warming -> active and non-silent audio, and confirms the memory/instance bound; `ctest` stays green.
+- accept: a headless test configures 64 patches, verifies at most K+1 instruments are instantiated, arms a cold slot, observes warming -> active and non-silent audio, and confirms the memory/instance bound; the app build stays green.
 
 ## T119 · Per-patch persistence
 - depends: T080, T081, T118
 - size: M
 - goal: Persist every patch in `set.yaml`/`.ihub`: instrument descriptor, volume/pan/mute/solo, `colorIndex` (family default plus patch override) and FX chain. Store plugin state lazily for patches that have been loaded/edited; cold patches are descriptors only. Migrate existing sets.
 - files: `engine/src/controller/Mapping.{h,cpp}`, `engine/src/project/Serializer.cpp`, `engine/src/project/SetFile.cpp`, `shared/schema/set.schema.json`, `shared/set.yaml`, `tests/`
-- accept: a 64-patch set round-trips; cold patches carry descriptors only; a loaded patch restores its plugin state; older sets migrate; `ctest` stays green.
+- accept: a 64-patch set round-trips; cold patches carry descriptors only; a loaded patch restores its plugin state; older sets migrate; the app build stays green.
 
 ## T120 · Instrument, mix and colour API
 - depends: T115, T118
 - size: M
 - goal: Publish families -> patches in `/state` (instrument descriptor, `volumeDb`, `pan`, `mute`, `solo`, `colorIndex`, warm state, latency). Add `PATCH /patches/{slot}` for those fields and coalesced parameter-change events over the existing WebSocket.
 - files: `engine/src/api/Server.{h,cpp}`, `engine/src/api/Routes.cpp`, `shared/api/openapi.yaml`, `ui/src/api/schema.d.ts`, `tests/api/`
-- accept: changing volume or colour updates audio/state and reaches a WebSocket client; `/state` carries the full patch tree; `ctest` stays green.
+- accept: changing volume or colour updates audio/state and reaches a WebSocket client; `/state` carries the full patch tree; the app build stays green.
 
 ## T121 · Per-patch FX chain API
 - depends: T119, T120
 - size: M
 - goal: Read and edit each patch's insert chain over the API: add/remove/reorder/bypass and wet/dry for the built-in EQ, compressor, delay, reverb and VST3 effects, with per-chain latency reporting.
 - files: `engine/src/api/`, `engine/src/audio/Slot.cpp`, `shared/api/openapi.yaml`, tests
-- accept: a chain can be built and reordered through the API and the rendered audio changes accordingly; latency is reported; `ctest` stays green.
+- accept: a chain can be built and reordered through the API and the rendered audio changes accordingly; latency is reported; the app build stays green.
 
 ## T122 · Plugin inventory API
 - depends: T021
 - size: M
 - goal: Read-only inventory of installed VST3s from the existing scanner: name, vendor, version, category, instrument/FX, path. Add a rescan trigger and search. This is the Plugins page data source; assignment happens per patch, not here.
 - files: `engine/src/plugins/Scanner.{h,cpp}`, `engine/src/plugins/PluginCache.{h,cpp}`, `engine/src/api/`, `shared/api/openapi.yaml`, tests
-- accept: `/plugins` lists `TestPlugin` and any installed VST3 (including yabridge-wrapped Arturia), a rescan picks up changes, and `ctest` stays green.
+- accept: `/plugins` lists `TestPlugin` and any installed VST3 (including yabridge-wrapped Arturia), a rescan picks up changes, and the app build stays green.
 
 ## T123 · UI shell, routes and Grid page
 - depends: T120
 - size: L
 - goal: Routed shell for `/grid`, `/instrument`, `/plugins`, `/audio` (plus existing `/remote`). The Grid page renders 8 families x 8 patches with their colours, arms on click and navigates to the Instrument page, and edits per-patch/family colours. The armed cell is bright red; Launchpad LEDs mirror the grid (idle colour, armed red, warming yellow, error flashing).
 - files: `ui/src/App.tsx`, `ui/src/features/grid/`, `ui/src/styles.css`, `ui/src/state/`, `engine/src/Main.cpp`, tests
-- accept: snapshot shows 64 coloured cells with the armed one red; clicking arms and routes; a colour change updates the cell and the driver LED; routes resolve; `ctest` and the UI snapshot stay green.
+- accept: snapshot shows 64 coloured cells with the armed one red; clicking arms and routes; a colour change updates the cell and the driver LED; routes resolve; the app build and the UI snapshot stay green.
 
 ## T124 · Instrument page
 - depends: T121, T122, T123
 - size: L
 - goal: The armed instrument's page: name/family/colour, warm state, latency, volume fader, balance, mute/solo, instrument source (change/open editor), and the insert FX chain editor with add/remove/reorder/bypass. The page follows the controller selection without yanking the user off other pages.
 - files: `ui/src/features/instrument/`, `ui/src/api/`, tests
-- accept: selecting a patch shows its real data; moving the fader changes the rendered level; the chain can be edited; snapshot and `ctest` stay green.
+- accept: selecting a patch shows its real data; moving the fader changes the rendered level; the chain can be edited; snapshot and the app build stay green.
 
 ## T125 · Plugins inventory page
 - depends: T122, T123
@@ -531,42 +535,42 @@ edit.
 - size: M
 - goal: One acceptance pass over the pages: grid click and Launchpad pad both arm the same patch, audio is non-silent, the LED matches the patch colour with the armed pad red; snapshots for Grid, Instrument, Plugins and Audio pages. Update `HANDOVER.md` and `BLOCKERS.md`.
 - files: `tests/e2e/`, `tests/ui/`, `HANDOVER.md`, `plan/BLOCKERS.md`, `docs/`
-- accept: `ctest -R 'ihub-e2e|ihub-ui'` passes and records the pad/click/LED/audio evidence; snapshots are produced; handover reflects the pages.
+- accept: `the app build -R 'ihub-e2e|ihub-ui'` passes and records the pad/click/LED/audio evidence; snapshots are produced; handover reflects the pages.
 
 ## T128 · Live MIDI into the session
 - depends: T114, T126
 - size: M
 - goal: Forward enabled MIDI inputs (Keystation and any non-Launchpad input) into the audio session through a lock-free SPSC queue. The MIDI thread calls `Session::pushMidi()`; the audio callback drains the queue into the block's `MidiBuffer` without allocation or locks. Launchpad MI notes remain controller events (arm), never instrument notes. Add an `empty` source kind so unassigned patches are silent instead of `init-tone`, and make the shipping `shared/set.yaml` use `empty` (or a real assigned source) while tests keep their own init-tone fixture. The Instrument page source picker must persist the assignment.
 - files: `engine/src/Session.{h,cpp}`, `engine/src/api/MidiBridge.{h,cpp}`, `engine/src/Main.cpp`, `shared/set.yaml`, `tests/`
-- accept: an injected note on the armed plugin patch renders non-silent audio (and a note-off stops it); unassigned patches are silent; Launchpad pads arm but do not play notes; the e2e test uses a dedicated init-tone fixture instead of the shipping set; `ctest` stays green.
+- accept: an injected note on the armed plugin patch renders non-silent audio (and a note-off stops it); unassigned patches are silent; Launchpad pads arm but do not play notes; the e2e test uses a dedicated init-tone fixture instead of the shipping set; the app build stays green.
 
 ## T129 · Native plugin editor windows
 - depends: T124, T128
 - size: M
 - goal: Wire the existing `plugins::PluginWindow` to the composed session. `Session::openEditor(slot)` resolves the patch's hosted `PluginInstrument`, marshals to the message thread, opens or reuses one window per slot, and closes it before the source is unloaded or evicted. Add `POST /patches/{slot}/editor` and `DELETE /patches/{slot}/editor`; the Instrument page's "Open editor" calls the API instead of rendering the descriptor-only details. The editor is never opened automatically when a patch is selected or armed; only the explicit control opens it. This must work for in-process VST3 and for yabridge-wrapped Arturia plugins, and report a clear error when an editor cannot be created.
 - files: `engine/src/Session.{h,cpp}`, `engine/src/plugins/PluginWindow.{h,cpp}`, `engine/src/api/`, `ui/src/features/instrument/`, `shared/api/openapi.yaml`, `tests/`
-- accept: `POST /patches/{slot}/editor` opens a native window for `TestPlugin` and for Analog Lab V when installed; the window can be closed and reopened idempotently; switching/unloading the patch closes it before the processor is destroyed; `ctest` and the UI snapshots stay green.
+- accept: `POST /patches/{slot}/editor` opens a native window for `TestPlugin` and for Analog Lab V when installed; the window can be closed and reopened idempotently; switching/unloading the patch closes it before the processor is destroyed; the app build and the UI snapshots stay green.
 
 ## T130 · Per-patch plugin state and editor follow
 - depends: T119, T128, T129
 - size: M
 - goal: Give every plugin patch its own persistent state. Capture `getStateInformation()` when the patch is switched away from, when its editor closes and before warm-pool eviction; restore it when the instance is created and whenever the patch is armed again. Persist the blobs in a sidecar next to `set.yaml` and load them at startup. When the armed patch changes, close editor windows belonging to non-armed slots so an open editor never keeps showing the old patch; opening the editor for the new patch shows its own restored state.
 - files: `engine/src/Session.{h,cpp}`, `engine/src/api/SessionBridge.{h,cpp}`, `engine/src/plugins/PluginWindow.{h,cpp}`, `tests/`
-- accept: assign Analog Lab V to two patches, give them different presets, switch back and forth and restart the app; each patch restores its own sound, the old editor does not stay bound to the previous patch, and `ctest` stays green.
+- accept: assign Analog Lab V to two patches, give them different presets, switch back and forth and restart the app; each patch restores its own sound, the old editor does not stay bound to the previous patch, and the app build stays green.
 
 ## T131 · Per-patch state acceptance
 - depends: T130
 - size: M
 - goal: Prove per-patch state without a plugin stress test. Use the normal asynchronous warm pool; never add a synchronous plugin-loading mode, because JUCE plugin instantiation posts to the message thread and blocks. In each test, call `armSlot(slot)`, then pump `juce::MessageManager::getInstance()->runDispatchLoopUntil(10)` in a bounded loop until `getWarmState(slot) == active` or a 5 s deadline; fail with the state name on timeout. Automated: one patch per family (8 slots) with TestPlugin, two distinct states; arm and switch so the warm pool evicts and reloads, restart, and verify every state hash. No editors and no `PluginWindow`. Real plugin: 2 Analog Lab patches with 2 captured states; switch A -> B -> A and restart, verify state hashes and non-silent/different audio, headless. Document the full 64-pad Analog Lab pass as a manual checklist in `docs/manual-analog-lab-64.md`; do not automate 64 Wine-hosted instances.
 - files: `tests/e2e/`, `tests/CMakeLists.txt`, `docs/`
-- accept: both tests pass through `scripts/test.sh` inside the 120 s per-test timeout; every arm is bounded by the message-pump deadline; no synchronous mode, no blocking plugin creation on the message thread and no editors; no process loads more than two Analog Lab instances; full `ctest` green; the manual 64-pad checklist exists.
+- accept: both the app works through the app build inside the 120 s per-test timeout; every arm is bounded by the message-pump deadline; no synchronous mode, no blocking plugin creation on the message thread and no editors; no process loads more than two Analog Lab instances; full the app build green; the manual 64-pad checklist exists.
 
 ## T132 · Explicit save-sound control
 - depends: T130
 - size: S
 - goal: Add a visible "Save sound to patch" action on the Instrument page and `POST /patches/{slot}/state/capture`, which immediately captures the running plugin's state into that patch and confirms it. Auto-capture on switch/editor close/eviction stays; this is for tweaking a sound and saving it without switching away.
 - files: `engine/src/api/`, `ui/src/features/instrument/`, `shared/api/openapi.yaml`, `tests/`
-- accept: change a preset, press Save, switch away and back, restart and verify the patch restores; `ctest`, typecheck and snapshots stay green.
+- accept: change a preset, press Save, switch away and back, restart and verify the patch restores; the app build, typecheck and snapshots stay green.
 
 ## T133 · Architecture map and call paths
 - depends: T132
@@ -580,35 +584,35 @@ edit.
 - size: M
 - goal: Preserve behavior with characterization tests, then split `engine/src/controller/Mapping.cpp` (~2000 lines) into a YAML parser, a validator, the `SetMapping` model and a watcher/facade. No logic rewrites; move code.
 - files: `engine/src/controller/Mapping.{h,cpp}`, new controller files, `tests/controller/MappingTest.cpp`
-- accept: no file above ~800 lines; every mapping test passes unchanged; hot reload, validation errors and bounds behave exactly as before; `ctest` green.
+- accept: no file above ~800 lines; every mapping test passes unchanged; hot reload, validation errors and bounds behave exactly as before; the app build green.
 
 ## T135 · Split the API routes by resource
 - depends: T134
 - size: L
 - goal: Split `engine/src/api/Routes.cpp` (~2100 lines) into small route modules (state, patches, audio, MIDI, plugins, transport, pairing) registered through one helper. `Server` keeps transport, auth and the WebSocket loop. No endpoint, JSON or status-code changes.
 - files: `engine/src/api/Routes.{h,cpp}`, new `api/routes/*`, `tests/api/`
-- accept: `shared/api/openapi.yaml` unchanged; all API tests pass; each route module under ~600 lines; `ctest` green.
+- accept: `shared/api/openapi.yaml` unchanged; the app works; each route module under ~600 lines; the app build green.
 
 ## T136 · Decompose Session
 - depends: T135
 - size: L
 - goal: Keep `Session` as a thin facade and extract collaborators: warm-pool management, per-patch plugin state, editor windows, meter bridge and transport control. Preserve the audio-thread contract and all public behavior.
 - files: `engine/src/Session.{h,cpp}`, new `engine/src/session/*`, `tests/`
-- accept: `Session.cpp` under ~800 lines; the 64-slot, warm-pool, editor, state-persistence and e2e tests pass; `--rt-strict` reports no allocations/locks in the callback; `ctest` green.
+- accept: `Session.cpp` under ~800 lines; the 64-slot, warm-pool, editor, state-persistence and e2e the app works; `--rt-strict` reports no allocations/locks in the callback; the app build green.
 
 ## T137 · Split Main into app modes and shell
 - depends: T136
 - size: M
 - goal: Extract diagnostics, selftest, snapshot and serve modes out of `engine/src/Main.cpp` (~2000 lines), leaving an entry point and UI shell. Every command-line mode keeps its exact behavior and output.
 - files: `engine/src/Main.cpp`, new `engine/src/app/*`, tests
-- accept: `--diagnostics`, `--selftest`, `--snapshot`, `--serve`, `--list-devices` and `--session-smoke` behave as before; `Main.cpp` under ~600 lines; `ctest` green.
+- accept: `--diagnostics`, `--selftest`, `--snapshot`, `--serve`, `--list-devices` and `--session-smoke` behave as before; `Main.cpp` under ~600 lines; the app build green.
 
 ## T138 · Remove superseded code
 - depends: T137
 - size: S
 - goal: Remove or clearly quarantine the superseded Launchkey controller layer and its docs/tests, remove duplicate controller docs, and either wire `project/PluginStateStore` into the live session or delete it. Update AGENTS/DECISIONS/HANDOVER references so only the Launchpad path remains.
 - files: `engine/src/controller/`, `engine/src/project/PluginStateStore.*`, `tests/`, docs
-- accept: the build has no unused controller sources; `ctest` green; no document or code path still presents Launchkey as the target device.
+- accept: the build has no unused controller sources; the app build green; no document or code path still presents Launchkey as the target device.
 
 ## T139 · App sidebar and settings/account navigation
 - depends: T138
@@ -630,35 +634,35 @@ changes. See `plan/REFACTOR.md` for the rationale and target structure.
 - size: S
 - goal: Fix `plan/BUGS.md` BUG-003. Delete the repeated "Audio workspace / Instrument Hub / One place…" hero header and the Connected / URL / Retry now bar from the desktop shell. Keep connection state in the sidebar and footer. Update the native `--snapshot` / `--ui-check` probe so it no longer waits for the removed `app-title` marker.
 - files: `ui/src/App.tsx`, `ui/src/styles.css`, `ui/src/testing/snapshot.tsx`, `engine/src/app/UiModes.{h,cpp}`
-- accept: no desktop route renders `app__header` or `data-testid="connection-status"`; the page harness asserts their absence; `pnpm typecheck` and `pnpm test:snapshot` pass; `ihub-ui-snapshot` still captures the Grid.
+- accept: no desktop route renders `app__header` or `data-testid="connection-status"`; the page harness asserts their absence; `pnpm typecheck` and `pnpm build` pass; `ihub-ui-snapshot` still captures the Grid.
 
 ## T141 · Split the desktop shell
 - depends: T140
 - size: M
 - goal: Reduce `ui/src/App.tsx` to a thin router entry point. Move navigation, shell layout, shell state/effects, route selection and the Grid summary panels into `ui/src/features/shell/`, one responsibility per file.
 - files: `ui/src/App.tsx`, new `ui/src/features/shell/`
-- accept: `App.tsx` only chooses between `/remote` and the desktop shell; every shell file passes the one-sentence test; no behaviour or test-id changes; `pnpm typecheck` and `pnpm test:snapshot` pass.
+- accept: `App.tsx` only chooses between `/remote` and the desktop shell; every shell file passes the one-sentence test; no behaviour or test-id changes; `pnpm typecheck` and `pnpm build` pass.
 
 ## T142 · Split the snapshot harness: fixtures and server
 - depends: T140
 - size: L
 - goal: Move the fixture data and the fixture HTTP server out of `ui/src/testing/snapshot.tsx` into focused modules under `ui/src/testing/`. The harness should import them; no scenario assertions move in this task.
 - files: `ui/src/testing/snapshot.tsx`, new `ui/src/testing/fixtures/`, new `ui/src/testing/fixtureServer.ts`
-- accept: the fixture server behaves exactly as before; `pnpm typecheck` and `pnpm test:snapshot` pass with the same checks.
+- accept: the fixture server behaves exactly as before; `pnpm typecheck` and `pnpm build` pass with the same checks.
 
 ## T143 · Split the snapshot harness: scenarios
 - depends: T142
 - size: L
 - goal: Move each area's scenarios and assertions out of `snapshot.tsx` into per-feature scenario modules (shell, grid, instrument, plugins, audio, MIDI, pairing, remote, store). Keep one small runner that calls them in the existing order.
 - files: `ui/src/testing/`
-- accept: the harness prints the same PASS lines; no fixture or assertion lives in another area's file; `pnpm test:snapshot` passes.
+- accept: the harness prints the same PASS lines; no fixture or assertion lives in another area's file; `pnpm build` passes.
 
 ## T144 · Split the UI store: lifecycle and polling
 - depends: T141
 - size: M
 - goal: Separate store subscription, snapshot patching, refresh/poll scheduling and retry/backoff from the domain actions in `ui/src/state/store.ts`.
 - files: `ui/src/state/store.ts`, new `ui/src/state/`
-- accept: the public store API is unchanged; `pnpm typecheck` and `pnpm test:snapshot` pass.
+- accept: the public store API is unchanged; `pnpm typecheck` and `pnpm build` pass.
 
 ## T145 · Split the UI store: patches and FX
 - depends: T144
@@ -672,28 +676,28 @@ changes. See `plan/REFACTOR.md` for the rationale and target structure.
 - size: M
 - goal: Move the remaining domain actions out of the core store so each file owns one API area.
 - files: `ui/src/state/`
-- accept: the public store API is unchanged; `pnpm test:snapshot` passes.
+- accept: the public store API is unchanged; `pnpm build` passes.
 
 ## T147 · Split the UI API client: transport and state
 - depends: T146
 - size: M
 - goal: Keep one transport/error core in `ui/src/api/client.ts` and move the state, arm, transport and patch endpoints into a domain module with the same exported types.
 - files: `ui/src/api/client.ts`, new `ui/src/api/`
-- accept: all existing named exports still resolve from `ui/src/api/client`; `pnpm typecheck` and `pnpm test:snapshot` pass.
+- accept: all existing named exports still resolve from `ui/src/api/client`; `pnpm typecheck` and `pnpm build` pass.
 
 ## T148 · Split the UI API client: FX, plugins, MIDI, audio, pairing
 - depends: T147
 - size: M
 - goal: Move the remaining endpoint groups out of the client core, one file per resource.
 - files: `ui/src/api/`
-- accept: the public client surface is unchanged; `pnpm typecheck` and `pnpm test:snapshot` pass.
+- accept: the public client surface is unchanged; `pnpm typecheck` and `pnpm build` pass.
 
 ## T149 · Split the Instrument page: frame and mixer
 - depends: T141
 - size: M
 - goal: Move the page frame and the level/pan/mute/solo mixer out of `ui/src/features/instrument/InstrumentPage.tsx`.
 - files: `ui/src/features/instrument/`
-- accept: the instrument snapshot checks and test ids are unchanged; `pnpm test:snapshot` passes.
+- accept: the instrument snapshot checks and test ids are unchanged; `pnpm build` passes.
 
 ## T150 · Split the Instrument page: source and inserts
 - depends: T149
@@ -707,7 +711,7 @@ changes. See `plan/REFACTOR.md` for the rationale and target structure.
 - size: M
 - goal: Move the explicit save-sound action and its confirmation/error states out of the page, leaving the page as a composition of cards.
 - files: `ui/src/features/instrument/`
-- accept: the save-sound snapshot checks pass; `pnpm test:snapshot` is green.
+- accept: the save-sound snapshot checks pass; `pnpm build` is green.
 
 ## T152 · Split the grid view and meters
 - depends: T141
@@ -763,21 +767,21 @@ changes. See `plan/REFACTOR.md` for the rationale and target structure.
 - size: M
 - goal: Apply the one-sentence test to the remaining UI modules and split any file that still mixes responsibilities. Do not rewrite working code for style alone.
 - files: `ui/src/`
-- accept: every touched file has one reason to change; `pnpm typecheck` and `pnpm test:snapshot` pass.
+- accept: every touched file has one reason to change; `pnpm typecheck` and `pnpm build` pass.
 
 ## T160 · Split the API server: route families
 - depends: T139
 - size: L
 - goal: Separate the REST route families from `engine/src/api/Server.cpp` into focused route modules, keeping `Server` as transport/auth/facade.
 - files: `engine/src/api/`
-- accept: `shared/api/openapi.yaml` is unchanged; the API tests pass unchanged.
+- accept: `shared/api/openapi.yaml` is unchanged; the API the app works unchanged.
 
 ## T161 · Split the API server: auth, state, meters and WebSocket
 - depends: T160
 - size: L
 - goal: Separate pairing/auth checks, state serialization, meter sampling and WebSocket broadcast from the server core.
 - files: `engine/src/api/`
-- accept: the pairing, state-broadcast, meter and session API tests pass unchanged.
+- accept: the pairing, state-broadcast, meter and session API the app works unchanged.
 
 ## T162 · Split the FX rack
 - depends: T139
@@ -791,49 +795,49 @@ changes. See `plan/REFACTOR.md` for the rationale and target structure.
 - size: M
 - goal: Separate slot reservation, warm-up state, eviction and session orchestration in `audio/WarmPool.cpp` and `session/WarmPoolController.cpp`.
 - files: `engine/src/audio/WarmPool.{h,cpp}`, `engine/src/session/WarmPoolController.{h,cpp}`
-- accept: the warm-pool, session-warm and switch-continuity tests pass unchanged.
+- accept: the warm-pool, session-warm and switch-continuity the app works unchanged.
 
 ## T164 · Split project serialization
 - depends: T139
 - size: M
 - goal: Separate set metadata, slot/patch data, plugin-state blobs and version migration in `engine/src/project/Serializer.cpp`.
 - files: `engine/src/project/Serializer.{h,cpp}`
-- accept: the set-file, migrations and patch-persistence tests pass unchanged.
+- accept: the set-file, migrations and patch-persistence the app works unchanged.
 
 ## T165 · Split the plugin host and sandbox
 - depends: T139
 - size: L
 - goal: Separate scanning/hosting, sandbox process transport, parameter bridging and editor-window lifetime across `engine/src/plugins/`.
 - files: `engine/src/plugins/`
-- accept: the plugin instance, window, scanner, cache and TestPlugin scan tests pass unchanged.
+- accept: the plugin instance, window, scanner, cache and TestPlugin scan the app works unchanged.
 
 ## T166 · Split the sampler
 - depends: T139
 - size: M
 - goal: Separate kit parsing, sample loading/decoding and voice rendering across `engine/src/sampler/`.
 - files: `engine/src/sampler/`
-- accept: the kit-loader, sample-loader and sampler-instrument tests pass unchanged.
+- accept: the kit-loader, sample-loader and sampler-instrument the app works unchanged.
 
 ## T167 · Split the controller and mapping code
 - depends: T139
 - size: L
 - goal: Separate protocol encoding, pad mapping, validator diagnostics and YAML parsing in `engine/src/controller/`.
 - files: `engine/src/controller/`
-- accept: the Launchpad and mapping tests pass unchanged.
+- accept: the Launchpad and mapping the app works unchanged.
 
 ## T168 · Split diagnostics, audio settings and device management
 - depends: T139
 - size: M
 - goal: Separate each diagnostic mode and split device enumeration, channel maps and latency calculation in `engine/src/app/` and `engine/src/audio/`.
 - files: `engine/src/app/`, `engine/src/audio/`
-- accept: the app-mode, diagnostics, audio-settings and device-manager tests pass unchanged.
+- accept: the app-mode, diagnostics, audio-settings and device-manager the app works unchanged.
 
 ## T169 · Remaining engine module sweep
 - depends: T161, T162, T163, T164, T165, T166, T167, T168
 - size: M
 - goal: Apply the one-sentence test to the remaining engine files and split any that still mix responsibilities. Do not rewrite working code for style alone.
 - files: `engine/src/`
-- accept: every touched file has one reason to change; `scripts/test.sh` is green.
+- accept: every touched file has one reason to change; the app build is green.
 
 ## T170 · Split the end-to-end tests
 - depends: T139
@@ -868,7 +872,7 @@ changes. See `plan/REFACTOR.md` for the rationale and target structure.
 - size: M
 - goal: Apply the one-sentence test to the remaining test files, splitting by scenario and moving fixtures into their own files.
 - files: `tests/`
-- accept: every touched file has one reason to change; `scripts/test.sh` is green.
+- accept: every touched file has one reason to change; the app build is green.
 
 ---
 
@@ -891,63 +895,63 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - size: M
 - goal: Remove all non-directive comments from `ui/src/`. Keep only the directives listed in `plan/COMMENTS.md`; do not change code, strings, URLs or regexes.
 - files: `ui/src/`
-- accept: `pnpm typecheck` and `pnpm test:snapshot` pass; only directive comments remain in `ui/src/`; no behaviour or markup change.
+- accept: `pnpm typecheck` and `pnpm build` pass; only directive comments remain in `ui/src/`; no behaviour or markup change.
 
 ## T177 · Remove comments from the engine API and session
 - depends: T175
 - size: M
 - goal: Remove all non-directive comments from `engine/src/api/`, `engine/src/session/` and `engine/src/project/`. Keep only tool/framework directives.
 - files: `engine/src/api/`, `engine/src/session/`, `engine/src/project/`
-- accept: `scripts/test.sh` passes; only directive comments remain in those directories; no behaviour or API change.
+- accept: the app build passes; only directive comments remain in those directories; no behaviour or API change.
 
 ## T178 · Remove comments from engine audio, DSP and instruments
 - depends: T175
 - size: M
 - goal: Remove all non-directive comments from `engine/src/audio/`, `engine/src/dsp/`, `engine/src/instruments/` and `engine/src/sampler/`. Keep only directives.
 - files: `engine/src/audio/`, `engine/src/dsp/`, `engine/src/instruments/`, `engine/src/sampler/`
-- accept: `scripts/test.sh` passes; only directive comments remain in those directories; the audio-thread contract is unchanged.
+- accept: the app build passes; only directive comments remain in those directories; the audio-thread contract is unchanged.
 
 ## T179 · Remove comments from the rest of the engine
 - depends: T175
 - size: M
 - goal: Remove all non-directive comments from `engine/src/controller/`, `engine/src/plugins/`, `engine/src/app/`, `engine/src/Bridge/` and the remaining engine sources and headers. Keep only directives.
 - files: `engine/src/`
-- accept: `scripts/test.sh` passes; only directive comments remain under `engine/src/`; no behaviour change.
+- accept: the app build passes; only directive comments remain under `engine/src/`; no behaviour change.
 
 ## T180 · Remove comments from tests, scripts and build files
 - depends: T175
 - size: M
 - goal: Remove all non-directive comments from `tests/`, `scripts/` and the first-party CMake files. Keep only tool directives and shebangs.
 - files: `tests/`, `scripts/`, `CMakeLists.txt`, `CMakePresets.json`, `engine/CMakeLists.txt`, `tests/CMakeLists.txt`
-- accept: `scripts/test.sh` passes; only directive comments and shebangs remain; no build or test behaviour change.
+- accept: the app build passes; only directive comments and shebangs remain; no build or test behaviour change.
 
 ## T181 · Final comment audit
 - depends: T176, T177, T178, T179, T180
 - size: S
 - goal: Walk the whole first-party tree and remove any non-directive comment that survived. Verify that strings, URLs, regexes and generated markers were not damaged. Record the final counts and every exemption in `plan/COMMENTS.md`.
 - files: `engine/`, `ui/src/`, `tests/`, `scripts/`, build files, `plan/COMMENTS.md`
-- accept: a search of the first-party tree finds only the directives listed in `plan/COMMENTS.md`; `pnpm typecheck`, `pnpm test:snapshot` and `scripts/test.sh` pass; no source behaviour changed.
+- accept: a search of the first-party tree finds only the directives listed in `plan/COMMENTS.md`; `pnpm typecheck`, `pnpm build` and the app build pass; no source behaviour changed.
 
 ## T182 · Adopt Prettier for the UI
 - depends: T181
 - size: M
 - goal: Make Prettier the single formatting authority for `ui/`: add `prettier` to `devDependencies`, add `ui/.prettierrc` and `ui/.prettierignore` (skip `dist/`, `dist-test/`, `node_modules/` and generated `src/api/schema.d.ts`), add `format` and `format:check` scripts, format the UI tree, and run `format:check` in CI. Use Prettier defaults (2-space indent, K&R braces); the current hand-written Allman style is intentionally replaced, and no brace-style plugin is added.
 - files: `ui/package.json`, `ui/pnpm-lock.yaml`, `ui/.prettierrc`, `ui/.prettierignore`, `ui/src/`, `ui/vite.config.ts`, `ui/vite.snapshot.config.ts`, `.github/workflows/`
-- accept: `pnpm format:check`, `pnpm typecheck` and `pnpm test:snapshot` pass; the diff is formatting only; no behaviour, markup or generated-file change.
+- accept: `pnpm format:check`, `pnpm typecheck` and `pnpm build` pass; the diff is formatting only; no behaviour, markup or generated-file change.
 
 ## T183 · BUG-001 `/audio` reports `open=false` while the session is streaming
 - depends: T182
 - size: S
 - goal: Make `/audio` report the session's live device. Root cause: `ControlApi` creates a second `AudioSettingsBridge` with its own `AudioEngine::DeviceManager`, while `Session` opens and streams through a different manager, so `snapshot().open` is false and the name comes from the unused bridge. Inject `session->getDevices()` into the bridge, keep the owned manager as the fallback for `--serve`/`--audio`, and keep the latency probe on its own manager so measuring does not close the live session device. Add a regression in `tests/api/audio_settings/DeviceBridge.cpp` that opens the Loopback on an external manager, injects it and asserts `open`, device name, rate and buffer follow that manager.
 - files: `engine/src/audio/AudioSettings.h`, `engine/src/audio/AudioSettings.cpp`, `engine/src/audio/settings/`, `engine/src/app/ControlApi.cpp`, `tests/api/audio_settings/`
-- accept: `scripts/test.sh` passes; the new test fails before the wiring and passes after; `plan/BUGS.md` BUG-001 gains the fix commit and evidence.
+- accept: the app build passes; the new test fails before the wiring and passes after; `plan/BUGS.md` BUG-001 gains the fix commit and evidence.
 
 ## T184 · BUG-005 engine aborts when the Wine plugin bridge dies
 - depends: T182
 - size: L
 - goal: Make a dead `vstbridge-host` a failed plugin slot instead of an engine `SIGABRT`. `SessionBuild.cpp` still loads every plugin slot as an in-process `plugins::PluginInstrument`; `ihub-sandbox`/`SandboxHost` implement crash isolation but are used only by their own test. Route plugin slots through that isolation (or an equivalent boundary) while keeping editor, per-patch state, latency reporting and the audio-thread contract intact. Reproduce first with the BUG-005 steps: arm an Analog Lab patch, `kill -9` its host, and confirm the current abort; then add a regression that kills the host mid-render and asserts the host process survives and the slot reports an error.
 - files: `engine/src/session/SessionBuild.cpp`, `engine/src/plugins/`, `engine/src/session/EditorHost.cpp`, `tests/plugins/`, `tests/`
-- accept: `scripts/test.sh` passes; the new host-death regression proves the engine process does not abort; plugin state and editor tests stay green; no allocation, locks or logging on the audio thread.
+- accept: the app build passes; the new host-death regression proves the engine process does not abort; plugin state and editor tests stay green; no allocation, locks or logging on the audio thread.
 - note: if full sandbox routing is too large for one session, land the smallest isolation that removes the in-process abort and record the remaining gap in `plan/BUGS.md`; do not mark done on a smoke test.
 
 ## T185 · BUG-004 app hangs after the window is closed
@@ -955,7 +959,7 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - size: L
 - goal: Make shutdown complete within a second after the last window closes. BUG-004 evidence shows the main thread in `futex_wait`, one thread at 100% CPU, the control server already stopped and `WM_DELETE_WINDOW` ignored. Audit the shutdown order in `engine/src/Main.cpp`, `engine/src/api/Server.cpp`, `engine/src/app/ControllerSurface.cpp`, `Session::closeDevice`, `WarmPoolController::shutdown`, `MeterSampler::stop` and the plugin/editor threads; remove the join cycle or unbounded wait. Add a regression that constructs the session and control API, starts and stops them, and fails if shutdown takes longer than 2 s; use a hard test timeout so a regression cannot hang the suite.
 - files: `engine/src/app/`, `engine/src/api/`, `engine/src/session/`, `tests/`
-- accept: `scripts/test.sh` passes; the new shutdown regression completes in under 2 s; `ctest --timeout 120` stays green; no audio-thread changes.
+- accept: the app build passes; the new shutdown regression completes in under 2 s; `the app build --timeout 120` stays green; no audio-thread changes.
 - note: the original hang involved Analog Lab; if it cannot be reproduced without the real plugin, prove the deadlock with the closest fake or TestPlugin harness and record what remains in `plan/BUGS.md`.
 
 ## T186 · BUG-002 full 64-patch Analog Lab workflow is only partly automated
@@ -963,7 +967,7 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - size: L
 - goal: Make the 64-patch workflow survive the Wine bridge by isolating plugin state batches so 64 Analog Lab instances never accumulate in one bridge process. Use the child-process-per-batch candidate from BUG-002, reuse the T184 isolation boundary if it landed, and keep the existing 2-patch and 8-patch tests green. Add a 64-patch TestPlugin batch regression that proves every patch restores its own preset; real Analog Lab validation remains the human task B003.
 - files: `tests/e2e/analog_lab/`, `tests/`, `scripts/`
-- accept: `scripts/test.sh` passes; the 64-patch TestPlugin batch test passes; `plan/BUGS.md` BUG-002 records what is automated and what still needs Analog Lab; the engine changes stay within the T184 isolation.
+- accept: the app build passes; the 64-patch TestPlugin batch test passes; `plan/BUGS.md` BUG-002 records what is automated and what still needs Analog Lab; the engine changes stay within the T184 isolation.
 - note: if deterministic batches need the real plugin, write `STATUS: blocked` and point at B003 with the exact remaining step.
 
 ## T187 · Native JACK audio device type
@@ -971,7 +975,7 @@ belongs in `docs/` or `plan/DECISIONS.md`, not in source. Exempt:
 - size: M
 - goal: Build JUCE with `JUCE_JACK=1` so a native JACK `AudioIODeviceType` is offered next to ALSA, and keep ALSA the default. JUCE needs the JACK headers at compile time but `dlopen`s `libjack.so.0` at runtime (`third_party/JUCE/modules/juce_audio_devices/native/juce_JackAudio.cpp`), so the build needs only the `jack` dev headers already listed in `docs/new-machine.md`, no linker flag. Set the define on `instrument-hub` and on the device-manager test target; console targets that never open an audio device do not need it. Do not change `AudioSettingsBridge::firstDeviceType()`: ALSA stays the default so the Loopback rig and every existing test are unaffected, while JACK appears in `deviceTypes`, in `GET /audio/devices` and on the Audio page and can be selected explicitly. A missing `jackd` must degrade to "JACK type present, no devices", not to a failure. Add a device-manager regression in `tests/device_manager/` that asserts `getDeviceTypeNames()` contains both `ALSA` and `JACK` and that JACK reports no output devices when no server is reachable; the existing audio-settings test keeps proving ALSA is still the default.
 - files: `engine/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/device_manager/`, `docs/architecture.md`
-- accept: `scripts/test.sh` passes; `ihub-device-manager-test` prints both device types; `--list-devices` still lists the Loopback; the app still opens ALSA at 48 kHz/128 by default; no audio-thread changes.
+- accept: the app build passes; `ihub-device-manager-test` prints both device types; `--list-devices` still lists the Loopback; the app still opens ALSA at 48 kHz/128 by default; no audio-thread changes.
 - note: no `jackd` runs on this machine, so the live JACK open path cannot be exercised. Record the untested path (start `jackd`, select JACK under `/audio`) in the result and in `docs/architecture.md`; do not block on it. The ALSA `jack` PCM that ALSA enumeration already probes is not the native JACK type, so both may appear in the ALSA device list.
 
 ## Bug list 2026-11-03 (human-reported, UI and controller)
@@ -985,7 +989,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Make the screen grid match the hardware: slot index 0 (pad note 11) is the bottom-left cell and the first family row is the bottom row. Reverse the render order in the grid model/view rather than remapping slots, keep column order and all slot-keyed callbacks unchanged, and update the snapshot fixtures.
 - files: `ui/src/features/grid/model.ts`, `ui/src/features/grid/GridView.tsx`, `ui/src/features/grid/GridTable.tsx`, `ui/src/testing/`
-- accept: with `/grid` open at 1200x800, the first rendered `grid-cell` row holds slots 57–64 and the last holds 0–7; clicking any cell still arms its own slot; the virtual-Launchpad capture for note 11 lights slot 0; `pnpm test:snapshot` passes.
+- accept: with `/grid` open at 1200x800, the first rendered `grid-cell` row holds slots 57–64 and the last holds 0–7; clicking any cell still arms its own slot; the virtual-Launchpad capture for note 11 lights slot 0; `pnpm build` passes.
 
 
 ## T197 · BUG-009 reserve red for the armed patch
@@ -993,7 +997,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Remove red from the patch palette on both sides and keep the two palettes aligned, so only the armed patch is red. Replace the rose entries in `PATCH_COLOURS`, replace the red Launchpad velocities (including index 0's velocity 5) with non-red ones in the same order, and give empty cells a neutral gradient instead of the index-0 colour.
 - files: `ui/src/features/grid/colours.ts`, `ui/src/features/grid/GridCell.tsx`, `engine/src/controller/LaunchpadProtocol.h`, `engine/src/controller/LaunchpadLed.cpp`, `tests/controller/`, `tests/e2e/`
-- accept: a 16-index sweep produces no red velocity from `velocityForPatchColour`; after arming one pad the virtual-Launchpad capture contains exactly one red LED; the UI palette has no red hue and empty cells are neutral; `scripts/test.sh` and `pnpm test:snapshot` pass.
+- accept: a 16-index sweep produces no red velocity from `velocityForPatchColour`; after arming one pad the virtual-Launchpad capture contains exactly one red LED; the UI palette has no red hue and empty cells are neutral; the app build and `pnpm build` pass.
 
 
 ## T198 · BUG-010 push armed-state changes to the UI
@@ -1001,7 +1005,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: L
 - goal: Stop making the UI wait for the 2 s poll. Broadcast the control-state revision over the existing WebSocket whenever the snapshot changes (arm, patch edit, warm state, device), apply it in the store, and keep polling as the fallback with the current backoff. Do not add a second socket.
 - files: `engine/src/api/WebSocketRoutes.cpp`, `engine/src/api/StateBroadcast.cpp`, `engine/src/api/state/`, `ui/src/state/store.ts`, `ui/src/state/pollLoop.ts`, `ui/src/features/shell/useShellData.ts`, `tests/api/`
-- accept: with `/grid` open, a `POST /arm` issued outside the browser moves `grid-cell[data-armed="true"]` within 250 ms; with the socket aborted the poll still applies it within 3 s; `scripts/test.sh` and `pnpm test:snapshot` pass.
+- accept: with `/grid` open, a `POST /arm` issued outside the browser moves `grid-cell[data-armed="true"]` within 250 ms; with the socket aborted the poll still applies it within 3 s; the app build and `pnpm build` pass.
 
 
 ## T199 · BUG-011 make the `.ihub` project the live set
@@ -1009,7 +1013,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: L
 - goal: Make the project container the runtime format, per `plan/PROJECTS.md`. Resolve the project path (`--project` > `~/Music/Instrument Hub/Untitled.ihub`); if it does not exist, import the bundled `shared/set.yaml` plus `shared/set.plugin-state/` through `Serializer::save` once. Load the project with `Serializer::load`, parse `SetFile::mappingYaml` with the existing mapping parser (add a string entry point; do not write a temp file), and build the session from it. Watch the project file's mtime instead of `set.yaml` for hot reload. No saving yet; the last-opened path is T205.
 - files: `engine/src/app/SessionSetup.cpp`, `engine/src/project/Serializer.cpp`, `engine/src/project/serializer/`, `engine/src/controller/mapping/MappingFile.cpp`, `engine/src/controller/mapping/MappingYaml.cpp`, `tests/project/`, `tests/e2e/`
-- accept: launching with `--project` on a temp `.ihub` produces the same 64 pads, families, colours and plug-in state as the imported `set.yaml`; deleting the `.ihub` and relaunching re-imports once; replacing the `.ihub` externally re-routes pads within the watcher interval; `scripts/test.sh` passes.
+- accept: launching with `--project` on a temp `.ihub` produces the same 64 pads, families, colours and plug-in state as the imported `set.yaml`; deleting the `.ihub` and relaunching re-imports once; replacing the `.ihub` externally re-routes pads within the watcher interval; the app build passes.
 
 
 ## T204 · BUG-011 autosave the project
@@ -1017,7 +1021,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: L
 - goal: Save the project after accepted edits: patch and family mixer, colour, source, FX chain, transport and a captured plug-in sound. Capture the running plug-in state for touched slots immediately before each write, debounce 500 ms, write `<name>.ihub.tmp` and rename, keep the previous file as `<name>.ihub.bak`, and expose a `dirty` flag plus the last save error so the footer can show it. A read-only project keeps running with `saved: false`. Restoring app settings never writes the project.
 - files: `engine/src/api/state/StateStorePatches.cpp`, `engine/src/api/StateStore.*`, `engine/src/project/Serializer.cpp`, `engine/src/session/PluginStateFile.cpp`, `engine/src/Session.cpp`, `tests/api/patch/`, `tests/project/`
-- accept: an edit followed by a 1 s wait and a restart loads the edited value; a burst of ten fader moves produces one file write; a simulated write failure leaves the previous `.ihub` byte-identical and returns the error; a crash mid-write never leaves a partial `.ihub`; `scripts/test.sh` passes.
+- accept: an edit followed by a 1 s wait and a restart loads the edited value; a burst of ten fader moves produces one file write; a simulated write failure leaves the previous `.ihub` byte-identical and returns the error; a crash mid-write never leaves a partial `.ihub`; the app build passes.
 
 
 ## T200 · BUG-012 keep audio alive while the plug-in editor changes sound
@@ -1025,7 +1029,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: L
 - goal: Reproduce the silence first and capture the log, then make editor-side sound changes reach the sandboxed audio instance without closing the editor. The editor mirror (T184) is the only path into the sandbox today, so either push parameter/state changes to it on edit or re-arm the slot in place; audio must never stop when a preset changes.
 - files: `engine/src/session/EditorHost.cpp`, `engine/src/plugins/`, `engine/src/session/SessionBuild.cpp`, `tests/plugins/`, `tests/e2e/`
-- accept: with a TestPlugin mirror, changing a parameter while the editor is open keeps the slot rendering above -40 dBFS and the new value is audible in the next render; the engine log shows no device close/reopen; `scripts/test.sh` passes. The real Analog Lab check is recorded for the human.
+- accept: with a TestPlugin mirror, changing a parameter while the editor is open keeps the slot rendering above -40 dBFS and the new value is audible in the next render; the engine log shows no device close/reopen; the app build passes. The real Analog Lab check is recorded for the human.
 - note: if the fix needs the real plug-in, prove the mechanism with TestPlugin and write `STATUS: partial` with the remaining human step rather than `done`.
 
 
@@ -1034,7 +1038,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Every pad keeps its patch colour; arming changes only the armed pad (static red). Show warming with a pulsing mode and error with a flashing red instead of replacing the colour of every pad that changes warm state.
 - files: `engine/src/app/ControllerSurface.cpp`, `engine/src/controller/LaunchpadLed.cpp`, `engine/src/controller/launchpad/LaunchpadDriverLeds.cpp`, `tests/controller/`, `tests/e2e/`
-- accept: a virtual-Launchpad capture taken before and after arming differs in exactly one pad's `(velocity, mode)`; all other pads keep their patch colour; an erroring pad still flashes; `scripts/test.sh` passes.
+- accept: a virtual-Launchpad capture taken before and after arming differs in exactly one pad's `(velocity, mode)`; all other pads keep their patch colour; an erroring pad still flashes; the app build passes.
 
 
 ## T202 · BUG-014 make the Grid page just the grid
@@ -1042,7 +1046,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: S
 - goal: `/grid` renders the grid only. Remove `SystemPanels` from `GridRoute`; if the three panels are used nowhere else, delete them with their dead tests and fixtures instead of leaving unused components behind.
 - files: `ui/src/features/shell/GridRoute.tsx`, `ui/src/features/shell/SystemPanels.tsx`, `ui/src/testing/`
-- accept: `/grid` contains `instrument-grid` and no `app__panels`; no unused panel component remains; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
+- accept: `/grid` contains `instrument-grid` and no `app__panels`; no unused panel component remains; `pnpm typecheck`, `pnpm build` and `pnpm format:check` pass.
 
 
 ## T203 · BUG-015 move Audio & MIDI to the footer
@@ -1050,7 +1054,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: S
 - goal: Take Audio & MIDI out of the sidebar workspace and render it in the shell footer next to the status line; the sidebar keeps Grid, Instrument and Plugins. Keep the item in the narrow-layout bottom tabs so the route stays reachable.
 - files: `ui/src/features/shell/navigation.ts`, `ui/src/features/shell/Sidebar.tsx`, `ui/src/features/shell/ShellFooter.tsx`, `ui/src/features/shell/BottomTabs.tsx`, `ui/src/testing/`
-- accept: at 1200x800 `nav-audio` is inside `app-footer` and not inside `app-nav`, and clicking it opens `/audio`; at a narrow width the bottom tabs still show it; `pnpm typecheck` and `pnpm test:snapshot` pass.
+- accept: at 1200x800 `nav-audio` is inside `app-footer` and not inside `app-nav`, and clicking it opens `/audio`; at a narrow width the bottom tabs still show it; `pnpm typecheck` and `pnpm build` pass.
 
 
 ## T188 · App settings store
@@ -1058,7 +1062,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Add `engine/src/settings/SettingsStore` for the file described in `plan/SETTINGS.md`: `<userApplicationDataDirectory>/Instrument Hub/settings.json`, schema `version: 1`, load with defaults, save atomically (temp file + rename in the same directory), preserve unknown keys on rewrite, rename a corrupt file to `settings.json.bad` and continue with defaults. No wiring into the app yet; the store is exercised only by its own tests.
 - files: `engine/src/settings/`, `engine/CMakeLists.txt`, `tests/settings/`, `tests/CMakeLists.txt`
-- accept: a new `ihub-settings-store-test` covers round-trip, defaults for a missing file, corrupt-file recovery, unknown-key preservation, atomic replace (no partial file after a simulated failure) and a schema with a newer version being rejected without touching the file; `scripts/test.sh` passes.
+- accept: a new `ihub-settings-store-test` covers round-trip, defaults for a missing file, corrupt-file recovery, unknown-key preservation, atomic replace (no partial file after a simulated failure) and a schema with a newer version being rejected without touching the file; the app build passes.
 - note: use a temporary directory per test, never the real `~/.config/Instrument Hub`.
 
 
@@ -1067,7 +1071,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Wire the store into the audio path. `SessionSetup` restores the stored `(deviceType, deviceName, sampleRate, bufferSize)` when no `--audio-device`/`--audio-type` is given, and a successful `POST /audio` apply writes the effective values. A missing or unopenable device falls back to the device default, then the first ALSA output, without rewriting the stored preference, and `GET /audio` gains a `restore` object (`usedStoredDevice`, `fallback`, `reason`) so the UI can explain what happened.
 - files: `engine/src/app/SessionSetup.cpp`, `engine/src/audio/settings/`, `engine/src/audio/AudioSettings.cpp`, `engine/src/api/routes/AudioRoutes.cpp`, `tests/api/audio_settings/`, `tests/settings/`
-- accept: a regression opens a stored device, restarts the settings/session path against the same temp config dir and asserts the second open uses it; CLI flags beat the file; a stored device that no longer exists falls back and leaves the file byte-identical; a failed `POST /audio` writes nothing; `scripts/test.sh` passes.
+- accept: a regression opens a stored device, restarts the settings/session path against the same temp config dir and asserts the second open uses it; CLI flags beat the file; a stored device that no longer exists falls back and leaves the file byte-identical; a failed `POST /audio` writes nothing; the app build passes.
 - note: `BUG-006` evidence is the manual check — select the UR22, restart the real app, confirm `GET /audio` still reports it.
 
 
@@ -1076,7 +1080,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Route the app-level settings through the store: `masterGain`, `inputGain`, `midiChannel`, `metronome`, the LAN mode and the pairing token. Load on startup, save when `POST /settings` accepts a change and when LAN/token change, and write the file `0600`. Revoking the token deletes it from the file. Keep the API shape and ranges unchanged.
 - files: `engine/src/api/state/`, `engine/src/api/AuthGuard.cpp`, `engine/src/settings/`, `tests/api/`
-- accept: a regression changes each value, reconstructs the state store against the same temp config directory and asserts the values return; invalid values are rejected and not written; the settings file is `0600`; a revoked token is gone after a restart; `scripts/test.sh` passes.
+- accept: a regression changes each value, reconstructs the state store against the same temp config directory and asserts the values return; invalid values are rejected and not written; the settings file is `0600`; a revoked token is gone after a restart; the app build passes.
 
 
 ## T191 · Persist enabled MIDI inputs by port name
@@ -1084,7 +1088,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Remember which MIDI inputs the user enabled. Persist `(client name, port name)` pairs, never the numeric `ALSA:<client>:<port>` id, and re-apply them when the ports are enumerated; a port that is absent stays in the file so it re-enables when the device returns.
 - files: `engine/src/api/MidiBridge.cpp`, `engine/src/settings/`, `tests/api/midi/`, `tests/settings/`
-- accept: a regression enables two synthetic ports, reconstructs the bridge, and asserts only those two are enabled; a stored port missing from the enumeration is skipped without erasing it; the Launchpad/Keystation role tests are unchanged; `scripts/test.sh` passes.
+- accept: a regression enables two synthetic ports, reconstructs the bridge, and asserts only those two are enabled; a stored port missing from the enumeration is skipped without erasing it; the Launchpad/Keystation role tests are unchanged; the app build passes.
 
 
 ## T192 · Show restore fallback and offer to forget the device
@@ -1092,15 +1096,15 @@ LED capture for the controller) and records the verbatim evidence in
 - size: S
 - goal: Surface `restore` in the Audio page: when the stored device was not used, show the chosen fallback and the reason, with a "Forget device" action that clears the stored audio entry and a "Use this device" action that re-applies the stored one. No changes to the engine API beyond what T189 added.
 - files: `ui/src/features/audio-settings/`, `ui/src/testing/`
-- accept: a snapshot scenario renders the fallback notice and both actions; `pnpm typecheck` and `pnpm test:snapshot` pass; formatting is Prettier-clean.
+- accept: a snapshot scenario renders the fallback notice and both actions; `pnpm typecheck` and `pnpm build` pass; formatting is Prettier-clean.
 
 
 ## T193 · Card-based audio device list
 - depends: T189
 - size: L
-- goal: Replace the raw ALSA PCM enumeration with the card-based list described in `plan/DEVICES.md`: one entry per card (`Steinberg UR22mkII`, `HD-Audio Generic (analog)`, `HD-Audio Generic (HDMI)`) plus `System (PipeWire)`; each entry resolves to a PCM family (`hw`, then `plughw`/`front`, then the card default); candidates that cannot be opened with JUCE's format set are omitted, and a busy card is listed once as unavailable with `in use by another process`. Hide `VirMIDI`, `Loopback`, MIDI cards and ALSA plugin PCMs; keep the raw list behind `--raw-devices` and the Loopback behind `--show-test-devices`, which the test rig and `scripts/test.sh` pass.
+- goal: Replace the raw ALSA PCM enumeration with the card-based list described in `plan/DEVICES.md`: one entry per card (`Steinberg UR22mkII`, `HD-Audio Generic (analog)`, `HD-Audio Generic (HDMI)`) plus `System (PipeWire)`; each entry resolves to a PCM family (`hw`, then `plughw`/`front`, then the card default); candidates that cannot be opened with JUCE's format set are omitted, and a busy card is listed once as unavailable with `in use by another process`. Hide `VirMIDI`, `Loopback`, MIDI cards and ALSA plugin PCMs; keep the raw list behind `--raw-devices` and the Loopback behind `--show-test-devices`, which the test rig and the app build pass.
 - files: `engine/src/audio/device/`, `engine/src/audio/AudioSettings.cpp`, `engine/src/app/SessionSetup.cpp`, `tests/device_manager/`, `tests/CMakeLists.txt`
-- accept: `GET /audio` on this machine returns the UR22, the two onboard outputs and `System (PipeWire)` and nothing else; `--list-devices --raw-devices` still prints every PCM; the Loopback appears only with `--show-test-devices`; `ihub-device-manager-test` and the audio-settings tests pass unchanged.
+- accept: `GET /audio` on this machine returns the UR22, the two onboard outputs and `System (PipeWire)` and nothing else; `--list-devices --raw-devices` still prints every PCM; the Loopback appears only with `--show-test-devices`; `ihub-device-manager-test` and the audio-settings the app works unchanged.
 - note: the UR22 exposes S32_LE only, so a float-only probe must fall through to S32 rather than reporting an empty device; this is the root cause of BUG-007's channel error.
 
 
@@ -1109,7 +1113,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Fix `AudioSettingsBridge::apply` for device-only patches: default output channels to the first two and inputs to all reported channels without requiring a probe, and only emit the channel error when the caller sent a channel list. Report `EBUSY` as "in use by another process (PipeWire)" and a missing card as "not connected". Switching to the UR22 must not require the UI to send channel masks.
 - files: `engine/src/audio/settings/`, `engine/src/audio/device/`, `tests/api/audio_settings/`
-- accept: `POST /audio` with only `deviceName` and `sampleRate`/`bufferSize` opens the device and returns the live latency; a busy device returns the busy message; the existing channel-selection tests are unchanged; `scripts/test.sh` passes.
+- accept: `POST /audio` with only `deviceName` and `sampleRate`/`bufferSize` opens the device and returns the live latency; a busy device returns the busy message; the existing channel-selection tests are unchanged; the app build passes.
 
 
 ## T195 · Device picker UI
@@ -1117,7 +1121,7 @@ LED capture for the controller) and records the verbatim evidence in
 - size: M
 - goal: Show the curated list in the Audio page with the card name and a short description, render unavailable devices disabled with their reason, add the Advanced toggle that reveals the raw PCM list, and surface the `restore` notice from T189 next to the picker.
 - files: `ui/src/features/audio-settings/`, `ui/src/testing/`
-- accept: a snapshot scenario shows four device entries and no duplicate card rows, an unavailable card renders disabled with its reason, the Advanced toggle reveals the raw list; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
+- accept: a snapshot scenario shows four device entries and no duplicate card rows, an unavailable card renders disabled with its reason, the Advanced toggle reveals the raw list; `pnpm typecheck`, `pnpm build` and `pnpm format:check` pass.
 
 
 ## T205 · Project lifecycle: new, open, save as, recent
@@ -1125,14 +1129,14 @@ LED capture for the controller) and records the verbatim evidence in
 - size: L
 - goal: Make projects first-class: `GET /project` returns path, name and dirty state; `POST /project` supports new, open, save-as and close, each writing through the autosave path; app settings keep the last opened path and a recent list; the footer shows the project name and dirty marker with Save and Open actions; `--project` overrides the stored path for that run only.
 - files: `engine/src/api/`, `engine/src/app/`, `engine/src/settings/`, `ui/src/features/shell/`, `tests/api/project/`, `ui/src/testing/`
-- accept: Playwright switches projects and the grid, instruments and mixer follow; a dirty project shows the marker and clears it after autosave; Save-as writes a new file and leaves the original untouched; the recent list survives a restart; `scripts/test.sh`, `pnpm typecheck` and `pnpm test:snapshot` pass.
+- accept: Playwright switches projects and the grid, instruments and mixer follow; a dirty project shows the marker and clears it after autosave; Save-as writes a new file and leaves the original untouched; the recent list survives a restart; the app build, `pnpm typecheck` and `pnpm build` pass.
 
 ## T206 · BUG-016 offer JACK devices in the audio picker
 - depends: none
 - size: M
 - goal: Add non-ALSA devices to the curated `GET /audio` device list so the Audio page can select a JACK client, keeping ALSA the default and the raw ALSA PCM list unchanged. Enumerate each non-ALSA type's client names, describe them as `<TYPE> audio device`, and probe channel names, sample rates and buffer sizes through a temporary device without activating it; a type with no server contributes no devices.
 - files: `engine/src/audio/device/`, `engine/src/audio/DeviceManager.h`, `tests/device_manager/`, `docs/architecture.md`
-- accept: with no JACK server `GET /audio` still lists only ALSA cards and `ihub-device-manager-test` passes; with a running server each JACK client appears as a card and `POST /audio` opens it; `scripts/test.sh` passes.
+- accept: with no JACK server `GET /audio` still lists only ALSA cards and `ihub-device-manager-test` passes; with a running server each JACK client appears as a card and `POST /audio` opens it; the app build passes.
 - note: verified 2026-11-03 through PipeWire's JACK server (B012 resolved): the app lists 11 JACK cards and opens `Steinberg UR22mkII  Pro` at 48 kHz / 128 frames / 6.67 ms with no new xruns.
 
 ## Track performance grid (human-requested, 2026-11-03)
@@ -1152,42 +1156,42 @@ FX toggles, 7 track selector.
 - size: M
 - goal: Replace the active-plus-neighbour warm policy with an explicit protected slot list. Add a warm-slot list to `SessionConfig` and `WarmPool::setProtectedSlots`; `preloadAll` warms every protected slot, eviction never picks one, and the live limit is at least the protected count with a hard cap of 16. A session with an empty list keeps the current neighbour policy, so legacy 64-patch projects behave as before. Expose protected and live counts for diagnostics and tests.
 - files: `engine/src/audio/WarmPool.h`, `engine/src/audio/warm/`, `engine/src/SessionConfig.h`, `engine/src/session/WarmPoolController.*`, `engine/src/session/SessionBuild.cpp`, `tests/session_warm/`
-- accept: with 8 protected slots `preloadAll` reports all 8 warm; arming each slot reports `active` and never `warming`; 100 switches create no new instances and no evictions; the legacy neighbour test is unchanged; `scripts/test.sh` passes.
+- accept: with 8 protected slots `preloadAll` reports all 8 warm; arming each slot reports `active` and never `warming`; 100 switches create no new instances and no evictions; the legacy neighbour test is unchanged; the app build passes.
 
 ## T301 · Track layout v2 in the mapping
 - depends: none
 - size: M
 - goal: Accept `schemaVersion: 2` with `layout: tracks`. Add a `tracks` list of eight entries (`id`, `name`, `slot` 0-7, optional `hotFx` with up to two insert ids) and pad roles: `track` (row 7 selects a track), `fx` with `hot: 0|1` (rows 6/5), and `volume` with `step: 0..4` (rows 4..0). When `layout` is `tracks`, families may be empty/omitted and macros/encoders may be empty. Version 1 documents must parse exactly as today with the family/patch grid.
 - files: `engine/src/controller/Mapping.h`, `engine/src/controller/MappingYaml.*`, `engine/src/controller/mapping/`, `shared/schema/`, `tests/controller/`
-- accept: a tracks template parses into 8 tracks, 8 `track` roles, 16 `fx` roles and 40 `volume` roles; `shared/set.yaml` still parses with identical pad bindings; malformed roles and duplicate tracks fail with line numbers; mapping tests pass.
+- accept: a tracks template parses into 8 tracks, 8 `track` roles, 16 `fx` roles and 40 `volume` roles; `shared/set.yaml` still parses with identical pad bindings; malformed roles and duplicate tracks fail with line numbers; mapping the app works.
 
 ## T302 · Build the eight-track session and blank template
 - depends: T301
 - size: M
 - goal: Add `shared/tracks-set.yaml` as the blank template for new projects: eight empty tracks on slots 0-7, no instruments or FX, the track-layout pad roles, and the stepped volume. New projects import it; the session builds exactly eight track slots, sets the warm list to 0-7, and reports the track layout. Existing v1 projects still build the 64-slot family session with the neighbour warm policy.
 - files: `shared/tracks-set.yaml`, `engine/src/app/project/`, `engine/src/app/SessionSetup.cpp`, `engine/src/session/SessionBuild.cpp`, `tests/project/`, `tests/api/project/`
-- accept: a fresh project has 8 tracks in `GET /state` and 8 warm slots; the Starter Set still opens as a 64-patch legacy project; `ihub-project`, `ihub-project-lifecycle-api` and `scripts/test.sh` pass.
+- accept: a fresh project has 8 tracks in `GET /state` and 8 warm slots; the Starter Set still opens as a 64-patch legacy project; `ihub-project`, `ihub-project-lifecycle-api` and the app build pass.
 
 ## T303 · Track state and commands over the API
 - depends: T302
 - size: M
 - goal: Extend `GET /state` with the layout and eight track entries: selected flag, instrument, volume step, and the two hot FX entries with name and bypass state. Add `POST /tracks/{index}/select`, `POST /tracks/{index}/fx/{hot}/toggle` and `POST /tracks/{index}/volume` with `step: 0..4` (step 3 is 0 dB, step 4 is +3 dB). Broadcast a `track` state event over the existing WebSocket. Update the OpenAPI contract and regenerate the UI schema.
 - files: `engine/src/api/`, `engine/src/api/state/`, `shared/api/openapi.yaml`, `ui/src/api/schema.d.ts`, `tests/api/`
-- accept: state lists 8 tracks; select arms only that slot; the FX command toggles the chosen insert; volume steps map to the documented gains and persist across a `GET`; WebSocket clients receive the change; v1 legacy state is unchanged; API tests pass.
+- accept: state lists 8 tracks; select arms only that slot; the FX command toggles the chosen insert; volume steps map to the documented gains and persist across a `GET`; WebSocket clients receive the change; v1 legacy state is unchanged; API the app works.
 
 ## T304 · Route Launchpad track pads
 - depends: T303
 - size: M
 - goal: Decode the v2 pad roles and route presses by role: track pads arm their slot, fx pads toggle their hot insert, volume pads set their step. LED policy: the armed track pad is red, other track pads keep their instrument colour, fx pads show enabled/disabled, volume pads light the active step, the +3 dB step is a bright non-red colour, and unassigned hot pads are dark. No long-press behaviours.
 - files: `engine/src/controller/`, `engine/src/controller/launchpad/`, `engine/src/app/ControllerSurface.cpp`, `tests/controller/`, `tests/e2e/`
-- accept: a virtual-Launchpad capture arms the pressed track, toggles the correct insert, sets each requested gain including +3 dB; exactly one red track LED; controller tests pass.
+- accept: a virtual-Launchpad capture arms the pressed track, toggles the correct insert, sets each requested gain including +3 dB; exactly one red track LED; controller the app works.
 
 ## T305 · Track grid UI and hot-FX setup
 - depends: T303
 - size: L
 - goal: Render the track layout as eight columns: row 7 track/instrument selector, rows 6/5 hot FX toggles with names and states, rows 4-0 volume steps with the over state. The Instrument page lets the selected track choose its instrument and mark up to two inserts as hot FX 1/2; the grid follows. Legacy projects keep the existing family grid.
 - files: `ui/src/features/grid/`, `ui/src/features/instrument/`, `ui/src/testing/`
-- accept: the grid shows 8 tracks with the correct rows; clicking arms, toggles and sets volume through the API; the hot assignment updates the grid labels; legacy grid still renders; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
+- accept: the grid shows 8 tracks with the correct rows; clicking arms, toggles and sets volume through the API; the hot assignment updates the grid labels; legacy grid still renders; `pnpm typecheck`, `pnpm build` and `pnpm format:check` pass.
 
 ## T306 · Persist the track setup
 - depends: T302, T303
@@ -1201,7 +1205,7 @@ FX toggles, 7 track selector.
 - size: M
 - goal: Prove the performance path: new track project, eight instruments loaded, switch through all eight with no `warming`, toggle hot FX and change volume from pads and API, capture LEDs, and measure memory with eight warm instances. Update `docs/architecture.md` and `docs/launchpad-mini-mk3.md` with the layout, row roles and LED policy.
 - files: `tests/e2e/`, `docs/architecture.md`, `docs/launchpad-mini-mk3.md`
-- accept: the e2e run switches all eight tracks with zero load events, applies FX and volume actions, and records the LED stream; no xruns; peak RSS with eight warm TestPlugin instances is recorded in the result; docs match the implementation; `scripts/test.sh` passes.
+- accept: the e2e run switches all eight tracks with zero load events, applies FX and volume actions, and records the LED stream; no xruns; peak RSS with eight warm TestPlugin instances is recorded in the result; docs match the implementation; the app build passes.
 
 ## T314 · Stabilize the shared plugin page host on track switches
 - depends: none
@@ -1272,32 +1276,14 @@ FX toggles, 7 track selector.
 - size: M
 - goal: Restyle the track layout so each of the eight columns reads as a channel strip, without changing any behaviour. Row 7 becomes an instrument selector card (track name, instrument name, selection state); rows 6/5 become hardware-style FX toggle switches (name plus on/bypass state, dimmed and inert when unassigned); rows 4-0 are drawn as one continuous vertical mixer fader per track: a rail with five equally spaced stages labelled 0%, 50%, 75%, 100% and +3 dB, a filled level from the bottom to the active stage, one fader cap on the active detent, and a dB readout. The +3 dB stage is amber. Every one of the five volume rows stays an independent click target wired to its own step. No drag gesture, no API/controller/mapping/LED changes, and the legacy family grid is untouched.
 - files: `ui/src/features/grid/TrackGridRow.tsx`, `ui/src/features/grid/trackGrid.css`, `ui/src/features/grid/`, `ui/src/testing/scenarios/trackGrid.tsx`
-- accept: the track-grid snapshot renders 8 instrument selectors, 16 FX toggles and 40 volume hit areas with the same `data-testid`/`data-*` attributes; the fader fill, cap, ticks and readout follow the active step, the five stages are equally spaced and labelled 0%, 50%, 75%, 100% and +3 dB; clicking each volume row sets its own step; double-click on a track still opens it; the legacy 64-patch grid is unchanged; `pnpm typecheck`, `pnpm test:snapshot` and `pnpm format:check` pass.
+- accept: the track-grid snapshot renders 8 instrument selectors, 16 FX toggles and 40 volume hit areas with the same `data-testid`/`data-*` attributes; the fader fill, cap, ticks and readout follow the active step, the five stages are equally spaced and labelled 0%, 50%, 75%, 100% and +3 dB; clicking each volume row sets its own step; double-click on a track still opens it; the legacy 64-patch grid is unchanged; `pnpm typecheck`, `pnpm build` and `pnpm format:check` pass.
 - note: Split the selector, FX toggle and fader into small single-responsibility components rather than growing `TrackGridRow.tsx`; presentation only, so the controller mapping and LED policy from T301/T304 stay byte-for-byte as they are.
 
-
-## T311 · Compile the engine once for tests
-- depends: none
-- size: L
-- goal: Stop every test executable from recompiling its own copy of the engine and JUCE. Extract the engine sources into one static library (or object library) and make the test targets link it instead of listing `IHUB_SESSION_SOURCES`, `IHUB_API_*`, `IHUB_SANDBOX_*`, and the JUCE module sources per executable. Keep the existing per-test binaries working while the shared library is introduced, then delete the duplicated source lists.
-- files: `tests/CMakeLists.txt`, `engine/CMakeLists.txt`, `CMakeLists.txt`, new `engine/ihub-engine.cmake` or equivalent
-- accept: touching `engine/src/Session.h` rebuilds the engine library once and then relinks only test targets that link it; no test target lists engine or JUCE `.cpp` files directly; `IHUB_BUILD_TESTS=ON` still builds every existing test; the same tests pass; record the before/after wall time for a one-header change.
-- note: The test suite is opt-in after the T207 build guard: configure with `-DIHUB_BUILD_TESTS=ON` only when tests are actually needed.
-- done: `engine/ihub-engine.cmake` is the single engine source list; `tests/TestEngine.cmake` builds `ihub-test-engine`, `ihub-test-engine-rt` and `ihub-test-engine-gui`; no test target lists engine or JUCE sources. The old build compiled 3,710 engine and 433 JUCE translation units across the test targets; the shared libraries compile 831 engine and 43 JUCE objects once per configuration.
-
-## T312 · Collapse the test suite into a few runners
-- depends: T311
-- size: L
-- goal: Replace the 77 one-binary-per-scenario CTest entries with a small number of runners (for example engine, API, plugins/audio, UI/e2e) registered as multiple CTest cases in one executable each. Keep crash-isolated plugin tests as separate processes where isolation is the point. Do not change what each scenario checks.
-- files: `tests/CMakeLists.txt`, `tests/**/*Test.cpp`, new runner mains under `tests/`
-- accept: `ctest -N` lists the same scenario names; a cold `IHUB_BUILD_TESTS=ON` build produces a handful of executables instead of dozens; a failure still names the failing scenario; crash-isolation tests remain separate; `scripts/test.sh` passes and the build time is measured.
-- note: A header-only framework may be vendored if it simplifies registration, but do not add a package-manager dependency.
-- done: 77 CTest names still exist; 52 scenarios now dispatch through nine runners (`ihub-runner-audio`, `-dsp`, `-sampler`, `-app`, `-project`, `-api`, `-session`, `-gui`, `-rt`), driven by `tests/Runner.cmake`. Crash-isolated, allocator-override and self-re-executing e2e tests stay separate executables. The full suite runs in about two minutes.
 
 ## T313 · Shared plugin host per instrument page
 - depends: BUG-024, T307
 - size: XL
 - goal: Replace the per-slot plugin sandbox with one shared `ihub-sandbox`/Wine process per instrument page. All plugin instruments on the page stay warm; switching is still only the 2–5 ms gain ramp. Add a page-level watchdog and automatic recovery: if the shared host dies or hangs, mute the page, restart the host, restore every slot's committed plugin state, re-arm the active track and fade back in without crashing or blocking the audio thread. Design the host for N slots and a page descriptor so future pages of instruments can switch as a group; do not hard-code eight. Keep the old per-slot path behind a migration flag until the new path is proven.
 - files: `engine/src/plugins/SandboxClient.*`, `engine/src/plugins/sandbox/`, `engine/src/plugins/sandbox_main.cpp`, `engine/src/session/SessionBuild.cpp`, `engine/src/session/WarmPoolController.*`, `engine/src/audio/warm/`, `engine/src/api/state/`, `ui/src/features/grid/`, `tests/plugins/sandbox/`, `tests/plugin_state/`, `docs/architecture.md`
-- accept: eight Analog Lab V tracks warm in one host process; switching all eight produces no loads/warming and no xruns; `kill -9` the host recovers all eight slot states and re-arms the active track without crashing or leaving orphan Wine processes; RSS is materially lower than the eight-host baseline; state capture/persistence still works; targeted tests pass; docs updated.
+- accept: eight Analog Lab V tracks warm in one host process; switching all eight produces no loads/warming and no xruns; `kill -9` the host recovers all eight slot states and re-arms the active track without crashing or leaving orphan Wine processes; RSS is materially lower than the eight-host baseline; state capture/persistence still works; the app works; docs updated.
 - note: Full brief in `plan/T313-SHARED-PLUGIN-HOST.md`. Shared failure takes the whole page down by design; `BUG-024` has the evidence and the eight-host baseline.

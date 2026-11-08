@@ -108,10 +108,10 @@ stored.
 
 | Task | Scope |
 | --- | --- |
-| T188 | `SettingsStore`: load/save, schema v1, atomic write, corrupt recovery, unknown-key preservation. Unit tests only, no wiring. |
+| T188 | `SettingsStore`: load/save, schema v1, atomic write, corrupt recovery, unknown-key preservation. No UI wiring. |
 | T189 | Audio device persistence: restore at startup, save on successful apply, CLI precedence, fallback reason in `/audio`. |
 | T190 | Mixer settings through the same store. |
 | T191 | Enabled MIDI inputs by `(client, port)` name. |
-| T192 | UI: show the fallback reason and offer "forget this device". Snapshot test. |
+| T192 | UI: show the fallback reason and offer "forget this device". Verify in the app. |
 
-Each task leaves `scripts/test.sh` green and touches one concern.
+Each task leaves the app building and touches one concern.

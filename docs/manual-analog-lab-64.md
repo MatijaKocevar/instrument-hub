@@ -1,6 +1,6 @@
 # Manual acceptance: 64-pad Analog Lab V state pass
 
-This is the human half of T131. The automated tests prove per-patch state with
+This is the human half of T131. The app checks per-patch state with
 64 in-repo `TestPlugin` patches, split into eight isolated batch processes, and
 with two Analog Lab V patches. Loading 64 Wine-hosted Analog Lab instances
 automatically would be slow, brittle and outside the warm-pool budget, so the
@@ -32,7 +32,7 @@ This checklist covers the user-facing 64-pad half with Analog Lab V.
 
 Record these before starting:
 
-- [ ] Analog Lab V is installed and licensed on the test machine, either
+- [ ] Analog Lab V is installed and licensed on the machine, either
       natively or through `vstbridge`/`yabridge`.
 - [ ] The launchpad mapping and the application are built from the current
       tree (`scripts/build.sh`).
@@ -41,7 +41,7 @@ Record these before starting:
 - [ ] A writable set directory is available. Keep `set.yaml` and its
       `set.plugin-state/` sidecar together; copy both when backing up.
 - [ ] The machine has enough memory for two Wine-hosted instances plus the
-      application. This is not a 64-instance test.
+      application. This is not a 64-instance load.
 
 ## 3. Prepare the 64-patch set
 
@@ -127,7 +127,7 @@ pad 25.
 ## 6. Restart pass
 
 1. [ ] Quit the application normally. Confirm no Wine host process is left
-       behind for the two test patches.
+       behind for the two check patches.
 2. [ ] Start the application again and load the same set.
 3. [ ] Arm all 64 pads in the same order as section 4.
 4. [ ] Every patch must restore its own preset, sound and state; no patch may
@@ -160,5 +160,5 @@ The pass is green only when:
 
 If any item fails, leave the application open, capture the console output and
 the failing pad's warm state, then file the result as a partial pass. Do not
-turn this checklist into a 64-instance automated test to work around a
+turn this checklist into a 64-instance load to work around a
 failure.
