@@ -1750,7 +1750,7 @@ paths:
         keyboard by default and plays the armed slot. An input can be switched
         to the `grid` role to drive the 8x8 pad grid through a note base or a
         64-pad learn. Only the Launchpad Mini MK3 on its **MI** port reports
-        LED output. `padTest` reports the most recent grid test.
+        LED output.
       security:
         - tokenHeader: []
         - bearerAuth: []
@@ -1815,43 +1815,6 @@ paths:
                 $ref: "#/components/schemas/Error"
         "503":
           description: The server has no MIDI backend attached
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /midi/pad-test:
-    post:
-      tags: [control]
-      operationId: runMidiPadTest
-      summary: Light the Launchpad grid
-      description: |
-        Lights every pad and walks a bright column across the 8x8 grid for about
-        900 ms, then clears the surface and repaints the real grid. Requires a
-        connected Launchpad or a scripted LED sink; otherwise the request fails
-        with `409` and the reason. The response is the MIDI state with
-        `padTest.active: true` and `lit: 64` while the animation runs.
-      security:
-        - tokenHeader: []
-        - bearerAuth: []
-        - {}
-      responses:
-        "200":
-          description: The pad test started
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MidiState"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "409":
-          description: No Launchpad output is available
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "503":
-          description: The server has no pad-test handler attached
           content:
             application/json:
               schema:
@@ -3326,26 +3289,9 @@ components:
             A readable reason when the input cannot be used as configured,
             empty when it is usable.
 
-    MidiPadTest:
-      type: object
-      required: [active, lit, durationMs]
-      additionalProperties: false
-      properties:
-        active:
-          type: boolean
-          description: True while the grid test animation is running.
-        lit:
-          type: integer
-          minimum: 0
-          description: Pads currently lit by the test; 64 while it runs.
-        durationMs:
-          type: integer
-          minimum: 0
-          description: Length of the animation in milliseconds.
-
     MidiState:
       type: object
-      required: [inputs, inputCount, padTest, error]
+      required: [inputs, inputCount, error]
       additionalProperties: false
       properties:
         inputs:
@@ -3356,8 +3302,6 @@ components:
           type: integer
           minimum: 0
           description: Number of MIDI inputs in this snapshot.
-        padTest:
-          $ref: "#/components/schemas/MidiPadTest"
         error:
           type: string
           description: Enumeration error, empty on success.

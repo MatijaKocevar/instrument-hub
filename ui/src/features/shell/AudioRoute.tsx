@@ -44,17 +44,12 @@ export function AudioRoute({
         midi={app.midi}
         error={app.midiError}
         busy={app.midiBusy}
-        padTestBusy={app.padTestBusy}
-        padTestError={app.padTestError}
         loading={app.midi === null}
         onChangeInput={(patch) => {
           void store.updateMidiInput(patch);
         }}
         onRefreshMidi={() => {
           void store.refreshMidi();
-        }}
-        onPadTest={() => {
-          void store.runPadTest();
         }}
       />
     </section>

@@ -21,8 +21,6 @@ export interface MidiEndpoints {
     enabled: boolean,
     options?: { signal?: AbortSignal },
   ): Promise<ControlMidiState>;
-
-  runMidiPadTest(options?: { signal?: AbortSignal }): Promise<ControlMidiState>;
 }
 
 function isMidiInput(value: unknown): value is ControlMidiInput {
@@ -59,11 +57,6 @@ function isMidiState(value: unknown): value is ControlMidiState {
     Array.isArray(candidate.inputs) &&
     candidate.inputs.every(isMidiInput) &&
     typeof candidate.inputCount === "number" &&
-    candidate.padTest !== null &&
-    candidate.padTest !== undefined &&
-    typeof candidate.padTest.active === "boolean" &&
-    typeof candidate.padTest.lit === "number" &&
-    typeof candidate.padTest.durationMs === "number" &&
     typeof candidate.error === "string"
   );
 }
@@ -129,20 +122,5 @@ export function createMidiEndpoints(
       );
     },
 
-    async runMidiPadTest(requestOptions) {
-      const { data, error, response } = await client.POST("/midi/pad-test", {
-        ...(requestOptions?.signal !== undefined
-          ? { signal: requestOptions.signal }
-          : {}),
-      });
-
-      return requireMidiState(
-        guard,
-        data,
-        error,
-        response.status,
-        "POST /midi/pad-test",
-      );
-    },
   };
 }

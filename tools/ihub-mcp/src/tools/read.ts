@@ -50,7 +50,7 @@ export function registerReadTools(
     {
       title: "Read Instrument Hub MIDI inputs",
       description:
-        "Read the MIDI inputs, controller roles, open/enabled flags and pad-test status.",
+        "Read the MIDI inputs, controller roles and open/enabled flags.",
       annotations: readOnlyTool,
     },
     () => toolResult(() => api.getMidi()),

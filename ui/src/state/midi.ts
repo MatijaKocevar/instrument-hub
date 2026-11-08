@@ -49,20 +49,6 @@ export class MidiActions {
     return this.updateMidiInput({ id, enabled });
   };
 
-  runPadTest = async (): Promise<boolean> => {
-    this.patch({ padTestBusy: true, padTestError: null });
-
-    try {
-      const midi = await this.context.api.runMidiPadTest();
-
-      this.patch({ midi, padTestBusy: false, padTestError: null });
-      return true;
-    } catch (error) {
-      this.patch({ padTestBusy: false, padTestError: messageOf(error) });
-      return false;
-    }
-  };
-
   private patch(change: Parameters<ActionContext["patch"]>[0]): void {
     this.context.patch(change);
   }

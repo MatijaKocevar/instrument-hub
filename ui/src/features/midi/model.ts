@@ -1,8 +1,4 @@
-import type {
-  ControlMidiInput,
-  ControlMidiPadTest,
-  ControlMidiState,
-} from "../../api/client";
+import type { ControlMidiInput } from "../../api/client";
 
 export type MidiInputRole = "launchpad" | "keyboard" | "grid";
 
@@ -86,26 +82,4 @@ export function midiInputForRole(
   role: MidiInputRole,
 ): ControlMidiInput | null {
   return inputs.find((input) => input.role === role) ?? null;
-}
-
-export function padTestLabel(
-  padTest: ControlMidiPadTest | null,
-  error: string | null,
-): string {
-  if (error !== null && error.length > 0) return error;
-
-  if (padTest === null) return "Not run yet";
-
-  if (padTest.active) return `${String(padTest.lit)} pads lit`;
-
-  if (padTest.lit > 0) return `Last test lit ${String(padTest.lit)} pads`;
-
-  return "Not run yet";
-}
-
-export function canRunPadTest(midi: ControlMidiState | null): boolean {
-  return (
-    midi?.inputs.some((input) => input.role === "launchpad" && input.open) ===
-    true
-  );
 }

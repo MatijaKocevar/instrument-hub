@@ -47,8 +47,6 @@ export interface AppSnapshot {
   midi: ControlMidiState | null;
   midiError: string | null;
   midiBusy: boolean;
-  padTestBusy: boolean;
-  padTestError: string | null;
   pairing: ControlPairingState | null;
   pairingError: string | null;
   pairingBusy: boolean;
@@ -95,8 +93,6 @@ export function initialSnapshot(): AppSnapshot {
     midi: null,
     midiError: null,
     midiBusy: false,
-    padTestBusy: false,
-    padTestError: null,
     pairing: null,
     pairingError: null,
     pairingBusy: false,

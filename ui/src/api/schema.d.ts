@@ -916,7 +916,7 @@ export interface paths {
          *     keyboard by default and plays the armed slot. An input can be switched
          *     to the `grid` role to drive the 8x8 pad grid through a note base or a
          *     64-pad learn. Only the Launchpad Mini MK3 on its **MI** port reports
-         *     LED output. `padTest` reports the most recent grid test.
+         *     LED output.
          */
         get: operations["getMidi"];
         put?: never;
@@ -948,30 +948,6 @@ export interface paths {
          *     The response is the complete MIDI state after the change.
          */
         post: operations["updateMidiInput"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/midi/pad-test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Light the Launchpad grid
-         * @description Lights every pad and walks a bright column across the 8x8 grid for about
-         *     900 ms, then clears the surface and repaints the real grid. Requires a
-         *     connected Launchpad or a scripted LED sink; otherwise the request fails
-         *     with `409` and the reason. The response is the MIDI state with
-         *     `padTest.active: true` and `lit: 64` while the animation runs.
-         */
-        post: operations["runMidiPadTest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1702,19 +1678,10 @@ export interface components {
              */
             error: string;
         };
-        MidiPadTest: {
-            /** @description True while the grid test animation is running. */
-            active: boolean;
-            /** @description Pads currently lit by the test; 64 while it runs. */
-            lit: number;
-            /** @description Length of the animation in milliseconds. */
-            durationMs: number;
-        };
         MidiState: {
             inputs: components["schemas"]["MidiInput"][];
             /** @description Number of MIDI inputs in this snapshot. */
             inputCount: number;
-            padTest: components["schemas"]["MidiPadTest"];
             /** @description Enumeration error, empty on success. */
             error: string;
         };
@@ -3285,45 +3252,6 @@ export interface operations {
                 };
             };
             /** @description The server has no MIDI backend attached */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    runMidiPadTest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The pad test started */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MidiState"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            /** @description No Launchpad output is available */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The server has no pad-test handler attached */
             503: {
                 headers: {
                     [name: string]: unknown;

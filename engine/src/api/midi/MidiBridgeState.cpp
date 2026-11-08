@@ -104,10 +104,6 @@ MidiStateSnapshot MidiBridge::snapshot()
     for (const auto& device : listDevices())
         state.inputs.push_back (makeState (device));
 
-    state.padTest.active = padTestActive.load (std::memory_order_acquire);
-    state.padTest.lit = padTestLit.load (std::memory_order_acquire);
-    state.padTest.durationMs = padTestDurationMs;
-
     return state;
 }
 

@@ -6,7 +6,6 @@ import type {
 } from "../../api/client";
 import { MidiInputList } from "./MidiInputList";
 import { midiInputSummary, midiLaunchpadSummary } from "./model";
-import { PadTestPanel } from "./PadTestPanel";
 import { useMidiLearnPolling } from "./useMidiLearnPolling";
 import "./midi.css";
 
@@ -14,25 +13,19 @@ export interface MidiPanelProps {
   readonly midi: ControlMidiState | null;
   readonly error?: string | null;
   readonly busy?: boolean;
-  readonly padTestBusy?: boolean;
-  readonly padTestError?: string | null;
   readonly loading?: boolean;
   readonly onChangeInput?:
     ((patch: ControlMidiInputUpdate) => void) | undefined;
   readonly onRefreshMidi?: (() => void) | undefined;
-  readonly onPadTest?: () => void;
 }
 
 export function MidiPanel({
   midi,
   error = null,
   busy = false,
-  padTestBusy = false,
-  padTestError = null,
   loading = false,
   onChangeInput,
   onRefreshMidi,
-  onPadTest,
 }: MidiPanelProps): ReactElement {
   const learning = midi?.inputs.some((input) => input.learnActive) ?? false;
 
@@ -72,7 +65,6 @@ export function MidiPanel({
       data-testid="midi-panel"
       data-input-count={midi.inputs.length}
       data-enabled-count={enabled}
-      data-pad-test-active={midi.padTest.active ? "true" : "false"}
     >
       <header className="midi__head">
         <div>
@@ -104,13 +96,6 @@ export function MidiPanel({
         inputs={midi.inputs}
         busy={busy}
         onChange={onChangeInput}
-      />
-
-      <PadTestPanel
-        midi={midi}
-        busy={padTestBusy}
-        error={padTestError}
-        onPadTest={onPadTest}
       />
     </section>
   );

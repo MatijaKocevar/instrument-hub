@@ -100,8 +100,7 @@ bool ControlApi::start (const juce::String& commandLine,
         [this] (const Api::MidiInputPatch& patch, std::string& error)
         {
             return midiBridge->updateInput (patch, error);
-        },
-        [this] (std::string& error) { return midiBridge->runPadTest (error); });
+        });
 
     audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
     audioSettings->setSettingsStore (settings);

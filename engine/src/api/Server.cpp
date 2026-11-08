@@ -125,7 +125,7 @@ struct Server::Impl
         });
 
         RouteContext context { state, {}, {}, {}, {}, {}, {}, {}, &pairing,
-                               {}, {}, {}, {}, {}, {}, {}, {}, {}, {} };
+                               {}, {}, {}, {}, {}, {}, {}, {}, {} };
 
         {
             const std::lock_guard<std::mutex> lock (configMutex);
@@ -139,7 +139,6 @@ struct Server::Impl
             context.pluginRescan = pluginRescan;
             context.midiProvider = midiProvider;
             context.midiUpdateInput = midiUpdateInput;
-            context.midiPadTest = midiPadTest;
             context.projectProvider = projectProvider;
             context.projectCommand = projectCommand;
             context.projectDialogBegin = projectDialogBegin;
@@ -297,7 +296,6 @@ struct Server::Impl
     PluginRescanHandler pluginRescan;
     MidiStateProvider midiProvider;
     MidiInputHandler midiUpdateInput;
-    MidiPadTestHandler midiPadTest;
     ProjectOverviewProvider projectProvider;
     ProjectCommandHandler projectCommand;
     ProjectDialogBeginHandler projectDialogBegin;
@@ -456,13 +454,11 @@ void Server::setPluginHandlers (PluginInventoryProvider provider,
 }
 
 void Server::setMidiHandlers (MidiStateProvider provider,
-                              MidiInputHandler updateInput,
-                              MidiPadTestHandler padTest)
+                              MidiInputHandler updateInput)
 {
     const std::lock_guard<std::mutex> lock (impl->configMutex);
     impl->midiProvider = std::move (provider);
     impl->midiUpdateInput = std::move (updateInput);
-    impl->midiPadTest = std::move (padTest);
 }
 
 void Server::setProjectHandlers (ProjectOverviewProvider provider,
