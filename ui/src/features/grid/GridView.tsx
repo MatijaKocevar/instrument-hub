@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 
 import { RecoveringBanner } from "./RecoveringBanner";
 import type { GridModel } from "./model";
+import { TrackGridSkeleton } from "./TrackGridSkeleton";
 import { TrackGridTable } from "./TrackGridTable";
 import { TrackMeterProvider } from "./TrackMeterProvider";
 import "./grid.css";
@@ -31,6 +32,7 @@ export function GridView({
     <section
       className="grid"
       aria-label="Instrument grid"
+      aria-busy={loading}
       data-testid="instrument-grid"
       data-layout={model.layout}
       data-armed-slot={model.armedSlot}
@@ -41,9 +43,7 @@ export function GridView({
       ) : null}
 
       {loading ? (
-        <div className="grid__empty" role="status" aria-busy="true">
-          Loading tracks…
-        </div>
+        <TrackGridSkeleton />
       ) : model.tracks.length === 0 ? (
         <div className="grid__empty" data-testid="grid-empty">
           No performance tracks in this set yet.

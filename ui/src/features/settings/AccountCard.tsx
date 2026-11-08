@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 
+import { Skeleton } from "../loading";
 import type { ConnectionPhase } from "../../state/store";
 
 const PHASE_LABEL: Record<ConnectionPhase, string> = {
@@ -15,6 +16,7 @@ interface AccountCardProps {
   readonly token: string | null;
   readonly pairedClients: number;
   readonly canRevoke: boolean;
+  readonly loading?: boolean;
   readonly onForget?: (() => void) | undefined;
 }
 
@@ -24,6 +26,7 @@ export function AccountCard({
   token,
   pairedClients,
   canRevoke,
+  loading = false,
   onForget,
 }: AccountCardProps): ReactElement {
   return (
@@ -63,7 +66,13 @@ export function AccountCard({
         </div>
         <div>
           <dt>Paired tablets</dt>
-          <dd data-testid="settings-paired-clients">{pairedClients}</dd>
+          <dd data-testid="settings-paired-clients">
+            {loading ? (
+              <Skeleton width="2rem" height="0.85rem" />
+            ) : (
+              pairedClients
+            )}
+          </dd>
         </div>
       </dl>
 

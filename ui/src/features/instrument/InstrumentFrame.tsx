@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import type { ControlPatch, ControlTrack } from "../../api/client";
 import { InstrumentHead } from "./InstrumentHead";
+import { InstrumentSkeleton } from "./InstrumentSkeleton";
 
 interface InstrumentFrameProps {
   readonly patch: ControlPatch | null;
@@ -22,6 +23,9 @@ export function InstrumentFrame({
   onRenameTrack,
   children,
 }: InstrumentFrameProps): ReactElement {
+  if (patch === null && loading)
+    return <InstrumentSkeleton following={following} />;
+
   if (patch === null) {
     return (
       <section
@@ -29,17 +33,16 @@ export function InstrumentFrame({
         data-testid="instrument-page"
         data-slot={-1}
         data-following={following ? "true" : "false"}
-        aria-busy={loading ? "true" : "false"}
+        aria-busy="false"
       >
         <header className="instrument__head">
           <p className="instrument__eyebrow">Instrument</p>
           <h2 className="instrument__title" data-testid="instrument-name">
-            {loading ? "Loading the set…" : "No patch selected"}
+            No patch selected
           </h2>
           <p className="instrument__lede">
-            {loading
-              ? "Waiting for the engine to report its state."
-              : "Arm a patch on the Grid page, or press a pad on the Launchpad, to open its instrument."}
+            Arm a patch on the Grid page, or press a pad on the Launchpad, to
+            open its instrument.
           </p>
         </header>
       </section>

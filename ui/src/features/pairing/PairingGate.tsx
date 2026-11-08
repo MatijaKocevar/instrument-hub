@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactElement } from "react";
 
 import type { ControlPairingState } from "../../api/client";
+import { Spinner } from "../loading";
 import { isPairingCode, normalizePairingCode } from "./model";
 import "./pairing.css";
 
@@ -82,6 +83,7 @@ export function PairingGate({
           type="submit"
           disabled={!valid || busy || lanOff}
         >
+          {busy ? <Spinner label="Pairing this browser" /> : null}
           {busy ? "Pairing…" : "Pair"}
         </button>
       </form>

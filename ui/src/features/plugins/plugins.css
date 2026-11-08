@@ -123,8 +123,12 @@
 }
 
 .plugins__button {
+  display: inline-flex;
   min-height: 44px;
   min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   padding: 0.5rem 0.95rem;
   border: 1px solid #343a4d;
   border-radius: 10px;
@@ -175,6 +179,34 @@
   border: 1px solid #2c3040;
   border-radius: 14px;
   background: linear-gradient(160deg, #191b25 0%, #12141b 90%);
+}
+
+.plugins__card--skeleton {
+  min-height: 14rem;
+  pointer-events: none;
+}
+
+.plugins__skeleton-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
+  gap: 0.5rem 0.75rem;
+}
+
+.plugins__skeleton-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.plugins__skeleton-path {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.plugins__loading {
+  display: flex;
+  flex-direction: column;
 }
 
 .plugins__card-head {

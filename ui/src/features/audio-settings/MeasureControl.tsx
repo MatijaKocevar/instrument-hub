@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 
 import type { ControlAudioMeasurement } from "../../api/client";
 import type { MeasurementSource } from "../../api/audio";
+import { Spinner } from "../loading";
 import { formatMs } from "./model";
 
 function Measurement({
@@ -103,6 +104,7 @@ export function MeasureControl({
           onMeasure?.(source);
         }}
       >
+        {busy ? <Spinner label="Measuring latency" /> : null}
         {busy ? "Working…" : "Measure"}
       </button>
       <Measurement measurement={measurement} error={error} />

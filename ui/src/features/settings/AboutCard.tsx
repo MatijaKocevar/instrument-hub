@@ -1,5 +1,7 @@
 import type { ReactElement } from "react";
 
+import { Skeleton } from "../loading";
+
 function formatUptime(milliseconds: number | null): string {
   if (milliseconds === null) return "—";
 
@@ -25,12 +27,14 @@ interface AboutCardProps {
   } | null;
   readonly schemaVersion: number | null;
   readonly uptimeMs: number | null;
+  readonly loading?: boolean;
 }
 
 export function AboutCard({
   application,
   schemaVersion,
   uptimeMs,
+  loading = false,
 }: AboutCardProps): ReactElement {
   const version = application?.version ?? "0.1.0";
 
@@ -51,22 +55,44 @@ export function AboutCard({
         <div>
           <dt>Application</dt>
           <dd data-testid="settings-app-name">
-            {application?.name ?? "Instrument Hub"}
+            {loading ? (
+              <Skeleton width="6rem" height="0.85rem" />
+            ) : (
+              (application?.name ?? "Instrument Hub")
+            )}
           </dd>
         </div>
         <div>
           <dt>Version</dt>
-          <dd data-testid="settings-version">v{version}</dd>
+          <dd data-testid="settings-version">
+            {loading ? (
+              <Skeleton width="3rem" height="0.85rem" />
+            ) : (
+              `v${version}`
+            )}
+          </dd>
         </div>
         <div>
           <dt>State schema</dt>
           <dd data-testid="settings-schema">
-            {schemaVersion === null ? "—" : schemaVersion}
+            {loading ? (
+              <Skeleton width="2rem" height="0.85rem" />
+            ) : schemaVersion === null ? (
+              "—"
+            ) : (
+              schemaVersion
+            )}
           </dd>
         </div>
         <div>
           <dt>Uptime</dt>
-          <dd data-testid="settings-uptime">{formatUptime(uptimeMs)}</dd>
+          <dd data-testid="settings-uptime">
+            {loading ? (
+              <Skeleton width="5rem" height="0.85rem" />
+            ) : (
+              formatUptime(uptimeMs)
+            )}
+          </dd>
         </div>
       </dl>
 
