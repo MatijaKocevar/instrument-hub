@@ -27,6 +27,30 @@ changes to be built and the running app restarted so they can see them.
 - Do not build after every edit just for the sake of it. Build when the
   change is ready to run, then restart the app once.
 
+## Autopilot sessions
+
+The autopilot is `scripts/autopilot.py`, launched with
+`scripts/autopilot-run.sh`, `/autopilot`, or by saying "run autopilot".
+
+- The driver owns the queue, branches, commits, merges and Time Manager
+  updates. It reads TODO tasks from the Time Manager `Instrument Hub` list,
+  picks the lowest `T` number, and starts one fresh `opencode run` session on
+  one `autopilot/<task>` branch.
+- A session works on exactly one task. Do not create, switch, merge, rebase
+  or delete branches. Do not push. Do not update Time Manager. The driver
+  handles all of that.
+- The driver merges the branch back into `main` with `--no-ff` only after the
+  session reports done and verified. A blocker or failed attempt moves the
+  task to `ON_HOLD` and the driver continues with the next TODO task.
+- Autopilot sessions may use Playwright MCP for ad-hoc verification of the
+  running UI. This is not permission to add test files, test dependencies,
+  test targets or test tooling.
+- The driver waits for DeepSeek off-peak hours before starting a session and
+  does not interrupt a session already running.
+- A session writes its result to the path in its brief. Never claim done
+  without building the affected target, running the app and recording the
+  verification.
+
 ## Build budget
 
 Hard limits, not aspirations:
