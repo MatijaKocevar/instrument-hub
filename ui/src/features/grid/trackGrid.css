@@ -391,7 +391,7 @@
 .track-grid__fader-visual {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 4;
   pointer-events: none;
 }
 
@@ -408,27 +408,11 @@
   width: 0.5rem;
   overflow: hidden;
   border-radius: 999px;
-  background: #222533;
+  background: #11131a;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    inset 0 0 0.6rem rgba(0, 0, 0, 0.5);
+    inset 0 0 0.6rem rgba(0, 0, 0, 0.6);
   transform: translateX(-50%);
-}
-
-.track-grid__fader-fill {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 0;
-  background: linear-gradient(180deg, #34d399 0%, #15803d 100%);
-  box-shadow: 0 0 0.7rem rgba(34, 197, 94, 0.35);
-  transition: height 120ms ease;
-}
-
-.track-grid__fader-fill--over {
-  background: linear-gradient(180deg, #fbbf24 0%, #b45309 100%);
-  box-shadow: 0 0 0.7rem rgba(251, 191, 36, 0.45);
 }
 
 .track-grid__fader-cap {
@@ -521,7 +505,7 @@
   position: absolute;
   top: 0.24rem;
   right: 0.3rem;
-  z-index: 3;
+  z-index: 5;
   display: flex;
   justify-content: flex-end;
   pointer-events: none;
@@ -594,13 +578,8 @@
 }
 
 .track-grid__volume--inactive .track-grid__fader-rail {
-  background: #191a21;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
-}
-
-.track-grid__volume--inactive .track-grid__fader-fill {
-  background: #2a2d36;
-  box-shadow: none;
+  background: #15161d;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 .track-grid__volume--inactive .track-grid__fader-cap {
@@ -616,7 +595,8 @@
 }
 
 .track-grid__volume--inactive .track-grid__fader-label,
-.track-grid__volume--inactive .track-grid__fader-db {
+.track-grid__volume--inactive .track-grid__fader-db,
+.track-grid__volume--inactive .track-grid__fader-peak {
   background: transparent;
   color: #4f566b;
 }
@@ -661,7 +641,6 @@
 @media (prefers-reduced-motion: reduce) {
   .track-grid__column,
   .track-grid__status[data-status="warming"],
-  .track-grid__fader-fill,
   .track-grid__fader-cap,
   .track-grid__switch,
   .track-grid__switch-thumb {
