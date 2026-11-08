@@ -88,7 +88,6 @@ struct RouteContext
 
     MidiStateProvider midiProvider;
     MidiInputHandler midiUpdateInput;
-    MidiPadTestHandler midiPadTest;
 
     ProjectOverviewProvider projectProvider;
     ProjectCommandHandler projectCommand;

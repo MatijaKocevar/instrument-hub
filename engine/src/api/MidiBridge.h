@@ -14,7 +14,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 namespace Controller
@@ -33,7 +32,6 @@ namespace Api
 class MidiBridge final : private juce::MidiInputCallback
 {
 public:
-    static constexpr int padTestDurationMs = 900;
     static constexpr int learnTimeoutMs = 10000;
 
     MidiBridge();
@@ -65,10 +63,6 @@ public:
     bool updateInput (const MidiInputPatch& patch, std::string& error);
 
     bool setInputEnabled (const std::string& id, bool enabled, std::string& error);
-
-    bool runPadTest (std::string& error);
-
-    bool isPadTestActive() const noexcept;
 
     static std::string roleForName (const juce::String& name);
 
@@ -110,8 +104,6 @@ private:
     void removeGridSetting (const juce::String& client, const juce::String& port);
     void expireLearnTimeouts();
 
-    void paintPadTestFrame (int frame);
-    void runPadTestAnimation (std::uint64_t generation);
     void closeInputs();
 
     static std::string describeMessage (const juce::MidiMessage& message);
@@ -136,13 +128,6 @@ private:
     std::map<std::string, GridEntry> grids;
 
     mutable std::mutex settingsMutex;
-
-    std::mutex padTestMutex;
-    std::thread padTestThread;
-    std::atomic<bool> padTestActive { false };
-    std::atomic<bool> shuttingDown { false };
-    std::atomic<int> padTestLit { 0 };
-    std::atomic<std::uint64_t> padTestGeneration { 0 };
 
     mutable std::mutex restoreMutex;
     RestoreHandler restoreHandler;

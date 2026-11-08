@@ -17,17 +17,6 @@ MidiBridge::MidiBridge (std::unique_ptr<MidiInputBackend> backend)
 
 MidiBridge::~MidiBridge()
 {
-    shuttingDown.store (true, std::memory_order_release);
-    padTestActive.store (false, std::memory_order_release);
-    padTestGeneration.fetch_add (1, std::memory_order_acq_rel);
-
-    {
-        const std::lock_guard<std::mutex> lock (padTestMutex);
-
-        if (padTestThread.joinable())
-            padTestThread.join();
-    }
-
     launchpad.store (nullptr, std::memory_order_release);
     setMidiSink (nullptr);
     setPadSink (nullptr);

@@ -32,17 +32,9 @@ struct MidiInputState
     std::string error;
 };
 
-struct MidiPadTestState
-{
-    bool active = false;
-    int lit = 0;
-    int durationMs = 0;
-};
-
 struct MidiStateSnapshot
 {
     std::vector<MidiInputState> inputs;
-    MidiPadTestState padTest;
     std::string error;
 };
 
@@ -67,7 +59,5 @@ using MidiStateProvider = std::function<MidiStateSnapshot()>;
 
 using MidiInputHandler = std::function<bool (const MidiInputPatch& patch,
                                              std::string& error)>;
-
-using MidiPadTestHandler = std::function<bool (std::string& error)>;
 
 }

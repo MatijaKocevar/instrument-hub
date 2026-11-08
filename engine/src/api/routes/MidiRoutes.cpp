@@ -143,28 +143,7 @@ void registerMidiRoutes (httplib::Server& server, const RouteContext& context)
         setJson (response, 200, midiStateToVar (readMidiState()));
     });
 
-    server.Post ("/midi/pad-test", [context, readMidiState] (const httplib::Request&,
-                                                             httplib::Response& response)
-    {
-        if (context.midiPadTest == nullptr)
-        {
-            setError (response, 503, "the Launchpad pad test is not available");
-            return;
-        }
 
-        std::string error;
-
-        if (! context.midiPadTest (error))
-        {
-            setError (response, 409, error);
-            return;
-        }
-
-        context.state.notifyChanged ("midi", -1);
-
-        decorate (context, response);
-        setJson (response, 200, midiStateToVar (readMidiState()));
-    });
 }
 
 }

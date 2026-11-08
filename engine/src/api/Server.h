@@ -58,8 +58,7 @@ public:
                             PluginRescanHandler rescan);
 
     void setMidiHandlers (MidiStateProvider provider,
-                          MidiInputHandler updateInput,
-                          MidiPadTestHandler padTest);
+                          MidiInputHandler updateInput);
 
     void setProjectHandlers (ProjectOverviewProvider provider,
                              ProjectCommandHandler command);

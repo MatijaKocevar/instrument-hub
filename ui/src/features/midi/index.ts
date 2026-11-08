@@ -1,6 +1,5 @@
 export { MidiPanel, type MidiPanelProps } from "./MidiPanel";
 export {
-  canRunPadTest,
   isLaunchpadDaInput,
   midiGridConfigured,
   midiGridLabel,
@@ -12,6 +11,5 @@ export {
   midiLaunchpadSummary,
   midiPortLabel,
   midiRoleLabel,
-  padTestLabel,
   type MidiInputRole,
 } from "./model";

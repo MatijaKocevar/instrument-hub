@@ -16,9 +16,6 @@ void ControllerSurface::refreshLeds()
     if (launchpad == nullptr || ! launchpad->isConnected() || apiState == nullptr)
         return;
 
-    if (midiBridge != nullptr && midiBridge->isPadTestActive())
-        return;
-
     const auto snapshot = apiState->snapshot();
     const auto setMapping = mapping != nullptr ? mapping->getMapping() : nullptr;
 

@@ -37,12 +37,6 @@ juce::var midiStateToVar (const MidiStateSnapshot& midi)
     object->setProperty ("inputs", juce::var (inputs));
     object->setProperty ("inputCount", static_cast<int> (midi.inputs.size()));
 
-    auto padTest = Routes::makeObject();
-    padTest.getDynamicObject()->setProperty ("active", midi.padTest.active);
-    padTest.getDynamicObject()->setProperty ("lit", midi.padTest.lit);
-    padTest.getDynamicObject()->setProperty ("durationMs", midi.padTest.durationMs);
-    object->setProperty ("padTest", padTest);
-
     object->setProperty ("error", juce::String (midi.error));
 
     return root;

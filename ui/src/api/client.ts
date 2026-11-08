@@ -24,7 +24,6 @@ export type {
   ControlFxInsertUpdate,
   ControlMidiInput,
   ControlMidiInputUpdate,
-  ControlMidiPadTest,
   ControlMidiState,
   ControlPairResponse,
   ControlPairingState,

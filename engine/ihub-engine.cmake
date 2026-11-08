@@ -12,7 +12,6 @@ set(IHUB_ENGINE_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/src/api/midi/MidiBridgeState.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/midi/MidiGridMap.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/midi/MidiInputPersistence.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/src/api/midi/MidiPadTest.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/Pairing.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/PluginBridge.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/api/AuthGuard.cpp"

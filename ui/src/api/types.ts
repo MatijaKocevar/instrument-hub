@@ -43,5 +43,4 @@ export type ControlPlugin = components["schemas"]["Plugin"];
 export type ControlPluginList = components["schemas"]["PluginList"];
 export type ControlMidiState = components["schemas"]["MidiState"];
 export type ControlMidiInput = components["schemas"]["MidiInput"];
-export type ControlMidiPadTest = components["schemas"]["MidiPadTest"];
 export type ControlMidiInputUpdate = components["schemas"]["MidiInputUpdate"];

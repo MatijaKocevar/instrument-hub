@@ -266,8 +266,6 @@ export class AppStore {
   toggleMidiInput = (id: string, enabled: boolean): Promise<boolean> =>
     this.midi.toggleMidiInput(id, enabled);
 
-  runPadTest = (): Promise<boolean> => this.midi.runPadTest();
-
   updateTransport = (patch: ControlTransportPatch): Promise<boolean> =>
     this.transport.updateTransport(patch);
 
