@@ -19,5 +19,10 @@ void handleControl (sandbox::SharedMemory& shared,
                     std::uint32_t& lastSequence,
                     EditorControl editorControl = {});
 
+void handleEditorControl (sandbox::SharedMemory& shared,
+                          std::uint32_t sequence,
+                          bool open,
+                          EditorControl editorControl);
+
 }
 }
