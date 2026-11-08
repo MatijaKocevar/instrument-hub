@@ -222,6 +222,13 @@
   font-size: 0.78rem;
 }
 
+.instrument__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
 .instrument__icon-button--remove {
   color: #fda4af;
 }
@@ -433,6 +440,24 @@
   border-radius: 10px;
   color: #8b93a7;
   font-size: 0.85rem;
+}
+
+.instrument__skeleton-field {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.instrument__insert--skeleton {
+  pointer-events: none;
+}
+
+.instrument__skeleton-insert-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .instrument__error {

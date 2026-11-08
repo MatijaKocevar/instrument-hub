@@ -21,11 +21,12 @@ export function AppShell({
   const shell = useShellData(router);
   const width = useViewportWidth(viewportWidth);
   const narrow = width < NARROW_BREAKPOINT;
-  const { app, store, state } = shell;
+  const { app, store } = shell;
 
   const navProps: ShellNavProps = {
     route: router.route,
     navigate: router.navigate,
+    prefetch: shell.prefetchRoute,
     phase: app.phase,
     lanEnabled: app.pairing?.lanEnabled === true,
     paired: store.token !== null,
@@ -43,16 +44,6 @@ export function AppShell({
 
       <div className="app-shell__main">
         <main className="app" data-route={router.route}>
-          {state === null && router.route !== "grid" ? (
-            <section
-              className="app__empty"
-              aria-label="Engine state"
-              data-testid="state-placeholder"
-            >
-              Waiting for the engine to report its state…
-            </section>
-          ) : null}
-
           <div className="app__route">
             <RouteOutlet router={router} shell={shell} />
           </div>

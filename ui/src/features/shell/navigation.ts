@@ -28,6 +28,7 @@ export const SETTINGS_ITEM: NavItem = {
 export interface ShellNavProps {
   readonly route: ShellRoute;
   readonly navigate: (path: string) => void;
+  readonly prefetch: (route: ShellRoute) => void;
   readonly phase: ConnectionPhase;
   readonly lanEnabled: boolean;
   readonly paired: boolean;

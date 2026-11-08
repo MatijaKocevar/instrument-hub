@@ -9,6 +9,7 @@ import type {
 import type { MeasurementSource } from "../../api/audio";
 import { AudioSettingsFooter } from "./AudioSettingsFooter";
 import { AudioSettingsHeader } from "./AudioSettingsHeader";
+import { AudioSettingsSkeleton } from "./AudioSettingsSkeleton";
 import { AudioSetupControl } from "./AudioSetupControl";
 import { ChannelMaps } from "./ChannelMaps";
 import { DeviceControls } from "./DeviceControls";
@@ -52,30 +53,7 @@ export function AudioSettingsPanel({
   onApplySetup,
   onDismissSetup,
 }: AudioSettingsPanelProps): ReactElement {
-  if (loading || audio === null) {
-    return (
-      <section
-        className="audio-settings"
-        aria-label="Audio settings"
-        aria-busy="true"
-        data-testid="audio-settings"
-      >
-        <AudioSettingsHeader audio={null} />
-        <div
-          className="audio-settings__loading"
-          data-testid="audio-settings-loading"
-        >
-          {error !== null && error.length > 0 ? (
-            <span className="audio-settings__error" data-testid="audio-error">
-              {error}
-            </span>
-          ) : (
-            "Waiting for the audio device…"
-          )}
-        </div>
-      </section>
-    );
-  }
+  if (loading || audio === null) return <AudioSettingsSkeleton error={error} />;
 
   return (
     <section

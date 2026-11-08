@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 
 import type { ControlPluginList } from "../../api/client";
+import { Skeleton } from "../loading";
 import { formatScanTime, pluginCountLabel } from "./model";
 
 interface PluginsHeaderProps {
@@ -39,7 +40,11 @@ export function PluginsHeader({
 
       <div className="plugins__status">
         <span className="plugins__count" data-testid="plugin-count">
-          {pluginCountLabel(shown, total)}
+          {inventory === null ? (
+            <Skeleton width="6.5rem" height="0.95rem" />
+          ) : (
+            pluginCountLabel(shown, total)
+          )}
         </span>
         <span
           className={`plugins__scan${scanning ? " plugins__scan--running" : ""}`}
@@ -47,7 +52,11 @@ export function PluginsHeader({
           data-scanning={scanning ? "true" : "false"}
           data-scanned={inventory?.scanned === true ? "true" : "false"}
         >
-          {scanStateLabel(inventory)}
+          {inventory === null ? (
+            <Skeleton width="9rem" height="0.95rem" />
+          ) : (
+            scanStateLabel(inventory)
+          )}
         </span>
       </div>
     </header>

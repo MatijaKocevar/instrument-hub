@@ -95,6 +95,22 @@
   opacity: 0.65;
 }
 
+.midi__input--skeleton {
+  pointer-events: none;
+}
+
+.midi__skeleton-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.midi__skeleton-meta {
+  display: flex;
+  gap: 0.4rem;
+}
+
 .midi__input--inert .midi__input-label {
   cursor: default;
 }

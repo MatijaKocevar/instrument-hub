@@ -10,11 +10,13 @@ export function NavLink({
   item,
   route,
   navigate,
+  prefetch,
   variant = "sidebar",
 }: {
   readonly item: NavItem;
   readonly route: ShellRoute;
   readonly navigate: (path: string) => void;
+  readonly prefetch?: ((route: ShellRoute) => void) | undefined;
   readonly variant?: NavLinkVariant;
 }): ReactElement {
   const active = route === item.route;
@@ -35,6 +37,15 @@ export function NavLink({
       }
       aria-current={active ? "page" : undefined}
       title={variant === "tab" ? item.label : undefined}
+      onPointerEnter={() => {
+        prefetch?.(item.route);
+      }}
+      onFocus={() => {
+        prefetch?.(item.route);
+      }}
+      onTouchStart={() => {
+        prefetch?.(item.route);
+      }}
       onClick={(event) => {
         event.preventDefault();
         navigate(pathForRoute(item.route));

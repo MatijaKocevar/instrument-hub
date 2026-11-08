@@ -109,9 +109,24 @@
   color: #ffb4b4;
 }
 
-.pairing__loading {
-  margin: 0;
-  color: var(--pairing-muted);
+.pairing__skeleton-qr {
+  width: min(228px, 52vw);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 0.5rem;
+}
+
+.pairing__skeleton-meta {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.pairing__skeleton-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(48, 51, 68, 0.6);
+  padding-bottom: 0.35rem;
 }
 
 .pairing__body {
@@ -280,7 +295,11 @@
 }
 
 .pairing-gate__submit {
+  display: inline-flex;
   min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   border: 1px solid rgba(110, 231, 200, 0.55);
   border-radius: 0.8rem;
   background: rgba(110, 231, 200, 0.12);

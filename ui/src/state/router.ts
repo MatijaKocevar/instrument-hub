@@ -97,7 +97,10 @@ export function useRouter(initialPath?: string): RouterState {
     if (typeof window !== "undefined") {
       const current = `${window.location.pathname}${window.location.search}`;
 
-      if (current !== next) window.history.pushState({}, "", next);
+      if (current !== next) {
+        window.history.pushState({}, "", next);
+        window.scrollTo(0, 0);
+      }
     }
 
     setPath(next);

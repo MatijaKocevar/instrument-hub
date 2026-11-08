@@ -20,6 +20,7 @@ export interface SettingsPageProps {
   } | null;
   readonly schemaVersion?: number | null;
   readonly uptimeMs?: number | null;
+  readonly loading?: boolean;
   readonly onToggleLan?: (enabled: boolean) => void;
   readonly onForget?: () => void;
   readonly onPair?: (code: string) => void;
@@ -35,6 +36,7 @@ export function SettingsPage({
   application = null,
   schemaVersion = null,
   uptimeMs = null,
+  loading = false,
   onToggleLan,
   onForget,
   onPair,
@@ -65,6 +67,7 @@ export function SettingsPage({
           token={token}
           pairedClients={pairedClients}
           canRevoke={canRevoke}
+          loading={loading}
           onForget={onForget}
         />
 
@@ -72,6 +75,7 @@ export function SettingsPage({
           application={application}
           schemaVersion={schemaVersion}
           uptimeMs={uptimeMs}
+          loading={loading}
         />
       </div>
     </section>

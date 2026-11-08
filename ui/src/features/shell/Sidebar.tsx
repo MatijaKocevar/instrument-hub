@@ -15,6 +15,7 @@ export function Sidebar({
   shell,
   route,
   navigate,
+  prefetch,
   phase,
   lanEnabled,
   paired,
@@ -50,6 +51,7 @@ export function Sidebar({
             item={item}
             route={route}
             navigate={navigate}
+            prefetch={prefetch}
           />
         ))}
       </nav>
@@ -61,8 +63,18 @@ export function Sidebar({
           aria-label="Settings and account"
           data-testid="settings-nav"
         >
-          <NavLink item={SETTINGS_ITEM} route={route} navigate={navigate} />
-          <NavLink item={AUDIO_ITEM} route={route} navigate={navigate} />
+          <NavLink
+            item={SETTINGS_ITEM}
+            route={route}
+            navigate={navigate}
+            prefetch={prefetch}
+          />
+          <NavLink
+            item={AUDIO_ITEM}
+            route={route}
+            navigate={navigate}
+            prefetch={prefetch}
+          />
         </nav>
 
         <p

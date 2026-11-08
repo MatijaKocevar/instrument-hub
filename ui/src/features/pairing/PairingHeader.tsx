@@ -1,11 +1,15 @@
 import type { ReactElement } from "react";
 
+import { Skeleton } from "../loading";
+
 interface PairingHeaderProps {
   readonly lanEnabled: boolean;
+  readonly loading?: boolean;
 }
 
 export function PairingHeader({
   lanEnabled,
+  loading = false,
 }: PairingHeaderProps): ReactElement {
   return (
     <>
@@ -18,14 +22,24 @@ export function PairingHeader({
           className={`status-pill pairing__status${lanEnabled ? " pairing__status--on" : ""}`}
           data-testid="pairing-lan-status"
         >
-          {lanEnabled ? "LAN mode on" : "LAN mode off"}
+          {loading ? (
+            <Skeleton width="6.5rem" height="0.95rem" />
+          ) : lanEnabled ? (
+            "LAN mode on"
+          ) : (
+            "LAN mode off"
+          )}
         </span>
       </header>
 
       <p className="pairing__lede">
-        {lanEnabled
-          ? "Scan this code with the tablet camera. The code is single-use and expires; a fresh one appears here automatically."
-          : "LAN mode is off, so only this computer can reach the engine. Turn it on to pair a tablet on the same network."}
+        {loading ? (
+          <Skeleton width="min(28rem, 100%)" height="0.9rem" />
+        ) : lanEnabled ? (
+          "Scan this code with the tablet camera. The code is single-use and expires; a fresh one appears here automatically."
+        ) : (
+          "LAN mode is off, so only this computer can reach the engine. Turn it on to pair a tablet on the same network."
+        )}
       </p>
     </>
   );
