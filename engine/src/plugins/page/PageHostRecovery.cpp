@@ -235,6 +235,8 @@ void PageHost::captureHealthyStates() noexcept
 
 bool PageHost::applyCommittedStates (juce::String& error)
 {
+    bool allApplied = true;
+
     for (auto& slot : slots)
     {
         {
@@ -271,17 +273,15 @@ bool PageHost::applyCommittedStates (juce::String& error)
             {
                 const std::lock_guard<std::mutex> lock (slot->stateLock);
                 slot->localError = reason;
-                slot->lastCommittedState.reset();
-                slot->lastCommittedRevision = 0;
             }
 
             slot->failed.store (true, std::memory_order_relaxed);
             error = reason;
-            continue;
+            allApplied = false;
         }
     }
 
-    return true;
+    return allApplied;
 }
 
 void PageHost::runRecovery()
