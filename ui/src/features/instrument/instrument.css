@@ -26,6 +26,35 @@
   color: #f4f6fb;
 }
 
+.instrument__title--editable {
+  cursor: text;
+  user-select: none;
+}
+
+.instrument__title-rename {
+  display: flex;
+  margin: 0;
+}
+
+.instrument__title-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0 0.3rem;
+  border: 1px solid #4b5468;
+  border-radius: 0.4rem;
+  background: #10121a;
+  color: #eef1f8;
+  font-family: inherit;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.instrument__title-input:focus {
+  border-color: #6ee7c8;
+  outline: none;
+}
+
 .instrument__lede {
   margin: 0;
   color: #a7aec0;

@@ -243,6 +243,11 @@
   letter-spacing: -0.01em;
 }
 
+.track-grid__selector-button .grid__cell-name--editable {
+  cursor: text;
+  user-select: none;
+}
+
 .track-grid__selector--empty .grid__cell-name {
   color: #8d95aa;
 }

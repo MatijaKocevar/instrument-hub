@@ -1,5 +1,6 @@
-import { useRef, useState, type ReactElement } from "react";
+import type { ReactElement } from "react";
 
+import { InlineRenameInput, useInlineRename } from "../rename";
 import { EMPTY_COLOUR, trackColourForIndex } from "./colours";
 import { pad2 } from "./format";
 import type { GridTrack, TrackStatus } from "./trackModel";
@@ -25,31 +26,14 @@ export function TrackSelectCell({
   onOpenTrack,
   onRenameTrack,
 }: TrackSelectCellProps): ReactElement {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(track.name);
-  const finished = useRef(false);
+  const rename = useInlineRename(track.name, (name) => {
+    onRenameTrack?.(track.index, name);
+  });
   const selected = track.selected;
   const colour = trackColourForIndex(track.index);
   const empty = !track.hasInstrument;
   const statusLabel = STATUS_LABELS[track.status];
-
-  const startRename = (): void => {
-    finished.current = false;
-    setDraft(track.name);
-    setEditing(true);
-  };
-
-  const finishRename = (save: boolean): void => {
-    if (finished.current) return;
-
-    finished.current = true;
-    const next = draft.trim();
-
-    if (save && next.length > 0 && next !== track.name)
-      onRenameTrack?.(track.index, next);
-
-    setEditing(false);
-  };
+  const canRename = onRenameTrack !== undefined;
 
   return (
     <div
@@ -87,7 +71,7 @@ export function TrackSelectCell({
         >
           {selected ? "Selected" : empty ? "Empty" : "Ready"}
         </span>
-        {onRenameTrack === undefined ? null : (
+        {canRename ? (
           <button
             className="track-grid__rename-button"
             type="button"
@@ -95,48 +79,30 @@ export function TrackSelectCell({
             data-track-index={track.index}
             title={`Rename ${track.name}`}
             aria-label={`Rename ${track.name}`}
-            onClick={startRename}
+            onClick={rename.start}
           >
             ✎
           </button>
-        )}
+        ) : null}
       </span>
 
-      {editing ? (
-        <form
+      {rename.editing ? (
+        <InlineRenameInput
           className="track-grid__rename"
-          onSubmit={(event) => {
-            event.preventDefault();
-            finishRename(true);
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") return;
-
-            event.preventDefault();
-            finishRename(false);
-          }}
-        >
-          <input
-            className="track-grid__rename-input"
-            data-testid="track-rename-input"
-            data-track-index={track.index}
-            value={draft}
-            maxLength={80}
-            autoFocus
-            aria-label={`Track name for ${track.name}`}
-            onChange={(event) => {
-              setDraft(event.target.value);
-            }}
-            onBlur={() => {
-              finishRename(true);
-            }}
-          />
-        </form>
+          inputClassName="track-grid__rename-input"
+          testId="track-rename-input"
+          value={rename.draft}
+          ariaLabel={`Track name for ${track.name}`}
+          onValueChange={rename.setDraft}
+          onSave={rename.save}
+          onCancel={rename.cancel}
+        />
       ) : (
         <TrackSelectButton
           track={track}
           onSelectTrack={onSelectTrack}
           onOpenTrack={onOpenTrack}
+          {...(canRename ? { onStartRename: rename.start } : {})}
         />
       )}
     </div>

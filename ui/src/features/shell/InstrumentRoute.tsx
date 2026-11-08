@@ -89,6 +89,9 @@ export function InstrumentRoute({
       onAssignHotFx={(trackIndex, hot, insertId) => {
         void store.assignTrackHotFx(trackIndex, hot, insertId);
       }}
+      onRenameTrack={(trackIndex, name) => {
+        void store.renameTrack(trackIndex, name);
+      }}
     />
   );
 }
