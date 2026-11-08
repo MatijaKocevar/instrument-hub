@@ -5,11 +5,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-WATCH=0
+WATCH=1
 ENGINE_ARGS=()
 for argument in "$@"; do
     case "$argument" in
         --watch) WATCH=1 ;;
+        --no-watch) WATCH=0 ;;
         *) ENGINE_ARGS+=("$argument") ;;
     esac
 done
