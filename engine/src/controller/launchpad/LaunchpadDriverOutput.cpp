@@ -3,44 +3,44 @@
 namespace Controller
 {
 
-bool LaunchpadDriver::sendBytes (const std::uint8_t* bytes, int size)
-{
-    if (bytes == nullptr || size <= 0)
-        return false;
-
-    const juce::MidiMessage message (bytes, size);
-    MessageSink sink;
-    bool sent = false;
-
+    bool LaunchpadDriver::sendBytes (const std::uint8_t* bytes, int size)
     {
-        const std::lock_guard<std::mutex> lock (sendMutex);
+        if (bytes == nullptr || size <= 0)
+            return false;
 
-        if (output != nullptr)
+        const juce::MidiMessage message (bytes, size);
+        MessageSink sink;
+        bool sent = false;
+
         {
-            output->sendMessageNow (message);
-            sent = true;
+            const std::lock_guard<std::mutex> lock (sendMutex);
+
+            if (output != nullptr)
+            {
+                output->sendMessageNow (message);
+                sent = true;
+            }
+
+            const std::lock_guard<std::mutex> sinkLock (sinkMutex);
+            sink = messageSink;
         }
 
-        const std::lock_guard<std::mutex> sinkLock (sinkMutex);
-        sink = messageSink;
+        if (sink)
+            sink (message);
+
+        return sent || sink != nullptr;
     }
 
-    if (sink)
-        sink (message);
+    void LaunchpadDriver::setError (const juce::String& message)
+    {
+        const std::lock_guard<std::mutex> lock (errorMutex);
+        lastError = message;
+    }
 
-    return sent || sink != nullptr;
-}
-
-void LaunchpadDriver::setError (const juce::String& message)
-{
-    const std::lock_guard<std::mutex> lock (errorMutex);
-    lastError = message;
-}
-
-void LaunchpadDriver::clearError()
-{
-    const std::lock_guard<std::mutex> lock (errorMutex);
-    lastError.clear();
-}
+    void LaunchpadDriver::clearError ()
+    {
+        const std::lock_guard<std::mutex> lock (errorMutex);
+        lastError.clear ();
+    }
 
 }

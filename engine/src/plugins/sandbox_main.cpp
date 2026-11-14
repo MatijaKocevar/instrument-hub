@@ -1,5 +1,5 @@
-#include "SandboxClient.h"
 #include "ProcessLimits.h"
+#include "SandboxClient.h"
 #include "sandbox/SandboxPageClient.h"
 
 #include <juce_events/juce_events.h>
@@ -7,28 +7,25 @@
 #include <iostream>
 
 #if defined(RLIMIT_CORE)
- #include <sys/resource.h>
+#include <sys/resource.h>
 #endif
 
 namespace
 {
-void disableCoreDumps()
-{
-   #if defined(RLIMIT_CORE)
-    struct rlimit limit
+    void disableCoreDumps ()
     {
-        0, 0
-    };
+#if defined(RLIMIT_CORE)
+        struct rlimit limit{0, 0};
 
-    setrlimit (RLIMIT_CORE, &limit);
-   #endif
-}
+        setrlimit (RLIMIT_CORE, &limit);
+#endif
+    }
 }
 
 int main (int argc, char** argv)
 {
-    ihub::plugins::capFileDescriptorLimit();
-    disableCoreDumps();
+    ihub::plugins::capFileDescriptorLimit ();
+    disableCoreDumps ();
 
     juce::ScopedJuceInitialiser_GUI juceInitialiser;
 

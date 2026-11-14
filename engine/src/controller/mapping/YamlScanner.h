@@ -9,12 +9,12 @@
 namespace Controller::MappingDetail
 {
 
-std::string trim (std::string_view text);
+    std::string trim (std::string_view text);
 
-bool isSequenceEntry (const std::string& text);
+    bool isSequenceEntry (const std::string& text);
 
-bool splitKeyValue (const std::string& text, std::string& key, std::string& value);
+    bool splitKeyValue (const std::string& text, std::string& key, std::string& value);
 
-bool tokenize (const std::string& yaml, std::vector<SourceLine>& lines, MappingError& error);
+    bool tokenize (const std::string& yaml, std::vector<SourceLine>& lines, MappingError& error);
 
 }

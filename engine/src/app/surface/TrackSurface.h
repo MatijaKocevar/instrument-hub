@@ -4,29 +4,28 @@
 
 namespace Api
 {
-class StateStore;
-struct StateSnapshot;
+    class StateStore;
+    struct StateSnapshot;
 }
 
 namespace Controller
 {
-class LaunchpadDriver;
-class SetMapping;
-struct PadBinding;
+    class LaunchpadDriver;
+    class SetMapping;
+    struct PadBinding;
 }
 
 namespace ihub::app
 {
 
-int trackIndexForSlot (const Api::StateSnapshot& snapshot, int slot) noexcept;
+    int trackIndexForSlot (const Api::StateSnapshot& snapshot, int slot) noexcept;
 
-Controller::TrackLedSnapshot trackLedSnapshotFor (const Api::StateSnapshot& snapshot);
+    Controller::TrackLedSnapshot trackLedSnapshotFor (const Api::StateSnapshot& snapshot);
 
-void applyTrackPadAction (Api::StateStore& state,
-                          const Controller::PadBinding& binding);
+    void applyTrackPadAction (Api::StateStore& state, const Controller::PadBinding& binding);
 
-void paintTrackLeds (Controller::LaunchpadDriver& driver,
-                     const Controller::SetMapping& mapping,
-                     const Controller::TrackLedSnapshot& snapshot);
+    void paintTrackLeds (Controller::LaunchpadDriver& driver,
+                         const Controller::SetMapping& mapping,
+                         const Controller::TrackLedSnapshot& snapshot);
 
 }

@@ -4,12 +4,12 @@
 
 namespace ihub
 {
-class Session;
+    class Session;
 }
 
 namespace Api
 {
 
-void attachSession (StateStore& state, Server& server, ihub::Session& session);
+    void attachSession (StateStore& state, Server& server, ihub::Session& session);
 
 }

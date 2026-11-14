@@ -11,117 +11,121 @@
 
 namespace AudioEngine
 {
-class AudioEngine;
-class SlotSwitcher;
+    class AudioEngine;
+    class SlotSwitcher;
 }
 
 namespace ihub::session
 {
 
-class WarmPoolController
-{
-public:
-    using SourceFactory = std::function<std::unique_ptr<AudioEngine::SlotSource> (
-        int slot, juce::String& error)>;
-    using DestroyObserver = std::function<void (AudioEngine::SlotSource& instance)>;
-    using BeforeArmHook = std::function<void (int slot)>;
-    using CancelLoads = std::function<void()>;
-    using SlotStateObserver = std::function<void (int slot)>;
+    class WarmPoolController
+    {
+    public:
+        using SourceFactory =
+            std::function<std::unique_ptr<AudioEngine::SlotSource> (int slot, juce::String& error)>;
+        using DestroyObserver = std::function<void (AudioEngine::SlotSource& instance)>;
+        using BeforeArmHook = std::function<void (int slot)>;
+        using CancelLoads = std::function<void ()>;
+        using SlotStateObserver = std::function<void (int slot)>;
 
-    WarmPoolController();
-    ~WarmPoolController();
+        WarmPoolController ();
+        ~WarmPoolController ();
 
-    void createVoices (int slotCount);
+        void createVoices (int slotCount);
 
-    void clearVoices() noexcept;
+        void clearVoices () noexcept;
 
-    AudioEngine::SlotSource* getVoiceSource (int slot) noexcept;
-    int getNumVoices() const noexcept;
+        AudioEngine::SlotSource* getVoiceSource (int slot) noexcept;
+        int getNumVoices () const noexcept;
 
-    void createPool (int neighbourCount);
+        void createPool (int neighbourCount);
 
-    void configure (SourceFactory factory,
-                    DestroyObserver destroyObserver,
-                    BeforeArmHook beforeArm,
-                    AudioEngine::SlotSwitcher* switcherToUse,
-                    CancelLoads cancelLoads);
+        void configure (SourceFactory factory,
+                        DestroyObserver destroyObserver,
+                        BeforeArmHook beforeArm,
+                        AudioEngine::SlotSwitcher* switcherToUse,
+                        CancelLoads cancelLoads);
 
-    void setSlotStateObserver (SlotStateObserver observer);
+        void setSlotStateObserver (SlotStateObserver observer);
 
-    void setFormat (double sampleRate, int maximumBlockSize);
-    void setNumSlots (int slotCount);
-    void setProtectedSlots (const std::vector<int>& slots);
-    std::vector<int> getProtectedSlots() const;
-    int getProtectedCount() const noexcept;
-    void setRequest (int slot, const juce::String& requestId);
-    void setActiveSlot (int slot);
-    AudioEngine::WarmPool::PreloadReport preloadAll();
+        void setFormat (double sampleRate, int maximumBlockSize);
+        void setNumSlots (int slotCount);
+        void setProtectedSlots (const std::vector<int>& slots);
+        std::vector<int> getProtectedSlots () const;
+        int getProtectedCount () const noexcept;
+        void setRequest (int slot, const juce::String& requestId);
+        void setActiveSlot (int slot);
+        AudioEngine::WarmPool::PreloadReport preloadAll ();
 
-    void shutdown() noexcept;
+        void shutdown () noexcept;
 
-    void arm (int slot);
+        void arm (int slot);
 
-    void disarm();
+        void disarm ();
 
-    void resetArmState() noexcept;
+        void resetArmState () noexcept;
 
-    void replaceRequest (int slot,
-                         const juce::String& requestId,
-                         bool wasActive,
-                         bool wasRequested);
+        void
+        replaceRequest (int slot, const juce::String& requestId, bool wasActive, bool wasRequested);
 
-    int getRequestedSlot() const noexcept;
-    int getActiveSlot() const noexcept;
-    int getPendingSlot() const noexcept;
+        int getRequestedSlot () const noexcept;
+        int getActiveSlot () const noexcept;
+        int getPendingSlot () const noexcept;
 
-    bool isWarm (int slot) const noexcept;
-    bool isWarming (int slot) const noexcept;
-    bool isActive (int slot) const noexcept;
+        bool isWarm (int slot) const noexcept;
+        bool isWarming (int slot) const noexcept;
+        bool isActive (int slot) const noexcept;
 
-    int getInstanceLimit() const noexcept;
-    int getLiveInstrumentCount() const noexcept;
-    int getPeakInstrumentCount() const noexcept;
-    std::uint64_t getWarmCount() const noexcept;
-    std::uint64_t getEvictionCount() const noexcept;
-    int getNeighbourCount() const noexcept;
-    void setNeighbourCount (int count);
+        int getInstanceLimit () const noexcept;
+        int getLiveInstrumentCount () const noexcept;
+        int getPeakInstrumentCount () const noexcept;
+        std::uint64_t getWarmCount () const noexcept;
+        std::uint64_t getEvictionCount () const noexcept;
+        int getNeighbourCount () const noexcept;
+        void setNeighbourCount (int count);
 
-    bool waitForSlotWarm (int slot, int timeoutMs);
-    bool waitForSlotActive (int slot, int timeoutMs);
-    bool waitForIdle (int timeoutMs);
+        bool waitForSlotWarm (int slot, int timeoutMs);
+        bool waitForSlotActive (int slot, int timeoutMs);
+        bool waitForIdle (int timeoutMs);
 
-    AudioEngine::WarmPool* getPool() noexcept { return warmPool.get(); }
-    const AudioEngine::WarmPool* getPool() const noexcept { return warmPool.get(); }
+        AudioEngine::WarmPool* getPool () noexcept
+        {
+            return warmPool.get ();
+        }
+        const AudioEngine::WarmPool* getPool () const noexcept
+        {
+            return warmPool.get ();
+        }
 
-    bool pinPairForMeasurement (int fromSlot, int toSlot, int savedNeighbourCount);
+        bool pinPairForMeasurement (int fromSlot, int toSlot, int savedNeighbourCount);
 
-    void bindVoice (int slot, AudioEngine::SlotSource* instance) noexcept;
-    void clearVoice (AudioEngine::SlotSource* instance) noexcept;
+        void bindVoice (int slot, AudioEngine::SlotSource* instance) noexcept;
+        void clearVoice (AudioEngine::SlotSource* instance) noexcept;
 
-private:
-    void warmCallback (int slot);
-    bool finishArmLocked (int slot, AudioEngine::SlotSource* pinnedInstance);
-    bool warmSlotBlockingLocked (int slot, int timeoutMs);
-    bool waitForWarmIdle (int timeoutMs);
-    void releaseAllPinsLocked();
-    void pumpMessages (int milliseconds);
+    private:
+        void warmCallback (int slot);
+        bool finishArmLocked (int slot, AudioEngine::SlotSource* pinnedInstance);
+        bool warmSlotBlockingLocked (int slot, int timeoutMs);
+        bool waitForWarmIdle (int timeoutMs);
+        void releaseAllPinsLocked ();
+        void pumpMessages (int milliseconds);
 
-    SourceFactory sourceFactory;
-    DestroyObserver destroyObserver;
-    BeforeArmHook beforeArmHook;
-    CancelLoads cancelLoads;
-    SlotStateObserver slotStateObserver;
-    AudioEngine::SlotSwitcher* switcher = nullptr;
+        SourceFactory sourceFactory;
+        DestroyObserver destroyObserver;
+        BeforeArmHook beforeArmHook;
+        CancelLoads cancelLoads;
+        SlotStateObserver slotStateObserver;
+        AudioEngine::SlotSwitcher* switcher = nullptr;
 
-    std::unique_ptr<AudioEngine::WarmPool> warmPool;
-    std::vector<std::unique_ptr<AudioEngine::SlotSource>> voices;
+        std::unique_ptr<AudioEngine::WarmPool> warmPool;
+        std::vector<std::unique_ptr<AudioEngine::SlotSource>> voices;
 
-    mutable std::mutex armMutex;
-    std::atomic<int> requestedSlot { -1 };
-    std::atomic<int> activeSlot { -1 };
-    std::atomic<int> pendingArmSlot { -1 };
-    int pinnedActiveSlot = -1;
-    int pinnedPreviousSlot = -1;
-};
+        mutable std::mutex armMutex;
+        std::atomic<int> requestedSlot{-1};
+        std::atomic<int> activeSlot{-1};
+        std::atomic<int> pendingArmSlot{-1};
+        int pinnedActiveSlot = -1;
+        int pinnedPreviousSlot = -1;
+    };
 
 }

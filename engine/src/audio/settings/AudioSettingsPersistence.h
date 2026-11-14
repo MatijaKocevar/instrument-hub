@@ -2,15 +2,14 @@
 
 namespace ihub::settings
 {
-class SettingsStore;
+    class SettingsStore;
 }
 
 namespace AudioEngine
 {
 
-class DeviceManager;
+    class DeviceManager;
 
-bool persistAudioSettings (ihub::settings::SettingsStore& store,
-                           const DeviceManager& manager);
+    bool persistAudioSettings (ihub::settings::SettingsStore& store, const DeviceManager& manager);
 
 }

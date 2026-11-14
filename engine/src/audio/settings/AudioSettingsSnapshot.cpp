@@ -10,161 +10,150 @@
 namespace AudioEngine
 {
 
-namespace
-{
-std::string toString (const juce::String& text)
-{
-    return text.toStdString();
-}
-}
-
-Api::AudioStateSnapshot AudioSettingsBridge::snapshot()
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-
-    auto& manager = liveManager();
-
-    if (devices.empty())
-        refreshDevices();
-
-    if (pendingName.isEmpty() && ! devices.empty())
+    namespace
     {
-        pendingType = firstDeviceType();
-        pendingName = firstOutputDeviceOfType (pendingType);
-    }
-
-    Api::AudioStateSnapshot result;
-    result.open = manager.isOpen();
-    result.restore = restoreState;
-
-    for (const auto& type : deviceTypeNames)
-        result.deviceTypes.push_back (type.toStdString());
-
-    for (const auto& device : devices)
-    {
-        Api::AudioDeviceState entry;
-        entry.type = toString (device.type);
-        entry.name = toString (device.name);
-        entry.description = toString (device.description);
-        entry.available = device.available;
-        entry.reason = toString (device.unavailableReason);
-        result.devices.push_back (std::move (entry));
-
-        const auto type = toString (device.type);
-
-        if (std::find (result.deviceTypes.begin(), result.deviceTypes.end(), type)
-            == result.deviceTypes.end())
+        std::string toString (const juce::String& text)
         {
-            result.deviceTypes.push_back (type);
+            return text.toStdString ();
         }
     }
 
-    for (const auto& device : manager.getRawPcmDevices())
+    Api::AudioStateSnapshot AudioSettingsBridge::snapshot ()
     {
-        Api::AudioDeviceState entry;
-        entry.type = toString (device.typeName);
-        entry.name = toString (device.name);
-        entry.description = toString (device.description);
-        entry.available = true;
-        result.rawDevices.push_back (std::move (entry));
-    }
+        const std::lock_guard<std::mutex> lock (mutex);
 
-    const auto currentType = result.open ? manager.getCurrentDeviceTypeName()
-                                         : pendingType;
-    const auto currentName = result.open ? manager.getCurrentDeviceName()
-                                         : pendingName;
+        auto& manager = liveManager ();
 
-    result.deviceType = toString (currentType);
-    result.deviceName = toString (currentName);
+        if (devices.empty ())
+            refreshDevices ();
 
-    double sampleRate = result.open ? manager.getCurrentSampleRate()
-                                    : pendingSampleRate;
-    int bufferSize = result.open ? manager.getCurrentBufferSize()
-                                 : pendingBufferSize;
-
-    if (sampleRate <= 0.0)
-        sampleRate = 48000.0;
-
-    if (bufferSize <= 0)
-        bufferSize = 128;
-
-    result.sampleRate = sampleRate;
-    result.bufferSize = bufferSize;
-
-    const auto* info = findDevice (currentType, currentName);
-
-    if (info != nullptr)
-    {
-        for (const auto rate : info->sampleRates)
-            result.sampleRates.push_back (rate);
-
-        for (const auto size : info->bufferSizes)
-            result.bufferSizes.push_back (size);
-    }
-
-    if (settingsStore != nullptr)
-    {
-        for (const auto& profile : settingsStore->settings().audio.profiles)
+        if (pendingName.isEmpty () && !devices.empty ())
         {
-            Api::AudioProfileState entry;
-            entry.soundcardKey = profile.soundcardKey.toStdString();
-            entry.deviceType = profile.deviceType.toStdString();
-            entry.deviceName = profile.deviceName.toStdString();
-            entry.sampleRate = static_cast<double> (profile.sampleRate);
-            entry.bufferSize = profile.bufferSize;
-            entry.inputChannels = profile.inputChannels;
-            entry.outputChannels = profile.outputChannels;
-            entry.profile = profile.profile.toStdString();
-            entry.latencyMs = profile.latencyMs;
-            entry.measuredMs = profile.measuredMs;
-            entry.xruns = static_cast<std::uint64_t> (juce::jmax (0, profile.xruns));
-            result.profiles.push_back (std::move (entry));
+            pendingType = firstDeviceType ();
+            pendingName = firstOutputDeviceOfType (pendingType);
         }
+
+        Api::AudioStateSnapshot result;
+        result.open = manager.isOpen ();
+        result.restore = restoreState;
+
+        for (const auto& type : deviceTypeNames)
+            result.deviceTypes.push_back (type.toStdString ());
+
+        for (const auto& device : devices)
+        {
+            Api::AudioDeviceState entry;
+            entry.type = toString (device.type);
+            entry.name = toString (device.name);
+            entry.description = toString (device.description);
+            entry.available = device.available;
+            entry.reason = toString (device.unavailableReason);
+            result.devices.push_back (std::move (entry));
+
+            const auto type = toString (device.type);
+
+            if (std::find (result.deviceTypes.begin (), result.deviceTypes.end (), type) ==
+                result.deviceTypes.end ())
+            {
+                result.deviceTypes.push_back (type);
+            }
+        }
+
+        for (const auto& device : manager.getRawPcmDevices ())
+        {
+            Api::AudioDeviceState entry;
+            entry.type = toString (device.typeName);
+            entry.name = toString (device.name);
+            entry.description = toString (device.description);
+            entry.available = true;
+            result.rawDevices.push_back (std::move (entry));
+        }
+
+        const auto currentType = result.open ? manager.getCurrentDeviceTypeName () : pendingType;
+        const auto currentName = result.open ? manager.getCurrentDeviceName () : pendingName;
+
+        result.deviceType = toString (currentType);
+        result.deviceName = toString (currentName);
+
+        double sampleRate = result.open ? manager.getCurrentSampleRate () : pendingSampleRate;
+        int bufferSize = result.open ? manager.getCurrentBufferSize () : pendingBufferSize;
+
+        if (sampleRate <= 0.0)
+            sampleRate = 48000.0;
+
+        if (bufferSize <= 0)
+            bufferSize = 128;
+
+        result.sampleRate = sampleRate;
+        result.bufferSize = bufferSize;
+
+        const auto* info = findDevice (currentType, currentName);
+
+        if (info != nullptr)
+        {
+            for (const auto rate : info->sampleRates)
+                result.sampleRates.push_back (rate);
+
+            for (const auto size : info->bufferSizes)
+                result.bufferSizes.push_back (size);
+        }
+
+        if (settingsStore != nullptr)
+        {
+            for (const auto& profile : settingsStore->settings ().audio.profiles)
+            {
+                Api::AudioProfileState entry;
+                entry.soundcardKey = profile.soundcardKey.toStdString ();
+                entry.deviceType = profile.deviceType.toStdString ();
+                entry.deviceName = profile.deviceName.toStdString ();
+                entry.sampleRate = static_cast<double> (profile.sampleRate);
+                entry.bufferSize = profile.bufferSize;
+                entry.inputChannels = profile.inputChannels;
+                entry.outputChannels = profile.outputChannels;
+                entry.profile = profile.profile.toStdString ();
+                entry.latencyMs = profile.latencyMs;
+                entry.measuredMs = profile.measuredMs;
+                entry.xruns = static_cast<std::uint64_t> (juce::jmax (0, profile.xruns));
+                result.profiles.push_back (std::move (entry));
+            }
+        }
+
+        const auto inputMask =
+            result.open ? manager.getActiveInputChannels () : juce::BigInteger ();
+        const auto outputMask =
+            result.open ? manager.getActiveOutputChannels () : juce::BigInteger ();
+
+        if (info != nullptr)
+        {
+            for (int index = 0; index < info->inputNames.size (); ++index)
+                result.inputChannels.push_back (
+                    {index, toString (info->inputNames[index]), inputMask[index]});
+
+            for (int index = 0; index < info->outputNames.size (); ++index)
+                result.outputChannels.push_back (
+                    {index, toString (info->outputNames[index]), outputMask[index]});
+        }
+
+        const auto chainSamples = chainLatencySamples.load (std::memory_order_relaxed);
+        const auto deviceLatencySamples =
+            result.open ? manager.getInputLatencyInSamples () + manager.getOutputLatencyInSamples ()
+                        : 0;
+
+        result.latency = detail::computeLatencyBudget (
+            bufferSize, sampleRate, deviceLatencySamples, chainSamples);
+
+        result.deviceXruns =
+            result.open ? static_cast<std::uint64_t> (juce::jmax (0, manager.getXRunCount ())) : 0;
+
+        if (timingMonitor != nullptr)
+        {
+            result.callbackOverruns = timingMonitor->getOverrunCount ();
+            result.callbacks = timingMonitor->getCallbackCount ();
+            result.loadPercent = timingMonitor->getLastLoadPercent ();
+        }
+
+        result.xruns = result.deviceXruns + result.callbackOverruns;
+        return result;
     }
-
-    const auto inputMask = result.open ? manager.getActiveInputChannels()
-                                       : juce::BigInteger();
-    const auto outputMask = result.open ? manager.getActiveOutputChannels()
-                                        : juce::BigInteger();
-
-    if (info != nullptr)
-    {
-        for (int index = 0; index < info->inputNames.size(); ++index)
-            result.inputChannels.push_back ({ index,
-                                              toString (info->inputNames[index]),
-                                              inputMask[index] });
-
-        for (int index = 0; index < info->outputNames.size(); ++index)
-            result.outputChannels.push_back ({ index,
-                                               toString (info->outputNames[index]),
-                                               outputMask[index] });
-    }
-
-    const auto chainSamples = chainLatencySamples.load (std::memory_order_relaxed);
-    const auto deviceLatencySamples = result.open
-                                          ? manager.getInputLatencyInSamples()
-                                                + manager.getOutputLatencyInSamples()
-                                          : 0;
-
-    result.latency = detail::computeLatencyBudget (bufferSize,
-                                                   sampleRate,
-                                                   deviceLatencySamples,
-                                                   chainSamples);
-
-    result.deviceXruns = result.open
-                             ? static_cast<std::uint64_t> (
-                                   juce::jmax (0, manager.getXRunCount()))
-                             : 0;
-
-    if (timingMonitor != nullptr)
-    {
-        result.callbackOverruns = timingMonitor->getOverrunCount();
-        result.callbacks = timingMonitor->getCallbackCount();
-        result.loadPercent = timingMonitor->getLastLoadPercent();
-    }
-
-    result.xruns = result.deviceXruns + result.callbackOverruns;
-    return result;
-}
 
 }

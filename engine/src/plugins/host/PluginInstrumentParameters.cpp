@@ -2,94 +2,95 @@
 
 namespace ihub::plugins
 {
-namespace
-{
-juce::String parameterIdentifier (juce::AudioProcessorParameter& parameter)
-{
-    if (auto* hosted = dynamic_cast<juce::HostedAudioProcessorParameter*> (&parameter))
-        if (auto id = hosted->getParameterID(); id.isNotEmpty())
-            return id;
-
-    return parameter.getName (64);
-}
-}
-
-int PluginInstrument::getNumParameters() const
-{
-    return plugin != nullptr ? plugin->getParameters().size() : 0;
-}
-
-juce::String PluginInstrument::getParameterId (int index) const
-{
-    if (plugin == nullptr || index < 0 || index >= plugin->getParameters().size())
-        return {};
-
-    auto* parameter = plugin->getParameters()[index];
-
-    return parameter != nullptr ? parameterIdentifier (*parameter) : juce::String();
-}
-
-juce::AudioProcessorParameter* PluginInstrument::findParameter (const juce::String& idOrName) const
-{
-    if (plugin == nullptr || idOrName.isEmpty())
-        return nullptr;
-
-    for (auto* parameter : plugin->getParameters())
+    namespace
     {
-        if (parameter == nullptr)
-            continue;
-
-        if (parameterIdentifier (*parameter).equalsIgnoreCase (idOrName)
-            || parameter->getName (64).equalsIgnoreCase (idOrName))
+        juce::String parameterIdentifier (juce::AudioProcessorParameter& parameter)
         {
-            return parameter;
+            if (auto* hosted = dynamic_cast<juce::HostedAudioProcessorParameter*> (&parameter))
+                if (auto id = hosted->getParameterID (); id.isNotEmpty ())
+                    return id;
+
+            return parameter.getName (64);
         }
     }
 
-    return nullptr;
-}
+    int PluginInstrument::getNumParameters () const
+    {
+        return plugin != nullptr ? plugin->getParameters ().size () : 0;
+    }
 
-bool PluginInstrument::setParameterValue (const juce::String& idOrName, float normalisedValue)
-{
-    auto* parameter = findParameter (idOrName);
+    juce::String PluginInstrument::getParameterId (int index) const
+    {
+        if (plugin == nullptr || index < 0 || index >= plugin->getParameters ().size ())
+            return {};
 
-    if (parameter == nullptr)
-        return false;
+        auto* parameter = plugin->getParameters ()[index];
 
-    parameter->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, normalisedValue));
+        return parameter != nullptr ? parameterIdentifier (*parameter) : juce::String ();
+    }
 
-    return true;
-}
+    juce::AudioProcessorParameter*
+    PluginInstrument::findParameter (const juce::String& idOrName) const
+    {
+        if (plugin == nullptr || idOrName.isEmpty ())
+            return nullptr;
 
-bool PluginInstrument::setParameterValueByIndex (int index, float normalisedValue)
-{
-    if (plugin == nullptr || index < 0 || index >= plugin->getParameters().size())
-        return false;
+        for (auto* parameter : plugin->getParameters ())
+        {
+            if (parameter == nullptr)
+                continue;
 
-    auto* parameter = plugin->getParameters()[index];
+            if (parameterIdentifier (*parameter).equalsIgnoreCase (idOrName) ||
+                parameter->getName (64).equalsIgnoreCase (idOrName))
+            {
+                return parameter;
+            }
+        }
 
-    if (parameter == nullptr)
-        return false;
+        return nullptr;
+    }
 
-    parameter->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, normalisedValue));
+    bool PluginInstrument::setParameterValue (const juce::String& idOrName, float normalisedValue)
+    {
+        auto* parameter = findParameter (idOrName);
 
-    return true;
-}
+        if (parameter == nullptr)
+            return false;
 
-float PluginInstrument::getParameterValue (const juce::String& idOrName) const
-{
-    if (auto* parameter = findParameter (idOrName))
-        return parameter->getValue();
+        parameter->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, normalisedValue));
 
-    return -1.0f;
-}
+        return true;
+    }
 
-juce::String PluginInstrument::getParameterText (const juce::String& idOrName) const
-{
-    if (auto* parameter = findParameter (idOrName))
-        return parameter->getText (parameter->getValue(), 64);
+    bool PluginInstrument::setParameterValueByIndex (int index, float normalisedValue)
+    {
+        if (plugin == nullptr || index < 0 || index >= plugin->getParameters ().size ())
+            return false;
 
-    return {};
-}
+        auto* parameter = plugin->getParameters ()[index];
+
+        if (parameter == nullptr)
+            return false;
+
+        parameter->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, normalisedValue));
+
+        return true;
+    }
+
+    float PluginInstrument::getParameterValue (const juce::String& idOrName) const
+    {
+        if (auto* parameter = findParameter (idOrName))
+            return parameter->getValue ();
+
+        return -1.0f;
+    }
+
+    juce::String PluginInstrument::getParameterText (const juce::String& idOrName) const
+    {
+        if (auto* parameter = findParameter (idOrName))
+            return parameter->getText (parameter->getValue (), 64);
+
+        return {};
+    }
 
 }

@@ -5,6 +5,6 @@
 namespace AudioEngine::detail
 {
 
-juce::String describeDeviceError (const juce::String& error);
+    juce::String describeDeviceError (const juce::String& error);
 
 } // namespace AudioEngine::detail

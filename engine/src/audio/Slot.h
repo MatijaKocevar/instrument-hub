@@ -9,121 +9,144 @@
 namespace AudioEngine
 {
 
-class SlotSource
-{
-public:
-    virtual ~SlotSource() = default;
-
-    virtual void prepare (double sampleRate, int maximumBlockSize) = 0;
-
-    virtual void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) = 0;
-
-    virtual int latencySamples() const noexcept { return 0; }
-
-    virtual bool acceptsDeviceInput() const noexcept { return false; }
-
-    virtual void setInputBlock (const float* const* channelData,
-                                int numChannels) noexcept
+    class SlotSource
     {
-        juce::ignoreUnused (channelData, numChannels);
-    }
+    public:
+        virtual ~SlotSource () = default;
 
-    virtual bool bypassesFxChain() const noexcept { return false; }
-};
+        virtual void prepare (double sampleRate, int maximumBlockSize) = 0;
 
-enum class SlotState
-{
-    idle,
-    fadingIn,
-    active,
-    fadingOut
-};
+        virtual void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) = 0;
 
-const char* toString (SlotState state) noexcept;
+        virtual int latencySamples () const noexcept
+        {
+            return 0;
+        }
 
-class Slot
-{
-public:
-    static constexpr float defaultFadeMilliseconds = 3.0f;
+        virtual bool acceptsDeviceInput () const noexcept
+        {
+            return false;
+        }
 
-    explicit Slot (int index, float fadeMilliseconds = defaultFadeMilliseconds);
-    ~Slot() = default;
+        virtual void setInputBlock (const float* const* channelData, int numChannels) noexcept
+        {
+            juce::ignoreUnused (channelData, numChannels);
+        }
 
-    void prepare (double sampleRate, int maximumBlockSize, int numChannels);
+        virtual bool bypassesFxChain () const noexcept
+        {
+            return false;
+        }
+    };
 
-    void reset() noexcept;
-
-    void setSource (SlotSource* newSource) noexcept;
-    SlotSource* getSource() const noexcept { return source; }
-
-    FxChain& getFxChain() noexcept { return fxChain; }
-    const FxChain& getFxChain() const noexcept { return fxChain; }
-
-    void setFxChainEditing (bool editing) noexcept
+    enum class SlotState
     {
-        fxChainEditing.store (editing, std::memory_order_release);
-    }
+        idle,
+        fadingIn,
+        active,
+        fadingOut
+    };
 
-    bool isFxChainEditing() const noexcept
+    const char* toString (SlotState state) noexcept;
+
+    class Slot
     {
-        return fxChainEditing.load (std::memory_order_acquire);
-    }
+    public:
+        static constexpr float defaultFadeMilliseconds = 3.0f;
 
-    void activate() noexcept;
+        explicit Slot (int index, float fadeMilliseconds = defaultFadeMilliseconds);
+        ~Slot () = default;
 
-    void deactivate() noexcept;
+        void prepare (double sampleRate, int maximumBlockSize, int numChannels);
 
-    bool isActivated() const noexcept;
+        void reset () noexcept;
 
-    void setGain (float newGain) noexcept;
-    float getGain() const noexcept;
+        void setSource (SlotSource* newSource) noexcept;
+        SlotSource* getSource () const noexcept
+        {
+            return source;
+        }
 
-    bool process (int numSamples, juce::MidiBuffer& midi) noexcept;
+        FxChain& getFxChain () noexcept
+        {
+            return fxChain;
+        }
+        const FxChain& getFxChain () const noexcept
+        {
+            return fxChain;
+        }
 
-    void feedDeviceInput (const float* const* channelData, int numChannels) noexcept;
+        void setFxChainEditing (bool editing) noexcept
+        {
+            fxChainEditing.store (editing, std::memory_order_release);
+        }
 
-    bool processUnfaded (int numSamples, juce::MidiBuffer& midi) noexcept;
+        bool isFxChainEditing () const noexcept
+        {
+            return fxChainEditing.load (std::memory_order_acquire);
+        }
 
-    const juce::AudioBuffer<float>& getOutputBuffer() const noexcept { return view; }
+        void activate () noexcept;
 
-    SlotState getState() const noexcept;
-    bool isProcessing() const noexcept;
+        void deactivate () noexcept;
 
-    int getIndex() const noexcept { return index; }
+        bool isActivated () const noexcept;
 
-    int latencySamples() const noexcept;
+        void setGain (float newGain) noexcept;
+        float getGain () const noexcept;
 
-    double latencyMilliseconds() const noexcept;
+        bool process (int numSamples, juce::MidiBuffer& midi) noexcept;
 
-private:
-    bool renderSource (int numSamples, juce::MidiBuffer& midi) noexcept;
-    void applyGains (int numSamples, bool applyFade) noexcept;
+        void feedDeviceInput (const float* const* channelData, int numChannels) noexcept;
 
-    const int index;
-    const float fadeMilliseconds;
+        bool processUnfaded (int numSamples, juce::MidiBuffer& midi) noexcept;
 
-    juce::AudioBuffer<float> storage;
-    juce::AudioBuffer<float> view;
-    SlotSource* source = nullptr;
-    FxChain fxChain;
+        const juce::AudioBuffer<float>& getOutputBuffer () const noexcept
+        {
+            return view;
+        }
 
-    double sampleRate = 0.0;
-    int maximumBlockSize = 0;
-    int numChannels = 0;
-    bool prepared = false;
+        SlotState getState () const noexcept;
+        bool isProcessing () const noexcept;
 
-    std::atomic<bool> activated { false };
-    std::atomic<SlotState> publishedState { SlotState::idle };
-    std::atomic<float> gainTarget { 1.0f };
-    std::atomic<bool> fxChainEditing { false };
+        int getIndex () const noexcept
+        {
+            return index;
+        }
 
-    SlotState state = SlotState::idle;
-    float fadeGain = 0.0f;
-    float fadeStep = 0.0f;
-    float appliedGain = 1.0f;
-    float gainStep = 0.0f;
+        int latencySamples () const noexcept;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Slot)
-};
+        double latencyMilliseconds () const noexcept;
+
+    private:
+        bool renderSource (int numSamples, juce::MidiBuffer& midi) noexcept;
+        void applyGains (int numSamples, bool applyFade) noexcept;
+
+        const int index;
+        const float fadeMilliseconds;
+
+        juce::AudioBuffer<float> storage;
+        juce::AudioBuffer<float> view;
+        SlotSource* source = nullptr;
+        FxChain fxChain;
+
+        double sampleRate = 0.0;
+        int maximumBlockSize = 0;
+        int numChannels = 0;
+        bool prepared = false;
+
+        std::atomic<bool> activated{false};
+        std::atomic<SlotState> publishedState{SlotState::idle};
+        std::atomic<float> gainTarget{1.0f};
+        std::atomic<bool> fxChainEditing{false};
+
+        SlotState state = SlotState::idle;
+        float fadeGain = 0.0f;
+        float fadeStep = 0.0f;
+        float appliedGain = 1.0f;
+        float gainStep = 0.0f;
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Slot)
+    };
 
 }

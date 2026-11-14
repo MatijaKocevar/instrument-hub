@@ -8,7 +8,7 @@
 namespace ihub::app
 {
 
-void importMappingPatches (const Controller::SetMapping& document,
-                           std::map<int, ihub::project::SlotConfig>& slots);
+    void importMappingPatches (const Controller::SetMapping& document,
+                               std::map<int, ihub::project::SlotConfig>& slots);
 
 }

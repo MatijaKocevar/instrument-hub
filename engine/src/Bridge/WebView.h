@@ -11,9 +11,9 @@ public:
 
     explicit WebView (PageLoadedCallback onPageLoaded = {});
 
-    static juce::String initialUrl();
+    static juce::String initialUrl ();
 
-    static bool isDevelopmentBuild();
+    static bool isDevelopmentBuild ();
 
     void pageFinishedLoading (const juce::String& url) override;
 

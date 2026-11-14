@@ -5,8 +5,8 @@
 namespace ihub::settings::detail
 {
 
-void applyDocument (const juce::var& document, Settings& settings);
+    void applyDocument (const juce::var& document, Settings& settings);
 
-juce::var buildDocument (const juce::var& preserved, const Settings& settings);
+    juce::var buildDocument (const juce::var& preserved, const Settings& settings);
 
 }

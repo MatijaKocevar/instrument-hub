@@ -8,118 +8,121 @@
 namespace Api
 {
 
-TransportState StateStore::getTransport() const
-{
-    TransportProvider provider;
-    TransportState current;
-
+    TransportState StateStore::getTransport () const
     {
-        const std::lock_guard<std::mutex> lock (mutex);
-        current = transport;
-        provider = transportProvider;
-    }
+        TransportProvider provider;
+        TransportState current;
 
-    if (provider != nullptr)
-    {
-        try
         {
-            return provider();
+            const std::lock_guard<std::mutex> lock (mutex);
+            current = transport;
+            provider = transportProvider;
         }
-        catch (...)
+
+        if (provider != nullptr)
         {
+            try
+            {
+                return provider ();
+            }
+            catch (...)
+            {
+            }
         }
+
+        return current;
     }
 
-    return current;
-}
-
-bool StateStore::updateTransport (const juce::var& patch, std::string& error)
-{
-    if (! patch.isObject())
+    bool StateStore::updateTransport (const juce::var& patch, std::string& error)
     {
-        error = "request body must be a JSON object";
-        return false;
-    }
-
-    TransportHandler handler;
-    TransportState next;
-
-    {
-        const std::lock_guard<std::mutex> lock (mutex);
-        next = transport;
-        const auto& properties = patch.getDynamicObject()->getProperties();
-
-        for (int index = 0; index < properties.size(); ++index)
+        if (!patch.isObject ())
         {
-            const auto& name = properties.getName (index);
-            const auto& value = properties.getValueAt (index);
+            error = "request body must be a JSON object";
+            return false;
+        }
 
-            if (name.toString() == "playing")
+        TransportHandler handler;
+        TransportState next;
+
+        {
+            const std::lock_guard<std::mutex> lock (mutex);
+            next = transport;
+            const auto& properties = patch.getDynamicObject ()->getProperties ();
+
+            for (int index = 0; index < properties.size (); ++index)
             {
-                if (! detail::readBool (value, "playing", next.playing, error))
-                    return false;
-            }
-            else if (name.toString() == "bpm")
-            {
-                double parsed = 0.0;
+                const auto& name = properties.getName (index);
+                const auto& value = properties.getValueAt (index);
 
-                if (! detail::readNumber (value, "bpm", 20.0, 300.0, parsed, error))
-                    return false;
-
-                next.bpm = parsed;
-            }
-            else if (name.toString() == "ppq")
-            {
-                double parsed = 0.0;
-
-                if (! detail::readNumber (value, "ppq", 0.0, 1.0e9, parsed, error))
-                    return false;
-
-                next.ppq = parsed;
-            }
-            else if (name.toString() == "positionSamples")
-            {
-                std::int64_t parsed = 0;
-
-                if (! detail::readInteger (value, "positionSamples",
-                                   0, std::numeric_limits<std::int64_t>::max(),
-                                   parsed, error))
+                if (name.toString () == "playing")
                 {
+                    if (!detail::readBool (value, "playing", next.playing, error))
+                        return false;
+                }
+                else if (name.toString () == "bpm")
+                {
+                    double parsed = 0.0;
+
+                    if (!detail::readNumber (value, "bpm", 20.0, 300.0, parsed, error))
+                        return false;
+
+                    next.bpm = parsed;
+                }
+                else if (name.toString () == "ppq")
+                {
+                    double parsed = 0.0;
+
+                    if (!detail::readNumber (value, "ppq", 0.0, 1.0e9, parsed, error))
+                        return false;
+
+                    next.ppq = parsed;
+                }
+                else if (name.toString () == "positionSamples")
+                {
+                    std::int64_t parsed = 0;
+
+                    if (!detail::readInteger (value,
+                                              "positionSamples",
+                                              0,
+                                              std::numeric_limits<std::int64_t>::max (),
+                                              parsed,
+                                              error))
+                    {
+                        return false;
+                    }
+
+                    next.positionSamples = parsed;
+                }
+                else
+                {
+                    error = "unknown transport field: " + name.toString ().toStdString ();
                     return false;
                 }
+            }
 
-                next.positionSamples = parsed;
-            }
-            else
-            {
-                error = "unknown transport field: " + name.toString().toStdString();
-                return false;
-            }
+            transport = next;
+            handler = transportHandler;
         }
 
-        transport = next;
-        handler = transportHandler;
+        if (handler != nullptr)
+            handler (next, patch);
+
+        notifyEdited ("transport", -1);
+        notifyChanged ("transport", -1);
+
+        return true;
     }
 
-    if (handler != nullptr)
-        handler (next, patch);
+    void StateStore::setTransportHandler (TransportHandler handler)
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        transportHandler = std::move (handler);
+    }
 
-    notifyEdited ("transport", -1);
-    notifyChanged ("transport", -1);
-
-    return true;
-}
-
-void StateStore::setTransportHandler (TransportHandler handler)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-    transportHandler = std::move (handler);
-}
-
-void StateStore::setTransportProvider (TransportProvider provider)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-    transportProvider = std::move (provider);
-}
+    void StateStore::setTransportProvider (TransportProvider provider)
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        transportProvider = std::move (provider);
+    }
 
 }

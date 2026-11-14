@@ -5,85 +5,85 @@
 namespace Controller
 {
 
-bool Mapping::handleButton (int cc, bool pressed)
-{
-    if (const auto topRow = Launchpad::topRowIndexForCC (cc))
-        return handleTopRow (*topRow, pressed);
-
-    if (const auto rightColumn = Launchpad::rightColumnIndexForCC (cc))
-        return handleRightColumn (*rightColumn, pressed);
-
-    return false;
-}
-
-bool Mapping::handleTopRow (int index, bool pressed)
-{
-    if (index < 0 || index >= SetMapping::maximumBanks)
-        return false;
-
-    Listeners listenersCopy;
-    std::optional<MacroBankSpec> page;
-    bool mapped = false;
-
+    bool Mapping::handleButton (int cc, bool pressed)
     {
-        const std::lock_guard<std::mutex> lock (mutex);
-        listenersCopy = listeners;
+        if (const auto topRow = Launchpad::topRowIndexForCC (cc))
+            return handleTopRow (*topRow, pressed);
 
-        if (current != nullptr)
-        {
-            if (const auto* binding = current->bankBinding (index))
-            {
-                page = *binding;
-                mapped = true;
+        if (const auto rightColumn = Launchpad::rightColumnIndexForCC (cc))
+            return handleRightColumn (*rightColumn, pressed);
 
-                if (pressed)
-                    activeBank.store (index, std::memory_order_release);
-            }
-        }
+        return false;
     }
 
-    if (! pressed || ! mapped)
-        return false;
-
-    if (listenersCopy.bankEvent)
-        listenersCopy.bankEvent (index, &*page);
-
-    return true;
-}
-
-bool Mapping::handleRightColumn (int index, bool pressed)
-{
-    if (index < 0 || index >= SetMapping::maximumScenes)
-        return false;
-
-    Listeners listenersCopy;
-    std::optional<SceneSpec> selection;
-    bool mapped = false;
-
+    bool Mapping::handleTopRow (int index, bool pressed)
     {
-        const std::lock_guard<std::mutex> lock (mutex);
-        listenersCopy = listeners;
+        if (index < 0 || index >= SetMapping::maximumBanks)
+            return false;
 
-        if (current != nullptr)
+        Listeners listenersCopy;
+        std::optional<MacroBankSpec> page;
+        bool mapped = false;
+
         {
-            if (const auto* binding = current->sceneBinding (index))
-            {
-                selection = *binding;
-                mapped = true;
+            const std::lock_guard<std::mutex> lock (mutex);
+            listenersCopy = listeners;
 
-                if (pressed)
-                    activeScene.store (index, std::memory_order_release);
+            if (current != nullptr)
+            {
+                if (const auto* binding = current->bankBinding (index))
+                {
+                    page = *binding;
+                    mapped = true;
+
+                    if (pressed)
+                        activeBank.store (index, std::memory_order_release);
+                }
             }
         }
+
+        if (!pressed || !mapped)
+            return false;
+
+        if (listenersCopy.bankEvent)
+            listenersCopy.bankEvent (index, &*page);
+
+        return true;
     }
 
-    if (! pressed || ! mapped)
-        return false;
+    bool Mapping::handleRightColumn (int index, bool pressed)
+    {
+        if (index < 0 || index >= SetMapping::maximumScenes)
+            return false;
 
-    if (listenersCopy.sceneEvent)
-        listenersCopy.sceneEvent (index, &*selection);
+        Listeners listenersCopy;
+        std::optional<SceneSpec> selection;
+        bool mapped = false;
 
-    return true;
-}
+        {
+            const std::lock_guard<std::mutex> lock (mutex);
+            listenersCopy = listeners;
+
+            if (current != nullptr)
+            {
+                if (const auto* binding = current->sceneBinding (index))
+                {
+                    selection = *binding;
+                    mapped = true;
+
+                    if (pressed)
+                        activeScene.store (index, std::memory_order_release);
+                }
+            }
+        }
+
+        if (!pressed || !mapped)
+            return false;
+
+        if (listenersCopy.sceneEvent)
+            listenersCopy.sceneEvent (index, &*selection);
+
+        return true;
+    }
 
 }

@@ -5,18 +5,18 @@
 namespace ihub::app
 {
 
-enum class AppMode
-{
-    gui,
-    serve,
-    pluginScan,
-    listDevices,
-    measureLatency,
-    diagnostics
-};
+    enum class AppMode
+    {
+        gui,
+        serve,
+        pluginScan,
+        listDevices,
+        measureLatency,
+        diagnostics
+    };
 
-AppMode selectMode (const juce::String& commandLine) noexcept;
+    AppMode selectMode (const juce::String& commandLine) noexcept;
 
-const char* toString (AppMode mode) noexcept;
+    const char* toString (AppMode mode) noexcept;
 
 }
