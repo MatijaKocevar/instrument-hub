@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Instrument Hub: dev (watch C++)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh --watch",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Instrument Hub: build Debug app",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/build.sh debug",
+      "problemMatcher": []
+    }
+  ]
+}
