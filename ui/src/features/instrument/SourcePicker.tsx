@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from "react";
 
 import type {
+  ControlAudioChannel,
   ControlPatch,
   ControlPatchSourceRequest,
   ControlPlugin,
@@ -13,10 +14,16 @@ import {
   sourceRequestForPlugin,
 } from "./source";
 
+const fallbackInputs: readonly ControlAudioChannel[] = [
+  { index: 0, name: "channel 1", active: true },
+  { index: 1, name: "channel 2", active: true },
+];
+
 interface SourcePickerProps {
   readonly patch: ControlPatch;
   readonly plugins?: readonly ControlPlugin[] | null;
   readonly pluginError?: string | null;
+  readonly audioInputs?: readonly ControlAudioChannel[] | null;
   readonly sourceBusy?: boolean;
   readonly onSourceChange?: (
     slot: number,
@@ -28,11 +35,16 @@ export function SourcePicker({
   patch,
   plugins,
   pluginError,
+  audioInputs = null,
   sourceBusy,
   onSourceChange,
 }: SourcePickerProps): ReactElement {
   const [selection, setSelection] = useState("");
   const assignable = instrumentPlugins(plugins ?? []);
+  const inputs =
+    audioInputs === null
+      ? fallbackInputs
+      : audioInputs.filter((channel) => channel.active);
 
   const choose = (): void => {
     if (selection === "empty") {
@@ -45,11 +57,13 @@ export function SourcePicker({
       return;
     }
 
-    if (selection === "audio-input-0" || selection === "audio-input-1") {
-      onSourceChange?.(
-        patch.slot,
-        sourceRequestForAudioInput(Number(selection.slice(-1))),
-      );
+    if (selection.startsWith("audio-input:")) {
+      const channel = Number(selection.slice("audio-input:".length));
+
+      if (Number.isInteger(channel) && channel >= 0) {
+        onSourceChange?.(patch.slot, sourceRequestForAudioInput(channel));
+      }
+
       return;
     }
 
@@ -77,8 +91,19 @@ export function SourcePicker({
             <option value="">Choose a source…</option>
             <option value="empty">Unassigned (silent)</option>
             <option value="init-tone">Built-in tone</option>
-            <option value="audio-input-0">Live audio input · Input 1</option>
-            <option value="audio-input-1">Live audio input · Input 2</option>
+            {inputs.map((channel) => (
+              <option
+                key={channel.index}
+                value={`audio-input:${String(channel.index)}`}
+              >
+                Live audio input · Input {String(channel.index + 1)}
+              </option>
+            ))}
+            {inputs.length === 0 ? (
+              <option value="audio-none" disabled>
+                No active audio inputs
+              </option>
+            ) : null}
             {assignable.map((plugin) => (
               <option key={plugin.id} value={plugin.path}>
                 {plugin.name} · {plugin.vendor}

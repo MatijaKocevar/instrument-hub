@@ -3,6 +3,7 @@ import type {
   ControlAudioPatch,
   ControlFxInsertRequest,
   ControlFxInsertUpdate,
+  ControlFxTunerState,
   ControlMidiInputUpdate,
   ControlPatchSourceRequest,
   ControlPatchUpdate,
@@ -222,6 +223,9 @@ export class AppStore {
     slot: number,
     options: { force?: boolean } = {},
   ): Promise<boolean> => this.fx.loadFxChain(slot, options);
+
+  getTuner = (slot: number, index: number): Promise<ControlFxTunerState> =>
+    this.fx.getTuner(slot, index);
 
   addFxInsert = (
     slot: number,

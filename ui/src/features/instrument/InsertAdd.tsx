@@ -5,6 +5,7 @@ import type {
   ControlPatch,
   ControlPlugin,
 } from "../../api/client";
+import { DRIVE_PRESETS, insertRequestForDrivePreset } from "./drive";
 import {
   BUILTIN_INSERT_TYPES,
   insertLabel,
@@ -12,11 +13,14 @@ import {
   insertRequestForPlugin,
   type BuiltinInsertType,
 } from "./inserts";
+import { InsertPicker, type InsertPickerGroup } from "./InsertPicker";
 import { effectPlugins } from "./selection";
+import { insertRequestForTuner } from "./tuner";
 
 interface InsertAddProps {
   readonly patch: ControlPatch;
   readonly plugins?: readonly ControlPlugin[] | null;
+  readonly existingIds?: readonly string[];
   readonly chainBusy?: boolean;
   readonly onAddInsert?: (slot: number, insert: ControlFxInsertRequest) => void;
 }
@@ -24,15 +28,65 @@ interface InsertAddProps {
 export function InsertAdd({
   patch,
   plugins,
+  existingIds = [],
   chainBusy,
   onAddInsert,
 }: InsertAddProps): ReactElement {
   const [selection, setSelection] = useState<string>(
-    `builtin:${BUILTIN_INSERT_TYPES[0]}`,
+    `drive:${DRIVE_PRESETS[0].id}`,
   );
   const effects = effectPlugins(plugins ?? []);
+  const groups: InsertPickerGroup[] = [
+    {
+      label: "Drive",
+      options: DRIVE_PRESETS.map((preset) => ({
+        value: `drive:${preset.id}`,
+        label: preset.label,
+      })),
+    },
+    {
+      label: "Built-in",
+      options: BUILTIN_INSERT_TYPES.map((type) => ({
+        value: `builtin:${type}`,
+        label: insertLabel(type),
+      })),
+    },
+    {
+      label: "Tools",
+      options: [{ value: "tuner", label: "Tuner" }],
+    },
+  ];
+
+  if (effects.length > 0)
+    groups.push({
+      label: "Plug-ins",
+      options: effects.map((plugin) => ({
+        value: `plugin:${plugin.id}`,
+        label: `${plugin.name} · ${plugin.vendor}`,
+      })),
+    });
 
   const add = (): void => {
+    if (selection === "tuner") {
+      onAddInsert?.(patch.slot, insertRequestForTuner(existingIds));
+      return;
+    }
+
+    if (selection.startsWith("drive:")) {
+      const presetId = selection.slice("drive:".length);
+      const preset = DRIVE_PRESETS.find(
+        (candidate) => candidate.id === presetId,
+      );
+
+      if (preset !== undefined)
+        onAddInsert?.(
+          patch.slot,
+          insertRequestForDrivePreset(preset, existingIds),
+        );
+
+      return;
+    }
+
     if (selection.startsWith("builtin:")) {
       const type = selection.slice("builtin:".length) as BuiltinInsertType;
 
@@ -55,32 +109,22 @@ export function InsertAdd({
   return (
     <div className="instrument__add" data-testid="fx-add">
       <span className="instrument__add-title">Load insert</span>
-      <label
-        className="instrument__add-field"
-        htmlFor="instrument-insert-select"
-      >
-        <span className="instrument__field-label">Insert</span>
-        <select
-          id="instrument-insert-select"
-          className="instrument__select"
-          data-testid="fx-add-select"
-          value={selection}
-          onChange={(event) => {
-            setSelection(event.currentTarget.value);
-          }}
+      <div className="instrument__add-field">
+        <span
+          className="instrument__field-label"
+          id="instrument-insert-select-label"
         >
-          {BUILTIN_INSERT_TYPES.map((type) => (
-            <option key={type} value={`builtin:${type}`}>
-              {insertLabel(type)}
-            </option>
-          ))}
-          {effects.map((plugin) => (
-            <option key={plugin.id} value={`plugin:${plugin.id}`}>
-              {plugin.name} · {plugin.vendor}
-            </option>
-          ))}
-        </select>
-      </label>
+          Insert
+        </span>
+        <InsertPicker
+          id="instrument-insert-select"
+          value={selection}
+          groups={groups}
+          testId="fx-add-select"
+          labelledBy="instrument-insert-select-label"
+          onChange={setSelection}
+        />
+      </div>
 
       <button
         className="instrument__button"

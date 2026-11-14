@@ -450,10 +450,10 @@ export interface paths {
         /**
          * Append or insert an effect
          * @description Creates one insert and places it at `position` (clamped; omitted or -1
-         *     appends). Built-in types are `eq`, `compressor`, `delay` and `reverb`;
-         *     `vst3` loads a plugin bundle from `path`. The response is the complete
-         *     chain after the change, and the same change is published as
-         *     `event.kind: "patch"` on `/events`.
+         *     appends). Built-in types are `eq`, `compressor`, `delay`, `reverb`,
+         *     `drive` and `tuner`; `vst3` loads a plugin bundle from `path`. The
+         *     response is the complete chain after the change, and the same change is
+         *     published as `event.kind: "patch"` on `/events`.
          *
          *     Effect parameters are validated before anything is applied. See
          *     `FxInsert.parameters` for the built-in keys.
@@ -485,12 +485,41 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Bypass, balance, re-parameterise or move one insert
-         * @description Accepts a partial object: `bypassed`, `wet`, `parameters` and/or
-         *     `position`. `position` moves the insert within the chain (0 is first).
-         *     The response is the complete chain after the change.
+         * Bypass, balance, re-parameterise, rename or move one insert
+         * @description Accepts a partial object: `name`, `bypassed`, `wet`, `parameters`
+         *     and/or `position`. `position` moves the insert within the chain (0 is
+         *     first). The response is the complete chain after the change.
          */
         patch: operations["updateFxInsert"];
+        trace?: never;
+    };
+    "/patches/{slot}/fx/{index}/tuner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+                /** @description 0-based insert index in the current chain. */
+                index: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one tuner insert's current pitch reading
+         * @description Returns the latest analysis frame for the tuner insert at `index`.
+         *     The tuner is a pass-through insert: it never changes the audio, and it
+         *     keeps analysing even when the insert is bypassed. `valid` is false
+         *     while no stable pitch is present. `midiNote` is the nearest
+         *     equal-tempered note (A4 = 69) and `cents` is the offset from it.
+         */
+        get: operations["getFxTuner"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/patches/{slot}/fx/reorder": {
@@ -1172,7 +1201,7 @@ export interface components {
              * @description Stable effect type.
              * @enum {string}
              */
-            type: "eq" | "compressor" | "delay" | "reverb" | "vst3";
+            type: "eq" | "compressor" | "delay" | "reverb" | "drive" | "tuner" | "vst3";
             /** @enum {string} */
             kind: "builtin" | "vst3";
             /** @description Built-in id, or the plugin's bundle path. */
@@ -1197,6 +1226,10 @@ export interface components {
              *     - `delay`: `tempoSync` (0/1), `division` (0..9), `timeMs`,
              *       `feedback`, `dampingHz`
              *     - `reverb`: `roomSize`, `damping`, `width`, `preDelayMs`
+             *     - `drive`: `model` (0 overdrive, 1 blues, 2 rock, 3 distortion,
+             *       4 grunge, 5 fuzz), `drive` (0..1), `tone` (0..1),
+             *       `levelDb` (-24..12), `cab` (0/1)
+             *     - `tuner`: no parameters; the insert is a pass-through analyser
              *     - `vst3`: parameter id or display name -> normalised 0..1 value
              */
             parameters: {
@@ -1216,9 +1249,23 @@ export interface components {
             latencyMs: number;
             inserts: components["schemas"]["FxInsert"][];
         };
+        FxTuner: {
+            slot: number;
+            index: number;
+            /** @description True while a stable pitch is being detected. */
+            valid: boolean;
+            frequencyHz: number;
+            /** @description Nearest MIDI note number (A4 = 69), or -1 while invalid. */
+            midiNote: number;
+            /** @description Offset from the nearest note, in cents. */
+            cents: number;
+            confidence: number;
+            /** @description Input level of the tuner insert, in dBFS. */
+            levelDb: number;
+        };
         FxInsertRequest: {
             /** @enum {string} */
-            type: "eq" | "compressor" | "delay" | "reverb" | "vst3";
+            type: "eq" | "compressor" | "delay" | "reverb" | "drive" | "tuner" | "vst3";
             /** @description VST3 bundle path; required for `vst3`, ignored otherwise. */
             path?: string;
             /** @description Optional stable id; the bundle path is used for a plugin. */
@@ -1235,6 +1282,7 @@ export interface components {
             };
         };
         FxInsertUpdate: {
+            name?: string;
             bypassed?: boolean;
             wet?: number;
             /** @description Move the insert to this position in the chain. */
@@ -2652,6 +2700,50 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             /** @description The patch or insert index does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No audio session is attached */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFxTuner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fixed audio-graph slot index, 0 .. 63. */
+                slot: number;
+                /** @description 0-based insert index in the current chain. */
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The latest tuner reading */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxTuner"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The patch or insert does not exist, or the insert is not a tuner */
             404: {
                 headers: {
                     [name: string]: unknown;

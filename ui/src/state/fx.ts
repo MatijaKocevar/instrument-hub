@@ -2,9 +2,10 @@ import type {
   ControlFxChain,
   ControlFxInsertRequest,
   ControlFxInsertUpdate,
+  ControlFxTunerState,
 } from "../api/client";
 import {
-  chainWithBypass,
+  chainWithInsertUpdate,
   chainWithMove,
   chainWithoutInsert,
   moveOrder,
@@ -54,6 +55,13 @@ export class FxActions {
     }
   };
 
+  getTuner = (
+    slot: number,
+    index: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlFxTunerState> =>
+    this.context.api.getFxTuner(slot, index, options);
+
   addFxInsert = async (
     slot: number,
     insert: ControlFxInsertRequest,
@@ -68,11 +76,9 @@ export class FxActions {
     this.runFx(
       slot,
       () => this.context.api.updateFxInsert(slot, index, update),
-      update.bypassed === undefined
-        ? null
-        : this.optimisticChain(slot, (chain) =>
-            chainWithBypass(chain, index, update.bypassed === true),
-          ),
+      this.optimisticChain(slot, (chain) =>
+        chainWithInsertUpdate(chain, index, update),
+      ),
     );
 
   removeFxInsert = async (slot: number, index: number): Promise<boolean> =>
