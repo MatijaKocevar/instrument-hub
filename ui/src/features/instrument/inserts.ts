@@ -14,8 +14,23 @@ const INSERT_LABELS: Record<string, string> = {
   compressor: "Compressor",
   delay: "Delay",
   reverb: "Reverb",
+  drive: "Drive",
+  tuner: "Tuner",
   vst3: "VST3",
 };
+
+export function uniqueInsertId(
+  base: string,
+  existing: readonly string[],
+): string {
+  if (!existing.includes(base)) return base;
+
+  let suffix = 2;
+
+  while (existing.includes(`${base}-${String(suffix)}`)) suffix += 1;
+
+  return `${base}-${String(suffix)}`;
+}
 
 export function insertLabel(type: string): string {
   return INSERT_LABELS[type] ?? type;

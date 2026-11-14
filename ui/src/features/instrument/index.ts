@@ -1,11 +1,20 @@
 export { InstrumentPage, type InstrumentPageProps } from "./InstrumentPage";
 export {
   chainWithBypass,
+  chainWithInsertUpdate,
   chainWithMove,
   chainWithoutInsert,
   moveOrder,
   withChainLatency,
 } from "./chain";
+export {
+  DRIVE_PRESETS,
+  driveModelLabel,
+  driveParametersForPreset,
+  drivePresetForModel,
+  insertRequestForDrivePreset,
+  type DrivePreset,
+} from "./drive";
 export {
   FADER_MAX_DB,
   FADER_MIN_DB,
@@ -23,6 +32,7 @@ export {
   insertLabel,
   insertRequestForBuiltin,
   insertRequestForPlugin,
+  uniqueInsertId,
   type BuiltinInsertType,
 } from "./inserts";
 export {

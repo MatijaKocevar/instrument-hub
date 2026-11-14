@@ -22,6 +22,7 @@ export type {
   ControlFxInsert,
   ControlFxInsertRequest,
   ControlFxInsertUpdate,
+  ControlFxTunerState,
   ControlMidiInput,
   ControlMidiInputUpdate,
   ControlMidiState,

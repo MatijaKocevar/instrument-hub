@@ -6,6 +6,7 @@ import type {
   ControlFxChain,
   ControlFxInsertRequest,
   ControlFxInsertUpdate,
+  ControlFxTunerState,
 } from "./types";
 
 export interface FxEndpoints {
@@ -13,6 +14,12 @@ export interface FxEndpoints {
     slot: number,
     options?: { signal?: AbortSignal },
   ): Promise<ControlFxChain>;
+
+  getFxTuner(
+    slot: number,
+    index: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<ControlFxTunerState>;
 
   addFxInsert(
     slot: number,
@@ -93,6 +100,40 @@ function requireChain(
   return guard.fail(error, status, what);
 }
 
+function isFxTuner(value: unknown): value is ControlFxTunerState {
+  if (value === null || typeof value !== "object") return false;
+
+  const candidate = value as Partial<ControlFxTunerState>;
+
+  return (
+    typeof candidate.slot === "number" &&
+    typeof candidate.index === "number" &&
+    typeof candidate.valid === "boolean" &&
+    typeof candidate.frequencyHz === "number" &&
+    typeof candidate.midiNote === "number" &&
+    typeof candidate.cents === "number" &&
+    typeof candidate.confidence === "number" &&
+    typeof candidate.levelDb === "number"
+  );
+}
+
+function requireTuner(
+  guard: RequestGuard,
+  data: ControlFxTunerState | undefined,
+  error: unknown,
+  status: number,
+  what: string,
+): ControlFxTunerState {
+  if (data !== undefined) {
+    if (!isFxTuner(data))
+      return guard.reject(`${what} returned an unsupported payload`, status);
+
+    return data;
+  }
+
+  return guard.fail(error, status, what);
+}
+
 export function createFxEndpoints(
   client: Client<paths>,
   guard: RequestGuard,
@@ -112,6 +153,26 @@ export function createFxEndpoints(
         error,
         response.status,
         `GET /patches/${String(slot)}/fx`,
+      );
+    },
+
+    async getFxTuner(slot, index, requestOptions) {
+      const { data, error, response } = await client.GET(
+        "/patches/{slot}/fx/{index}/tuner",
+        {
+          params: { path: { slot, index } },
+          ...(requestOptions?.signal !== undefined
+            ? { signal: requestOptions.signal }
+            : {}),
+        },
+      );
+
+      return requireTuner(
+        guard,
+        data,
+        error,
+        response.status,
+        `GET /patches/${String(slot)}/fx/${String(index)}/tuner`,
       );
     },
 

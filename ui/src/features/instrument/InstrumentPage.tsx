@@ -1,8 +1,11 @@
 import type { ReactElement } from "react";
 
 import type {
+  ControlAudioChannel,
   ControlFxChain,
   ControlFxInsertRequest,
+  ControlFxInsertUpdate,
+  ControlFxTunerState,
   ControlPatch,
   ControlPatchSourceRequest,
   ControlPatchStateCapture,
@@ -36,6 +39,7 @@ export interface InstrumentPageProps {
   readonly captureError?: string | null;
   readonly plugins?: readonly ControlPlugin[] | null;
   readonly pluginError?: string | null;
+  readonly audioInputs?: readonly ControlAudioChannel[] | null;
   readonly track?: ControlTrack | null;
   readonly gridTrack?: GridTrack | null;
   readonly metersUrl?: string;
@@ -60,6 +64,15 @@ export interface InstrumentPageProps {
     bypassed: boolean,
   ) => void;
   readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
+  readonly onUpdateInsert?: (
+    slot: number,
+    index: number,
+    update: ControlFxInsertUpdate,
+  ) => void;
+  readonly onReadTuner?: (
+    slot: number,
+    index: number,
+  ) => Promise<ControlFxTunerState>;
   readonly onRetryChain?: (slot: number) => void;
   readonly onAssignHotFx?: (
     trackIndex: number,
@@ -89,6 +102,7 @@ export function InstrumentPage({
   captureError = null,
   plugins = null,
   pluginError = null,
+  audioInputs = null,
   track = null,
   gridTrack = null,
   metersUrl = "",
@@ -105,6 +119,8 @@ export function InstrumentPage({
   onRemoveInsert,
   onToggleBypass,
   onMoveInsert,
+  onUpdateInsert,
+  onReadTuner,
   onRetryChain,
   onAssignHotFx,
   onRenameTrack,
@@ -155,6 +171,7 @@ export function InstrumentPage({
                   patch={patch}
                   plugins={plugins}
                   pluginError={pluginError}
+                  audioInputs={audioInputs}
                   sourceBusy={sourceBusy}
                   {...(onSourceChange !== undefined ? { onSourceChange } : {})}
                 />
@@ -165,6 +182,24 @@ export function InstrumentPage({
                 {...(onPanChange !== undefined ? { onPanChange } : {})}
                 {...(onMuteChange !== undefined ? { onMuteChange } : {})}
                 {...(onSoloChange !== undefined ? { onSoloChange } : {})}
+              />
+
+              <InsertChain
+                patch={patch}
+                chain={chain}
+                chainError={chainError}
+                chainBusy={chainBusy}
+                plugins={plugins}
+                track={track}
+                {...(onAddInsert !== undefined ? { onAddInsert } : {})}
+                {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
+                {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
+                {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
+                {...(onUpdateInsert !== undefined ? { onUpdateInsert } : {})}
+                {...(onReadTuner !== undefined ? { onReadTuner } : {})}
+                active={patch.slot === armedSlot}
+                {...(onRetryChain !== undefined ? { onRetryChain } : {})}
+                {...(onAssignHotFx !== undefined ? { onAssignHotFx } : {})}
               />
             </div>
 
@@ -182,21 +217,6 @@ export function InstrumentPage({
               />
             ) : null}
           </div>
-
-          <InsertChain
-            patch={patch}
-            chain={chain}
-            chainError={chainError}
-            chainBusy={chainBusy}
-            plugins={plugins}
-            track={track}
-            {...(onAddInsert !== undefined ? { onAddInsert } : {})}
-            {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
-            {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
-            {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
-            {...(onRetryChain !== undefined ? { onRetryChain } : {})}
-            {...(onAssignHotFx !== undefined ? { onAssignHotFx } : {})}
-          />
         </>
       )}
     </InstrumentFrame>

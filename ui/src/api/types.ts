@@ -39,6 +39,7 @@ export type ControlFxChain = components["schemas"]["FxChain"];
 export type ControlFxInsert = components["schemas"]["FxInsert"];
 export type ControlFxInsertRequest = components["schemas"]["FxInsertRequest"];
 export type ControlFxInsertUpdate = components["schemas"]["FxInsertUpdate"];
+export type ControlFxTunerState = components["schemas"]["FxTuner"];
 export type ControlPlugin = components["schemas"]["Plugin"];
 export type ControlPluginList = components["schemas"]["PluginList"];
 export type ControlMidiState = components["schemas"]["MidiState"];

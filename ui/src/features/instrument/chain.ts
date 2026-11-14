@@ -1,4 +1,8 @@
-import type { ControlFxChain, ControlFxInsert } from "../../api/client";
+import type {
+  ControlFxChain,
+  ControlFxInsert,
+  ControlFxInsertUpdate,
+} from "../../api/client";
 
 export function moveOrder(length: number, from: number, to: number): number[] {
   if (!Number.isInteger(length) || length <= 0) return [];
@@ -49,6 +53,32 @@ export function chainWithoutInsert(
     chain,
     chain.inserts.filter((_, position) => position !== index),
   );
+}
+
+export function chainWithInsertUpdate(
+  chain: ControlFxChain,
+  index: number,
+  update: ControlFxInsertUpdate,
+): ControlFxChain {
+  if (index < 0 || index >= chain.inserts.length) return chain;
+
+  const inserts = chain.inserts.map((insert, position) => {
+    if (position !== index) return insert;
+
+    return {
+      ...insert,
+      ...(update.name !== undefined ? { name: update.name } : {}),
+      ...(update.bypassed !== undefined ? { bypassed: update.bypassed } : {}),
+      ...(update.wet !== undefined
+        ? { wet: update.wet, dry: 1 - update.wet }
+        : {}),
+      ...(update.parameters !== undefined
+        ? { parameters: { ...insert.parameters, ...update.parameters } }
+        : {}),
+    };
+  });
+
+  return withChainLatency(chain, inserts);
 }
 
 export function chainWithBypass(

@@ -52,6 +52,7 @@ export function InstrumentRoute({
       }
       plugins={app.plugins?.plugins ?? null}
       pluginError={app.pluginError}
+      audioInputs={app.audio?.inputChannels ?? null}
       track={track}
       gridTrack={gridTrack}
       metersUrl={metersUrlFor(store.baseUrl)}
@@ -89,6 +90,10 @@ export function InstrumentRoute({
       onMoveInsert={(slot, from, to) => {
         void store.moveFxInsert(slot, from, to);
       }}
+      onUpdateInsert={(slot, index, update) => {
+        void store.updateFxInsert(slot, index, update);
+      }}
+      onReadTuner={(slot, index) => store.getTuner(slot, index)}
       onRetryChain={(slot) => {
         void store.loadFxChain(slot, { force: true });
       }}

@@ -1,0 +1,151 @@
+.instrument__tuner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ih-space-1);
+  margin-top: var(--ih-space-1);
+  padding-top: var(--ih-space-1);
+  border-top: 1px solid var(--ih-border);
+}
+
+.instrument__tuner-hint {
+  margin: 0;
+  color: var(--ih-dim);
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.tuner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--ih-dim);
+}
+
+.tuner--in-tune {
+  color: var(--ih-success);
+}
+
+.tuner--off {
+  color: var(--ih-accent);
+}
+
+.tuner--idle {
+  color: var(--ih-dim);
+}
+
+.tuner__gauge-wrap {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  background: var(--ih-inset);
+}
+
+.tuner__gauge {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tuner__arc {
+  fill: none;
+  stroke: var(--ih-border-strong);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.tuner__arc--near {
+  stroke: var(--ih-warning);
+  stroke-width: 3.5;
+}
+
+.tuner__arc--in-tune {
+  stroke: var(--ih-success);
+  stroke-width: 4;
+}
+
+.tuner__tick {
+  stroke: var(--ih-muted);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.tuner__tick--major {
+  stroke: var(--ih-text);
+  stroke-width: 1.4;
+  opacity: 0.8;
+}
+
+.tuner__tick-label {
+  fill: var(--ih-muted);
+  font-family: var(--ih-mono);
+  font-size: 8px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.tuner__needle {
+  transform-box: view-box;
+  transition: transform 90ms linear;
+}
+
+.tuner__needle-line {
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.tuner__pivot {
+  fill: var(--ih-text);
+}
+
+.tuner__pivot-core {
+  fill: var(--ih-inset);
+}
+
+.tuner__readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--ih-space-1);
+}
+
+.tuner__note {
+  color: var(--ih-text-bright);
+  font-family: var(--ih-mono);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.tuner--idle .tuner__note {
+  color: var(--ih-muted);
+}
+
+.tuner__cents {
+  color: currentColor;
+  font-family: var(--ih-mono);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tuner__meta {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: var(--ih-space-1);
+  color: var(--ih-muted);
+  font-family: var(--ih-mono);
+  font-size: 10px;
+}
+
+.tuner__status {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tuner__frequency {
+  font-variant-numeric: tabular-nums;
+}

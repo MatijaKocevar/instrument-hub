@@ -132,49 +132,49 @@ export function InstrumentSkeleton({
         <div className="instrument__grid">
           <MixerSkeleton />
           <SourceSkeleton />
+
+          <section
+            className="instrument__card instrument__chain-card"
+            aria-label="Insert chain"
+            aria-busy="true"
+            data-testid="fx-chain"
+            data-slot={-1}
+            data-count={0}
+            data-latency-samples={0}
+            data-latency-ms="0.000"
+            data-busy="true"
+          >
+            <header className="instrument__card-head">
+              <h3 className="instrument__card-title">Insert chain</h3>
+              <Skeleton width="8rem" height="0.75rem" />
+            </header>
+
+            <dl
+              className="instrument__meta instrument__meta--row"
+              aria-hidden="true"
+            >
+              {[0, 1, 2].map((index) => (
+                <div key={index}>
+                  <dt>Latency</dt>
+                  <dd>
+                    <Skeleton width="4rem" height="0.85rem" />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="instrument__chain-row">
+              <InsertRowsSkeleton />
+              <div className="instrument__add" aria-hidden="true">
+                <Skeleton width="5rem" height="0.8rem" />
+                <Skeleton width="100%" height="2.5rem" radius="6px" />
+                <Skeleton width="100%" height="2.75rem" radius="6px" />
+              </div>
+            </div>
+          </section>
         </div>
         <TrackStripSkeleton />
       </div>
-
-      <section
-        className="instrument__card instrument__chain-card"
-        aria-label="Insert chain"
-        aria-busy="true"
-        data-testid="fx-chain"
-        data-slot={-1}
-        data-count={0}
-        data-latency-samples={0}
-        data-latency-ms="0.000"
-        data-busy="true"
-      >
-        <header className="instrument__card-head">
-          <h3 className="instrument__card-title">Insert chain</h3>
-          <Skeleton width="8rem" height="0.75rem" />
-        </header>
-
-        <dl
-          className="instrument__meta instrument__meta--row"
-          aria-hidden="true"
-        >
-          {[0, 1, 2].map((index) => (
-            <div key={index}>
-              <dt>Latency</dt>
-              <dd>
-                <Skeleton width="4rem" height="0.85rem" />
-              </dd>
-            </div>
-          ))}
-        </dl>
-
-        <div className="instrument__chain-row">
-          <InsertRowsSkeleton />
-          <div className="instrument__add" aria-hidden="true">
-            <Skeleton width="5rem" height="0.8rem" />
-            <Skeleton width="100%" height="2.5rem" radius="6px" />
-            <Skeleton width="100%" height="2.75rem" radius="6px" />
-          </div>
-        </div>
-      </section>
 
       <p className="loading-sr-only" role="status">
         Loading the instrument…

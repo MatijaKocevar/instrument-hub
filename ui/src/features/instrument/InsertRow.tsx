@@ -2,11 +2,15 @@ import type { ReactElement } from "react";
 
 import type {
   ControlFxInsert,
+  ControlFxInsertUpdate,
+  ControlFxTunerState,
   ControlPatch,
   ControlTrack,
 } from "../../api/client";
+import { DriveControls } from "./DriveControls";
 import { wetPercent } from "./format";
 import { insertLabel } from "./inserts";
+import { TunerPanel } from "./TunerPanel";
 
 interface InsertRowProps {
   readonly patch: ControlPatch;
@@ -21,6 +25,16 @@ interface InsertRowProps {
     bypassed: boolean,
   ) => void;
   readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
+  readonly onUpdateInsert?: (
+    slot: number,
+    index: number,
+    update: ControlFxInsertUpdate,
+  ) => void;
+  readonly onReadTuner?: (
+    slot: number,
+    index: number,
+  ) => Promise<ControlFxTunerState>;
+  readonly active?: boolean;
   readonly onAssignHotFx?: (
     trackIndex: number,
     hot: number,
@@ -37,14 +51,18 @@ export function InsertRow({
   onRemoveInsert,
   onToggleBypass,
   onMoveInsert,
+  onUpdateInsert,
+  onReadTuner,
+  active = false,
   onAssignHotFx,
 }: InsertRowProps): ReactElement {
+  const tuner = insert.type === "tuner";
   const hotFor = (hot: number) =>
     track?.hotFx.find((candidate) => candidate.index === hot) ?? null;
 
   return (
     <li
-      className={`instrument__insert${insert.bypassed ? " instrument__insert--bypassed" : ""}`}
+      className={`instrument__insert${insert.bypassed && !tuner ? " instrument__insert--bypassed" : ""}`}
       data-testid="fx-insert"
       data-index={index}
       data-type={insert.type}
@@ -62,9 +80,9 @@ export function InsertRow({
           {insertLabel(insert.type)}
         </span>
         <span
-          className={`instrument__insert-state${insert.bypassed ? " instrument__insert-state--bypassed" : ""}`}
+          className={`instrument__insert-state${insert.bypassed && !tuner ? " instrument__insert-state--bypassed" : ""}`}
         >
-          {insert.bypassed ? "Bypassed" : "Active"}
+          {tuner ? "Always on" : insert.bypassed ? "Bypassed" : "Active"}
         </span>
       </div>
 
@@ -74,15 +92,39 @@ export function InsertRow({
 
       <div className="instrument__insert-meta">
         <span className="instrument__insert-wet" data-testid="fx-wet">
-          {String(wetPercent(insert.wet))}% wet
+          {tuner ? "pass-through" : `${String(wetPercent(insert.wet))}% wet`}
         </span>
         <span className="instrument__insert-latency">
-          {String(insert.bypassed ? 0 : insert.latencySamples)} smp
+          {String(insert.bypassed && !tuner ? 0 : insert.latencySamples)} smp
         </span>
       </div>
 
+      {tuner ? (
+        <TunerPanel
+          slot={patch.slot}
+          index={index}
+          active={active}
+          {...(onReadTuner !== undefined
+            ? {
+                read: (slot: number, row: number) => onReadTuner(slot, row),
+              }
+            : {})}
+        />
+      ) : insert.type === "drive" ? (
+        <DriveControls
+          insert={insert}
+          {...(onUpdateInsert !== undefined
+            ? {
+                onUpdate: (update: ControlFxInsertUpdate) => {
+                  onUpdateInsert(patch.slot, index, update);
+                },
+              }
+            : {})}
+        />
+      ) : null}
+
       <div className="instrument__insert-actions">
-        {track === null
+        {track === null || tuner
           ? null
           : [0, 1].map((hot) => {
               const assigned = hotFor(hot)?.id === insert.id;
@@ -144,20 +186,24 @@ export function InsertRow({
         >
           →
         </button>
-        <button
-          className={`instrument__toggle instrument__toggle--small${insert.bypassed ? "" : " instrument__toggle--on"}`}
-          type="button"
-          aria-pressed={!insert.bypassed}
-          title={
-            insert.bypassed ? `Enable ${insert.name}` : `Bypass ${insert.name}`
-          }
-          data-testid="fx-bypass"
-          onClick={() => {
-            onToggleBypass?.(patch.slot, index, !insert.bypassed);
-          }}
-        >
-          {insert.bypassed ? "Off" : "On"}
-        </button>
+        {tuner ? null : (
+          <button
+            className={`instrument__toggle instrument__toggle--small${insert.bypassed ? "" : " instrument__toggle--on"}`}
+            type="button"
+            aria-pressed={!insert.bypassed}
+            title={
+              insert.bypassed
+                ? `Enable ${insert.name}`
+                : `Bypass ${insert.name}`
+            }
+            data-testid="fx-bypass"
+            onClick={() => {
+              onToggleBypass?.(patch.slot, index, !insert.bypassed);
+            }}
+          >
+            {insert.bypassed ? "Off" : "On"}
+          </button>
+        )}
         <button
           className="instrument__icon-button instrument__icon-button--remove"
           type="button"

@@ -3,6 +3,8 @@ import type { ReactElement } from "react";
 import type {
   ControlFxChain,
   ControlFxInsertRequest,
+  ControlFxInsertUpdate,
+  ControlFxTunerState,
   ControlPatch,
   ControlPlugin,
   ControlTrack,
@@ -30,6 +32,16 @@ interface InsertChainProps {
     bypassed: boolean,
   ) => void;
   readonly onMoveInsert?: (slot: number, from: number, to: number) => void;
+  readonly onUpdateInsert?: (
+    slot: number,
+    index: number,
+    update: ControlFxInsertUpdate,
+  ) => void;
+  readonly onReadTuner?: (
+    slot: number,
+    index: number,
+  ) => Promise<ControlFxTunerState>;
+  readonly active?: boolean;
   readonly onRetryChain?: (slot: number) => void;
   readonly onAssignHotFx?: (
     trackIndex: number,
@@ -49,6 +61,9 @@ export function InsertChain({
   onRemoveInsert,
   onToggleBypass,
   onMoveInsert,
+  onUpdateInsert,
+  onReadTuner,
+  active = false,
   onRetryChain,
   onAssignHotFx,
 }: InsertChainProps): ReactElement {
@@ -180,6 +195,9 @@ export function InsertChain({
                 {...(onRemoveInsert !== undefined ? { onRemoveInsert } : {})}
                 {...(onToggleBypass !== undefined ? { onToggleBypass } : {})}
                 {...(onMoveInsert !== undefined ? { onMoveInsert } : {})}
+                {...(onUpdateInsert !== undefined ? { onUpdateInsert } : {})}
+                {...(onReadTuner !== undefined ? { onReadTuner } : {})}
+                active={active}
                 {...(onAssignHotFx !== undefined ? { onAssignHotFx } : {})}
               />
             ))}
@@ -189,6 +207,7 @@ export function InsertChain({
         <InsertAdd
           patch={patch}
           {...(plugins !== undefined ? { plugins } : {})}
+          existingIds={inserts.map((insert) => insert.id)}
           {...(chainBusy !== undefined ? { chainBusy } : {})}
           {...(onAddInsert !== undefined ? { onAddInsert } : {})}
         />
