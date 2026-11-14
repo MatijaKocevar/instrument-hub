@@ -51,6 +51,22 @@ namespace Api::Routes
             return root;
         }
 
+        juce::var fxTunerToVar (const FxTunerState& tuner)
+        {
+            auto root = makeObject ();
+            auto* object = root.getDynamicObject ();
+
+            object->setProperty ("slot", tuner.slot);
+            object->setProperty ("index", tuner.index);
+            object->setProperty ("valid", tuner.valid);
+            object->setProperty ("frequencyHz", tuner.frequencyHz);
+            object->setProperty ("midiNote", tuner.midiNote);
+            object->setProperty ("cents", tuner.cents);
+            object->setProperty ("confidence", tuner.confidence);
+            object->setProperty ("levelDb", tuner.levelDb);
+            return root;
+        }
+
         bool readFxParameters (const juce::var& value,
                                const char* name,
                                std::map<std::string, double>& destination,
@@ -193,7 +209,17 @@ namespace Api::Routes
                 const auto& item = properties.getValueAt (index);
                 const auto key = name.toString ();
 
-                if (key == "bypassed")
+                if (key == "name")
+                {
+                    std::string parsed;
+
+                    if (!readString (item, "name", parsed, error))
+                        return false;
+
+                    update.name = std::move (parsed);
+                    any = true;
+                }
+                else if (key == "bypassed")
                 {
                     bool parsed = false;
 
@@ -242,7 +268,8 @@ namespace Api::Routes
 
             if (!any)
             {
-                error = "body must contain at least one of bypassed, wet, position or parameters";
+                error =
+                    "body must contain at least one of name, bypassed, wet, position or parameters";
                 return false;
             }
 
@@ -286,6 +313,33 @@ namespace Api::Routes
                         }
 
                         respondFx (response, chain);
+                    });
+
+        server.Get (R"(/patches/(\d+)/fx/(\d+)/tuner)",
+                    [context] (const httplib::Request& request, httplib::Response& response)
+                    {
+                        const int slot = readPatchSlot (context, request);
+                        const int index = readFxIndex (request);
+
+                        if (slot < 0 || index < 0)
+                        {
+                            setError (response, 404, "patch or insert is out of range");
+                            return;
+                        }
+
+                        FxTunerState tuner;
+                        std::string error;
+
+                        if (!context.state.getFxTuner (slot, index, tuner, error))
+                        {
+                            const int status =
+                                error.find ("no audio session") != std::string::npos ? 503 : 404;
+                            setError (response, status, error);
+                            return;
+                        }
+
+                        decorate (context, response);
+                        setJson (response, 200, fxTunerToVar (tuner));
                     });
 
         server.Post (R"(/patches/(\d+)/fx)",

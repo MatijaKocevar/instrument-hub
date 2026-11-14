@@ -178,7 +178,12 @@ namespace Api
                                                   { return candidate.id == hot.id; });
 
                 if (insert == chain.inserts.end ())
+                {
+                    hot.id.clear ();
+                    hot.name.clear ();
+                    hot.bypassed = false;
                     continue;
+                }
 
                 hot.name = insert->name.empty () ? insert->id : insert->name;
                 hot.bypassed = insert->bypassed;

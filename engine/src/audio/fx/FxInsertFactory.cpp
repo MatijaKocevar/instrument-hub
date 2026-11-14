@@ -4,6 +4,8 @@
 #include "dsp/Delay.h"
 #include "dsp/Eq.h"
 #include "dsp/Reverb.h"
+#include "dsp/drive/Drive.h"
+#include "dsp/tuner/Tuner.h"
 
 #include <utility>
 
@@ -64,6 +66,18 @@ namespace AudioEngine
                 auto effect = std::make_unique<ihub::dsp::Reverb> ();
                 effect->setMix (1.0f);
                 inner = std::move (effect);
+                break;
+            }
+
+            case FxInsertType::drive:
+            {
+                inner = std::make_unique<ihub::dsp::Drive> ();
+                break;
+            }
+
+            case FxInsertType::tuner:
+            {
+                inner = std::make_unique<ihub::dsp::Tuner> ();
                 break;
             }
 

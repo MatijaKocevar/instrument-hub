@@ -54,6 +54,8 @@ namespace AudioEngine
         }
         int latencySamples () const noexcept;
 
+        bool getTunerReading (int index, FxTunerReading& reading) const;
+
         FxInsertSnapshot getInsert (int index) const;
         std::vector<FxInsertSnapshot> snapshots () const;
 

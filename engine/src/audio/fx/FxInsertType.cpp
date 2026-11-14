@@ -11,6 +11,8 @@ namespace AudioEngine
             case FxInsertType::compressor: return "compressor";
             case FxInsertType::delay: return "delay";
             case FxInsertType::reverb: return "reverb";
+            case FxInsertType::drive: return "drive";
+            case FxInsertType::tuner: return "tuner";
             case FxInsertType::vst3: return "vst3";
         }
 
@@ -37,6 +39,16 @@ namespace AudioEngine
         if (text == "reverb")
         {
             type = FxInsertType::reverb;
+            return true;
+        }
+        if (text == "drive" || text == "distortion" || text == "overdrive")
+        {
+            type = FxInsertType::drive;
+            return true;
+        }
+        if (text == "tuner")
+        {
+            type = FxInsertType::tuner;
             return true;
         }
         if (text == "vst3" || text == "plugin")

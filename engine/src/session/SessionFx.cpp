@@ -10,6 +10,14 @@ namespace ihub
         return fxChain.getSnapshot (slot, snapshot, error);
     }
 
+    bool Session::getSlotTunerReading (int slot,
+                                       int index,
+                                       AudioEngine::FxTunerReading& reading,
+                                       std::string& error) const
+    {
+        return fxChain.getTunerReading (slot, index, reading, error);
+    }
+
     bool Session::addSlotFx (int slot,
                              const AudioEngine::FxInsertConfig& insert,
                              int position,

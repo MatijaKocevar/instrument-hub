@@ -87,7 +87,16 @@ namespace AudioEngine
 
     void InsertEffect::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
     {
-        if (processor == nullptr || bypassed.load (std::memory_order_relaxed))
+        if (processor == nullptr)
+            return;
+
+        if (type == FxInsertType::tuner)
+        {
+            processor->processBlock (buffer, midi);
+            return;
+        }
+
+        if (bypassed.load (std::memory_order_relaxed))
             return;
 
         const float wetAmount = juce::jlimit (0.0f, 1.0f, wet.load (std::memory_order_relaxed));

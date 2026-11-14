@@ -45,6 +45,11 @@ namespace ihub::session
         bool
         getSnapshot (int slot, AudioEngine::FxChainSnapshot& snapshot, std::string& error) const;
 
+        bool getTunerReading (int slot,
+                              int index,
+                              AudioEngine::FxTunerReading& reading,
+                              std::string& error) const;
+
         bool add (int slot,
                   const AudioEngine::FxInsertConfig& insert,
                   int position,

@@ -99,6 +99,19 @@ namespace AudioEngine
             !applyParameters (effect, *patch.parameters, true, error))
             return false;
 
+        if (patch.name.has_value ())
+        {
+            const auto& name = *patch.name;
+
+            if (name.empty () || name.size () > 120)
+            {
+                error = "name must be 1..120 characters";
+                return false;
+            }
+
+            insert.name = name;
+        }
+
         if (patch.position.has_value ())
         {
             const int position = *patch.position;

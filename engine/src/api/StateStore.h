@@ -159,7 +159,11 @@ namespace Api
 
         void setFxHandlers (FxChainProvider provider, FxCommandHandler handler);
 
+        void setFxTunerProvider (FxTunerProvider provider);
+
         bool getFxChain (int slot, FxChainState& chain, std::string& error) const;
+
+        bool getFxTuner (int slot, int index, FxTunerState& tuner, std::string& error) const;
 
         bool applyFxCommand (int slot,
                              const FxCommand& command,
@@ -223,6 +227,7 @@ namespace Api
         PatchStateCaptureHandler patchStateCaptureHandler;
         FxChainProvider fxProvider;
         FxCommandHandler fxHandler;
+        FxTunerProvider fxTunerProvider;
         TrackGainHandler trackGainHandler;
         TransportProvider transportProvider;
         SlotRuntimeProvider slotRuntimeProvider;
