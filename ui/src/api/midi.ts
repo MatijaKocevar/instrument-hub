@@ -121,6 +121,5 @@ export function createMidiEndpoints(
         "POST /midi/inputs",
       );
     },
-
   };
 }

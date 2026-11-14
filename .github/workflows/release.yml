@@ -140,12 +140,15 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Instrument Hub ${{ github.ref_name }}
           body: |
-            Instrument Hub 0.1.0 for Linux x86_64.
+            Instrument Hub ${{ needs.linux-appimage.outputs.version }} for Linux x86_64.
 
             Download the AppImage, make it executable, and run it:
 
-                chmod +x Instrument-Hub-0.1.0-x86_64.AppImage
-                ./Instrument-Hub-0.1.0-x86_64.AppImage
+                chmod +x Instrument-Hub-${{ needs.linux-appimage.outputs.version }}-x86_64.AppImage
+                ./Instrument-Hub-${{ needs.linux-appimage.outputs.version }}-x86_64.AppImage
+
+            See [CHANGELOG.md](https://github.com/MatijaKocevar/instrument-hub/blob/${{ github.ref_name }}/CHANGELOG.md)
+            for the curated list of changes.
 
             The AppImage is unsigned. It requires WebKitGTK 4.1 and a
             glibc-based distribution with glibc 2.39 or newer (Ubuntu 24.04
