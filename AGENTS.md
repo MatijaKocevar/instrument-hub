@@ -90,6 +90,10 @@ the wrong thing. Optimise for comprehension, not for fewer files.
   files by concern.
 - Generated code (`ui/src/api/schema.d.ts`) and `third_party/` are exempt.
 
+C++ formatting is owned by `.clang-format`; run `scripts/format.sh --changed`
+before committing instead of aligning code by hand. The React UI is
+formatted with Prettier.
+
 ---
 
 ## Comments
