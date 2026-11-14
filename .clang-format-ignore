@@ -1,0 +1,6 @@
+third_party/*
+build/*
+build-*/*
+ui/node_modules/*
+ui/dist/*
+.autopilot/*
