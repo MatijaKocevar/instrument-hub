@@ -1,7 +1,7 @@
 #include "WebView.h"
 
-#if ! JUCE_DEBUG && JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
-    #include "BinaryData.h"
+#if !JUCE_DEBUG && JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+#include "BinaryData.h"
 #endif
 
 #include <cstddef>
@@ -10,102 +10,96 @@
 
 namespace
 {
-#if ! JUCE_DEBUG && JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
-juce::WebBrowserComponent::Resource makeResource (const char* data, int size, const char* mimeType)
-{
-    juce::WebBrowserComponent::Resource resource;
-    const auto* begin = reinterpret_cast<const std::byte*> (data);
-    resource.data.assign (begin, begin + size);
-    resource.mimeType = mimeType;
-    return resource;
-}
-
-std::optional<juce::WebBrowserComponent::Resource> provideIndex()
-{
-    return makeResource (BinaryData::index_html,
-                         BinaryData::index_htmlSize,
-                         "text/html");
-}
-
-std::optional<juce::WebBrowserComponent::Resource> provideResource (const juce::String& requestedPath)
-{
-    auto path = requestedPath;
-
-    if (const auto separator = path.indexOfAnyOf ("?#"); separator >= 0)
-        path = path.substring (0, separator);
-
-    path = juce::URL::removeEscapeChars (path);
-
-    if (path.isEmpty())
-        path = "/";
-
-    if (! path.startsWithChar ('/'))
-        path = "/" + path;
-
-    if (path == "/" || path == "/index.html")
-        return provideIndex();
-
-    if (path == "/assets/app.js")
-        return makeResource (BinaryData::app_js,
-                             BinaryData::app_jsSize,
-                             "text/javascript");
-
-    if (path == "/assets/index.css")
-        return makeResource (BinaryData::index_css,
-                             BinaryData::index_cssSize,
-                             "text/css");
-
-    if (path.startsWith ("/assets/"))
-        return std::nullopt;
-
-    const auto lastSegment = path.fromLastOccurrenceOf ("/", false, false);
-
-    if (lastSegment.containsChar ('.'))
-        return std::nullopt;
-
-    return provideIndex();
-}
-#endif
-
-juce::WebBrowserComponent::Options makeOptions()
-{
-    auto options = juce::WebBrowserComponent::Options{}
-                       .withBackend (juce::WebBrowserComponent::Options::Backend::defaultBackend)
-                       .withKeepPageLoadedWhenBrowserIsHidden()
-                       .withNativeIntegrationEnabled();
-
-#if ! JUCE_DEBUG && JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
-    options = options.withResourceProvider ([] (const juce::String& path)
+#if !JUCE_DEBUG && JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+    juce::WebBrowserComponent::Resource
+    makeResource (const char* data, int size, const char* mimeType)
     {
-        return provideResource (path);
-    });
+        juce::WebBrowserComponent::Resource resource;
+        const auto* begin = reinterpret_cast<const std::byte*> (data);
+        resource.data.assign (begin, begin + size);
+        resource.mimeType = mimeType;
+        return resource;
+    }
+
+    std::optional<juce::WebBrowserComponent::Resource> provideIndex ()
+    {
+        return makeResource (BinaryData::index_html, BinaryData::index_htmlSize, "text/html");
+    }
+
+    std::optional<juce::WebBrowserComponent::Resource>
+    provideResource (const juce::String& requestedPath)
+    {
+        auto path = requestedPath;
+
+        if (const auto separator = path.indexOfAnyOf ("?#"); separator >= 0)
+            path = path.substring (0, separator);
+
+        path = juce::URL::removeEscapeChars (path);
+
+        if (path.isEmpty ())
+            path = "/";
+
+        if (!path.startsWithChar ('/'))
+            path = "/" + path;
+
+        if (path == "/" || path == "/index.html")
+            return provideIndex ();
+
+        if (path == "/assets/app.js")
+            return makeResource (BinaryData::app_js, BinaryData::app_jsSize, "text/javascript");
+
+        if (path == "/assets/index.css")
+            return makeResource (BinaryData::index_css, BinaryData::index_cssSize, "text/css");
+
+        if (path.startsWith ("/assets/"))
+            return std::nullopt;
+
+        const auto lastSegment = path.fromLastOccurrenceOf ("/", false, false);
+
+        if (lastSegment.containsChar ('.'))
+            return std::nullopt;
+
+        return provideIndex ();
+    }
 #endif
 
-    return options;
-}
+    juce::WebBrowserComponent::Options makeOptions ()
+    {
+        auto options =
+            juce::WebBrowserComponent::Options{}
+                .withBackend (juce::WebBrowserComponent::Options::Backend::defaultBackend)
+                .withKeepPageLoadedWhenBrowserIsHidden ()
+                .withNativeIntegrationEnabled ();
+
+#if !JUCE_DEBUG && JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+        options = options.withResourceProvider ([] (const juce::String& path)
+                                                { return provideResource (path); });
+#endif
+
+        return options;
+    }
 }
 
 WebView::WebView (PageLoadedCallback onPageLoaded)
-    : juce::WebBrowserComponent (makeOptions()),
-      pageLoadedCallback (std::move (onPageLoaded))
+    : juce::WebBrowserComponent (makeOptions ()), pageLoadedCallback (std::move (onPageLoaded))
 {
-    goToURL (initialUrl());
+    goToURL (initialUrl ());
 }
 
-juce::String WebView::initialUrl()
+juce::String WebView::initialUrl ()
 {
 #if JUCE_DEBUG
     return "http://localhost:5173";
 #else
-    #if JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
-        return juce::WebBrowserComponent::getResourceProviderRoot();
-    #else
-        return "about:blank";
-    #endif
+#if JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+    return juce::WebBrowserComponent::getResourceProviderRoot ();
+#else
+    return "about:blank";
+#endif
 #endif
 }
 
-bool WebView::isDevelopmentBuild()
+bool WebView::isDevelopmentBuild ()
 {
 #if JUCE_DEBUG
     return true;
@@ -122,7 +116,7 @@ void WebView::pageFinishedLoading (const juce::String& url)
 
 bool WebView::pageLoadHadNetworkError (const juce::String& errorInfo)
 {
-    std::cerr << "webview: failed to load " << initialUrl() << ": " << errorInfo << std::endl;
+    std::cerr << "webview: failed to load " << initialUrl () << ": " << errorInfo << std::endl;
 
     return true;
 }

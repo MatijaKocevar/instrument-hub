@@ -5,12 +5,12 @@
 namespace ihub::app
 {
 
-int runPluginScan (const juce::String& commandLine);
+    int runPluginScan (const juce::String& commandLine);
 
-int runLatencyMeasurement();
+    int runLatencyMeasurement ();
 
-int runListDevices (const juce::String& commandLine);
+    int runListDevices (const juce::String& commandLine);
 
-int runDiagnostics (const juce::String& commandLine);
+    int runDiagnostics (const juce::String& commandLine);
 
 }

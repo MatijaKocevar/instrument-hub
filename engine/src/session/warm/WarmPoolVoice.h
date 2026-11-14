@@ -7,39 +7,41 @@
 namespace ihub::session::detail
 {
 
-class WarmPoolVoice final : public AudioEngine::SlotSource
-{
-public:
-    void prepare (double, int) override {}
-
-    void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override;
-
-    int latencySamples() const noexcept override
+    class WarmPoolVoice final : public AudioEngine::SlotSource
     {
-        return latency.load (std::memory_order_relaxed);
-    }
+    public:
+        void prepare (double, int) override
+        {
+        }
 
-    bool acceptsDeviceInput() const noexcept override
-    {
-        return acceptsInput.load (std::memory_order_relaxed);
-    }
+        void process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override;
 
-    void setInputBlock (const float* const* channelData, int numInputs) noexcept override;
+        int latencySamples () const noexcept override
+        {
+            return latency.load (std::memory_order_relaxed);
+        }
 
-    bool bypassesFxChain() const noexcept override
-    {
-        return bypassesChain.load (std::memory_order_relaxed);
-    }
+        bool acceptsDeviceInput () const noexcept override
+        {
+            return acceptsInput.load (std::memory_order_relaxed);
+        }
 
-    void bind (AudioEngine::SlotSource* instance) noexcept;
+        void setInputBlock (const float* const* channelData, int numInputs) noexcept override;
 
-    void clearIf (AudioEngine::SlotSource* instance) noexcept;
+        bool bypassesFxChain () const noexcept override
+        {
+            return bypassesChain.load (std::memory_order_relaxed);
+        }
 
-private:
-    std::atomic<AudioEngine::SlotSource*> delegate { nullptr };
-    std::atomic<int> latency { 0 };
-    std::atomic<bool> acceptsInput { false };
-    std::atomic<bool> bypassesChain { false };
-};
+        void bind (AudioEngine::SlotSource* instance) noexcept;
+
+        void clearIf (AudioEngine::SlotSource* instance) noexcept;
+
+    private:
+        std::atomic<AudioEngine::SlotSource*> delegate{nullptr};
+        std::atomic<int> latency{0};
+        std::atomic<bool> acceptsInput{false};
+        std::atomic<bool> bypassesChain{false};
+    };
 
 }

@@ -7,141 +7,142 @@
 namespace ihub::sampler
 {
 
-using namespace instrument_detail;
+    using namespace instrument_detail;
 
-void SamplerInstrument::renderVoices (juce::AudioBuffer<float>& buffer,
-                                      int startSample, int numSamples) noexcept
-{
-    const int channels = buffer.getNumChannels();
-    const int totalSamples = buffer.getNumSamples();
-
-    if (channels <= 0 || numSamples <= 0)
-        return;
-
-    const int first = juce::jlimit (0, totalSamples, startSample);
-    const int last = juce::jlimit (first, totalSamples, startSample + numSamples);
-
-    if (last <= first)
-        return;
-
-    auto* left = buffer.getWritePointer (0);
-    auto* right = channels > 1 ? buffer.getWritePointer (1) : nullptr;
-
-    for (int sample = first; sample < last; ++sample)
+    void SamplerInstrument::renderVoices (juce::AudioBuffer<float>& buffer,
+                                          int startSample,
+                                          int numSamples) noexcept
     {
-        float leftSum = 0.0f;
-        float rightSum = 0.0f;
+        const int channels = buffer.getNumChannels ();
+        const int totalSamples = buffer.getNumSamples ();
 
-        for (auto& voice : voices)
+        if (channels <= 0 || numSamples <= 0)
+            return;
+
+        const int first = juce::jlimit (0, totalSamples, startSample);
+        const int last = juce::jlimit (first, totalSamples, startSample + numSamples);
+
+        if (last <= first)
+            return;
+
+        auto* left = buffer.getWritePointer (0);
+        auto* right = channels > 1 ? buffer.getWritePointer (1) : nullptr;
+
+        for (int sample = first; sample < last; ++sample)
         {
-            if (! voice.active)
-                continue;
+            float leftSum = 0.0f;
+            float rightSum = 0.0f;
 
-            const auto& source = *voice.sample;
-            const int frames = source.audio.getNumSamples();
-
-            if (frames <= 0 || voice.position >= (double) frames)
+            for (auto& voice : voices)
             {
-                setVoiceInactive (voice);
-                continue;
-            }
+                if (!voice.active)
+                    continue;
 
-            const int index = (int) std::floor (voice.position);
-            const int next = juce::jmin (index + 1, frames - 1);
-            const auto fraction = (float) (voice.position - (double) index);
-            const int sourceChannels = source.audio.getNumChannels();
+                const auto& source = *voice.sample;
+                const int frames = source.audio.getNumSamples ();
 
-            const auto* sourceLeft = source.audio.getReadPointer (0);
-            const auto* sourceRight = sourceChannels > 1 ? source.audio.getReadPointer (1)
-                                                         : sourceLeft;
-
-            const float leftSample = sourceLeft[index]
-                                     + fraction * (sourceLeft[next] - sourceLeft[index]);
-            const float rightSample = sourceRight[index]
-                                      + fraction * (sourceRight[next] - sourceRight[index]);
-
-            const float envelope = voice.gain;
-            leftSum += leftSample * voice.leftGain * envelope;
-            rightSum += rightSample * voice.rightGain * envelope;
-
-            if (voice.fadeStep > 0.0f)
-            {
-                voice.gain -= voice.fadeStep;
-
-                if (voice.gain <= 0.0f)
+                if (frames <= 0 || voice.position >= (double)frames)
                 {
-                    voice.gain = 0.0f;
                     setVoiceInactive (voice);
+                    continue;
                 }
+
+                const int index = (int)std::floor (voice.position);
+                const int next = juce::jmin (index + 1, frames - 1);
+                const auto fraction = (float)(voice.position - (double)index);
+                const int sourceChannels = source.audio.getNumChannels ();
+
+                const auto* sourceLeft = source.audio.getReadPointer (0);
+                const auto* sourceRight =
+                    sourceChannels > 1 ? source.audio.getReadPointer (1) : sourceLeft;
+
+                const float leftSample =
+                    sourceLeft[index] + fraction * (sourceLeft[next] - sourceLeft[index]);
+                const float rightSample =
+                    sourceRight[index] + fraction * (sourceRight[next] - sourceRight[index]);
+
+                const float envelope = voice.gain;
+                leftSum += leftSample * voice.leftGain * envelope;
+                rightSum += rightSample * voice.rightGain * envelope;
+
+                if (voice.fadeStep > 0.0f)
+                {
+                    voice.gain -= voice.fadeStep;
+
+                    if (voice.gain <= 0.0f)
+                    {
+                        voice.gain = 0.0f;
+                        setVoiceInactive (voice);
+                    }
+                }
+
+                voice.position += voice.ratio;
             }
 
-            voice.position += voice.ratio;
-        }
-
-        if (right != nullptr)
-        {
-            left[sample] += leftSum;
-            right[sample] += rightSum;
-        }
-        else
-        {
-            left[sample] += (leftSum + rightSum) * monoPanSum;
+            if (right != nullptr)
+            {
+                left[sample] += leftSum;
+                right[sample] += rightSum;
+            }
+            else
+            {
+                left[sample] += (leftSum + rightSum) * monoPanSum;
+            }
         }
     }
-}
 
-void SamplerInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
-{
-    buffer.clear();
-
-    const int numSamples = buffer.getNumSamples();
-
-    if (numSamples <= 0)
-        return;
-
-    drainQueuedEvents();
-
-    int rendered = 0;
-
-    auto event = midi.cbegin();
-    const auto end = midi.cend();
-
-    while (rendered < numSamples)
+    void SamplerInstrument::process (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
     {
-        int nextEventPosition = numSamples;
+        buffer.clear ();
 
-        if (event != end)
+        const int numSamples = buffer.getNumSamples ();
+
+        if (numSamples <= 0)
+            return;
+
+        drainQueuedEvents ();
+
+        int rendered = 0;
+
+        auto event = midi.cbegin ();
+        const auto end = midi.cend ();
+
+        while (rendered < numSamples)
         {
-            const auto position = (*event).samplePosition;
+            int nextEventPosition = numSamples;
 
-            if (position > rendered)
-                nextEventPosition = juce::jmin (numSamples, position);
-        }
+            if (event != end)
+            {
+                const auto position = (*event).samplePosition;
 
-        if (nextEventPosition > rendered)
-        {
-            renderVoices (buffer, rendered, nextEventPosition - rendered);
-            rendered = nextEventPosition;
-        }
+                if (position > rendered)
+                    nextEventPosition = juce::jmin (numSamples, position);
+            }
 
-        if (rendered >= numSamples)
-            break;
+            if (nextEventPosition > rendered)
+            {
+                renderVoices (buffer, rendered, nextEventPosition - rendered);
+                rendered = nextEventPosition;
+            }
 
-        bool handled = false;
+            if (rendered >= numSamples)
+                break;
 
-        while (event != end && (*event).samplePosition <= rendered)
-        {
-            applyMidiEvent (*event);
-            ++event;
-            handled = true;
-        }
+            bool handled = false;
 
-        if (! handled)
-        {
-            renderVoices (buffer, rendered, 1);
-            ++rendered;
+            while (event != end && (*event).samplePosition <= rendered)
+            {
+                applyMidiEvent (*event);
+                ++event;
+                handled = true;
+            }
+
+            if (!handled)
+            {
+                renderVoices (buffer, rendered, 1);
+                ++rendered;
+            }
         }
     }
-}
 
 }

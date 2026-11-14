@@ -7,22 +7,22 @@
 
 namespace ihub::plugins
 {
-class PluginInstrument;
+    class PluginInstrument;
 
-namespace sandbox_client
-{
+    namespace sandbox_client
+    {
 
-using EditorControl = std::function<bool (bool open, juce::String& error)>;
+        using EditorControl = std::function<bool (bool open, juce::String& error)>;
 
-void handleControl (sandbox::SharedMemory& shared,
-                    PluginInstrument* plugin,
-                    std::uint32_t& lastSequence,
-                    EditorControl editorControl = {});
+        void handleControl (sandbox::SharedMemory& shared,
+                            PluginInstrument* plugin,
+                            std::uint32_t& lastSequence,
+                            EditorControl editorControl = {});
 
-void handleEditorControl (sandbox::SharedMemory& shared,
-                          std::uint32_t sequence,
-                          bool open,
-                          EditorControl editorControl);
+        void handleEditorControl (sandbox::SharedMemory& shared,
+                                  std::uint32_t sequence,
+                                  bool open,
+                                  EditorControl editorControl);
 
-}
+    }
 }

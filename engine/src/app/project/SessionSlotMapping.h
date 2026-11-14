@@ -6,7 +6,6 @@
 namespace ihub::app
 {
 
-void applyProjectSlot (const ihub::project::SlotConfig& source,
-                       ihub::SessionSlotConfig& slot);
+    void applyProjectSlot (const ihub::project::SlotConfig& source, ihub::SessionSlotConfig& slot);
 
 }

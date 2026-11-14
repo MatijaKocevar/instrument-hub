@@ -5,10 +5,10 @@
 namespace ihub::sampler::sample_detail
 {
 
-bool isSupportedEngineRate (double rate) noexcept;
+    bool isSupportedEngineRate (double rate) noexcept;
 
-juce::AudioBuffer<float> resampleBuffer (const juce::AudioBuffer<float>& source,
-                                         double sourceRate,
-                                         double destinationRate);
+    juce::AudioBuffer<float> resampleBuffer (const juce::AudioBuffer<float>& source,
+                                             double sourceRate,
+                                             double destinationRate);
 
 }

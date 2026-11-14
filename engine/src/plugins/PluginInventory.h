@@ -14,102 +14,105 @@
 namespace ihub::plugins
 {
 
-struct PluginInfo
-{
-    std::string id;
-    std::string name;
-    std::string description;
-    std::string vendor;
-    std::string version;
-    std::string category;
-
-    bool isInstrument = false;
-
-    bool isEffect = true;
-
-    std::string format;
-
-    std::string path;
-
-    static PluginInfo fromDescription (const juce::PluginDescription& description);
-
-    bool matches (const juce::String& query) const;
-};
-
-struct PluginInventorySnapshot
-{
-    std::vector<PluginInfo> plugins;
-
-    int total = 0;
-
-    std::string query;
-
-    bool scanning = false;
-    bool scanned = false;
-
-    std::int64_t lastScanMs = 0;
-
-    std::string error;
-};
-
-class PluginInventory final
-{
-public:
-    struct Options
+    struct PluginInfo
     {
-        juce::File dataDirectory;
+        std::string id;
+        std::string name;
+        std::string description;
+        std::string vendor;
+        std::string version;
+        std::string category;
 
-        juce::File helperExecutable;
+        bool isInstrument = false;
 
-        juce::File cacheFile;
+        bool isEffect = true;
 
-        juce::StringArray searchDirectories;
+        std::string format;
 
-        int timeoutMs = 20000;
-        bool recursive = true;
-        bool useCache = true;
-        bool retryCrashedPlugins = false;
+        std::string path;
 
-        std::function<void (const juce::String&)> logSink;
+        static PluginInfo fromDescription (const juce::PluginDescription& description);
+
+        bool matches (const juce::String& query) const;
     };
 
-    PluginInventory();
-    explicit PluginInventory (Options options);
-    ~PluginInventory();
+    struct PluginInventorySnapshot
+    {
+        std::vector<PluginInfo> plugins;
 
-    PluginInventory (const PluginInventory&) = delete;
-    PluginInventory& operator= (const PluginInventory&) = delete;
+        int total = 0;
 
-    bool loadPersisted();
+        std::string query;
 
-    PluginInventorySnapshot snapshot (const juce::String& search = {}) const;
+        bool scanning = false;
+        bool scanned = false;
 
-    bool requestRescan();
+        std::int64_t lastScanMs = 0;
 
-    PluginInventorySnapshot rescanNow (int timeoutMs = 120000);
+        std::string error;
+    };
 
-    bool waitForScan (int timeoutMs = 120000);
+    class PluginInventory final
+    {
+    public:
+        struct Options
+        {
+            juce::File dataDirectory;
 
-    bool isScanning() const;
+            juce::File helperExecutable;
 
-    const juce::File& getDataDirectory() const noexcept { return options.dataDirectory; }
+            juce::File cacheFile;
 
-private:
-    void performScan();
+            juce::StringArray searchDirectories;
 
-    Options options;
-    Scanner scanner;
-    PluginCache cache;
+            int timeoutMs = 20000;
+            bool recursive = true;
+            bool useCache = true;
+            bool retryCrashedPlugins = false;
 
-    mutable std::mutex mutex;
-    std::condition_variable scanFinished;
-    std::future<void> scanFuture;
+            std::function<void (const juce::String&)> logSink;
+        };
 
-    std::vector<PluginInfo> plugins;
-    bool scanning = false;
-    bool scanned = false;
-    std::int64_t lastScanMs = 0;
-    std::string lastError;
-};
+        PluginInventory ();
+        explicit PluginInventory (Options options);
+        ~PluginInventory ();
+
+        PluginInventory (const PluginInventory&) = delete;
+        PluginInventory& operator= (const PluginInventory&) = delete;
+
+        bool loadPersisted ();
+
+        PluginInventorySnapshot snapshot (const juce::String& search = {}) const;
+
+        bool requestRescan ();
+
+        PluginInventorySnapshot rescanNow (int timeoutMs = 120000);
+
+        bool waitForScan (int timeoutMs = 120000);
+
+        bool isScanning () const;
+
+        const juce::File& getDataDirectory () const noexcept
+        {
+            return options.dataDirectory;
+        }
+
+    private:
+        void performScan ();
+
+        Options options;
+        Scanner scanner;
+        PluginCache cache;
+
+        mutable std::mutex mutex;
+        std::condition_variable scanFinished;
+        std::future<void> scanFuture;
+
+        std::vector<PluginInfo> plugins;
+        bool scanning = false;
+        bool scanned = false;
+        std::int64_t lastScanMs = 0;
+        std::string lastError;
+    };
 
 }

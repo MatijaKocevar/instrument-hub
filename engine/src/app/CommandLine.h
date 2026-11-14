@@ -5,7 +5,6 @@
 namespace ihub::app
 {
 
-juce::String getCommandLineValue (const juce::String& commandLine,
-                                  const juce::String& option);
+    juce::String getCommandLineValue (const juce::String& commandLine, const juce::String& option);
 
 }

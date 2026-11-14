@@ -3,18 +3,18 @@
 namespace Api
 {
 
-class StateStore;
+    class StateStore;
 
 }
 
 namespace ihub
 {
-class Session;
+    class Session;
 }
 
 namespace Api
 {
 
-void attachTrackState (StateStore& state, ihub::Session& session);
+    void attachTrackState (StateStore& state, ihub::Session& session);
 
 }

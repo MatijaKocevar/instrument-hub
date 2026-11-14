@@ -7,8 +7,8 @@
 namespace Api::discovery
 {
 
-int createMdnsSocket (const std::string& address, std::string& error);
+    int createMdnsSocket (const std::string& address, std::string& error);
 
-void sendPacket (int fd, const std::vector<std::uint8_t>& packet);
+    void sendPacket (int fd, const std::vector<std::uint8_t>& packet);
 
 }

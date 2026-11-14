@@ -7,66 +7,64 @@
 namespace AudioEngine
 {
 
-struct LatencyResult
-{
-    bool valid = false;
-
-    int roundTripSamples = 0;
-
-    double roundTripMs = 0.0;
-
-    double sampleRate = 0.0;
-    int bufferSize = 0;
-
-    float confidence = 0.0f;
-
-    juce::String inputDeviceName;
-    juce::String outputDeviceName;
-    juce::String error;
-
-    double expectedMs() const noexcept
+    struct LatencyResult
     {
-        return sampleRate > 0.0
-                   ? static_cast<double> (bufferSize) * 2000.0 / sampleRate
-                   : 0.0;
-    }
-};
+        bool valid = false;
 
-struct LatencyProbeOptions
-{
-    juce::String outputDeviceName;
+        int roundTripSamples = 0;
 
-    juce::String inputDeviceName;
+        double roundTripMs = 0.0;
 
-    double sampleRate = 48000.0;
-    int bufferSize = 128;
+        double sampleRate = 0.0;
+        int bufferSize = 0;
 
-    int captureSamples = 8192;
+        float confidence = 0.0f;
 
-    int impulseOffset = 512;
+        juce::String inputDeviceName;
+        juce::String outputDeviceName;
+        juce::String error;
 
-    int subdevice = -1;
-};
+        double expectedMs () const noexcept
+        {
+            return sampleRate > 0.0 ? static_cast<double> (bufferSize) * 2000.0 / sampleRate : 0.0;
+        }
+    };
 
-class LatencyProbe final
-{
-public:
-    LatencyProbe();
-    ~LatencyProbe();
+    struct LatencyProbeOptions
+    {
+        juce::String outputDeviceName;
 
-    LatencyResult measure (const LatencyProbeOptions& options = {});
+        juce::String inputDeviceName;
 
-    LatencyResult measure (int bufferSize, double sampleRate = 48000.0);
+        double sampleRate = 48000.0;
+        int bufferSize = 128;
 
-    static int findLagSamples (const float* reference,
-                               int referenceSamples,
-                               const float* captured,
-                               int capturedSamples,
-                               int maxLag,
-                               float* peak = nullptr);
+        int captureSamples = 8192;
 
-private:
-    LatencyResult measureOnce (const LatencyProbeOptions& options);
-};
+        int impulseOffset = 512;
+
+        int subdevice = -1;
+    };
+
+    class LatencyProbe final
+    {
+    public:
+        LatencyProbe ();
+        ~LatencyProbe ();
+
+        LatencyResult measure (const LatencyProbeOptions& options = {});
+
+        LatencyResult measure (int bufferSize, double sampleRate = 48000.0);
+
+        static int findLagSamples (const float* reference,
+                                   int referenceSamples,
+                                   const float* captured,
+                                   int capturedSamples,
+                                   int maxLag,
+                                   float* peak = nullptr);
+
+    private:
+        LatencyResult measureOnce (const LatencyProbeOptions& options);
+    };
 
 }

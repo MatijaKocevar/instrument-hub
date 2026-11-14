@@ -5,103 +5,102 @@
 namespace AudioEngine
 {
 
-bool AudioSettingsBridge::openCachedDevice (const CachedDevice& device,
-                                            juce::String* errorMessage)
-{
-    if (! device.available)
+    bool AudioSettingsBridge::openCachedDevice (const CachedDevice& device,
+                                                juce::String* errorMessage)
     {
-        if (errorMessage != nullptr)
+        if (!device.available)
         {
-            const auto reason = detail::describeDeviceError (device.unavailableReason);
-            *errorMessage = reason.isNotEmpty() ? reason : "the device is not connected";
+            if (errorMessage != nullptr)
+            {
+                const auto reason = detail::describeDeviceError (device.unavailableReason);
+                *errorMessage = reason.isNotEmpty () ? reason : "the device is not connected";
+            }
+
+            return false;
         }
 
-        return false;
+        DeviceSetup setup;
+        setup.deviceTypeName = device.type;
+        setup.outputDeviceName = device.name;
+        setup.inputDeviceName = device.hasInput ? device.name : juce::String ();
+        setup.sampleRate = 48000.0;
+        setup.bufferSize = 128;
+        setup.numOutputChannels =
+            device.outputNames.isEmpty () ? 2 : juce::jmin (2, device.outputNames.size ());
+        setup.numInputChannels = device.hasInput ? device.inputNames.size () : 0;
+        setup.outputChannels = DeviceSetup::channelMask (setup.numOutputChannels);
+        setup.inputChannels = DeviceSetup::channelMask (setup.numInputChannels);
+
+        auto& manager = liveManager ();
+
+        if (!manager.open (setup, errorMessage))
+            return false;
+
+        pendingType = setup.deviceTypeName;
+        pendingName = setup.outputDeviceName;
+        pendingSampleRate = manager.getCurrentSampleRate ();
+        pendingBufferSize = manager.getCurrentBufferSize ();
+        return true;
     }
 
-    DeviceSetup setup;
-    setup.deviceTypeName = device.type;
-    setup.outputDeviceName = device.name;
-    setup.inputDeviceName = device.hasInput ? device.name : juce::String();
-    setup.sampleRate = 48000.0;
-    setup.bufferSize = 128;
-    setup.numOutputChannels = device.outputNames.isEmpty()
-                                  ? 2
-                                  : juce::jmin (2, device.outputNames.size());
-    setup.numInputChannels = device.hasInput ? device.inputNames.size() : 0;
-    setup.outputChannels = DeviceSetup::channelMask (setup.numOutputChannels);
-    setup.inputChannels = DeviceSetup::channelMask (setup.numInputChannels);
+    bool AudioSettingsBridge::openLoopback (juce::String* errorMessage)
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
 
-    auto& manager = liveManager();
+        if (devices.empty ())
+            refreshDevices ();
 
-    if (! manager.open (setup, errorMessage))
-        return false;
+        const CachedDevice* loopback = nullptr;
 
-    pendingType = setup.deviceTypeName;
-    pendingName = setup.outputDeviceName;
-    pendingSampleRate = manager.getCurrentSampleRate();
-    pendingBufferSize = manager.getCurrentBufferSize();
-    return true;
-}
+        for (const auto& device : devices)
+            if (device.hasOutput && device.name.containsIgnoreCase ("Loopback"))
+            {
+                loopback = &device;
+                break;
+            }
 
-bool AudioSettingsBridge::openLoopback (juce::String* errorMessage)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-
-    if (devices.empty())
-        refreshDevices();
-
-    const CachedDevice* loopback = nullptr;
-
-    for (const auto& device : devices)
-        if (device.hasOutput && device.name.containsIgnoreCase ("Loopback"))
+        if (loopback == nullptr)
         {
-            loopback = &device;
-            break;
+            if (errorMessage != nullptr)
+                *errorMessage = "no Loopback output device was enumerated";
+
+            return false;
         }
 
-    if (loopback == nullptr)
-    {
-        if (errorMessage != nullptr)
-            *errorMessage = "no Loopback output device was enumerated";
-
-        return false;
+        return openCachedDevice (*loopback, errorMessage);
     }
 
-    return openCachedDevice (*loopback, errorMessage);
-}
+    bool AudioSettingsBridge::openFirstOutput (juce::String* errorMessage)
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
 
-bool AudioSettingsBridge::openFirstOutput (juce::String* errorMessage)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
+        if (devices.empty ())
+            refreshDevices ();
 
-    if (devices.empty())
-        refreshDevices();
+        const CachedDevice* chosen = nullptr;
 
-    const CachedDevice* chosen = nullptr;
+        for (const auto& device : devices)
+            if (device.hasOutput && device.available)
+            {
+                chosen = &device;
+                break;
+            }
 
-    for (const auto& device : devices)
-        if (device.hasOutput && device.available)
+        if (chosen == nullptr)
         {
-            chosen = &device;
-            break;
+            if (errorMessage != nullptr)
+                *errorMessage = "no output device was enumerated";
+
+            return false;
         }
 
-    if (chosen == nullptr)
-    {
-        if (errorMessage != nullptr)
-            *errorMessage = "no output device was enumerated";
-
-        return false;
+        return openCachedDevice (*chosen, errorMessage);
     }
 
-    return openCachedDevice (*chosen, errorMessage);
-}
-
-void AudioSettingsBridge::close()
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-    liveManager().close();
-}
+    void AudioSettingsBridge::close ()
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        liveManager ().close ();
+    }
 
 }

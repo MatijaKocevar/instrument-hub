@@ -5,214 +5,214 @@
 namespace Api
 {
 
-namespace
-{
-juce::var instrumentToVar (const PatchInstrumentState& instrument)
-{
-    auto result = Routes::makeObject();
-    auto* object = result.getDynamicObject();
-
-    object->setProperty ("id", juce::String (instrument.id));
-    object->setProperty ("name", juce::String (instrument.name));
-    object->setProperty ("kind", juce::String (instrument.kind));
-    object->setProperty ("pluginFormat", juce::String (instrument.pluginFormat));
-    object->setProperty ("pluginId", juce::String (instrument.pluginId));
-    object->setProperty ("pluginName", juce::String (instrument.pluginName));
-    object->setProperty ("pluginManufacturer",
-                         juce::String (instrument.pluginManufacturer));
-    object->setProperty ("pluginVersion", juce::String (instrument.pluginVersion));
-    object->setProperty ("samplePath", juce::String (instrument.samplePath));
-
-    return result;
-}
-}
-
-juce::var stateToVar (const StateSnapshot& state)
-{
-    auto root = Routes::makeObject();
-    auto* object = root.getDynamicObject();
-
-    object->setProperty ("schemaVersion", state.schemaVersion);
-    object->setProperty ("revision", static_cast<juce::int64> (state.revision));
-
-    auto application = Routes::makeObject();
-    application.getDynamicObject()->setProperty ("name", juce::String (state.applicationName));
-    application.getDynamicObject()->setProperty ("version",
-                                                 juce::String (state.applicationVersion));
-    object->setProperty ("application", application);
-
-    object->setProperty ("layout", juce::String (state.layout));
-    object->setProperty ("armedSlot", state.armedSlot);
-    object->setProperty ("uptimeMs", state.uptimeMs);
-
-    juce::Array<juce::var> slots;
-
-    for (const auto& slot : state.slots)
+    namespace
     {
-        auto slotVar = Routes::makeObject();
-        slotVar.getDynamicObject()->setProperty ("index", slot.index);
-        slotVar.getDynamicObject()->setProperty ("name", juce::String (slot.name));
-        slotVar.getDynamicObject()->setProperty ("armed", slot.armed);
-        slotVar.getDynamicObject()->setProperty ("state", juce::String (slot.state));
-        slotVar.getDynamicObject()->setProperty ("warmState", juce::String (slot.warmState));
-        slotVar.getDynamicObject()->setProperty ("warm", slot.warm);
-        slotVar.getDynamicObject()->setProperty ("family", juce::String (slot.family));
-        slotVar.getDynamicObject()->setProperty ("familyName", juce::String (slot.familyName));
-        slotVar.getDynamicObject()->setProperty ("patch", juce::String (slot.patch));
-        slotVar.getDynamicObject()->setProperty ("patchName", juce::String (slot.patchName));
-        slotVar.getDynamicObject()->setProperty ("gain", static_cast<double> (slot.gain));
-        slotVar.getDynamicObject()->setProperty ("latencySamples", slot.latencySamples);
-        slotVar.getDynamicObject()->setProperty ("latencyMs", slot.latencyMs);
-        slotVar.getDynamicObject()->setProperty ("editorOpen", slot.editorOpen);
-        slotVar.getDynamicObject()->setProperty ("error", juce::String (slot.error));
-        slots.add (slotVar);
+        juce::var instrumentToVar (const PatchInstrumentState& instrument)
+        {
+            auto result = Routes::makeObject ();
+            auto* object = result.getDynamicObject ();
+
+            object->setProperty ("id", juce::String (instrument.id));
+            object->setProperty ("name", juce::String (instrument.name));
+            object->setProperty ("kind", juce::String (instrument.kind));
+            object->setProperty ("pluginFormat", juce::String (instrument.pluginFormat));
+            object->setProperty ("pluginId", juce::String (instrument.pluginId));
+            object->setProperty ("pluginName", juce::String (instrument.pluginName));
+            object->setProperty ("pluginManufacturer",
+                                 juce::String (instrument.pluginManufacturer));
+            object->setProperty ("pluginVersion", juce::String (instrument.pluginVersion));
+            object->setProperty ("samplePath", juce::String (instrument.samplePath));
+
+            return result;
+        }
     }
 
-    object->setProperty ("slots", juce::var (slots));
-
-    juce::Array<juce::var> tracks;
-
-    for (const auto& track : state.tracks)
+    juce::var stateToVar (const StateSnapshot& state)
     {
-        auto trackVar = Routes::makeObject();
-        auto* trackObject = trackVar.getDynamicObject();
+        auto root = Routes::makeObject ();
+        auto* object = root.getDynamicObject ();
 
-        trackObject->setProperty ("index", track.index);
-        trackObject->setProperty ("id", juce::String (track.id));
-        trackObject->setProperty ("name", juce::String (track.name));
-        trackObject->setProperty ("slot", track.slot);
-        trackObject->setProperty ("selected", track.selected);
-        trackObject->setProperty ("instrument", instrumentToVar (track.instrument));
-        trackObject->setProperty ("volumeStep", track.volumeStep);
-        trackObject->setProperty ("volumeDb", track.volumeDb);
-        trackObject->setProperty ("gain", track.gain);
+        object->setProperty ("schemaVersion", state.schemaVersion);
+        object->setProperty ("revision", static_cast<juce::int64> (state.revision));
 
-        juce::Array<juce::var> hotFx;
+        auto application = Routes::makeObject ();
+        application.getDynamicObject ()->setProperty ("name", juce::String (state.applicationName));
+        application.getDynamicObject ()->setProperty ("version",
+                                                      juce::String (state.applicationVersion));
+        object->setProperty ("application", application);
 
-        for (const auto& hot : track.hotFx)
+        object->setProperty ("layout", juce::String (state.layout));
+        object->setProperty ("armedSlot", state.armedSlot);
+        object->setProperty ("uptimeMs", state.uptimeMs);
+
+        juce::Array<juce::var> slots;
+
+        for (const auto& slot : state.slots)
         {
-            auto hotVar = Routes::makeObject();
-            auto* hotObject = hotVar.getDynamicObject();
-
-            hotObject->setProperty ("index", hot.index);
-            hotObject->setProperty ("id", juce::String (hot.id));
-            hotObject->setProperty ("name", juce::String (hot.name));
-            hotObject->setProperty ("bypassed", hot.bypassed);
-            hotFx.add (hotVar);
+            auto slotVar = Routes::makeObject ();
+            slotVar.getDynamicObject ()->setProperty ("index", slot.index);
+            slotVar.getDynamicObject ()->setProperty ("name", juce::String (slot.name));
+            slotVar.getDynamicObject ()->setProperty ("armed", slot.armed);
+            slotVar.getDynamicObject ()->setProperty ("state", juce::String (slot.state));
+            slotVar.getDynamicObject ()->setProperty ("warmState", juce::String (slot.warmState));
+            slotVar.getDynamicObject ()->setProperty ("warm", slot.warm);
+            slotVar.getDynamicObject ()->setProperty ("family", juce::String (slot.family));
+            slotVar.getDynamicObject ()->setProperty ("familyName", juce::String (slot.familyName));
+            slotVar.getDynamicObject ()->setProperty ("patch", juce::String (slot.patch));
+            slotVar.getDynamicObject ()->setProperty ("patchName", juce::String (slot.patchName));
+            slotVar.getDynamicObject ()->setProperty ("gain", static_cast<double> (slot.gain));
+            slotVar.getDynamicObject ()->setProperty ("latencySamples", slot.latencySamples);
+            slotVar.getDynamicObject ()->setProperty ("latencyMs", slot.latencyMs);
+            slotVar.getDynamicObject ()->setProperty ("editorOpen", slot.editorOpen);
+            slotVar.getDynamicObject ()->setProperty ("error", juce::String (slot.error));
+            slots.add (slotVar);
         }
 
-        trackObject->setProperty ("hotFx", juce::var (hotFx));
-        tracks.add (trackVar);
-    }
+        object->setProperty ("slots", juce::var (slots));
 
-    object->setProperty ("tracks", juce::var (tracks));
+        juce::Array<juce::var> tracks;
 
-    juce::Array<juce::var> pages;
-
-    for (const auto& page : state.pages)
-    {
-        auto pageVar = Routes::makeObject();
-        auto* pageObject = pageVar.getDynamicObject();
-
-        pageObject->setProperty ("id", juce::String (page.id));
-        pageObject->setProperty ("status", juce::String (page.status));
-
-        juce::Array<juce::var> slotsForPage;
-
-        for (const int slot : page.slots)
-            slotsForPage.add (slot);
-
-        pageObject->setProperty ("slots", juce::var (slotsForPage));
-        pageObject->setProperty ("activeSlot", page.activeSlot);
-        pageObject->setProperty ("error", juce::String (page.error));
-        pages.add (pageVar);
-    }
-
-    object->setProperty ("pages", juce::var (pages));
-
-    juce::Array<juce::var> families;
-
-    for (const auto& family : state.families)
-    {
-        auto familyVar = Routes::makeObject();
-        familyVar.getDynamicObject()->setProperty ("id", juce::String (family.id));
-        familyVar.getDynamicObject()->setProperty ("name", juce::String (family.name));
-
-        juce::Array<juce::var> patches;
-
-        for (const auto& patch : family.patches)
+        for (const auto& track : state.tracks)
         {
-            auto patchVar = Routes::makeObject();
-            patchVar.getDynamicObject()->setProperty ("slot", patch.slot);
-            patchVar.getDynamicObject()->setProperty ("id", juce::String (patch.id));
-            patchVar.getDynamicObject()->setProperty ("name", juce::String (patch.name));
-            patchVar.getDynamicObject()->setProperty ("family", juce::String (patch.family));
-            patchVar.getDynamicObject()->setProperty ("familyName",
-                                                      juce::String (patch.familyName));
+            auto trackVar = Routes::makeObject ();
+            auto* trackObject = trackVar.getDynamicObject ();
 
-            patchVar.getDynamicObject()->setProperty ("instrument",
-                                                      instrumentToVar (patch.instrument));
+            trackObject->setProperty ("index", track.index);
+            trackObject->setProperty ("id", juce::String (track.id));
+            trackObject->setProperty ("name", juce::String (track.name));
+            trackObject->setProperty ("slot", track.slot);
+            trackObject->setProperty ("selected", track.selected);
+            trackObject->setProperty ("instrument", instrumentToVar (track.instrument));
+            trackObject->setProperty ("volumeStep", track.volumeStep);
+            trackObject->setProperty ("volumeDb", track.volumeDb);
+            trackObject->setProperty ("gain", track.gain);
 
-            patchVar.getDynamicObject()->setProperty ("volumeDb", patch.volumeDb);
-            patchVar.getDynamicObject()->setProperty ("pan", patch.pan);
-            patchVar.getDynamicObject()->setProperty ("mute", patch.mute);
-            patchVar.getDynamicObject()->setProperty ("solo", patch.solo);
-            patchVar.getDynamicObject()->setProperty ("colorIndex", patch.colorIndex);
-            patchVar.getDynamicObject()->setProperty ("warmState",
-                                                      juce::String (patch.warmState));
-            patchVar.getDynamicObject()->setProperty ("warm", patch.warm);
-            patchVar.getDynamicObject()->setProperty ("editorOpen", patch.editorOpen);
-            patchVar.getDynamicObject()->setProperty ("error", juce::String (patch.error));
-            patchVar.getDynamicObject()->setProperty ("latencySamples",
-                                                      patch.latencySamples);
-            patchVar.getDynamicObject()->setProperty ("latencyMs", patch.latencyMs);
-            patches.add (patchVar);
+            juce::Array<juce::var> hotFx;
+
+            for (const auto& hot : track.hotFx)
+            {
+                auto hotVar = Routes::makeObject ();
+                auto* hotObject = hotVar.getDynamicObject ();
+
+                hotObject->setProperty ("index", hot.index);
+                hotObject->setProperty ("id", juce::String (hot.id));
+                hotObject->setProperty ("name", juce::String (hot.name));
+                hotObject->setProperty ("bypassed", hot.bypassed);
+                hotFx.add (hotVar);
+            }
+
+            trackObject->setProperty ("hotFx", juce::var (hotFx));
+            tracks.add (trackVar);
         }
 
-        familyVar.getDynamicObject()->setProperty ("patches", juce::var (patches));
-        families.add (familyVar);
+        object->setProperty ("tracks", juce::var (tracks));
+
+        juce::Array<juce::var> pages;
+
+        for (const auto& page : state.pages)
+        {
+            auto pageVar = Routes::makeObject ();
+            auto* pageObject = pageVar.getDynamicObject ();
+
+            pageObject->setProperty ("id", juce::String (page.id));
+            pageObject->setProperty ("status", juce::String (page.status));
+
+            juce::Array<juce::var> slotsForPage;
+
+            for (const int slot : page.slots)
+                slotsForPage.add (slot);
+
+            pageObject->setProperty ("slots", juce::var (slotsForPage));
+            pageObject->setProperty ("activeSlot", page.activeSlot);
+            pageObject->setProperty ("error", juce::String (page.error));
+            pages.add (pageVar);
+        }
+
+        object->setProperty ("pages", juce::var (pages));
+
+        juce::Array<juce::var> families;
+
+        for (const auto& family : state.families)
+        {
+            auto familyVar = Routes::makeObject ();
+            familyVar.getDynamicObject ()->setProperty ("id", juce::String (family.id));
+            familyVar.getDynamicObject ()->setProperty ("name", juce::String (family.name));
+
+            juce::Array<juce::var> patches;
+
+            for (const auto& patch : family.patches)
+            {
+                auto patchVar = Routes::makeObject ();
+                patchVar.getDynamicObject ()->setProperty ("slot", patch.slot);
+                patchVar.getDynamicObject ()->setProperty ("id", juce::String (patch.id));
+                patchVar.getDynamicObject ()->setProperty ("name", juce::String (patch.name));
+                patchVar.getDynamicObject ()->setProperty ("family", juce::String (patch.family));
+                patchVar.getDynamicObject ()->setProperty ("familyName",
+                                                           juce::String (patch.familyName));
+
+                patchVar.getDynamicObject ()->setProperty ("instrument",
+                                                           instrumentToVar (patch.instrument));
+
+                patchVar.getDynamicObject ()->setProperty ("volumeDb", patch.volumeDb);
+                patchVar.getDynamicObject ()->setProperty ("pan", patch.pan);
+                patchVar.getDynamicObject ()->setProperty ("mute", patch.mute);
+                patchVar.getDynamicObject ()->setProperty ("solo", patch.solo);
+                patchVar.getDynamicObject ()->setProperty ("colorIndex", patch.colorIndex);
+                patchVar.getDynamicObject ()->setProperty ("warmState",
+                                                           juce::String (patch.warmState));
+                patchVar.getDynamicObject ()->setProperty ("warm", patch.warm);
+                patchVar.getDynamicObject ()->setProperty ("editorOpen", patch.editorOpen);
+                patchVar.getDynamicObject ()->setProperty ("error", juce::String (patch.error));
+                patchVar.getDynamicObject ()->setProperty ("latencySamples", patch.latencySamples);
+                patchVar.getDynamicObject ()->setProperty ("latencyMs", patch.latencyMs);
+                patches.add (patchVar);
+            }
+
+            familyVar.getDynamicObject ()->setProperty ("patches", juce::var (patches));
+            families.add (familyVar);
+        }
+
+        object->setProperty ("families", juce::var (families));
+        object->setProperty ("settings", settingsToVar (state.settings));
+        object->setProperty ("transport", transportToVar (state.transport));
+
+        auto project = Routes::makeObject ();
+        auto* projectObject = project.getDynamicObject ();
+        projectObject->setProperty ("path", juce::String (state.project.path));
+        projectObject->setProperty ("name", juce::String (state.project.name));
+        projectObject->setProperty ("dirty", state.project.dirty);
+        projectObject->setProperty ("saved", state.project.saved);
+        projectObject->setProperty ("error", juce::String (state.project.error));
+        object->setProperty ("project", project);
+
+        return root;
     }
 
-    object->setProperty ("families", juce::var (families));
-    object->setProperty ("settings", settingsToVar (state.settings));
-    object->setProperty ("transport", transportToVar (state.transport));
+    juce::var settingsToVar (const SettingsState& settings)
+    {
+        auto root = Routes::makeObject ();
+        auto* object = root.getDynamicObject ();
 
-    auto project = Routes::makeObject();
-    auto* projectObject = project.getDynamicObject();
-    projectObject->setProperty ("path", juce::String (state.project.path));
-    projectObject->setProperty ("name", juce::String (state.project.name));
-    projectObject->setProperty ("dirty", state.project.dirty);
-    projectObject->setProperty ("saved", state.project.saved);
-    projectObject->setProperty ("error", juce::String (state.project.error));
-    object->setProperty ("project", project);
+        object->setProperty ("masterGain", settings.masterGain);
+        object->setProperty ("inputGain", settings.inputGain);
+        object->setProperty ("midiChannel", settings.midiChannel);
+        object->setProperty ("metronome", settings.metronome);
 
-    return root;
-}
+        return root;
+    }
 
-juce::var settingsToVar (const SettingsState& settings)
-{
-    auto root = Routes::makeObject();
-    auto* object = root.getDynamicObject();
+    juce::var transportToVar (const TransportState& transport)
+    {
+        auto root = Routes::makeObject ();
+        auto* object = root.getDynamicObject ();
 
-    object->setProperty ("masterGain", settings.masterGain);
-    object->setProperty ("inputGain", settings.inputGain);
-    object->setProperty ("midiChannel", settings.midiChannel);
-    object->setProperty ("metronome", settings.metronome);
+        object->setProperty ("playing", transport.playing);
+        object->setProperty ("bpm", transport.bpm);
+        object->setProperty ("ppq", transport.ppq);
+        object->setProperty ("positionSamples",
+                             static_cast<juce::int64> (transport.positionSamples));
 
-    return root;
-}
-
-juce::var transportToVar (const TransportState& transport)
-{
-    auto root = Routes::makeObject();
-    auto* object = root.getDynamicObject();
-
-    object->setProperty ("playing", transport.playing);
-    object->setProperty ("bpm", transport.bpm);
-    object->setProperty ("ppq", transport.ppq);
-    object->setProperty ("positionSamples", static_cast<juce::int64> (transport.positionSamples));
-
-    return root;
-}
+        return root;
+    }
 
 }

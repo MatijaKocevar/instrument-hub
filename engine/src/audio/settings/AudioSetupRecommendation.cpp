@@ -8,167 +8,166 @@
 namespace AudioEngine::detail
 {
 
-namespace
-{
-bool isStable (const Api::AudioProbeState& probe) noexcept
-{
-    return probe.opened && probe.xruns == 0;
-}
-
-bool betterStable (const Api::AudioProbeState& candidate,
-                   const Api::AudioProbeState& best,
-                   double preferredSampleRate)
-{
-    if (candidate.bufferSize != best.bufferSize)
-        return candidate.bufferSize < best.bufferSize;
-
-    if (std::abs (candidate.latencyMs - best.latencyMs) > 0.001)
-        return candidate.latencyMs < best.latencyMs;
-
-    return std::abs (candidate.sampleRate - preferredSampleRate)
-           < std::abs (best.sampleRate - preferredSampleRate);
-}
-
-bool betterFallback (const Api::AudioProbeState& candidate,
-                     const Api::AudioProbeState& best)
-{
-    if (candidate.xruns != best.xruns)
-        return candidate.xruns < best.xruns;
-
-    if (candidate.bufferSize != best.bufferSize)
-        return candidate.bufferSize < best.bufferSize;
-
-    return candidate.latencyMs < best.latencyMs;
-}
-
-std::string describeLatency (double latencyMs)
-{
-    std::ostringstream stream;
-    stream << std::fixed << std::setprecision (2) << latencyMs;
-    return stream.str();
-}
-
-std::string buildTradeoff (const std::vector<Api::AudioProbeState>& candidates,
-                           int chosen)
-{
-    const auto& best = candidates[static_cast<std::size_t> (chosen)];
-    int unstable = 0;
-    int lowestUnstableBuffer = 0;
-    std::uint64_t unstableXruns = 0;
-
-    for (const auto& probe : candidates)
+    namespace
     {
-        if (probe.opened && probe.xruns > 0)
+        bool isStable (const Api::AudioProbeState& probe) noexcept
         {
-            ++unstable;
+            return probe.opened && probe.xruns == 0;
+        }
 
-            if (lowestUnstableBuffer == 0 || probe.bufferSize < lowestUnstableBuffer)
+        bool betterStable (const Api::AudioProbeState& candidate,
+                           const Api::AudioProbeState& best,
+                           double preferredSampleRate)
+        {
+            if (candidate.bufferSize != best.bufferSize)
+                return candidate.bufferSize < best.bufferSize;
+
+            if (std::abs (candidate.latencyMs - best.latencyMs) > 0.001)
+                return candidate.latencyMs < best.latencyMs;
+
+            return std::abs (candidate.sampleRate - preferredSampleRate) <
+                   std::abs (best.sampleRate - preferredSampleRate);
+        }
+
+        bool betterFallback (const Api::AudioProbeState& candidate,
+                             const Api::AudioProbeState& best)
+        {
+            if (candidate.xruns != best.xruns)
+                return candidate.xruns < best.xruns;
+
+            if (candidate.bufferSize != best.bufferSize)
+                return candidate.bufferSize < best.bufferSize;
+
+            return candidate.latencyMs < best.latencyMs;
+        }
+
+        std::string describeLatency (double latencyMs)
+        {
+            std::ostringstream stream;
+            stream << std::fixed << std::setprecision (2) << latencyMs;
+            return stream.str ();
+        }
+
+        std::string buildTradeoff (const std::vector<Api::AudioProbeState>& candidates, int chosen)
+        {
+            const auto& best = candidates[static_cast<std::size_t> (chosen)];
+            int unstable = 0;
+            int lowestUnstableBuffer = 0;
+            std::uint64_t unstableXruns = 0;
+
+            for (const auto& probe : candidates)
             {
-                lowestUnstableBuffer = probe.bufferSize;
-                unstableXruns = probe.xruns;
+                if (probe.opened && probe.xruns > 0)
+                {
+                    ++unstable;
+
+                    if (lowestUnstableBuffer == 0 || probe.bufferSize < lowestUnstableBuffer)
+                    {
+                        lowestUnstableBuffer = probe.bufferSize;
+                        unstableXruns = probe.xruns;
+                    }
+                }
             }
+
+            std::string text = "Lower buffers reduce latency but leave less time for the "
+                               "audio callback.";
+
+            if (unstable > 0)
+            {
+                text += " " + std::to_string (lowestUnstableBuffer) + " frames produced " +
+                        std::to_string (unstableXruns) + " xrun(s); " +
+                        std::to_string (best.bufferSize) + " frames was the lowest buffer " +
+                        "with none.";
+            }
+            else
+            {
+                text += " Every tested buffer was stable, so the lowest buffer wins.";
+            }
+
+            text += " The recommended round trip is " + describeLatency (best.latencyMs) + " ms.";
+            return text;
         }
     }
 
-    std::string text = "Lower buffers reduce latency but leave less time for the "
-                       "audio callback.";
-
-    if (unstable > 0)
+    int chooseProbeCandidate (const std::vector<Api::AudioProbeState>& candidates,
+                              double preferredSampleRate)
     {
-        text += " " + std::to_string (lowestUnstableBuffer) + " frames produced "
-                + std::to_string (unstableXruns) + " xrun(s); "
-                + std::to_string (best.bufferSize) + " frames was the lowest buffer "
-                + "with none.";
-    }
-    else
-    {
-        text += " Every tested buffer was stable, so the lowest buffer wins.";
-    }
+        int best = -1;
+        bool bestStable = false;
 
-    text += " The recommended round trip is " + describeLatency (best.latencyMs) + " ms.";
-    return text;
-}
-}
-
-int chooseProbeCandidate (const std::vector<Api::AudioProbeState>& candidates,
-                          double preferredSampleRate)
-{
-    int best = -1;
-    bool bestStable = false;
-
-    for (int index = 0; index < static_cast<int> (candidates.size()); ++index)
-    {
-        const auto& probe = candidates[static_cast<std::size_t> (index)];
-
-        if (! probe.opened)
-            continue;
-
-        const bool stable = isStable (probe);
-
-        if (best < 0)
+        for (int index = 0; index < static_cast<int> (candidates.size ()); ++index)
         {
-            best = index;
-            bestStable = stable;
-            continue;
-        }
+            const auto& probe = candidates[static_cast<std::size_t> (index)];
 
-        const auto& current = candidates[static_cast<std::size_t> (best)];
+            if (!probe.opened)
+                continue;
 
-        if (stable != bestStable)
-        {
-            if (stable)
+            const bool stable = isStable (probe);
+
+            if (best < 0)
             {
                 best = index;
-                bestStable = true;
+                bestStable = stable;
+                continue;
             }
 
-            continue;
-        }
+            const auto& current = candidates[static_cast<std::size_t> (best)];
 
-        if (stable ? betterStable (probe, current, preferredSampleRate)
-                   : betterFallback (probe, current))
-        {
-            best = index;
-        }
-    }
-
-    return best;
-}
-
-void finalizeAudioWizard (Api::AudioWizardState& wizard, double preferredSampleRate)
-{
-    const int chosen = chooseProbeCandidate (wizard.candidates, preferredSampleRate);
-
-    if (chosen < 0)
-    {
-        wizard.valid = false;
-        wizard.error = "none of the tested audio settings could be opened";
-
-        for (const auto& probe : wizard.candidates)
-            if (! probe.error.empty())
+            if (stable != bestStable)
             {
-                wizard.error += ": " + probe.error;
-                break;
+                if (stable)
+                {
+                    best = index;
+                    bestStable = true;
+                }
+
+                continue;
             }
 
-        return;
+            if (stable ? betterStable (probe, current, preferredSampleRate)
+                       : betterFallback (probe, current))
+            {
+                best = index;
+            }
+        }
+
+        return best;
     }
 
-    for (auto& probe : wizard.candidates)
-        probe.recommended = false;
+    void finalizeAudioWizard (Api::AudioWizardState& wizard, double preferredSampleRate)
+    {
+        const int chosen = chooseProbeCandidate (wizard.candidates, preferredSampleRate);
 
-    auto& best = wizard.candidates[static_cast<std::size_t> (chosen)];
-    best.recommended = true;
+        if (chosen < 0)
+        {
+            wizard.valid = false;
+            wizard.error = "none of the tested audio settings could be opened";
 
-    wizard.valid = true;
-    wizard.error.clear();
-    wizard.sampleRate = best.sampleRate;
-    wizard.bufferSize = best.bufferSize;
-    wizard.latencyMs = best.latencyMs;
-    wizard.measuredMs = best.measuredMs;
-    wizard.expectedMs = best.expectedMs;
-    wizard.xruns = best.xruns;
-    wizard.tradeoff = buildTradeoff (wizard.candidates, chosen);
-}
+            for (const auto& probe : wizard.candidates)
+                if (!probe.error.empty ())
+                {
+                    wizard.error += ": " + probe.error;
+                    break;
+                }
+
+            return;
+        }
+
+        for (auto& probe : wizard.candidates)
+            probe.recommended = false;
+
+        auto& best = wizard.candidates[static_cast<std::size_t> (chosen)];
+        best.recommended = true;
+
+        wizard.valid = true;
+        wizard.error.clear ();
+        wizard.sampleRate = best.sampleRate;
+        wizard.bufferSize = best.bufferSize;
+        wizard.latencyMs = best.latencyMs;
+        wizard.measuredMs = best.measuredMs;
+        wizard.expectedMs = best.expectedMs;
+        wizard.xruns = best.xruns;
+        wizard.tradeoff = buildTradeoff (wizard.candidates, chosen);
+    }
 
 }

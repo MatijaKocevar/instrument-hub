@@ -4,14 +4,14 @@
 
 namespace ihub
 {
-struct SessionConfig;
+    struct SessionConfig;
 }
 
 namespace ihub::app
 {
 
-bool loadProjectSession (const juce::File& projectFile,
-                         ihub::SessionConfig& config,
-                         juce::String& error);
+    bool loadProjectSession (const juce::File& projectFile,
+                             ihub::SessionConfig& config,
+                             juce::String& error);
 
 }

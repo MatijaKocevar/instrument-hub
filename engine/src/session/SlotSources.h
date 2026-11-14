@@ -9,13 +9,11 @@
 namespace ihub::session
 {
 
-std::unique_ptr<AudioEngine::SlotSource> makeInitToneSource (double frequency,
-                                                             float amplitude);
+    std::unique_ptr<AudioEngine::SlotSource> makeInitToneSource (double frequency, float amplitude);
 
-std::unique_ptr<AudioEngine::SlotSource> makeSilentSource();
+    std::unique_ptr<AudioEngine::SlotSource> makeSilentSource ();
 
-std::unique_ptr<AudioEngine::SlotSource> makeSamplerSource (const juce::File& file,
-                                                            double sampleRate,
-                                                            juce::String& error);
+    std::unique_ptr<AudioEngine::SlotSource>
+    makeSamplerSource (const juce::File& file, double sampleRate, juce::String& error);
 
 }

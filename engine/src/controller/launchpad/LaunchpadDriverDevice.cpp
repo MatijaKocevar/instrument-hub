@@ -3,75 +3,74 @@
 namespace Controller
 {
 
-namespace
-{
-constexpr const char* launchpadNameFragment = "launchpad mini mk3";
-
-bool nameMatches (const juce::String& name)
-{
-    return name.toLowerCase().contains (launchpadNameFragment);
-}
-
-bool isMiPort (const juce::String& name)
-{
-    const auto lower = name.toLowerCase();
-    return lower.contains ("mk3 mi") || lower.endsWith ("mi")
-           || lower.contains ("lpminimk3 mi");
-}
-
-bool isDawPort (const juce::String& name)
-{
-    const auto lower = name.toLowerCase();
-    return lower.contains ("mk3 da") || lower.endsWith ("da")
-           || lower.contains ("daw");
-}
-
-const juce::MidiDeviceInfo* chooseDevice (const juce::Array<juce::MidiDeviceInfo>& devices)
-{
-    const juce::MidiDeviceInfo* firstMatch = nullptr;
-
-    for (const auto& device : devices)
+    namespace
     {
-        if (! nameMatches (device.name))
-            continue;
+        constexpr const char* launchpadNameFragment = "launchpad mini mk3";
 
-        if (isMiPort (device.name))
-            return &device;
+        bool nameMatches (const juce::String& name)
+        {
+            return name.toLowerCase ().contains (launchpadNameFragment);
+        }
 
-        if (firstMatch == nullptr)
-            firstMatch = &device;
+        bool isMiPort (const juce::String& name)
+        {
+            const auto lower = name.toLowerCase ();
+            return lower.contains ("mk3 mi") || lower.endsWith ("mi") ||
+                   lower.contains ("lpminimk3 mi");
+        }
+
+        bool isDawPort (const juce::String& name)
+        {
+            const auto lower = name.toLowerCase ();
+            return lower.contains ("mk3 da") || lower.endsWith ("da") || lower.contains ("daw");
+        }
+
+        const juce::MidiDeviceInfo* chooseDevice (const juce::Array<juce::MidiDeviceInfo>& devices)
+        {
+            const juce::MidiDeviceInfo* firstMatch = nullptr;
+
+            for (const auto& device : devices)
+            {
+                if (!nameMatches (device.name))
+                    continue;
+
+                if (isMiPort (device.name))
+                    return &device;
+
+                if (firstMatch == nullptr)
+                    firstMatch = &device;
+            }
+
+            for (const auto& device : devices)
+                if (nameMatches (device.name) && !isDawPort (device.name))
+                    return &device;
+
+            return firstMatch;
+        }
     }
 
-    for (const auto& device : devices)
-        if (nameMatches (device.name) && ! isDawPort (device.name))
-            return &device;
+    bool LaunchpadDriver::isLaunchpadName (const juce::String& deviceName)
+    {
+        return nameMatches (deviceName);
+    }
 
-    return firstMatch;
-}
-}
+    std::optional<LaunchpadDriver::DeviceSelection> LaunchpadDriver::findDevice ()
+    {
+        const auto inputs = juce::MidiInput::getAvailableDevices ();
+        const auto outputs = juce::MidiOutput::getAvailableDevices ();
 
-bool LaunchpadDriver::isLaunchpadName (const juce::String& deviceName)
-{
-    return nameMatches (deviceName);
-}
+        const auto* input = chooseDevice (inputs);
+        const auto* output = chooseDevice (outputs);
 
-std::optional<LaunchpadDriver::DeviceSelection> LaunchpadDriver::findDevice()
-{
-    const auto inputs = juce::MidiInput::getAvailableDevices();
-    const auto outputs = juce::MidiOutput::getAvailableDevices();
+        if (input == nullptr || output == nullptr)
+            return std::nullopt;
 
-    const auto* input = chooseDevice (inputs);
-    const auto* output = chooseDevice (outputs);
-
-    if (input == nullptr || output == nullptr)
-        return std::nullopt;
-
-    DeviceSelection selection;
-    selection.inputIdentifier = input->identifier;
-    selection.outputIdentifier = output->identifier;
-    selection.inputName = input->name;
-    selection.outputName = output->name;
-    return selection;
-}
+        DeviceSelection selection;
+        selection.inputIdentifier = input->identifier;
+        selection.outputIdentifier = output->identifier;
+        selection.inputName = input->name;
+        selection.outputName = output->name;
+        return selection;
+    }
 
 }

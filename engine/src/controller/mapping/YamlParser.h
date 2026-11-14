@@ -7,6 +7,6 @@
 namespace Controller::MappingDetail
 {
 
-bool parseYaml (const std::string& yaml, YamlValue& out, MappingError& error);
+    bool parseYaml (const std::string& yaml, YamlValue& out, MappingError& error);
 
 }

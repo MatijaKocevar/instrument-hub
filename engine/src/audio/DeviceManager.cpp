@@ -3,87 +3,87 @@
 namespace AudioEngine
 {
 
-DeviceManager::DeviceManager() = default;
+    DeviceManager::DeviceManager () = default;
 
-DeviceManager::~DeviceManager()
-{
-    if (audioCallback != nullptr)
-        deviceManager.removeAudioCallback (audioCallback);
+    DeviceManager::~DeviceManager ()
+    {
+        if (audioCallback != nullptr)
+            deviceManager.removeAudioCallback (audioCallback);
 
-    jackQuantum.restore();
-}
+        jackQuantum.restore ();
+    }
 
-void DeviceManager::ensureInitialised()
-{
-    if (initialised)
-        return;
+    void DeviceManager::ensureInitialised ()
+    {
+        if (initialised)
+            return;
 
-    deviceManager.initialise (0, 0, nullptr, false);
-    initialised = true;
-}
+        deviceManager.initialise (0, 0, nullptr, false);
+        initialised = true;
+    }
 
-void DeviceManager::setDeviceListOptions (const DeviceListOptions& options)
-{
-    listOptions = options;
-    cardCache.clear();
-    cardCacheValid = false;
-}
+    void DeviceManager::setDeviceListOptions (const DeviceListOptions& options)
+    {
+        listOptions = options;
+        cardCache.clear ();
+        cardCacheValid = false;
+    }
 
-const DeviceListOptions& DeviceManager::getDeviceListOptions() const noexcept
-{
-    return listOptions;
-}
+    const DeviceListOptions& DeviceManager::getDeviceListOptions () const noexcept
+    {
+        return listOptions;
+    }
 
-void DeviceManager::setRawDeviceList (bool raw)
-{
-    if (listOptions.raw == raw)
-        return;
+    void DeviceManager::setRawDeviceList (bool raw)
+    {
+        if (listOptions.raw == raw)
+            return;
 
-    listOptions.raw = raw;
-    cardCache.clear();
-    cardCacheValid = false;
-}
+        listOptions.raw = raw;
+        cardCache.clear ();
+        cardCacheValid = false;
+    }
 
-void DeviceManager::close()
-{
-    deviceManager.closeAudioDevice();
-    jackQuantum.restore();
-    currentDisplayName.clear();
-    cardCacheValid = false;
-}
+    void DeviceManager::close ()
+    {
+        deviceManager.closeAudioDevice ();
+        jackQuantum.restore ();
+        currentDisplayName.clear ();
+        cardCacheValid = false;
+    }
 
-bool DeviceManager::isOpen() const
-{
-    return deviceManager.getCurrentAudioDevice() != nullptr;
-}
+    bool DeviceManager::isOpen () const
+    {
+        return deviceManager.getCurrentAudioDevice () != nullptr;
+    }
 
-void DeviceManager::setAudioCallback (juce::AudioIODeviceCallback* callback)
-{
-    if (callback == audioCallback)
-        return;
+    void DeviceManager::setAudioCallback (juce::AudioIODeviceCallback* callback)
+    {
+        if (callback == audioCallback)
+            return;
 
-    if (audioCallback != nullptr)
-        deviceManager.removeAudioCallback (audioCallback);
+        if (audioCallback != nullptr)
+            deviceManager.removeAudioCallback (audioCallback);
 
-    audioCallback = callback;
+        audioCallback = callback;
 
-    if (audioCallback != nullptr)
-        deviceManager.addAudioCallback (audioCallback);
-}
+        if (audioCallback != nullptr)
+            deviceManager.addAudioCallback (audioCallback);
+    }
 
-juce::AudioIODeviceCallback* DeviceManager::getAudioCallback() const noexcept
-{
-    return audioCallback;
-}
+    juce::AudioIODeviceCallback* DeviceManager::getAudioCallback () const noexcept
+    {
+        return audioCallback;
+    }
 
-juce::AudioDeviceManager& DeviceManager::getNativeDeviceManager() noexcept
-{
-    return deviceManager;
-}
+    juce::AudioDeviceManager& DeviceManager::getNativeDeviceManager () noexcept
+    {
+        return deviceManager;
+    }
 
-const juce::AudioDeviceManager& DeviceManager::getNativeDeviceManager() const noexcept
-{
-    return deviceManager;
-}
+    const juce::AudioDeviceManager& DeviceManager::getNativeDeviceManager () const noexcept
+    {
+        return deviceManager;
+    }
 
 }

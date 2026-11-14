@@ -8,22 +8,22 @@
 
 namespace Api
 {
-class StateStore;
+    class StateStore;
 }
 
 namespace ihub
 {
-class Session;
+    class Session;
 }
 
 namespace ihub::app
 {
 
-bool captureProject (ihub::Session& session,
-                     const Api::StateStore& state,
-                     const project::SetFile& base,
-                     const std::vector<int>& touchedSlots,
-                     project::SetFile& destination,
-                     juce::String& error);
+    bool captureProject (ihub::Session& session,
+                         const Api::StateStore& state,
+                         const project::SetFile& base,
+                         const std::vector<int>& touchedSlots,
+                         project::SetFile& destination,
+                         juce::String& error);
 
 }

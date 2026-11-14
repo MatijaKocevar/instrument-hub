@@ -6,90 +6,89 @@
 namespace AudioEngine
 {
 
-bool WarmPool::shutdown (int timeoutMs) noexcept
-{
-    std::vector<std::unique_ptr<Instance>> leftovers;
-    DestroyHook hook;
-
+    bool WarmPool::shutdown (int timeoutMs) noexcept
     {
-        std::unique_lock<std::mutex> lock (mutex);
+        std::vector<std::unique_ptr<Instance>> leftovers;
+        DestroyHook hook;
 
-        if (shutdownComplete)
-            return true;
-
-        quit = true;
-        warmQueue.clear();
-        retryDeferred = false;
-
-        for (auto& slot : slots)
         {
-            slot.queued = false;
-            slot.deferred = false;
-        }
+            std::unique_lock<std::mutex> lock (mutex);
 
-        condition.notify_all();
+            if (shutdownComplete)
+                return true;
 
-        if (worker.joinable() && ! workerDone)
-            workerDoneCondition.wait_for (
-                lock,
-                std::chrono::milliseconds (juce::jmax (0, timeoutMs)),
-                [this] { return workerDone; });
+            quit = true;
+            warmQueue.clear ();
+            retryDeferred = false;
 
-        if (! workerDone)
-            return false;
-
-        if (worker.joinable())
-        {
-            lock.unlock();
-            worker.join();
-            lock.lock();
-        }
-
-        hook = destroyHook;
-
-        for (auto& slot : slots)
-        {
-            if (slot.instance != nullptr)
+            for (auto& slot : slots)
             {
-                leftovers.push_back (std::move (slot.instance));
-                slot.pins = 0;
+                slot.queued = false;
+                slot.deferred = false;
+            }
+
+            condition.notify_all ();
+
+            if (worker.joinable () && !workerDone)
+                workerDoneCondition.wait_for (lock,
+                                              std::chrono::milliseconds (juce::jmax (0, timeoutMs)),
+                                              [this] { return workerDone; });
+
+            if (!workerDone)
+                return false;
+
+            if (worker.joinable ())
+            {
+                lock.unlock ();
+                worker.join ();
+                lock.lock ();
+            }
+
+            hook = destroyHook;
+
+            for (auto& slot : slots)
+            {
+                if (slot.instance != nullptr)
+                {
+                    leftovers.push_back (std::move (slot.instance));
+                    slot.pins = 0;
+                }
+            }
+
+            for (auto& instance : pendingDestroy)
+                leftovers.push_back (std::move (instance));
+
+            pendingDestroy.clear ();
+            shutdownComplete = true;
+        }
+
+        for (auto& instance : leftovers)
+        {
+            if (hook == nullptr)
+                continue;
+
+            try
+            {
+                hook (*instance);
+            }
+            catch (...)
+            {
             }
         }
 
-        for (auto& instance : pendingDestroy)
-            leftovers.push_back (std::move (instance));
-
-        pendingDestroy.clear();
-        shutdownComplete = true;
+        leftovers.clear ();
+        return true;
     }
 
-    for (auto& instance : leftovers)
+    WarmPool::~WarmPool ()
     {
-        if (hook == nullptr)
-            continue;
+        if (shutdown (2000))
+            return;
 
-        try
-        {
-            hook (*instance);
-        }
-        catch (...)
-        {
-        }
+        if (worker.joinable ())
+            worker.join ();
+
+        (void)shutdown (0);
     }
-
-    leftovers.clear();
-    return true;
-}
-
-WarmPool::~WarmPool()
-{
-    if (shutdown (2000))
-        return;
-
-    if (worker.joinable())
-        worker.join();
-
-    (void) shutdown (0);
-}
 
 }

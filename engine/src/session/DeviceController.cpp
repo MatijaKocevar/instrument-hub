@@ -7,109 +7,103 @@
 namespace ihub::session
 {
 
-bool DeviceController::resolve (const SessionDeviceConfig& config,
-                                AudioEngine::DeviceSetup& setup,
-                                juce::String& error)
-{
-    const auto infos = devices.getDevices();
-
-    const AudioEngine::DeviceInfo* chosen = nullptr;
-
-    for (const auto& info : infos)
+    bool DeviceController::resolve (const SessionDeviceConfig& config,
+                                    AudioEngine::DeviceSetup& setup,
+                                    juce::String& error)
     {
-        if (! info.hasOutput || info.outputChannelNames.isEmpty())
-            continue;
+        const auto infos = devices.getDevices ();
 
-        if (config.preferLoopback
-            && ! info.name.containsIgnoreCase ("Loopback"))
+        const AudioEngine::DeviceInfo* chosen = nullptr;
+
+        for (const auto& info : infos)
         {
-            continue;
+            if (!info.hasOutput || info.outputChannelNames.isEmpty ())
+                continue;
+
+            if (config.preferLoopback && !info.name.containsIgnoreCase ("Loopback"))
+            {
+                continue;
+            }
+
+            if (config.deviceTypeName.isNotEmpty () && info.typeName != config.deviceTypeName)
+            {
+                continue;
+            }
+
+            if (config.outputDeviceName.isNotEmpty () &&
+                !info.name.containsIgnoreCase (config.outputDeviceName) &&
+                !info.juceName.containsIgnoreCase (config.outputDeviceName) &&
+                !info.pcmName.containsIgnoreCase (config.outputDeviceName))
+            {
+                continue;
+            }
+
+            chosen = &info;
+            break;
         }
 
-        if (config.deviceTypeName.isNotEmpty()
-            && info.typeName != config.deviceTypeName)
+        if (chosen == nullptr)
         {
-            continue;
+            if (config.preferLoopback)
+                error = "no ALSA Loopback output device was enumerated";
+            else if (config.outputDeviceName.isNotEmpty ())
+                error = "output device \"" + config.outputDeviceName + "\" was not found";
+            else
+                error = "no audio output device was enumerated";
+
+            return false;
         }
 
-        if (config.outputDeviceName.isNotEmpty()
-            && ! info.name.containsIgnoreCase (config.outputDeviceName)
-            && ! info.juceName.containsIgnoreCase (config.outputDeviceName)
-            && ! info.pcmName.containsIgnoreCase (config.outputDeviceName))
+        setup.deviceTypeName = chosen->typeName;
+        setup.outputDeviceName = chosen->name;
+
+        const int availableOutputs = chosen->outputChannelNames.size ();
+        const int requestedOutputs = std::max (1, config.numOutputChannels);
+        setup.numOutputChannels = juce::jlimit (1, availableOutputs, requestedOutputs);
+        setup.outputChannels = AudioEngine::DeviceSetup::channelMask (setup.numOutputChannels);
+
+        setup.inputDeviceName = {};
+        setup.numInputChannels = 0;
+        setup.inputChannels.clear ();
+
+        if (chosen->hasInput && !chosen->inputChannelNames.isEmpty () &&
+            config.numInputChannels > 0)
         {
-            continue;
+            setup.inputDeviceName =
+                config.inputDeviceName.isNotEmpty () ? config.inputDeviceName : chosen->name;
+
+            const int availableInputs = chosen->inputChannelNames.size ();
+            setup.numInputChannels = juce::jlimit (1, availableInputs, config.numInputChannels);
+            setup.inputChannels = AudioEngine::DeviceSetup::channelMask (setup.numInputChannels);
         }
 
-        chosen = &info;
-        break;
+        setup.sampleRate = config.sampleRate > 0.0 ? config.sampleRate : 48000.0;
+        setup.bufferSize = config.bufferSize > 0 ? config.bufferSize : 128;
+
+        return true;
     }
 
-    if (chosen == nullptr)
+    bool DeviceController::open (const AudioEngine::DeviceSetup& setup, juce::String& error)
     {
-        if (config.preferLoopback)
-            error = "no ALSA Loopback output device was enumerated";
-        else if (config.outputDeviceName.isNotEmpty())
-            error = "output device \"" + config.outputDeviceName + "\" was not found";
-        else
-            error = "no audio output device was enumerated";
-
-        return false;
+        return devices.open (setup, &error);
     }
 
-    setup.deviceTypeName = chosen->typeName;
-    setup.outputDeviceName = chosen->name;
-
-    const int availableOutputs = chosen->outputChannelNames.size();
-    const int requestedOutputs = std::max (1, config.numOutputChannels);
-    setup.numOutputChannels = juce::jlimit (1, availableOutputs, requestedOutputs);
-    setup.outputChannels = AudioEngine::DeviceSetup::channelMask (setup.numOutputChannels);
-
-    setup.inputDeviceName = {};
-    setup.numInputChannels = 0;
-    setup.inputChannels.clear();
-
-    if (chosen->hasInput
-        && ! chosen->inputChannelNames.isEmpty()
-        && config.numInputChannels > 0)
+    void DeviceController::close ()
     {
-        setup.inputDeviceName = config.inputDeviceName.isNotEmpty()
-                                    ? config.inputDeviceName
-                                    : chosen->name;
+        if (callbackInstalled)
+        {
+            devices.setAudioCallback (nullptr);
+            callbackInstalled = false;
+        }
 
-        const int availableInputs = chosen->inputChannelNames.size();
-        setup.numInputChannels = juce::jlimit (1,
-                                               availableInputs,
-                                               config.numInputChannels);
-        setup.inputChannels = AudioEngine::DeviceSetup::channelMask (setup.numInputChannels);
+        if (devices.isOpen ())
+            devices.close ();
     }
 
-    setup.sampleRate = config.sampleRate > 0.0 ? config.sampleRate : 48000.0;
-    setup.bufferSize = config.bufferSize > 0 ? config.bufferSize : 128;
-
-    return true;
-}
-
-bool DeviceController::open (const AudioEngine::DeviceSetup& setup, juce::String& error)
-{
-    return devices.open (setup, &error);
-}
-
-void DeviceController::close()
-{
-    if (callbackInstalled)
+    void DeviceController::setCallback (juce::AudioIODeviceCallback* callback)
     {
-        devices.setAudioCallback (nullptr);
-        callbackInstalled = false;
+        devices.setAudioCallback (callback);
+        callbackInstalled = callback != nullptr;
     }
-
-    if (devices.isOpen())
-        devices.close();
-}
-
-void DeviceController::setCallback (juce::AudioIODeviceCallback* callback)
-{
-    devices.setAudioCallback (callback);
-    callbackInstalled = callback != nullptr;
-}
 
 }

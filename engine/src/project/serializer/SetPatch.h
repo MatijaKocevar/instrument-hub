@@ -7,11 +7,11 @@
 namespace ihub::project::serializer
 {
 
-juce::var slotToVar (const SlotConfig& slot);
+    juce::var slotToVar (const SlotConfig& slot);
 
-bool parseSlot (const juce::var& value,
-                const juce::String& context,
-                SlotConfig& slot,
-                juce::String& error);
+    bool parseSlot (const juce::var& value,
+                    const juce::String& context,
+                    SlotConfig& slot,
+                    juce::String& error);
 
 }

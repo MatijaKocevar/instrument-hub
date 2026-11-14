@@ -13,64 +13,63 @@
 
 namespace ihub::project
 {
-struct SetFile;
+    struct SetFile;
 }
 
 namespace ihub::app
 {
 
-class ProjectAutosave final : private juce::Timer
-{
-public:
-    using CaptureHandler =
-        std::function<bool (project::SetFile&, const std::vector<int>& touchedSlots,
-                            juce::String& error)>;
+    class ProjectAutosave final : private juce::Timer
+    {
+    public:
+        using CaptureHandler = std::function<bool (
+            project::SetFile&, const std::vector<int>& touchedSlots, juce::String& error)>;
 
-    explicit ProjectAutosave (juce::File projectFile, int debounceMs = 500);
-    ~ProjectAutosave() override;
+        explicit ProjectAutosave (juce::File projectFile, int debounceMs = 500);
+        ~ProjectAutosave () override;
 
-    ProjectAutosave (const ProjectAutosave&) = delete;
-    ProjectAutosave& operator= (const ProjectAutosave&) = delete;
+        ProjectAutosave (const ProjectAutosave&) = delete;
+        ProjectAutosave& operator= (const ProjectAutosave&) = delete;
 
-    void setCaptureHandler (CaptureHandler handler);
+        void setCaptureHandler (CaptureHandler handler);
 
-    using StateChangedHandler = std::function<void()>;
-    void setStateChangedHandler (StateChangedHandler handler);
+        using StateChangedHandler = std::function<void ()>;
+        void setStateChangedHandler (StateChangedHandler handler);
 
-    void noteEdit (const char* kind, int slot);
+        void noteEdit (const char* kind, int slot);
 
-    bool saveNow (juce::String* error = nullptr, bool force = false);
+        bool saveNow (juce::String* error = nullptr, bool force = false);
 
-    void suspend();
-    void resume();
-    void shutdown();
+        void suspend ();
+        void resume ();
+        void shutdown ();
 
-    Api::ProjectSaveState getState() const;
+        Api::ProjectSaveState getState () const;
 
-    int getSaveCount() const noexcept;
+        int getSaveCount () const noexcept;
 
-    bool hasPendingEdits() const;
+        bool hasPendingEdits () const;
 
-private:
-    void timerCallback() override;
-    void notifyStateChanged();
+    private:
+        void timerCallback () override;
+        void notifyStateChanged ();
 
-    mutable std::mutex mutex;
-    mutable std::mutex operationMutex;
-    const juce::File file;
-    const int debounceMs;
+        mutable std::mutex mutex;
+        mutable std::mutex operationMutex;
+        const juce::File file;
+        const int debounceMs;
 
-    CaptureHandler capture;
-    StateChangedHandler stateChanged;
+        CaptureHandler capture;
+        StateChangedHandler stateChanged;
 
-    bool active = true;
-    bool suspended = false;
-    bool dirty = false;
-    bool saved = false;
-    std::string error;
-    std::set<int> touchedSlots;
-    std::uint64_t generation = 0;
-    int saveCount = 0;
-};
+        bool active = true;
+        bool suspended = false;
+        bool dirty = false;
+        bool saved = false;
+        std::string error;
+        std::set<int> touchedSlots;
+        std::uint64_t generation = 0;
+        int saveCount = 0;
+    };
 
 }

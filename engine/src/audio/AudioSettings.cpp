@@ -5,107 +5,106 @@
 namespace AudioEngine
 {
 
-AudioSettingsBridge::AudioSettingsBridge() = default;
+    AudioSettingsBridge::AudioSettingsBridge () = default;
 
-void AudioSettingsBridge::setDeviceManager (DeviceManager* manager)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-
-    injectedManager = manager;
-    refreshDevices();
-    if (devices.empty())
-        return;
-
-    if (pendingName.isEmpty())
+    void AudioSettingsBridge::setDeviceManager (DeviceManager* manager)
     {
-        pendingType = firstDeviceType();
-        pendingName = firstOutputDeviceOfType (pendingType);
+        const std::lock_guard<std::mutex> lock (mutex);
+
+        injectedManager = manager;
+        refreshDevices ();
+        if (devices.empty ())
+            return;
+
+        if (pendingName.isEmpty ())
+        {
+            pendingType = firstDeviceType ();
+            pendingName = firstOutputDeviceOfType (pendingType);
+        }
     }
-}
 
-void AudioSettingsBridge::setSettingsStore (ihub::settings::SettingsStore* store)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-    settingsStore = store;
-}
-
-void AudioSettingsBridge::setRestoreState (const Api::AudioRestoreState& state)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-    restoreState = state;
-}
-
-void AudioSettingsBridge::refreshDevices()
-{
-    deviceTypeNames = liveManager().getDeviceTypeNames();
-    devices.clear();
-
-    for (const auto& info : liveManager().getDevices())
+    void AudioSettingsBridge::setSettingsStore (ihub::settings::SettingsStore* store)
     {
-        CachedDevice cached;
-        cached.type = info.typeName;
-        cached.name = info.name;
-        cached.description = info.description;
-        cached.available = info.available;
-        cached.unavailableReason = info.unavailableReason;
-        cached.hasInput = info.hasInput;
-        cached.hasOutput = info.hasOutput;
-        cached.inputNames = info.inputChannelNames;
-        cached.outputNames = info.outputChannelNames;
-        cached.sampleRates = info.sampleRates;
-        cached.bufferSizes = info.bufferSizes;
-        devices.push_back (std::move (cached));
+        const std::lock_guard<std::mutex> lock (mutex);
+        settingsStore = store;
     }
-}
 
-const AudioSettingsBridge::CachedDevice* AudioSettingsBridge::findDevice (
-    const juce::String& type,
-    const juce::String& name) const
-{
-    for (const auto& device : devices)
-        if (device.type == type && device.name == name)
-            return &device;
+    void AudioSettingsBridge::setRestoreState (const Api::AudioRestoreState& state)
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        restoreState = state;
+    }
 
-    return nullptr;
-}
+    void AudioSettingsBridge::refreshDevices ()
+    {
+        deviceTypeNames = liveManager ().getDeviceTypeNames ();
+        devices.clear ();
 
-juce::String AudioSettingsBridge::firstDeviceType() const
-{
-    for (const auto& device : devices)
-        if (device.type == "ALSA")
-            return device.type;
+        for (const auto& info : liveManager ().getDevices ())
+        {
+            CachedDevice cached;
+            cached.type = info.typeName;
+            cached.name = info.name;
+            cached.description = info.description;
+            cached.available = info.available;
+            cached.unavailableReason = info.unavailableReason;
+            cached.hasInput = info.hasInput;
+            cached.hasOutput = info.hasOutput;
+            cached.inputNames = info.inputChannelNames;
+            cached.outputNames = info.outputChannelNames;
+            cached.sampleRates = info.sampleRates;
+            cached.bufferSizes = info.bufferSizes;
+            devices.push_back (std::move (cached));
+        }
+    }
 
-    return devices.empty() ? juce::String() : devices.front().type;
-}
+    const AudioSettingsBridge::CachedDevice*
+    AudioSettingsBridge::findDevice (const juce::String& type, const juce::String& name) const
+    {
+        for (const auto& device : devices)
+            if (device.type == type && device.name == name)
+                return &device;
 
-juce::String AudioSettingsBridge::firstOutputDeviceOfType (const juce::String& type) const
-{
-    for (const auto& device : devices)
-        if (device.type == type && device.hasOutput && device.available)
-            return device.name;
+        return nullptr;
+    }
 
-    for (const auto& device : devices)
-        if (device.hasOutput && device.available)
-            return device.name;
+    juce::String AudioSettingsBridge::firstDeviceType () const
+    {
+        for (const auto& device : devices)
+            if (device.type == "ALSA")
+                return device.type;
 
-    return {};
-}
+        return devices.empty () ? juce::String () : devices.front ().type;
+    }
 
-void AudioSettingsBridge::setChainLatencySamples (int samples) noexcept
-{
-    chainLatencySamples.store (juce::jmax (0, samples), std::memory_order_relaxed);
-}
+    juce::String AudioSettingsBridge::firstOutputDeviceOfType (const juce::String& type) const
+    {
+        for (const auto& device : devices)
+            if (device.type == type && device.hasOutput && device.available)
+                return device.name;
 
-void AudioSettingsBridge::setTimingMonitor (TimingMonitor* monitor) noexcept
-{
-    timingMonitor = monitor;
-}
+        for (const auto& device : devices)
+            if (device.hasOutput && device.available)
+                return device.name;
 
-void AudioSettingsBridge::setDeviceMeasureHandler (Api::AudioMeasureHandler handler)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
+        return {};
+    }
 
-    deviceMeasure = std::move (handler);
-}
+    void AudioSettingsBridge::setChainLatencySamples (int samples) noexcept
+    {
+        chainLatencySamples.store (juce::jmax (0, samples), std::memory_order_relaxed);
+    }
+
+    void AudioSettingsBridge::setTimingMonitor (TimingMonitor* monitor) noexcept
+    {
+        timingMonitor = monitor;
+    }
+
+    void AudioSettingsBridge::setDeviceMeasureHandler (Api::AudioMeasureHandler handler)
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+
+        deviceMeasure = std::move (handler);
+    }
 
 }

@@ -3,32 +3,32 @@
 #include <cstdlib>
 #include <new>
 
-#if IHUB_RT_GUARD && IHUB_RT_GUARD_WRAP_MALLOC \
-    && defined(__linux__) && (defined(__GNUC__) || defined(__clang__))
- #define IHUB_RT_HAS_MALLOC_WRAP 1
- #include <malloc.h>
+#if IHUB_RT_GUARD && IHUB_RT_GUARD_WRAP_MALLOC && defined(__linux__) &&                            \
+    (defined(__GNUC__) || defined(__clang__))
+#define IHUB_RT_HAS_MALLOC_WRAP 1
+#include <malloc.h>
 #else
- #define IHUB_RT_HAS_MALLOC_WRAP 0
+#define IHUB_RT_HAS_MALLOC_WRAP 0
 #endif
 
 #if IHUB_RT_GUARD
 
 namespace
 {
-void* rawAllocate (std::size_t size) noexcept
-{
-    AudioEngine::RtDetail::skipMallocHook = true;
-    void* pointer = std::malloc (size == 0 ? 1 : size);
-    AudioEngine::RtDetail::skipMallocHook = false;
-    return pointer;
-}
+    void* rawAllocate (std::size_t size) noexcept
+    {
+        AudioEngine::RtDetail::skipMallocHook = true;
+        void* pointer = std::malloc (size == 0 ? 1 : size);
+        AudioEngine::RtDetail::skipMallocHook = false;
+        return pointer;
+    }
 
-void* rawAlignedAllocate (std::size_t size, std::size_t alignment) noexcept
-{
-    const std::size_t rounded = size == 0 ? alignment
-                                          : ((size + alignment - 1) / alignment) * alignment;
-    return std::aligned_alloc (alignment, rounded);
-}
+    void* rawAlignedAllocate (std::size_t size, std::size_t alignment) noexcept
+    {
+        const std::size_t rounded =
+            size == 0 ? alignment : ((size + alignment - 1) / alignment) * alignment;
+        return std::aligned_alloc (alignment, rounded);
+    }
 }
 
 void* operator new (std::size_t size)
@@ -38,7 +38,7 @@ void* operator new (std::size_t size)
     if (void* pointer = rawAllocate (size))
         return pointer;
 
-    throw std::bad_alloc();
+    throw std::bad_alloc ();
 }
 
 void* operator new[] (std::size_t size)
@@ -64,7 +64,7 @@ void* operator new (std::size_t size, std::align_val_t alignment)
     if (void* pointer = rawAlignedAllocate (size, static_cast<std::size_t> (alignment)))
         return pointer;
 
-    throw std::bad_alloc();
+    throw std::bad_alloc ();
 }
 
 void* operator new[] (std::size_t size, std::align_val_t alignment)
@@ -133,7 +133,7 @@ extern "C"
     void* __real_malloc (std::size_t);
     void* __wrap_malloc (std::size_t size)
     {
-        if (! AudioEngine::RtDetail::skipMallocHook)
+        if (!AudioEngine::RtDetail::skipMallocHook)
             AudioEngine::RtGuard::noteAllocation ("malloc");
 
         return __real_malloc (size);
@@ -142,7 +142,7 @@ extern "C"
     void* __real_calloc (std::size_t count, std::size_t size);
     void* __wrap_calloc (std::size_t count, std::size_t size)
     {
-        if (! AudioEngine::RtDetail::skipMallocHook)
+        if (!AudioEngine::RtDetail::skipMallocHook)
             AudioEngine::RtGuard::noteAllocation ("calloc");
 
         return __real_calloc (count, size);
@@ -151,7 +151,7 @@ extern "C"
     void* __real_realloc (void* pointer, std::size_t size);
     void* __wrap_realloc (void* pointer, std::size_t size)
     {
-        if (! AudioEngine::RtDetail::skipMallocHook)
+        if (!AudioEngine::RtDetail::skipMallocHook)
             AudioEngine::RtGuard::noteAllocation ("realloc");
 
         return __real_realloc (pointer, size);
@@ -159,4 +159,3 @@ extern "C"
 }
 
 #endif
-

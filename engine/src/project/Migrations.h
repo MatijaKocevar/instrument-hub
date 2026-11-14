@@ -7,29 +7,29 @@
 namespace ihub::project
 {
 
-inline constexpr int oldestSupportedSetSchemaVersion = 1;
+    inline constexpr int oldestSupportedSetSchemaVersion = 1;
 
-inline constexpr int currentSetSchemaVersion = 4;
+    inline constexpr int currentSetSchemaVersion = 4;
 
-inline constexpr const char* defaultSlotColour = "#5a6478";
+    inline constexpr const char* defaultSlotColour = "#5a6478";
 
-using MigrationFunction = bool (*) (juce::var& root, juce::String& error);
+    using MigrationFunction = bool (*) (juce::var& root, juce::String& error);
 
-struct MigrationStep
-{
-    int fromVersion = 0;
-    int toVersion = 0;
-    MigrationFunction apply = nullptr;
+    struct MigrationStep
+    {
+        int fromVersion = 0;
+        int toVersion = 0;
+        MigrationFunction apply = nullptr;
 
-    const char* description = nullptr;
-};
+        const char* description = nullptr;
+    };
 
-const std::vector<MigrationStep>& migrationSteps();
+    const std::vector<MigrationStep>& migrationSteps ();
 
-const MigrationStep* findMigrationStep (int fromVersion) noexcept;
+    const MigrationStep* findMigrationStep (int fromVersion) noexcept;
 
-int migrationStepCount (int fromVersion, int toVersion) noexcept;
+    int migrationStepCount (int fromVersion, int toVersion) noexcept;
 
-bool migrateManifest (juce::var& root, juce::String& error);
+    bool migrateManifest (juce::var& root, juce::String& error);
 
 }

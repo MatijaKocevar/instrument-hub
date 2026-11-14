@@ -4,35 +4,33 @@
 
 namespace ihub::plugins
 {
-namespace
-{
-constexpr int parameterControlTimeoutMs = 1000;
-}
-
-bool SandboxHost::setParameters (const std::vector<ParameterEdit>& edits)
-{
-    if (edits.empty())
-        return true;
-
-    if (edits.size() > static_cast<std::size_t> (sandbox::maximumParameterBatch))
-        return false;
-
-    juce::MemoryOutputStream stream;
-    stream.writeInt (static_cast<int> (edits.size()));
-
-    for (const auto& edit : edits)
+    namespace
     {
-        stream.writeString (edit.id);
-        stream.writeFloat (edit.normalisedValue);
+        constexpr int parameterControlTimeoutMs = 1000;
     }
 
-    const juce::MemoryBlock block (stream.getData(), stream.getDataSize());
-    juce::MemoryBlock ignored;
+    bool SandboxHost::setParameters (const std::vector<ParameterEdit>& edits)
+    {
+        if (edits.empty ())
+            return true;
 
-    return runControlCommand (sandbox::ControlCommand::applyParameters,
-                              block,
-                              ignored,
-                              parameterControlTimeoutMs);
-}
+        if (edits.size () > static_cast<std::size_t> (sandbox::maximumParameterBatch))
+            return false;
+
+        juce::MemoryOutputStream stream;
+        stream.writeInt (static_cast<int> (edits.size ()));
+
+        for (const auto& edit : edits)
+        {
+            stream.writeString (edit.id);
+            stream.writeFloat (edit.normalisedValue);
+        }
+
+        const juce::MemoryBlock block (stream.getData (), stream.getDataSize ());
+        juce::MemoryBlock ignored;
+
+        return runControlCommand (
+            sandbox::ControlCommand::applyParameters, block, ignored, parameterControlTimeoutMs);
+    }
 
 }

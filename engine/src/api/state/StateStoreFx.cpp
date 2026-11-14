@@ -5,90 +5,90 @@
 namespace Api
 {
 
-void StateStore::setFxHandlers (FxChainProvider provider, FxCommandHandler handler)
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-    fxProvider = std::move (provider);
-    fxHandler = std::move (handler);
-}
-
-bool StateStore::getFxChain (int slot, FxChainState& chain, std::string& error) const
-{
-    FxChainProvider provider;
-
+    void StateStore::setFxHandlers (FxChainProvider provider, FxCommandHandler handler)
     {
         const std::lock_guard<std::mutex> lock (mutex);
+        fxProvider = std::move (provider);
+        fxHandler = std::move (handler);
+    }
 
-        if (slot < 0 || slot >= numSlots)
+    bool StateStore::getFxChain (int slot, FxChainState& chain, std::string& error) const
+    {
+        FxChainProvider provider;
+
         {
-            error = "patch slot is out of range";
+            const std::lock_guard<std::mutex> lock (mutex);
+
+            if (slot < 0 || slot >= numSlots)
+            {
+                error = "patch slot is out of range";
+                return false;
+            }
+
+            provider = fxProvider;
+        }
+
+        if (provider == nullptr)
+        {
+            error = "no audio session is attached";
             return false;
         }
 
-        provider = fxProvider;
-    }
-
-    if (provider == nullptr)
-    {
-        error = "no audio session is attached";
-        return false;
-    }
-
-    try
-    {
-        return provider (slot, chain, error);
-    }
-    catch (...)
-    {
-        error = "the FX chain reader failed";
-        return false;
-    }
-}
-
-bool StateStore::applyFxCommand (int slot,
-                                 const FxCommand& command,
-                                 FxChainState& chain,
-                                 std::string& error)
-{
-    FxCommandHandler handler;
-
-    {
-        const std::lock_guard<std::mutex> lock (mutex);
-
-        if (slot < 0 || slot >= numSlots)
+        try
         {
-            error = "patch slot is out of range";
+            return provider (slot, chain, error);
+        }
+        catch (...)
+        {
+            error = "the FX chain reader failed";
+            return false;
+        }
+    }
+
+    bool StateStore::applyFxCommand (int slot,
+                                     const FxCommand& command,
+                                     FxChainState& chain,
+                                     std::string& error)
+    {
+        FxCommandHandler handler;
+
+        {
+            const std::lock_guard<std::mutex> lock (mutex);
+
+            if (slot < 0 || slot >= numSlots)
+            {
+                error = "patch slot is out of range";
+                return false;
+            }
+
+            handler = fxHandler;
+        }
+
+        if (handler == nullptr)
+        {
+            error = "no audio session is attached";
             return false;
         }
 
-        handler = fxHandler;
-    }
+        bool applied = false;
 
-    if (handler == nullptr)
-    {
-        error = "no audio session is attached";
-        return false;
-    }
+        try
+        {
+            applied = handler (slot, command, chain, error);
+        }
+        catch (...)
+        {
+            error = "the FX chain edit failed";
+            return false;
+        }
 
-    bool applied = false;
+        if (applied)
+        {
+            notifyEdited ("patch", slot);
+            notifyChanged ("patch", slot);
+        }
 
-    try
-    {
-        applied = handler (slot, command, chain, error);
+        return applied;
     }
-    catch (...)
-    {
-        error = "the FX chain edit failed";
-        return false;
-    }
-
-    if (applied)
-    {
-        notifyEdited ("patch", slot);
-        notifyChanged ("patch", slot);
-    }
-
-    return applied;
-}
 
 }

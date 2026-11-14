@@ -5,139 +5,139 @@
 namespace AudioEngine
 {
 
-void WarmPool::setNeighbourCount (int count)
-{
+    void WarmPool::setNeighbourCount (int count)
     {
-        const std::lock_guard<std::mutex> lock (mutex);
-        neighbourCount = juce::jmax (0, count);
+        {
+            const std::lock_guard<std::mutex> lock (mutex);
+            neighbourCount = juce::jmax (0, count);
 
-        retryDeferred = true;
-        setActiveLocked (activeSlot);
+            retryDeferred = true;
+            setActiveLocked (activeSlot);
+        }
+
+        notifyWorker ();
     }
 
-    notifyWorker();
-}
-
-int WarmPool::getNeighbourCount() const
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-    return neighbourCount;
-}
-
-void WarmPool::setNumSlots (int count)
-{
+    int WarmPool::getNeighbourCount () const
     {
         const std::lock_guard<std::mutex> lock (mutex);
+        return neighbourCount;
+    }
 
-        const int clamped = juce::jmax (0, count);
-
-        if (clamped == numSlots)
-            return;
-
-        for (int index = clamped; index < numSlots; ++index)
+    void WarmPool::setNumSlots (int count)
+    {
         {
-            auto& slot = slots[static_cast<size_t> (index)];
+            const std::lock_guard<std::mutex> lock (mutex);
 
-            if (slot.instance != nullptr)
+            const int clamped = juce::jmax (0, count);
+
+            if (clamped == numSlots)
+                return;
+
+            for (int index = clamped; index < numSlots; ++index)
             {
-                pendingDestroy.push_back (std::move (slot.instance));
-                ++evictionCount;
+                auto& slot = slots[static_cast<size_t> (index)];
+
+                if (slot.instance != nullptr)
+                {
+                    pendingDestroy.push_back (std::move (slot.instance));
+                    ++evictionCount;
+                }
+
+                slot.pins = 0;
             }
 
-            slot.pins = 0;
+            slots.resize (static_cast<size_t> (clamped));
+            numSlots = clamped;
+
+            warmQueue.clear ();
+
+            for (auto& slot : slots)
+            {
+                slot.queued = false;
+                slot.deferred = false;
+            }
+
+            if (activeSlot >= numSlots)
+                activeSlot = numSlots > 0 ? numSlots - 1 : -1;
+
+            setActiveLocked (activeSlot);
         }
 
-        slots.resize (static_cast<size_t> (clamped));
-        numSlots = clamped;
-
-        warmQueue.clear();
-
-        for (auto& slot : slots)
-        {
-            slot.queued = false;
-            slot.deferred = false;
-        }
-
-        if (activeSlot >= numSlots)
-            activeSlot = numSlots > 0 ? numSlots - 1 : -1;
-
-        setActiveLocked (activeSlot);
+        notifyWorker ();
     }
 
-    notifyWorker();
-}
+    int WarmPool::getNumSlots () const
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+        return numSlots;
+    }
 
-int WarmPool::getNumSlots() const
-{
-    const std::lock_guard<std::mutex> lock (mutex);
-    return numSlots;
-}
+    void WarmPool::setRequest (int slotIndex, Request request)
+    {
+        {
+            const std::lock_guard<std::mutex> lock (mutex);
 
-void WarmPool::setRequest (int slotIndex, Request request)
-{
+            if (!isValidSlotLocked (slotIndex))
+                return;
+
+            auto& slot = slots[static_cast<size_t> (slotIndex)];
+
+            const bool sameRequest = slot.request.id == request.id;
+
+            slot.request = std::move (request);
+            slot.queued = false;
+            slot.deferred = false;
+            slot.failedId.clear ();
+            slot.lastError.clear ();
+
+            if (!sameRequest)
+                retireLocked (slotIndex, false);
+
+            if (isRetainedLocked (slotIndex))
+                enqueueWarmLocked (slotIndex);
+        }
+
+        notifyWorker ();
+    }
+
+    WarmPool::Request WarmPool::getRequest (int slotIndex) const
     {
         const std::lock_guard<std::mutex> lock (mutex);
 
-        if (! isValidSlotLocked (slotIndex))
-            return;
+        if (!isValidSlotLocked (slotIndex))
+            return {};
 
-        auto& slot = slots[static_cast<size_t> (slotIndex)];
-
-        const bool sameRequest = slot.request.id == request.id;
-
-        slot.request = std::move (request);
-        slot.queued = false;
-        slot.deferred = false;
-        slot.failedId.clear();
-        slot.lastError.clear();
-
-        if (! sameRequest)
-            retireLocked (slotIndex, false);
-
-        if (isRetainedLocked (slotIndex))
-            enqueueWarmLocked (slotIndex);
+        return slots[static_cast<size_t> (slotIndex)].request;
     }
 
-    notifyWorker();
-}
+    bool WarmPool::hasRequest (int slotIndex) const
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
 
-WarmPool::Request WarmPool::getRequest (int slotIndex) const
-{
-    const std::lock_guard<std::mutex> lock (mutex);
+        if (!isValidSlotLocked (slotIndex))
+            return false;
 
-    if (! isValidSlotLocked (slotIndex))
-        return {};
+        return slots[static_cast<size_t> (slotIndex)].request.isValid ();
+    }
 
-    return slots[static_cast<size_t> (slotIndex)].request;
-}
+    bool WarmPool::needsWarmLocked (int slotIndex) const
+    {
+        if (!isValidSlotLocked (slotIndex))
+            return false;
 
-bool WarmPool::hasRequest (int slotIndex) const
-{
-    const std::lock_guard<std::mutex> lock (mutex);
+        const auto& slot = slots[static_cast<size_t> (slotIndex)];
 
-    if (! isValidSlotLocked (slotIndex))
-        return false;
+        if (!slot.request.isValid ())
+            return false;
 
-    return slots[static_cast<size_t> (slotIndex)].request.isValid();
-}
+        if (slot.instance != nullptr)
+            return false;
 
-bool WarmPool::needsWarmLocked (int slotIndex) const
-{
-    if (! isValidSlotLocked (slotIndex))
-        return false;
+        if (slot.failedId == slot.request.id)
+            return false;
 
-    const auto& slot = slots[static_cast<size_t> (slotIndex)];
-
-    if (! slot.request.isValid())
-        return false;
-
-    if (slot.instance != nullptr)
-        return false;
-
-    if (slot.failedId == slot.request.id)
-        return false;
-
-    return isRetainedLocked (slotIndex);
-}
+        return isRetainedLocked (slotIndex);
+    }
 
 }

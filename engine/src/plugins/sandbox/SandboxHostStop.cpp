@@ -4,63 +4,63 @@
 
 namespace ihub::plugins
 {
-void SandboxHost::closeSharedMemory() noexcept
-{
-    mapping.reset();
-    shared = nullptr;
-
-    if (sharedMemoryFile != juce::File())
+    void SandboxHost::closeSharedMemory () noexcept
     {
-        sharedMemoryFile.deleteFile();
-        sharedMemoryFile = juce::File();
-    }
+        mapping.reset ();
+        shared = nullptr;
 
-    if (editorStateFile != juce::File())
-    {
-        editorStateFile.deleteFile();
-        editorStateFile = juce::File();
-    }
-}
-
-void SandboxHost::stop()
-{
-    const juce::ScopedLock lock (controlLock);
-
-    (void) flushPublishedState();
-
-    if (watchdog != nullptr)
-    {
-        watchdog->signalThreadShouldExit();
-        watchdog->notify();
-        watchdog->waitForThreadToExit (2000);
-        watchdog.reset();
-    }
-
-    if (shared != nullptr)
-        sandbox::storeRelease (shared->state,
-                               static_cast<std::int32_t> (sandbox::ProcessState::stopping));
-
-    if (childProcess != nullptr)
-    {
-        if (childProcess->isRunning())
+        if (sharedMemoryFile != juce::File ())
         {
-            childProcess->waitForProcessToFinish (300);
-
-            if (childProcess->isRunning())
-            {
-                childProcess->kill();
-                childProcess->waitForProcessToFinish (1000);
-            }
+            sharedMemoryFile.deleteFile ();
+            sharedMemoryFile = juce::File ();
         }
 
-        childProcess->readAllProcessOutput();
-        childProcess.reset();
+        if (editorStateFile != juce::File ())
+        {
+            editorStateFile.deleteFile ();
+            editorStateFile = juce::File ();
+        }
     }
 
-    closeSharedMemory();
+    void SandboxHost::stop ()
+    {
+        const juce::ScopedLock lock (controlLock);
 
-    failed.store (false, std::memory_order_relaxed);
-    status.store (Status::stopped, std::memory_order_relaxed);
-}
+        (void)flushPublishedState ();
+
+        if (watchdog != nullptr)
+        {
+            watchdog->signalThreadShouldExit ();
+            watchdog->notify ();
+            watchdog->waitForThreadToExit (2000);
+            watchdog.reset ();
+        }
+
+        if (shared != nullptr)
+            sandbox::storeRelease (shared->state,
+                                   static_cast<std::int32_t> (sandbox::ProcessState::stopping));
+
+        if (childProcess != nullptr)
+        {
+            if (childProcess->isRunning ())
+            {
+                childProcess->waitForProcessToFinish (300);
+
+                if (childProcess->isRunning ())
+                {
+                    childProcess->kill ();
+                    childProcess->waitForProcessToFinish (1000);
+                }
+            }
+
+            childProcess->readAllProcessOutput ();
+            childProcess.reset ();
+        }
+
+        closeSharedMemory ();
+
+        failed.store (false, std::memory_order_relaxed);
+        status.store (Status::stopped, std::memory_order_relaxed);
+    }
 
 }

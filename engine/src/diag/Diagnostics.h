@@ -14,89 +14,89 @@
 namespace ihub::diag
 {
 
-struct BuildInfo
-{
-    std::string applicationName;
-    std::string version;
-    std::string buildType;
-    std::string juceVersion;
-    std::string operatingSystem;
-    int cpuCores = 0;
-};
+    struct BuildInfo
+    {
+        std::string applicationName;
+        std::string version;
+        std::string buildType;
+        std::string juceVersion;
+        std::string operatingSystem;
+        int cpuCores = 0;
+    };
 
-struct DeviceDiagnostics
-{
-    bool open = false;
-    std::string type;
-    std::string name;
+    struct DeviceDiagnostics
+    {
+        bool open = false;
+        std::string type;
+        std::string name;
 
-    double sampleRate = 0.0;
-    int bufferSize = 0;
-    int bitDepth = 0;
+        double sampleRate = 0.0;
+        int bufferSize = 0;
+        int bitDepth = 0;
 
-    int inputChannels = 0;
-    int outputChannels = 0;
+        int inputChannels = 0;
+        int outputChannels = 0;
 
-    int inputLatencySamples = 0;
-    int outputLatencySamples = 0;
+        int inputLatencySamples = 0;
+        int outputLatencySamples = 0;
 
-    std::uint64_t deviceXruns = 0;
-};
+        std::uint64_t deviceXruns = 0;
+    };
 
-struct PluginDiagnostics
-{
-    std::string name;
-    std::string manufacturer;
-    std::string version;
-    std::string format;
-    std::string file;
-    bool isInstrument = false;
+    struct PluginDiagnostics
+    {
+        std::string name;
+        std::string manufacturer;
+        std::string version;
+        std::string format;
+        std::string file;
+        bool isInstrument = false;
 
-    bool loaded = false;
-    int slot = -1;
-};
+        bool loaded = false;
+        int slot = -1;
+    };
 
-struct DiagnosticsSnapshot
-{
-    std::string generatedAt;
-    BuildInfo build;
+    struct DiagnosticsSnapshot
+    {
+        std::string generatedAt;
+        BuildInfo build;
 
-    DeviceDiagnostics device;
-    AudioEngine::TimingSnapshot timing;
+        DeviceDiagnostics device;
+        AudioEngine::TimingSnapshot timing;
 
-    std::vector<PluginDiagnostics> plugins;
-    juce::File knownPluginListFile;
-    bool knownPluginListPresent = false;
+        std::vector<PluginDiagnostics> plugins;
+        juce::File knownPluginListFile;
+        bool knownPluginListPresent = false;
 
-    std::vector<LogRecord> recentLog;
-    std::uint64_t logPushed = 0;
-    std::uint64_t logOverwritten = 0;
+        std::vector<LogRecord> recentLog;
+        std::uint64_t logPushed = 0;
+        std::uint64_t logOverwritten = 0;
 
-    std::string crashDumpPath;
-};
+        std::string crashDumpPath;
+    };
 
-struct DiagnosticsOptions
-{
-    juce::File knownPluginListFile;
+    struct DiagnosticsOptions
+    {
+        juce::File knownPluginListFile;
 
-    std::string crashDumpPath;
+        std::string crashDumpPath;
 
-    int maxLogRecords = 80;
-};
+        int maxLogRecords = 80;
+    };
 
-DiagnosticsSnapshot collectDiagnostics (const AudioEngine::DeviceManager& device,
-                                        const AudioEngine::TimingSnapshot& timing,
-                                        const std::vector<PluginDiagnostics>& loadedPlugins,
-                                        const LogRing& log,
-                                        const DiagnosticsOptions& options = {});
+    DiagnosticsSnapshot collectDiagnostics (const AudioEngine::DeviceManager& device,
+                                            const AudioEngine::TimingSnapshot& timing,
+                                            const std::vector<PluginDiagnostics>& loadedPlugins,
+                                            const LogRing& log,
+                                            const DiagnosticsOptions& options = {});
 
-std::vector<PluginDiagnostics> loadKnownPlugins (const juce::File& file);
+    std::vector<PluginDiagnostics> loadKnownPlugins (const juce::File& file);
 
-std::string formatDiagnostics (const DiagnosticsSnapshot& snapshot);
+    std::string formatDiagnostics (const DiagnosticsSnapshot& snapshot);
 
-bool writeDiagnostics (const DiagnosticsSnapshot& snapshot, const juce::File& file);
+    bool writeDiagnostics (const DiagnosticsSnapshot& snapshot, const juce::File& file);
 
-void installJuceLoggerSink();
-void uninstallJuceLoggerSink();
+    void installJuceLoggerSink ();
+    void uninstallJuceLoggerSink ();
 
 }

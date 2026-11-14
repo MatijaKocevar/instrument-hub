@@ -1,11 +1,11 @@
 #include "audio/RtGuard.h"
 
-#if IHUB_RT_GUARD && IHUB_RT_GUARD_WRAP_LOCKS \
-    && defined(__linux__) && (defined(__GNUC__) || defined(__clang__))
- #define IHUB_RT_HAS_LOCK_WRAP 1
- #include <pthread.h>
+#if IHUB_RT_GUARD && IHUB_RT_GUARD_WRAP_LOCKS && defined(__linux__) &&                             \
+    (defined(__GNUC__) || defined(__clang__))
+#define IHUB_RT_HAS_LOCK_WRAP 1
+#include <pthread.h>
 #else
- #define IHUB_RT_HAS_LOCK_WRAP 0
+#define IHUB_RT_HAS_LOCK_WRAP 0
 #endif
 
 #if IHUB_RT_HAS_LOCK_WRAP
@@ -77,4 +77,3 @@ extern "C"
 }
 
 #endif
-
