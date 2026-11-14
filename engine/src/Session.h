@@ -193,6 +193,11 @@ namespace ihub
         bool
         getSlotFxChain (int slot, AudioEngine::FxChainSnapshot& snapshot, std::string& error) const;
 
+        bool getSlotTunerReading (int slot,
+                                  int index,
+                                  AudioEngine::FxTunerReading& reading,
+                                  std::string& error) const;
+
         bool addSlotFx (int slot,
                         const AudioEngine::FxInsertConfig& insert,
                         int position,

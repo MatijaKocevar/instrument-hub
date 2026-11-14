@@ -335,6 +335,7 @@ namespace Api
                     case FxCommandKind::update:
                     {
                         AudioEngine::FxInsertPatch patch;
+                        patch.name = command.update.name;
                         patch.bypassed = command.update.bypassed;
 
                         if (command.update.wet.has_value ())
@@ -380,6 +381,25 @@ namespace Api
             });
 
         attachTrackState (state, session);
+
+        state.setFxTunerProvider (
+            [&session] (int slot, int index, FxTunerState& tuner, std::string& error)
+            {
+                AudioEngine::FxTunerReading reading;
+
+                if (!session.getSlotTunerReading (slot, index, reading, error))
+                    return false;
+
+                tuner.slot = slot;
+                tuner.index = index;
+                tuner.valid = reading.valid;
+                tuner.frequencyHz = reading.frequencyHz;
+                tuner.midiNote = reading.midiNote;
+                tuner.cents = reading.cents;
+                tuner.confidence = reading.confidence;
+                tuner.levelDb = reading.levelDb;
+                return true;
+            });
 
         state.setArmHandler ([&session] (int slot) { session.armSlot (slot); });
 
@@ -454,10 +474,11 @@ namespace Api
                                      { return session.restartPluginPage (page, error); });
 
         state.setDetachHandler (
-            [&session]
+            [&session, &state]
             {
                 session.setSlotStateObserver ({});
                 session.setPageStatusObserver ({});
+                state.setFxTunerProvider ({});
             });
 
         state.setTransportProvider (

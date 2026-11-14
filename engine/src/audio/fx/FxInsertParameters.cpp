@@ -1,9 +1,11 @@
 #include "audio/FxRack.h"
 
+#include "audio/fx/FxInsertDriveParameters.h"
 #include "dsp/Compressor.h"
 #include "dsp/Delay.h"
 #include "dsp/Eq.h"
 #include "dsp/Reverb.h"
+#include "dsp/drive/Drive.h"
 
 #include <algorithm>
 #include <cmath>
@@ -315,6 +317,12 @@ namespace AudioEngine
                 return applyReverbParameters (
                     *static_cast<ihub::dsp::Reverb*> (processor), effectParameters, error);
 
+            case FxInsertType::drive:
+                return applyDriveParameters (
+                    *static_cast<ihub::dsp::Drive*> (processor), effectParameters, error);
+
+            case FxInsertType::tuner: return true;
+
             case FxInsertType::vst3:
             {
                 for (const auto& [key, value] : effectParameters)
@@ -359,6 +367,11 @@ namespace AudioEngine
 
             case FxInsertType::reverb:
                 return readReverbParameters (*static_cast<const ihub::dsp::Reverb*> (processor));
+
+            case FxInsertType::drive:
+                return readDriveParameters (*static_cast<const ihub::dsp::Drive*> (processor));
+
+            case FxInsertType::tuner: return {};
 
             case FxInsertType::vst3:
             {

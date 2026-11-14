@@ -17,7 +17,7 @@ instantly, and the same control API drives the desktop UI and a tablet remote.
   controllers are supported too.
 - VST3 hosting with out-of-process scanning, per-patch state capture and
   automatic recovery when a plugin host dies.
-- Sampler, live audio input, EQ, compressor, delay and reverb inserts.
+- Sampler, live audio input, guitar drive, tuner, EQ, compressor, delay and reverb inserts.
 - Versioned `.ihub` projects with autosave and per-patch plugin state.
 - Local HTTP + WebSocket API shared by the desktop UI and tablet remote.
 

@@ -81,6 +81,28 @@ namespace ihub::session
         return true;
     }
 
+    bool FxChainController::getTunerReading (int slot,
+                                             int index,
+                                             AudioEngine::FxTunerReading& reading,
+                                             std::string& error) const
+    {
+        const std::lock_guard<std::mutex> lock (mutex);
+
+        if (slot < 0 || slot >= static_cast<int> (racks.size ()))
+        {
+            error = "patch slot is out of range";
+            return false;
+        }
+
+        if (!racks[static_cast<std::size_t> (slot)]->getTunerReading (index, reading))
+        {
+            error = "the insert is not a tuner";
+            return false;
+        }
+
+        return true;
+    }
+
     bool FxChainController::add (int slot,
                                  const AudioEngine::FxInsertConfig& insert,
                                  int position,
@@ -135,16 +157,25 @@ namespace ihub::session
     {
         const std::lock_guard<std::mutex> lock (mutex);
 
-        if (!beginEdit (slot, streamActive, error))
+        if (slot < 0 || slot >= static_cast<int> (racks.size ()))
+        {
+            error = "patch slot is out of range";
+            return false;
+        }
+
+        const bool reorders = patch.position.has_value ();
+
+        if (reorders && !beginEdit (slot, streamActive, error))
             return false;
 
         const bool updated = racks[static_cast<std::size_t> (slot)]->update (
             index, patch, sampleRate, maximumBlockSize, numChannels, error);
 
-        if (updated)
+        if (updated && reorders)
             rebuild (slot);
 
-        endEdit (slot);
+        if (reorders)
+            endEdit (slot);
 
         return updated && makeSnapshot (slot, snapshot);
     }

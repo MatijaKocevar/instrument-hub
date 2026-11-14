@@ -15,6 +15,8 @@ namespace AudioEngine
         compressor,
         delay,
         reverb,
+        drive,
+        tuner,
         vst3
     };
 
@@ -41,6 +43,7 @@ namespace AudioEngine
 
     struct FxInsertPatch
     {
+        std::optional<std::string> name;
         std::optional<bool> bypassed;
         std::optional<float> wet;
 
@@ -80,6 +83,16 @@ namespace AudioEngine
         double latencyMs = 0.0;
 
         std::vector<FxInsertSnapshot> inserts;
+    };
+
+    struct FxTunerReading
+    {
+        bool valid = false;
+        float frequencyHz = 0.0f;
+        int midiNote = -1;
+        float cents = 0.0f;
+        float confidence = 0.0f;
+        float levelDb = -120.0f;
     };
 
     struct FxTransport

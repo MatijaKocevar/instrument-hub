@@ -902,10 +902,10 @@ paths:
       summary: Append or insert an effect
       description: |
         Creates one insert and places it at `position` (clamped; omitted or -1
-        appends). Built-in types are `eq`, `compressor`, `delay` and `reverb`;
-        `vst3` loads a plugin bundle from `path`. The response is the complete
-        chain after the change, and the same change is published as
-        `event.kind: "patch"` on `/events`.
+        appends). Built-in types are `eq`, `compressor`, `delay`, `reverb`,
+        `drive` and `tuner`; `vst3` loads a plugin bundle from `path`. The
+        response is the complete chain after the change, and the same change is
+        published as `event.kind: "patch"` on `/events`.
 
         Effect parameters are validated before anything is applied. See
         `FxInsert.parameters` for the built-in keys.
@@ -925,6 +925,18 @@ paths:
                   type: compressor
                   position: 0
                   parameters: { thresholdDb: -30, ratio: 4 }
+              drive:
+                value:
+                  type: drive
+                  name: Rock
+                  parameters:
+                    {
+                      model: 2,
+                      drive: 0.6,
+                      tone: 0.6,
+                      levelDb: -18,
+                      cab: 1,
+                    }
               vst3:
                 value:
                   type: vst3
@@ -1023,11 +1035,11 @@ paths:
     patch:
       tags: [control]
       operationId: updateFxInsert
-      summary: Bypass, balance, re-parameterise or move one insert
+      summary: Bypass, balance, re-parameterise, rename or move one insert
       description: |
-        Accepts a partial object: `bypassed`, `wet`, `parameters` and/or
-        `position`. `position` moves the insert within the chain (0 is first).
-        The response is the complete chain after the change.
+        Accepts a partial object: `name`, `bypassed`, `wet`, `parameters`
+        and/or `position`. `position` moves the insert within the chain (0 is
+        first). The response is the complete chain after the change.
       security:
         - tokenHeader: []
         - bearerAuth: []
@@ -1045,6 +1057,11 @@ paths:
                 value: { wet: 0.5 }
               moveFirst:
                 value: { position: 0 }
+              drivePreset:
+                value:
+                  name: Grunge
+                  parameters:
+                    { model: 4, drive: 0.82, tone: 0.42, levelDb: -21, cab: 1 }
       responses:
         "200":
           description: The chain after the update
@@ -1087,6 +1104,59 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           description: The patch or insert index does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: No audio session is attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /patches/{slot}/fx/{index}/tuner:
+    parameters:
+      - name: slot
+        in: path
+        required: true
+        description: Fixed audio-graph slot index, 0 .. 63.
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 63
+      - name: index
+        in: path
+        required: true
+        description: 0-based insert index in the current chain.
+        schema:
+          type: integer
+          minimum: 0
+    get:
+      tags: [control]
+      operationId: getFxTuner
+      summary: Read one tuner insert's current pitch reading
+      description: |
+        Returns the latest analysis frame for the tuner insert at `index`.
+        The tuner is a pass-through insert: it never changes the audio, and it
+        keeps analysing even when the insert is bypassed. `valid` is false
+        while no stable pitch is present. `midiNote` is the nearest
+        equal-tempered note (A4 = 69) and `cents` is the offset from it.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: The latest tuner reading
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FxTuner"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: The patch or insert does not exist, or the insert is not a tuner
           content:
             application/json:
               schema:
@@ -2258,7 +2328,7 @@ components:
           description: Position in the chain; 0 is the first insert.
         type:
           type: string
-          enum: [eq, compressor, delay, reverb, vst3]
+          enum: [eq, compressor, delay, reverb, drive, tuner, vst3]
           description: Stable effect type.
         kind:
           type: string
@@ -2300,6 +2370,10 @@ components:
             - `delay`: `tempoSync` (0/1), `division` (0..9), `timeMs`,
               `feedback`, `dampingHz`
             - `reverb`: `roomSize`, `damping`, `width`, `preDelayMs`
+            - `drive`: `model` (0 overdrive, 1 blues, 2 rock, 3 distortion,
+              4 grunge, 5 fuzz), `drive` (0..1), `tone` (0..1),
+              `levelDb` (-24..12), `cab` (0/1)
+            - `tuner`: no parameters; the insert is a pass-through analyser
             - `vst3`: parameter id or display name -> normalised 0..1 value
 
     FxChain:
@@ -2334,6 +2408,40 @@ components:
           items:
             $ref: "#/components/schemas/FxInsert"
 
+    FxTuner:
+      type: object
+      required:
+        [slot, index, valid, frequencyHz, midiNote, cents, confidence, levelDb]
+      additionalProperties: false
+      properties:
+        slot:
+          type: integer
+          minimum: 0
+        index:
+          type: integer
+          minimum: 0
+        valid:
+          type: boolean
+          description: True while a stable pitch is being detected.
+        frequencyHz:
+          type: number
+          minimum: 0
+        midiNote:
+          type: integer
+          minimum: -1
+          maximum: 127
+          description: Nearest MIDI note number (A4 = 69), or -1 while invalid.
+        cents:
+          type: number
+          description: Offset from the nearest note, in cents.
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        levelDb:
+          type: number
+          description: Input level of the tuner insert, in dBFS.
+
     FxInsertRequest:
       type: object
       required: [type]
@@ -2341,7 +2449,7 @@ components:
       properties:
         type:
           type: string
-          enum: [eq, compressor, delay, reverb, vst3]
+          enum: [eq, compressor, delay, reverb, drive, tuner, vst3]
         path:
           type: string
           description: VST3 bundle path; required for `vst3`, ignored otherwise.
@@ -2372,6 +2480,10 @@ components:
       additionalProperties: false
       minProperties: 1
       properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
         bypassed:
           type: boolean
         wet:
