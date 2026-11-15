@@ -5,6 +5,34 @@ All notable changes to Instrument Hub are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project uses semantic versioning.
 
+## [0.3.0] - 2026-11-15
+
+### Added
+
+- Toast notifications for errors, warnings, success and information, with
+  severity colours, expandable detail, repeat counting and individual or bulk
+  dismissal.
+- Sticky status cards for engine connectivity, instrument-host recovery,
+  remote link loss, MIDI and patch faults, project write errors, plug-in scan
+  errors and panic failures.
+- Success feedback for project save and open, sound capture, plug-in scans,
+  audio setup changes, latency measurement, pairing and panic.
+- Stable unavailable panels with Retry actions for audio settings, MIDI
+  inputs, plug-ins and insert chains when their data cannot be loaded.
+
+### Changed
+
+- Error messages and the recovering/reconnecting banners now surface as fixed
+  toast cards instead of being inserted into the page.
+- Status toasts deduplicate by key and pause their timers while hovered,
+  focused or expanded.
+
+### Fixed
+
+- Error messages no longer move the page layout when they appear or disappear.
+- Removed the remaining inline error blocks from the audio, MIDI, instrument,
+  pairing, plug-in, project and remote views.
+
 ## [0.2.0] - 2026-11-14
 
 ### Added
