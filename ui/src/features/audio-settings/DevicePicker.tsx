@@ -39,25 +39,6 @@ export function DevicePicker({
       aria-label="Output device"
       data-testid="device-picker"
     >
-      <header className="audio-settings__picker-head">
-        <div>
-          <p className="audio-settings__eyebrow">Output</p>
-          <h3 className="audio-settings__picker-title">Device</h3>
-        </div>
-        <button
-          type="button"
-          className="audio-settings__advanced-toggle"
-          data-testid="device-advanced-toggle"
-          aria-expanded={advanced}
-          aria-controls="device-advanced-list"
-          onClick={() => {
-            setAdvanced((open) => !open);
-          }}
-        >
-          Advanced
-        </button>
-      </header>
-
       <div
         className="audio-settings__device-grid"
         role="radiogroup"
@@ -78,6 +59,21 @@ export function DevicePicker({
           ))
         )}
       </div>
+
+      <header className="audio-settings__picker-head">
+        <button
+          type="button"
+          className="audio-settings__advanced-toggle"
+          data-testid="device-advanced-toggle"
+          aria-expanded={advanced}
+          aria-controls="device-advanced-list"
+          onClick={() => {
+            setAdvanced((open) => !open);
+          }}
+        >
+          Advanced
+        </button>
+      </header>
 
       <div
         id="device-advanced-list"

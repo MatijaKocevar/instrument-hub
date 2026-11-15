@@ -89,14 +89,24 @@ export function AudioSettingsPanel({
           <RestoreNotice audio={audio} busy={busy} onChange={onChange} />
 
           <div className="audio-settings__layout">
-            <div className="audio-settings__column">
+            <section className="audio-settings__panel audio-settings__panel--devices">
+              <h3 className="audio-settings__panel-title">Interface</h3>
               <DevicePicker audio={audio} busy={busy} onChange={onChange} />
-              <DeviceControls audio={audio} busy={busy} onChange={onChange} />
-            </div>
+            </section>
 
             <div className="audio-settings__column">
-              <div className="audio-settings__readout">
+              <section className="audio-settings__panel">
+                <h3 className="audio-settings__panel-title">Format</h3>
+                <DeviceControls audio={audio} busy={busy} onChange={onChange} />
+              </section>
+
+              <section className="audio-settings__panel">
+                <h3 className="audio-settings__panel-title">Latency</h3>
                 <LatencyReadout latency={audio.latency} />
+              </section>
+
+              <section className="audio-settings__panel">
+                <h3 className="audio-settings__panel-title">Diagnostics</h3>
                 <div className="audio-settings__readout-row">
                   <XrunCounter
                     xruns={audio.xruns}
@@ -109,7 +119,7 @@ export function AudioSettingsPanel({
                     onMeasure={onMeasure}
                   />
                 </div>
-              </div>
+              </section>
 
               <AudioSetupControl
                 wizard={wizard}

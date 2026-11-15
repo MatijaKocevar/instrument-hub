@@ -218,7 +218,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--ih-space-2);
 }
 
@@ -880,4 +880,70 @@
   border-color: var(--ih-accent);
   background: var(--ih-accent-soft);
   color: var(--ih-accent-bright);
+}
+
+.audio-settings__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ih-space-2);
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius);
+  padding: var(--ih-space-2) var(--ih-space-3);
+  background: var(--ih-panel);
+}
+
+.audio-settings__panel-title {
+  margin: 0;
+  color: var(--ih-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.audio-settings__panel--devices {
+  min-height: 0;
+}
+
+.audio-settings__panel--devices .audio-settings__device-grid {
+  display: flex;
+  max-height: min(52vh, 30rem);
+  flex-direction: column;
+  gap: var(--ih-space-1);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.audio-settings__panel--devices .audio-settings__device-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ih-space-2);
+  min-height: 0;
+  padding: 8px 10px;
+}
+
+.audio-settings__device-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.audio-settings__device-badge {
+  flex: none;
+}
+
+.audio-settings__panel .audio-settings__latency {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.audio-settings__panel .audio-settings__control {
+  min-width: 0;
+}
+
+.audio-settings__panel .audio-settings__controls {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
 }

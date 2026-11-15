@@ -38,14 +38,16 @@ export function DeviceCard({
         onChange?.({ deviceType: device.type, deviceName: device.name });
       }}
     >
-      <span className="audio-settings__device-name" data-testid="device-name">
-        {device.name}
-      </span>
-      <span
-        className="audio-settings__device-description"
-        data-testid="device-description"
-      >
-        {deviceDescription(device)}
+      <span className="audio-settings__device-text">
+        <span className="audio-settings__device-name" data-testid="device-name">
+          {device.name}
+        </span>
+        <span
+          className="audio-settings__device-description"
+          data-testid="device-description"
+        >
+          {deviceDescription(device)}
+        </span>
       </span>
       {available ? (
         selected ? (
