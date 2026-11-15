@@ -9,6 +9,10 @@
 
 namespace ihub
 {
+    namespace
+    {
+        constexpr int pageSlotWaitMs = 30000;
+    }
 
     bool Session::setSlotSource (int slot, const SessionSlotConfig& source, std::string& error)
     {
@@ -162,21 +166,30 @@ namespace ihub
 
         if (isWineHostedSlot (slot))
         {
-            if (auto* sandbox = getSandboxSlotControl (slot))
+            auto* sandbox = getSandboxSlotControl (slot);
+
+            if (sandbox == nullptr && waitForPageSlot (slot, pageSlotWaitMs))
+                sandbox = getSandboxSlotControl (slot);
+
+            if (sandbox == nullptr)
             {
-                juce::String editorError;
-
-                if (!sandbox->openEditor (editorError))
-                {
-                    error = editorError.isNotEmpty () ? editorError.toStdString ()
-                                                      : "the plugin host could not open the editor";
-                    setSlotError (slot, juce::String (error));
-                    return false;
-                }
-
-                clearSlotError (slot);
-                return true;
+                error = "the plugin is still starting in the plugin sandbox; try again";
+                setSlotError (slot, juce::String (error));
+                return false;
             }
+
+            juce::String editorError;
+
+            if (!sandbox->openEditor (editorError))
+            {
+                error = editorError.isNotEmpty () ? editorError.toStdString ()
+                                                  : "the plugin host could not open the editor";
+                setSlotError (slot, juce::String (error));
+                return false;
+            }
+
+            clearSlotError (slot);
+            return true;
         }
 
         if (editorHost == nullptr)

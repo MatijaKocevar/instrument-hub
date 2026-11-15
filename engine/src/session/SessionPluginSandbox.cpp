@@ -10,6 +10,8 @@ namespace ihub
 {
     namespace
     {
+        constexpr double pageSlotStartGraceMs = 2000.0;
+
         bool sameIdentity (const session::PluginStateIdentity& left,
                            const session::PluginStateIdentity& right)
         {
@@ -170,6 +172,35 @@ namespace ihub
             return host->getSlotStatus (slot).failed;
 
         return false;
+    }
+
+    bool Session::waitForPageSlot (int slot, int timeoutMs)
+    {
+        auto* pool = warmPool.getPool ();
+
+        if (pool == nullptr)
+            return false;
+
+        const auto started = juce::Time::getMillisecondCounterHiRes ();
+        const auto deadline = started + static_cast<double> (juce::jmax (0, timeoutMs));
+
+        for (;;)
+        {
+            if (getSandboxSlotControl (slot) != nullptr)
+                return true;
+
+            const auto now = juce::Time::getMillisecondCounterHiRes ();
+
+            if (now >= deadline)
+                return false;
+
+            const bool loading = pool->isWarming (slot) || pool->isWarm (slot);
+
+            if (!loading && now - started > pageSlotStartGraceMs)
+                return false;
+
+            juce::Thread::sleep (25);
+        }
     }
 
     std::uint64_t Session::nextSandboxGeneration (int slot)

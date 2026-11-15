@@ -333,6 +333,7 @@ namespace ihub
         plugins::SandboxHost* sandboxForSlot (int slot) const noexcept;
         void closeSandboxEditors (int keepSlot);
         bool isWineHostedSlot (int slot) const;
+        bool waitForPageSlot (int slot, int timeoutMs);
 
         std::uint64_t nextSandboxGeneration (int slot);
         std::uint64_t bumpSandboxGeneration (int slot);
