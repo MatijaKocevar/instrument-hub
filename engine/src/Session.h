@@ -138,6 +138,9 @@ namespace ihub
         using SourceAssignedHook = std::function<void (int slot, const SessionSlotConfig& source)>;
         void setSourceAssignedHook (SourceAssignedHook hook);
 
+        using EditorClosedHook = std::function<void (int slot)>;
+        void setEditorClosedHook (EditorClosedHook hook);
+
         bool openEditor (int slot, std::string& error);
 
         bool closeEditor (int slot, std::string& error);
@@ -356,6 +359,9 @@ namespace ihub
 
         SourceAssignedHook sourceAssignedHook;
         mutable std::mutex sourceAssignedMutex;
+
+        EditorClosedHook editorClosedHook;
+        mutable std::mutex editorClosedMutex;
 
         std::unique_ptr<session::EditorHost> editorHost;
         std::unique_ptr<session::MirrorSync> mirrorSync;

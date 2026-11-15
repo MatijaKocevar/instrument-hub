@@ -135,6 +135,8 @@ namespace Api
 
         bool closePatchEditor (int slot, std::string& error);
 
+        void notePatchEditorClosed (int slot);
+
         using PatchReloadHandler = std::function<bool (int slot, std::string& error)>;
         void setPatchReloadHandler (PatchReloadHandler handler);
 

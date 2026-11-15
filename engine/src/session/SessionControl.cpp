@@ -4,6 +4,7 @@
 #include "plugins/SandboxHost.h"
 #include "session/EditorHost.h"
 
+#include <algorithm>
 #include <utility>
 #include <vector>
 
@@ -26,15 +27,51 @@ namespace ihub
             source.kind == SessionSlotKind::plugin && previousSource.path == source.path &&
             juce::String (previousSource.pluginId) == juce::String (source.pluginId);
 
-        if (editorHost != nullptr)
-        {
-            std::string closeError;
-            (void)editorHost->close (slot, closeError);
-        }
+        const bool wasPlugin = previousSource.kind == SessionSlotKind::plugin;
+        const bool isPlugin = source.kind == SessionSlotKind::plugin;
+        const bool pluginSetChanged =
+            wasPlugin != isPlugin ||
+            (wasPlugin && isPlugin &&
+             (previousSource.path != source.path ||
+              juce::String (previousSource.pluginId) != juce::String (source.pluginId)));
+
+        std::vector<int> previousPageSlots;
+
+        if (sharedPluginHostEnabled && pluginSetChanged)
+            if (auto page = getPageHost (); page != nullptr)
+                previousPageSlots = page->getSlotIndices ();
+
+        if (std::find (previousPageSlots.begin (), previousPageSlots.end (), slot) ==
+            previousPageSlots.end ())
+            previousPageSlots.push_back (slot);
 
         closeSandboxEditors (-1);
 
-        releasePluginMirror (slot);
+        for (const int closing : previousPageSlots)
+        {
+            bool closed = false;
+
+            if (editorHost != nullptr)
+            {
+                std::string closeError;
+                closed = editorHost->close (closing, closeError);
+            }
+
+            releasePluginMirror (closing);
+
+            if (!closed)
+                continue;
+
+            EditorClosedHook hook;
+
+            {
+                const std::lock_guard<std::mutex> hookLock (editorClosedMutex);
+                hook = editorClosedHook;
+            }
+
+            if (hook)
+                hook (closing);
+        }
 
         if (warmPool.getPool () == nullptr || switcher == nullptr)
         {
@@ -73,21 +110,8 @@ namespace ihub
                                current.path + ":" + juce::String (current.frequency) + ":" +
                                juce::String (++sourceRevision);
 
-        const bool wasPlugin = previousSource.kind == SessionSlotKind::plugin;
-        const bool isPlugin = current.kind == SessionSlotKind::plugin;
-        const bool pluginSetChanged =
-            wasPlugin != isPlugin ||
-            (wasPlugin && isPlugin &&
-             (previousSource.path != current.path ||
-              juce::String (previousSource.pluginId) != juce::String (current.pluginId)));
-
-        std::vector<int> previousPageSlots;
-
         if (sharedPluginHostEnabled && pluginSetChanged)
         {
-            if (auto page = getPageHost (); page != nullptr)
-                previousPageSlots = page->getSlotIndices ();
-
             {
                 const std::lock_guard<std::mutex> lock (pageSlotHandleMutex);
 
@@ -148,6 +172,12 @@ namespace ihub
     {
         const std::lock_guard<std::mutex> lock (sourceAssignedMutex);
         sourceAssignedHook = std::move (hook);
+    }
+
+    void Session::setEditorClosedHook (EditorClosedHook hook)
+    {
+        const std::lock_guard<std::mutex> lock (editorClosedMutex);
+        editorClosedHook = std::move (hook);
     }
 
     bool Session::openEditor (int slot, std::string& error)
