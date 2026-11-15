@@ -194,20 +194,13 @@ namespace ihub
             return false;
         }
 
-        if (isWineHostedSlot (slot))
+        auto* sandbox = getSandboxSlotControl (slot);
+
+        if (sandbox == nullptr && waitForPageSlot (slot, pageSlotWaitMs))
+            sandbox = getSandboxSlotControl (slot);
+
+        if (sandbox != nullptr)
         {
-            auto* sandbox = getSandboxSlotControl (slot);
-
-            if (sandbox == nullptr && waitForPageSlot (slot, pageSlotWaitMs))
-                sandbox = getSandboxSlotControl (slot);
-
-            if (sandbox == nullptr)
-            {
-                error = "the plugin is still starting in the plugin sandbox; try again";
-                setSlotError (slot, juce::String (error));
-                return false;
-            }
-
             juce::String editorError;
 
             if (!sandbox->openEditor (editorError))
@@ -249,31 +242,27 @@ namespace ihub
             return false;
         }
 
-        if (isWineHostedSlot (slot))
+        if (auto* sandbox = getSandboxSlotControl (slot))
         {
-            if (auto* sandbox = getSandboxSlotControl (slot))
+            juce::String editorError;
+
+            const auto revisionBefore = sandbox->getLastCommittedStateRevision ();
+
+            if (!sandbox->closeEditor (editorError))
             {
-                juce::String editorError;
-
-                const auto revisionBefore = sandbox->getLastCommittedStateRevision ();
-
-                if (!sandbox->closeEditor (editorError))
-                {
-                    error = editorError.isNotEmpty ()
-                                ? editorError.toStdString ()
-                                : "the plugin host could not close the editor";
-                    setSlotError (slot, juce::String (error));
-                    return false;
-                }
-
-                (void)sandbox->flushPublishedState ();
-
-                if (sandbox->getLastCommittedStateRevision () == revisionBefore)
-                    (void)capturePluginState (slot);
-
-                clearSlotError (slot);
-                return true;
+                error = editorError.isNotEmpty () ? editorError.toStdString ()
+                                                  : "the plugin host could not close the editor";
+                setSlotError (slot, juce::String (error));
+                return false;
             }
+
+            (void)sandbox->flushPublishedState ();
+
+            if (sandbox->getLastCommittedStateRevision () == revisionBefore)
+                (void)capturePluginState (slot);
+
+            clearSlotError (slot);
+            return true;
         }
 
         if (editorHost == nullptr)
@@ -287,9 +276,8 @@ namespace ihub
 
     bool Session::isEditorOpen (int slot) const noexcept
     {
-        if (isWineHostedSlot (slot))
-            if (auto* sandbox = getSandboxSlotControl (slot); sandbox != nullptr)
-                return sandbox->isEditorOpen ();
+        if (auto* sandbox = getSandboxSlotControl (slot); sandbox != nullptr)
+            return sandbox->isEditorOpen ();
 
         return editorHost != nullptr && editorHost->isOpen (slot);
     }
@@ -310,14 +298,6 @@ namespace ihub
             count += host->getOpenEditorCount ();
 
         return count;
-    }
-
-    bool Session::isWineHostedSlot (int slot) const
-    {
-        session::PluginStateIdentity identity;
-
-        return pluginIdentityForSlot (slot, identity) &&
-               identity.pluginPath.containsIgnoreCase ("vstbridge");
     }
 
     void Session::closeSandboxEditors (int keepSlot)
