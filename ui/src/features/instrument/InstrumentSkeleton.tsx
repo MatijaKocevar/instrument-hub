@@ -3,31 +3,6 @@ import type { ReactElement } from "react";
 import { Skeleton } from "../loading";
 import "./instrument.css";
 
-function MixerSkeleton(): ReactElement {
-  return (
-    <section
-      className="instrument__card instrument__mix"
-      aria-hidden="true"
-      data-testid="instrument-mix"
-    >
-      <header className="instrument__card-head">
-        <h3 className="instrument__card-title">Channel</h3>
-      </header>
-
-      <div className="instrument__field">
-        <Skeleton width="4rem" height="0.8rem" />
-        <Skeleton height="0.6rem" radius="999px" />
-        <Skeleton width="3rem" height="0.8rem" />
-      </div>
-
-      <div className="instrument__toggles">
-        <Skeleton width="5rem" height="2.75rem" radius="6px" />
-        <Skeleton width="5rem" height="2.75rem" radius="6px" />
-      </div>
-    </section>
-  );
-}
-
 function SourceSkeleton(): ReactElement {
   return (
     <section
@@ -40,10 +15,14 @@ function SourceSkeleton(): ReactElement {
         <Skeleton width="4.5rem" height="0.7rem" />
       </header>
 
-      <Skeleton width="55%" height="1.2rem" />
-      <Skeleton width="32%" height="0.75rem" />
-      <Skeleton width="100%" height="2.75rem" radius="10px" />
-      <Skeleton width="100%" height="2.75rem" radius="10px" />
+      <div className="instrument__source-summary">
+        <Skeleton width="55%" height="1.2rem" />
+      </div>
+      <div className="instrument__source-actions">
+        <Skeleton width="100%" height="2.25rem" radius="8px" />
+        <Skeleton width="100%" height="2.25rem" radius="8px" />
+      </div>
+      <Skeleton width="7rem" height="1.1rem" />
     </section>
   );
 }
@@ -85,7 +64,7 @@ function TrackStripSkeleton(): ReactElement {
         <Skeleton width="2rem" height="0.7rem" />
       </div>
       <div className="instrument__strip-body">
-        <div className="track-grid__column">
+        <div className="track-grid__column instrument__live-track">
           <div className="track-grid__skeleton-track">
             <Skeleton width="4.5rem" height="0.9rem" />
             <Skeleton width="6rem" height="0.7rem" />
@@ -95,6 +74,11 @@ function TrackStripSkeleton(): ReactElement {
           </div>
           <div className="track-grid__skeleton-cell">
             <Skeleton width="100%" height="1.6rem" />
+          </div>
+          <div className="instrument__live-channel">
+            <Skeleton width="4.5rem" height="0.7rem" />
+            <Skeleton width="100%" height="0.4rem" radius="999px" />
+            <Skeleton width="100%" height="1.6rem" radius="6px" />
           </div>
           <div className="track-grid__skeleton-volume">
             <Skeleton width="0.4rem" height="12rem" />
@@ -130,7 +114,6 @@ export function InstrumentSkeleton({
 
       <div className="instrument__workspace">
         <div className="instrument__grid">
-          <MixerSkeleton />
           <SourceSkeleton />
 
           <section

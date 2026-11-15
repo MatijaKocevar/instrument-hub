@@ -45,7 +45,7 @@ export function SaveSoundAction({
 
       <p className="instrument__field-hint" data-testid="source-save-hint">
         {isPlugin
-          ? "Captures the running plug-in's current sound into this patch without switching away."
+          ? "Captures the running sound into this patch."
           : "Only plug-in sources have a sound state to save."}
       </p>
 

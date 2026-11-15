@@ -58,29 +58,31 @@ export function InstrumentHead({
         </h2>
       )}
 
-      <p className="instrument__lede">
-        {patch.familyName} · slot {String(patch.slot + 1).padStart(2, "0")}
-        {armed ? " · armed" : " · not armed"}
-        {following ? " · following the controller" : " · pinned selection"}
-      </p>
+      <div className="instrument__head-meta">
+        <p className="instrument__lede">
+          {patch.familyName} · slot {String(patch.slot + 1).padStart(2, "0")}
+          {armed ? " · armed" : " · not armed"}
+          {following ? " · following the controller" : " · pinned selection"}
+        </p>
 
-      <div className="instrument__badges">
-        <span
-          className="instrument__badge instrument__badge--warm"
-          data-testid="instrument-warm-state"
-          data-warm={patch.warm ? "true" : "false"}
-          data-warm-state={patch.warmState}
-        >
-          {patch.warmState}
-        </span>
-        <span
-          className="instrument__badge instrument__badge--latency"
-          data-testid="instrument-latency"
-          data-latency-samples={patch.latencySamples}
-          data-latency-ms={patch.latencyMs.toFixed(3)}
-        >
-          {latencyReadout(patch.latencySamples, patch.latencyMs)}
-        </span>
+        <div className="instrument__badges">
+          <span
+            className="instrument__badge instrument__badge--warm"
+            data-testid="instrument-warm-state"
+            data-warm={patch.warm ? "true" : "false"}
+            data-warm-state={patch.warmState}
+          >
+            {patch.warmState}
+          </span>
+          <span
+            className="instrument__badge instrument__badge--latency"
+            data-testid="instrument-latency"
+            data-latency-samples={patch.latencySamples}
+            data-latency-ms={patch.latencyMs.toFixed(3)}
+          >
+            {latencyReadout(patch.latencySamples, patch.latencyMs)}
+          </span>
+        </div>
       </div>
     </header>
   );

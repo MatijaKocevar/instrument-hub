@@ -43,6 +43,9 @@ export {
   type TrackVolumeTick,
 } from "./trackVolume";
 export { TrackGridRow, type TrackGridRowProps } from "./TrackGridRow";
+export { TrackFxToggle } from "./TrackFxToggle";
+export { TrackSelectCell } from "./TrackSelectCell";
+export { TrackVolumeFader } from "./TrackVolumeFader";
 export { TrackMeterProvider } from "./TrackMeterProvider";
 export {
   TrackGridTable,

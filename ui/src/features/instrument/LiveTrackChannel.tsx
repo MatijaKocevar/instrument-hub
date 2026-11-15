@@ -3,54 +3,53 @@ import type { ReactElement } from "react";
 import type { ControlPatch } from "../../api/client";
 import { clampPan, formatPan } from "./format";
 
-interface MixerProps {
+interface LiveTrackChannelProps {
   readonly patch: ControlPatch;
   readonly onPanChange?: (slot: number, pan: number) => void;
   readonly onMuteChange?: (slot: number, muted: boolean) => void;
   readonly onSoloChange?: (slot: number, solo: boolean) => void;
 }
 
-export function Mixer({
+export function LiveTrackChannel({
   patch,
   onPanChange,
   onMuteChange,
   onSoloChange,
-}: MixerProps): ReactElement {
+}: LiveTrackChannelProps): ReactElement {
   const pan = clampPan(patch.pan);
 
   return (
-    <section
-      className="instrument__card instrument__mix"
-      aria-label="Patch channel controls"
+    <div
+      className="instrument__live-channel"
+      role="group"
+      aria-label="Channel controls"
       data-testid="instrument-mix"
       data-pan={pan.toFixed(2)}
     >
-      <header className="instrument__card-head">
-        <h3 className="instrument__card-title">Channel</h3>
-      </header>
-
-      <label className="instrument__field" htmlFor="instrument-pan">
-        <span className="instrument__field-label">Balance</span>
-        <input
-          id="instrument-pan"
-          className="instrument__fader instrument__fader--pan"
-          type="range"
-          min={-1}
-          max={1}
-          step={0.01}
-          value={pan}
-          data-testid="pan-slider"
-          data-slot={patch.slot}
-          data-pan={pan.toFixed(2)}
-          aria-valuetext={formatPan(pan)}
-          onChange={(event) => {
-            onPanChange?.(patch.slot, Number(event.currentTarget.value));
-          }}
-        />
-        <output className="instrument__value" data-testid="pan-value">
+      <div className="instrument__live-channel-head">
+        <span className="instrument__live-label">Balance</span>
+        <output className="instrument__live-value" data-testid="pan-value">
           {formatPan(pan)}
         </output>
-      </label>
+      </div>
+
+      <input
+        id="instrument-pan"
+        className="instrument__live-fader"
+        type="range"
+        min={-1}
+        max={1}
+        step={0.01}
+        value={pan}
+        aria-label="Balance"
+        aria-valuetext={formatPan(pan)}
+        data-testid="pan-slider"
+        data-slot={patch.slot}
+        data-pan={pan.toFixed(2)}
+        onChange={(event) => {
+          onPanChange?.(patch.slot, Number(event.currentTarget.value));
+        }}
+      />
 
       <div
         className="instrument__toggles"
@@ -84,6 +83,6 @@ export function Mixer({
           Solo
         </button>
       </div>
-    </section>
+    </div>
   );
 }

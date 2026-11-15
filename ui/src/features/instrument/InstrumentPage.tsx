@@ -15,7 +15,6 @@ import type { GridTrack } from "../grid";
 import { InsertChain } from "./InsertChain";
 import { InstrumentFrame } from "./InstrumentFrame";
 import { InstrumentTrackStrip } from "./InstrumentTrackStrip";
-import { Mixer } from "./Mixer";
 import { SaveSoundAction } from "./SaveSoundAction";
 import { SourceCard } from "./SourceCard";
 import { SourceEditor } from "./SourceEditor";
@@ -136,26 +135,30 @@ export function InstrumentPage({
           <div className="instrument__workspace">
             <div className="instrument__grid">
               <SourceCard patch={patch}>
-                <SourceEditor
-                  patch={patch}
-                  editorOpen={editorOpen}
-                  editorBusy={editorBusy}
-                  {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
-                  {...(onReloadPlugin !== undefined
-                    ? {
-                        onReload: () => {
-                          onReloadPlugin(patch.slot);
-                        },
-                      }
-                    : {})}
-                  reloadBusy={reloadBusy}
-                />
+                <div className="instrument__source-actions">
+                  <SourceEditor
+                    patch={patch}
+                    editorOpen={editorOpen}
+                    editorBusy={editorBusy}
+                    {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
+                    {...(onReloadPlugin !== undefined
+                      ? {
+                          onReload: () => {
+                            onReloadPlugin(patch.slot);
+                          },
+                        }
+                      : {})}
+                    reloadBusy={reloadBusy}
+                  />
 
-                <SaveSoundAction
-                  patch={patch}
-                  captureBusy={captureBusy}
-                  {...(onCaptureState !== undefined ? { onCaptureState } : {})}
-                />
+                  <SaveSoundAction
+                    patch={patch}
+                    captureBusy={captureBusy}
+                    {...(onCaptureState !== undefined
+                      ? { onCaptureState }
+                      : {})}
+                  />
+                </div>
 
                 <SourcePicker
                   patch={patch}
@@ -166,13 +169,6 @@ export function InstrumentPage({
                   {...(onSourceChange !== undefined ? { onSourceChange } : {})}
                 />
               </SourceCard>
-
-              <Mixer
-                patch={patch}
-                {...(onPanChange !== undefined ? { onPanChange } : {})}
-                {...(onMuteChange !== undefined ? { onMuteChange } : {})}
-                {...(onSoloChange !== undefined ? { onSoloChange } : {})}
-              />
 
               <InsertChain
                 patch={patch}
@@ -196,6 +192,7 @@ export function InstrumentPage({
             {gridTrack !== null ? (
               <InstrumentTrackStrip
                 track={gridTrack}
+                patch={patch}
                 metersUrl={metersUrl}
                 {...(onSelectTrack !== undefined ? { onSelectTrack } : {})}
                 {...(onOpenTrack !== undefined ? { onOpenTrack } : {})}
@@ -204,6 +201,9 @@ export function InstrumentPage({
                   ? { onSetTrackVolume }
                   : {})}
                 {...(onRenameTrack !== undefined ? { onRenameTrack } : {})}
+                {...(onPanChange !== undefined ? { onPanChange } : {})}
+                {...(onMuteChange !== undefined ? { onMuteChange } : {})}
+                {...(onSoloChange !== undefined ? { onSoloChange } : {})}
               />
             ) : null}
           </div>
