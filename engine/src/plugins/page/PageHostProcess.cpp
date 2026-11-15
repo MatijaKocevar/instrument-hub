@@ -216,13 +216,13 @@ namespace ihub::plugins
             if (bundle != juce::File ())
             {
                 arguments.add (sandbox::cli::pageSlotFlag);
-                arguments.add (juce::String (descriptor->slotIndex));
+                arguments.add (juce::String (slot->internalIndex));
                 arguments.add (bundle.getFullPathName ());
             }
             else if (descriptor->fakeToneFrequency > 0.0)
             {
                 arguments.add (sandbox::cli::pageFakeToneFlag);
-                arguments.add (juce::String (descriptor->slotIndex));
+                arguments.add (juce::String (slot->internalIndex));
                 arguments.add (juce::String (descriptor->fakeToneFrequency));
             }
             else
@@ -235,7 +235,7 @@ namespace ihub::plugins
             if (descriptor->abortAfterBlocks >= 0)
             {
                 arguments.add (sandbox::cli::pageAbortAfterFlag);
-                arguments.add (juce::String (descriptor->slotIndex));
+                arguments.add (juce::String (slot->internalIndex));
                 arguments.add (juce::String (descriptor->abortAfterBlocks));
             }
 
