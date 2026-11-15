@@ -40,6 +40,8 @@ namespace ihub::app
     class ProjectDialog;
     class ProjectLifecycle;
 
+    class MidiDeviceWatcher;
+
     class ControlApi
     {
     public:
@@ -78,6 +80,7 @@ namespace ihub::app
         std::unique_ptr<Api::StateStore> apiState;
         std::unique_ptr<Api::Server> apiServer;
         std::unique_ptr<Api::MidiBridge> midiBridge;
+        std::unique_ptr<MidiDeviceWatcher> midiDeviceWatcher;
         std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
         std::unique_ptr<ProjectDialog> projectDialog;
         std::unique_ptr<ProjectLifecycle> projectLifecycle;

@@ -63,6 +63,7 @@ set(IHUB_ENGINE_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/src/app/ControllerSurface.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/ControllerSurfaceLeds.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/ControllerSurfacePreset.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/src/app/MidiDeviceWatcher.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/Modes.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/surface/TrackSurface.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/src/app/project/MappingImport.cpp"

@@ -1,6 +1,7 @@
 #include "ControlApi.h"
 
 #include "CommandLine.h"
+#include "MidiDeviceWatcher.h"
 #include "project/ProjectDialog.h"
 #include "project/ProjectLifecycle.h"
 
@@ -88,6 +89,8 @@ namespace ihub::app
         apiServer->setMidiHandlers ([this] { return midiBridge->snapshot (); },
                                     [this] (const Api::MidiInputPatch& patch, std::string& error)
                                     { return midiBridge->updateInput (patch, error); });
+
+        midiDeviceWatcher = std::make_unique<MidiDeviceWatcher> (*apiState);
 
         audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge> ();
         audioSettings->setSettingsStore (settings);
@@ -189,6 +192,8 @@ namespace ihub::app
 
     void ControlApi::detachMidi ()
     {
+        midiDeviceWatcher.reset ();
+
         if (midiBridge != nullptr)
         {
             midiBridge->setLaunchpad (nullptr);
