@@ -20,7 +20,7 @@ namespace ihub::plugins
         const auto pluginChannels =
             juce::jmax (plugin->getTotalNumInputChannels (), plugin->getTotalNumOutputChannels ());
 
-        if (pluginChannels <= 0 || pluginChannels > bufferChannels)
+        if (pluginChannels <= 0)
         {
             buffer.clear ();
             clearPendingMidi ();
@@ -43,13 +43,34 @@ namespace ihub::plugins
         if (pluginChannels == bufferChannels)
         {
             plugin->processBlock (buffer, *midiToUse);
+            return;
         }
-        else
+
+        if (pluginChannels < bufferChannels)
         {
             juce::AudioBuffer<float> view (
                 buffer.getArrayOfWritePointers (), pluginChannels, numSamples);
             plugin->processBlock (view, *midiToUse);
+
+            for (int channel = pluginChannels; channel < bufferChannels; ++channel)
+                buffer.clear (channel, 0, numSamples);
+
+            return;
         }
+
+        if (wideChannels < pluginChannels || wideScratch.getNumSamples () < numSamples)
+        {
+            buffer.clear ();
+            return;
+        }
+
+        juce::AudioBuffer<float> wide (
+            wideScratch.getArrayOfWritePointers (), pluginChannels, numSamples);
+        wide.clear ();
+        plugin->processBlock (wide, *midiToUse);
+
+        for (int channel = 0; channel < bufferChannels; ++channel)
+            buffer.copyFrom (channel, 0, wide, channel, 0, numSamples);
     }
 
 }
