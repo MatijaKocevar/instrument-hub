@@ -247,18 +247,22 @@ def commit_subject(task: dict[str, Any]) -> str:
     label = task_label(task)
     text = label.lower()
 
-    if re.search(r"\b(bug|fix)\b", text):
+    if re.search(r"\b(bug|fix|crash|hang|regression)\b", text):
         kind = "fix"
-    elif re.search(r"\b(doc|docs|readme)\b", text):
-        kind = "docs"
-    elif re.search(r"\b(refactor|cleanup|clean|remove|rename|move|split)\b", text):
+    elif re.search(r"\b(tests?|snapshot|acceptance|harness)\b", text):
+        kind = "test"
+    elif re.search(r"\b(split|decompose|extract|refactor|sweep)\b", text):
         kind = "refactor"
-    elif re.search(r"\b(perf|performance|optimize|optimise|faster|speed)\b", text):
-        kind = "perf"
+    elif re.search(r"\b(architecture|handover|readme|docs?)\b", text):
+        kind = "docs"
     elif re.search(r"\b(ci|workflow)\b", text):
         kind = "ci"
-    elif re.search(r"\bbuild\b", text):
+    elif re.search(r"\b(packaging|appimage)\b", text):
         kind = "build"
+    elif re.search(r"\b(perf|performance|optimize|optimise|faster|speed)\b", text):
+        kind = "perf"
+    elif re.search(r"\b(bootstrap|prettier|ledger|config|policy|tooling)\b", text):
+        kind = "chore"
     else:
         kind = "feat"
 

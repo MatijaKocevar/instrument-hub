@@ -35,15 +35,23 @@ Use Conventional Commits: `type(scope): summary`.
 - `fix`: a bug fix.
 - `perf`: faster or lower-memory behaviour.
 - `refactor`: structure-only change with no behaviour change.
+- `test`: test-only changes, only when testing is re-enabled.
 - `docs`, `chore`, `build`, `ci`, `style`, `revert`: use the standard meaning.
+
+Use these types exactly. Do not invent prefixes such as `plan:`, `status:`,
+`dev:` or `autopilot:`. Map planning and design documents to `docs:`,
+status-page work to `feat:` or `fix:`, and developer tooling to `chore:`.
+User-visible improvements use `feat:`, speed or memory changes use `perf:`,
+and structure-only changes use `refactor:`.
 
 Write the summary in the imperative, lowercase after the colon, with no
 trailing period. Keep the subject under 72 characters. Merge commits use
 `Merge task TNNN`, or the conventional subject for the work.
 
-Never mention autopilot, an agent, a model, AI, a prompt, a session, a task
-runner, or internal tooling in commit messages, merge subjects, tags, release
-titles or release notes. Describe the product change instead.
+Never mention autopilot, a coding agent, an AI model, AI, a prompt, or the
+agent session in commit messages, merge subjects, tags, release titles or
+release notes. Describe the product change. Domain terms such as audio session
+or MIDI driver are fine.
 
 ## Autopilot sessions
 
