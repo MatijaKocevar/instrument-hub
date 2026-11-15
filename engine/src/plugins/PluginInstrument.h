@@ -160,6 +160,8 @@ namespace ihub::plugins
         std::atomic<int> droppedMidiEvents{0};
 
         juce::MidiBuffer midiScratch;
+        juce::AudioBuffer<float> wideScratch;
+        int wideChannels = 0;
 
         std::function<void ()> beforeUnloadCallback;
         ParameterChangedCallback parameterChangedCallback;

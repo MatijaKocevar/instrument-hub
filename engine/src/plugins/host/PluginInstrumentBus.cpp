@@ -57,6 +57,13 @@ namespace ihub::plugins
         }
 
         plugin->setRateAndBufferSizeDetails (sampleRate, maximumBlockSize);
+
+        const auto pluginChannels =
+            juce::jmax (plugin->getTotalNumInputChannels (), plugin->getTotalNumOutputChannels ());
+
+        wideChannels = pluginChannels > numChannels ? pluginChannels : 0;
+        wideScratch.setSize (juce::jmax (1, wideChannels), maximumBlockSize, false, true, true);
+
         plugin->prepareToPlay (sampleRate, maximumBlockSize);
 
         cachedLatency.store (plugin->getLatencySamples (), std::memory_order_relaxed);
