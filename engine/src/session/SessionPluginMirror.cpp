@@ -17,6 +17,24 @@ namespace ihub
         if (pluginState.getInstrument (slot) != nullptr)
             return true;
 
+        auto open = [this, slot] (std::string& openError)
+        {
+            try
+            {
+                return ensurePluginMirrorNow (slot, openError);
+            }
+            catch (const std::exception& exception)
+            {
+                openError = exception.what ();
+                return false;
+            }
+            catch (...)
+            {
+                openError = "the plugin editor could not be prepared";
+                return false;
+            }
+        };
+
         auto* manager = juce::MessageManager::getInstanceWithoutCreating ();
 
         if (manager != nullptr && !manager->isThisTheMessageThread ())
@@ -24,15 +42,14 @@ namespace ihub
             bool opened = false;
             std::string threadError;
 
-            std::thread worker ([this, slot, &opened, &threadError]
-                                { opened = ensurePluginMirrorNow (slot, threadError); });
+            std::thread worker ([&open, &opened, &threadError] { opened = open (threadError); });
             worker.join ();
 
             error = std::move (threadError);
             return opened;
         }
 
-        return ensurePluginMirrorNow (slot, error);
+        return open (error);
     }
 
     bool Session::ensurePluginMirrorNow (int slot, std::string& error)

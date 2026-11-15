@@ -181,6 +181,23 @@ namespace Api
         return true;
     }
 
+    void StateStore::notePatchEditorClosed (int slot)
+    {
+        if (slot < 0 || slot >= numSlots)
+            return;
+
+        {
+            const std::lock_guard<std::mutex> lock (mutex);
+
+            if (!slotEditorOpen[static_cast<std::size_t> (slot)])
+                return;
+
+            slotEditorOpen[static_cast<std::size_t> (slot)] = false;
+        }
+
+        notifyChanged ("patch", slot);
+    }
+
     void StateStore::setPatchReloadHandler (PatchReloadHandler handler)
     {
         const std::lock_guard<std::mutex> lock (mutex);

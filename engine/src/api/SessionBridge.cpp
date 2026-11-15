@@ -258,6 +258,8 @@ namespace Api
                                       [&session] (int slot, std::string& error)
                                       { return session.closeEditor (slot, error); });
 
+        session.setEditorClosedHook ([&state] (int slot) { state.notePatchEditorClosed (slot); });
+
         state.setPatchReloadHandler ([&session] (int slot, std::string& error)
                                      { return session.reloadPlugin (slot, error); });
 
