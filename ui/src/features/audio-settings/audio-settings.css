@@ -744,3 +744,107 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.audio-settings__lede {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--ih-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.audio-settings__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--ih-space-3);
+  align-items: start;
+}
+
+.audio-settings__column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--ih-space-3);
+}
+
+@media (max-width: 1100px) {
+  .audio-settings__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.audio-settings__section {
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  padding: 0 var(--ih-space-2);
+  background: var(--ih-panel);
+}
+
+.audio-settings__section[open] {
+  padding-bottom: var(--ih-space-2);
+}
+
+.audio-settings__section-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--ih-space-1);
+  padding: 10px 0;
+  color: var(--ih-text-bright);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+}
+
+.audio-settings__section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.audio-settings__section-hint {
+  margin-left: auto;
+  color: var(--ih-muted);
+  font-family: var(--ih-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.audio-settings__section-note {
+  margin: 0 0 var(--ih-space-2);
+  color: var(--ih-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.audio-settings__device-grid {
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.audio-settings__device-card {
+  min-height: 48px;
+  padding: 5px 8px;
+}
+
+.audio-settings__device-name {
+  font-size: 13px;
+}
+
+.audio-settings__device-description {
+  font-size: 11px;
+}
+
+.audio-settings__readout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ih-space-2);
+}
+
+.audio-settings__readout-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) minmax(0, 1fr);
+  gap: var(--ih-space-2);
+  align-items: stretch;
+}

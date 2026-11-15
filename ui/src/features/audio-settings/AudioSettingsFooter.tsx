@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
 import type { ControlAudioState } from "../../api/client";
-import { activeChannels, formatSampleRate } from "./model";
+import { activeChannels } from "./model";
 
 interface AudioSettingsFooterProps {
   readonly audio: ControlAudioState;
@@ -14,8 +14,7 @@ export function AudioSettingsFooter({
     <footer className="audio-settings__footer">
       <span>
         {audio.open
-          ? `${formatSampleRate(audio.sampleRate)} · ${audio.bufferSize} frames · ` +
-            `${String(activeChannels(audio.outputChannels).length)} out / ` +
+          ? `${String(activeChannels(audio.outputChannels).length)} out · ` +
             `${String(activeChannels(audio.inputChannels).length)} in`
           : "Select a device to start audio"}
       </span>

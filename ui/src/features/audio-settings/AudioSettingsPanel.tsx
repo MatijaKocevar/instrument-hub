@@ -71,38 +71,52 @@ export function AudioSettingsPanel({
     >
       <AudioSettingsHeader audio={audio} />
 
+      <p className="audio-settings__lede">
+        Pick the interface you play through, then set the sample rate and
+        buffer. Smaller buffers mean lower latency; raise the buffer again if
+        audio starts crackling.
+      </p>
+
       <RestoreNotice audio={audio} busy={busy} onChange={onChange} />
 
-      <DevicePicker audio={audio} busy={busy} onChange={onChange} />
+      <div className="audio-settings__layout">
+        <div className="audio-settings__column">
+          <DevicePicker audio={audio} busy={busy} onChange={onChange} />
 
-      <DeviceControls audio={audio} busy={busy} onChange={onChange} />
+          <DeviceControls audio={audio} busy={busy} onChange={onChange} />
+        </div>
 
-      <AudioSetupControl
-        wizard={wizard}
-        busy={wizardBusy}
-        onRecommend={onRecommend}
-        onApply={onApplySetup}
-        onDismiss={onDismissSetup}
-      />
+        <div className="audio-settings__column">
+          <div className="audio-settings__readout">
+            <LatencyReadout latency={audio.latency} />
+            <div className="audio-settings__readout-row">
+              <XrunCounter
+                xruns={audio.xruns}
+                deviceXruns={audio.deviceXruns}
+                callbackOverruns={audio.callbackOverruns}
+              />
+              <MeasureControl
+                measurement={measurement}
+                busy={busy}
+                onMeasure={onMeasure}
+              />
+            </div>
+          </div>
 
-      <ChannelMaps
-        inputChannels={audio.inputChannels}
-        outputChannels={audio.outputChannels}
-        onChange={onChange}
-      />
+          <AudioSetupControl
+            wizard={wizard}
+            busy={wizardBusy}
+            onRecommend={onRecommend}
+            onApply={onApplySetup}
+            onDismiss={onDismissSetup}
+          />
 
-      <div className="audio-settings__readout">
-        <LatencyReadout latency={audio.latency} />
-        <XrunCounter
-          xruns={audio.xruns}
-          deviceXruns={audio.deviceXruns}
-          callbackOverruns={audio.callbackOverruns}
-        />
-        <MeasureControl
-          measurement={measurement}
-          busy={busy}
-          onMeasure={onMeasure}
-        />
+          <ChannelMaps
+            inputChannels={audio.inputChannels}
+            outputChannels={audio.outputChannels}
+            onChange={onChange}
+          />
+        </div>
       </div>
 
       <AudioSettingsFooter audio={audio} />

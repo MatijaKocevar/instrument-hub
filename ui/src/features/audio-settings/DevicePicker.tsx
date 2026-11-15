@@ -2,7 +2,7 @@ import { useState, type ReactElement } from "react";
 
 import type { ControlAudioPatch, ControlAudioState } from "../../api/client";
 import { DeviceCard } from "./DeviceCard";
-import { pickerDevices, rawDevices } from "./model";
+import { isCurrentDevice, pickerDevices, rawDevices } from "./model";
 
 export interface DevicePickerProps {
   readonly audio: ControlAudioState;
@@ -18,7 +18,12 @@ export function DevicePicker({
   initialAdvanced = false,
 }: DevicePickerProps): ReactElement {
   const [advanced, setAdvanced] = useState(initialAdvanced);
-  const devices = pickerDevices(audio);
+  const devices = [...pickerDevices(audio)].sort((a, b) => {
+    const selectedA = isCurrentDevice(audio, a) ? 0 : 1;
+    const selectedB = isCurrentDevice(audio, b) ? 0 : 1;
+
+    return selectedA - selectedB;
+  });
   const raw = rawDevices(audio);
   const disabled = busy || onChange === undefined;
   const rawValue = raw.some(

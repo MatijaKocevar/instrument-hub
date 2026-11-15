@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
 import type { ControlAudioChannel, ControlAudioPatch } from "../../api/client";
-import { channelSummary, toggleChannel } from "./model";
+import { activeChannels, channelSummary, toggleChannel } from "./model";
 
 function ChannelMap({
   title,
@@ -79,19 +79,34 @@ export function ChannelMaps({
   onChange,
 }: ChannelMapsProps): ReactElement {
   return (
-    <div className="audio-settings__maps">
-      <ChannelMap
-        title="Input map"
-        side="input"
-        channels={inputChannels}
-        onChange={onChange}
-      />
-      <ChannelMap
-        title="Output map"
-        side="output"
-        channels={outputChannels}
-        onChange={onChange}
-      />
-    </div>
+    <details className="audio-settings__section" data-testid="channel-maps">
+      <summary className="audio-settings__section-summary">
+        Channels
+        <span className="audio-settings__section-hint">
+          {activeChannels(outputChannels).length} out ·{" "}
+          {activeChannels(inputChannels).length} in
+        </span>
+      </summary>
+
+      <p className="audio-settings__section-note">
+        Enable only the channels your interface actually uses. Fewer active
+        channels keep the audio callback cheap.
+      </p>
+
+      <div className="audio-settings__maps">
+        <ChannelMap
+          title="Input map"
+          side="input"
+          channels={inputChannels}
+          onChange={onChange}
+        />
+        <ChannelMap
+          title="Output map"
+          side="output"
+          channels={outputChannels}
+          onChange={onChange}
+        />
+      </div>
+    </details>
   );
 }
