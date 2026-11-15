@@ -3,7 +3,6 @@ import type { ReactElement } from "react";
 import { linkPhase, type RemoteLinkSnapshot } from "./MeterLink";
 import type { RemoteConnection, RemoteModel } from "./model";
 import { NowPlayingCard } from "./NowPlayingCard";
-import { ReconnectBanner } from "./ReconnectBanner";
 import { RemoteHeader } from "./RemoteHeader";
 import { RemoteLayout } from "./RemoteLayout";
 import { RemotePanic } from "./RemotePanic";
@@ -19,7 +18,6 @@ export interface RemoteViewProps {
   readonly model: RemoteModel;
   readonly connection?: RemoteConnection;
   readonly loading?: boolean;
-  readonly error?: string | null;
   readonly link?: RemoteLinkSnapshot | null;
   readonly contrast?: RemoteContrast;
   readonly wakeLock?: WakeLockStatus;
@@ -36,7 +34,6 @@ export function RemoteView({
   model,
   connection = "idle",
   loading = false,
-  error = null,
   link = null,
   contrast = "high",
   wakeLock = "idle",
@@ -70,14 +67,6 @@ export function RemoteView({
         wakeLock={wakeLock}
         onToggleContrast={onToggleContrast}
       />
-
-      <ReconnectBanner connection={connection} link={link} />
-
-      {error !== null ? (
-        <p className="remote__error" role="alert" data-testid="remote-error">
-          {error}
-        </p>
-      ) : null}
 
       <RemoteLayout
         now={

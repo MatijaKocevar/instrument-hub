@@ -7,7 +7,6 @@ import { formatMs, formatSampleRate } from "./model";
 interface AudioSetupDialogProps {
   readonly wizard: ControlAudioWizard | null;
   readonly busy: boolean;
-  readonly error: string | null;
   readonly onApply?: (() => void) | undefined;
   readonly onDismiss?: (() => void) | undefined;
 }
@@ -15,7 +14,6 @@ interface AudioSetupDialogProps {
 export function AudioSetupDialog({
   wizard,
   busy,
-  error,
   onApply,
   onDismiss,
 }: AudioSetupDialogProps): ReactElement {
@@ -47,12 +45,6 @@ export function AudioSetupDialog({
       {busy && wizard === null ? (
         <p data-testid="audio-wizard-busy">
           Testing the soundcard at 64, 96 and 128 frames…
-        </p>
-      ) : null}
-
-      {error !== null && error.length > 0 ? (
-        <p className="audio-settings__error" data-testid="audio-wizard-error">
-          {error}
         </p>
       ) : null}
 

@@ -12,7 +12,6 @@ import "./pairing.css";
 export interface PairingPanelProps {
   pairing: ControlPairingState | null;
   token: string | null;
-  error?: string | null;
   busy?: boolean;
   loading?: boolean;
   onToggleLan?: (enabled: boolean) => void;
@@ -23,7 +22,6 @@ export interface PairingPanelProps {
 export function PairingPanel({
   pairing,
   token,
-  error = null,
   busy = false,
   loading = false,
   onToggleLan,
@@ -36,7 +34,7 @@ export function PairingPanel({
   const canForget = lanEnabled && pairedClients > 0 && !busy;
   const canToggle = !busy && !loading && onToggleLan !== undefined;
 
-  if (loading && pairing === null) return <PairingSkeleton error={error} />;
+  if (loading && pairing === null) return <PairingSkeleton />;
 
   return (
     <section
@@ -64,12 +62,6 @@ export function PairingPanel({
           onPair={onPair}
         />
       </div>
-
-      {error !== null ? (
-        <p className="pairing__error" role="alert" data-testid="pairing-error">
-          {error}
-        </p>
-      ) : null}
 
       {lanEnabled && pairing !== null ? (
         <div className="pairing__body">

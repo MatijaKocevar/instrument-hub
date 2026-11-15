@@ -6,7 +6,7 @@ import {
   type TokenStorage,
 } from "../features/pairing/model";
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast, messageOf } from "./errors";
 
 export interface PairingServices {
   readonly storage: TokenStorage | null;
@@ -20,7 +20,7 @@ export class PairingActions {
   ) {}
 
   toggleLan = async (enabled: boolean): Promise<boolean> => {
-    this.patch({ pairingBusy: true, pairingError: null });
+    this.patch({ pairingBusy: true });
 
     try {
       let pairing = await this.context.api.setLanMode(enabled);
@@ -65,25 +65,30 @@ export class PairingActions {
       this.patch({
         pairing,
         pairingBusy: false,
-        pairingError: autoPairError,
         unauthorized: false,
       });
 
       if (enabled) await this.services.refresh();
 
+      if (autoPairError !== null) {
+        this.notify({
+          severity: "warning",
+          title: "Could not pair this browser automatically",
+          detail: autoPairError,
+          key: "pairing",
+        });
+      }
+
       return true;
     } catch (error) {
-      this.patch({
-        pairingBusy: false,
-        pairingError: messageOf(error),
-      });
-
+      this.patch({ pairingBusy: false });
+      this.notify(failureToast("Could not change LAN mode", error, "pairing"));
       return false;
     }
   };
 
   pair = async (code: string): Promise<boolean> => {
-    this.patch({ pairingBusy: true, pairingError: null });
+    this.patch({ pairingBusy: true });
 
     try {
       const result = await this.context.api.pair(code);
@@ -98,21 +103,27 @@ export class PairingActions {
       this.patch({
         pairing,
         pairingBusy: false,
-        pairingError: null,
         unauthorized: false,
         error: null,
+      });
+
+      this.notify({
+        severity: "success",
+        title: "Tablet paired",
+        key: "pairing",
       });
 
       await this.services.refresh();
       return true;
     } catch (error) {
-      this.patch({ pairingBusy: false, pairingError: messageOf(error) });
+      this.patch({ pairingBusy: false });
+      this.notify(failureToast("Pairing failed", error, "pairing"));
       return false;
     }
   };
 
   forgetPairing = async (): Promise<boolean> => {
-    this.patch({ pairingBusy: true, pairingError: null });
+    this.patch({ pairingBusy: true });
 
     try {
       let pairing = await this.context.api.revokePairing();
@@ -125,10 +136,16 @@ export class PairingActions {
         this.dropToken();
       }
 
-      this.patch({ pairing, pairingBusy: false, pairingError: null });
+      this.patch({ pairing, pairingBusy: false });
+      this.notify({
+        severity: "success",
+        title: "Pairing forgotten",
+        key: "pairing",
+      });
       return true;
     } catch (error) {
-      this.patch({ pairingBusy: false, pairingError: messageOf(error) });
+      this.patch({ pairingBusy: false });
+      this.notify(failureToast("Could not forget pairing", error, "pairing"));
       return false;
     }
   };
@@ -141,6 +158,10 @@ export class PairingActions {
   private dropToken(): void {
     this.context.api.setToken(null);
     clearPairingToken(this.services.storage);
+  }
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
   }
 
   private get snapshot() {

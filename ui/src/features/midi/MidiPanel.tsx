@@ -6,13 +6,14 @@ import type {
 } from "../../api/client";
 import { MidiInputList } from "./MidiInputList";
 import { MidiPanelSkeleton } from "./MidiPanelSkeleton";
+import { MidiUnavailable } from "./MidiUnavailable";
 import { midiInputSummary, midiLaunchpadSummary } from "./model";
 import { useMidiLearnPolling } from "./useMidiLearnPolling";
 import "./midi.css";
 
 export interface MidiPanelProps {
   readonly midi: ControlMidiState | null;
-  readonly error?: string | null;
+  readonly unavailable?: boolean;
   readonly busy?: boolean;
   readonly loading?: boolean;
   readonly onChangeInput?:
@@ -22,7 +23,7 @@ export interface MidiPanelProps {
 
 export function MidiPanel({
   midi,
-  error = null,
+  unavailable = false,
   busy = false,
   loading = false,
   onChangeInput,
@@ -32,7 +33,11 @@ export function MidiPanel({
 
   useMidiLearnPolling(learning, onRefreshMidi);
 
-  if (loading || midi === null) return <MidiPanelSkeleton error={error} />;
+  if (loading || midi === null) {
+    if (unavailable) return <MidiUnavailable onRetry={onRefreshMidi} />;
+
+    return <MidiPanelSkeleton />;
+  }
 
   const enabled = midi.inputs.filter((input) => input.enabled).length;
 
@@ -58,18 +63,6 @@ export function MidiPanel({
           {midiInputSummary(midi.inputs)} · {midiLaunchpadSummary(midi.inputs)}
         </span>
       </header>
-
-      {error !== null && error.length > 0 ? (
-        <p className="midi__error" data-testid="midi-error" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      {midi.error.length > 0 ? (
-        <p className="midi__error" data-testid="midi-device-error" role="alert">
-          {midi.error}
-        </p>
-      ) : null}
 
       <MidiInputList
         inputs={midi.inputs}

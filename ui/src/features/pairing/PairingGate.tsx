@@ -8,7 +8,6 @@ import "./pairing.css";
 export interface PairingGateProps {
   pairing: ControlPairingState | null;
   busy?: boolean;
-  error?: string | null;
   initialCode?: string | null;
   onPair: (code: string) => void;
 }
@@ -16,7 +15,6 @@ export interface PairingGateProps {
 export function PairingGate({
   pairing,
   busy = false,
-  error = null,
   initialCode = null,
   onPair,
 }: PairingGateProps): ReactElement {
@@ -87,16 +85,6 @@ export function PairingGate({
           {busy ? "Pairing…" : "Pair"}
         </button>
       </form>
-
-      {error !== null ? (
-        <p
-          className="pairing-gate__error"
-          role="alert"
-          data-testid="pairing-gate-error"
-        >
-          {error}
-        </p>
-      ) : null}
 
       <p className="pairing-gate__hint" data-testid="pairing-gate-hint">
         The token stays in this browser; the desktop can forget it at any time.

@@ -1,6 +1,6 @@
 import type { ControlMidiInputUpdate } from "../api/client";
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast, messageOf } from "./errors";
 
 export class MidiActions {
   constructor(private readonly context: ActionContext) {}
@@ -41,6 +41,9 @@ export class MidiActions {
       return true;
     } catch (error) {
       this.patch({ midiBusy: false, midiError: messageOf(error) });
+      this.notify(
+        failureToast("Could not update MIDI input", error, "midi-input"),
+      );
       return false;
     }
   };
@@ -48,6 +51,10 @@ export class MidiActions {
   toggleMidiInput = async (id: string, enabled: boolean): Promise<boolean> => {
     return this.updateMidiInput({ id, enabled });
   };
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
+  }
 
   private patch(change: Parameters<ActionContext["patch"]>[0]): void {
     this.context.patch(change);

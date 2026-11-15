@@ -14,7 +14,7 @@ const MAX_SCAN_POLLS = 150;
 export interface PluginsPageProps {
   readonly inventory: ControlPluginList | null;
   readonly assignments?: readonly PluginAssignment[];
-  readonly error?: string | null;
+  readonly unavailable?: boolean;
   readonly busy?: boolean;
   readonly initialSearch?: string;
   readonly onRescan?: () => void;
@@ -24,7 +24,7 @@ export interface PluginsPageProps {
 export function PluginsPage({
   inventory,
   assignments = [],
-  error = null,
+  unavailable = false,
   busy = false,
   initialSearch = "",
   onRescan,
@@ -85,10 +85,14 @@ export function PluginsPage({
         onRescan={rescan}
       />
 
-      {error !== null ? (
-        <div className="plugins__error" data-testid="plugin-error" role="alert">
-          <span>{error}</span>
-          {onReload !== undefined ? (
+      {inventory === null && unavailable ? (
+        <div
+          className="plugins__unavailable"
+          data-testid="plugin-unavailable"
+          role="status"
+        >
+          <span>Plug-in scan unavailable.</span>
+          {onReload === undefined ? null : (
             <button
               className="plugins__button plugins__button--small"
               type="button"
@@ -97,11 +101,9 @@ export function PluginsPage({
             >
               Retry
             </button>
-          ) : null}
+          )}
         </div>
-      ) : null}
-
-      {inventory === null && error !== null ? null : (
+      ) : (
         <PluginList
           loading={inventory === null}
           plugins={shown}

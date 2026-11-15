@@ -14,7 +14,7 @@ export function PluginsRoute({
     <PluginsPage
       inventory={app.plugins}
       assignments={pluginAssignments}
-      error={app.pluginError}
+      unavailable={app.pluginError !== null}
       busy={app.pluginBusy}
       onRescan={() => {
         void store.rescanPlugins();

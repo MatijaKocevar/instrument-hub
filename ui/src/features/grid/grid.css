@@ -8,34 +8,6 @@
   background: transparent;
 }
 
-.grid__page-status {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ih-space-1) var(--ih-space-2);
-  align-items: baseline;
-  padding: 6px 8px;
-  border: 1px solid var(--ih-warning);
-  border-left-width: 3px;
-  border-radius: var(--ih-radius-sm);
-  background: var(--ih-warning-soft);
-  color: var(--ih-warning);
-  font-size: 13px;
-}
-
-.grid__page-status strong {
-  color: var(--ih-text-bright);
-}
-
-.grid__page-status--failed {
-  border-color: var(--ih-danger);
-  background: var(--ih-danger-soft);
-  color: var(--ih-danger);
-}
-
-.grid__page-status--failed strong {
-  color: var(--ih-text-bright);
-}
-
 .grid__scroll {
   overflow-x: auto;
   padding-bottom: 1px;

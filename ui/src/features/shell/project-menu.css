@@ -118,11 +118,10 @@
   background: var(--ih-border);
 }
 
-.project-menu__error,
 .project-menu__empty {
   margin: 0;
   padding: 4px 6px;
-  color: var(--ih-danger);
+  color: var(--ih-muted);
   font-size: 12px;
   line-height: 1.35;
 }

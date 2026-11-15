@@ -1,6 +1,14 @@
 import type { ReactElement } from "react";
 
 import type { RouterState } from "../../state/router";
+import {
+  useConnectionToasts,
+  useGridStatusToasts,
+  useMidiStatusToasts,
+  usePatchStatusToasts,
+  usePluginStatusToasts,
+  useProjectStatusToasts,
+} from "../toasts";
 import { BottomTabs } from "./BottomTabs";
 import { RouteOutlet } from "./RouteOutlet";
 import { ShellFooter } from "./ShellFooter";
@@ -21,7 +29,14 @@ export function AppShell({
   const shell = useShellData(router);
   const width = useViewportWidth(viewportWidth);
   const narrow = width < NARROW_BREAKPOINT;
-  const { app, store } = shell;
+  const { app, store, grid, instrumentPatch } = shell;
+
+  useConnectionToasts(app.phase, app.error);
+  useGridStatusToasts(grid.pluginPage);
+  useMidiStatusToasts(app.midi);
+  usePatchStatusToasts(instrumentPatch);
+  usePluginStatusToasts(app.plugins);
+  useProjectStatusToasts(app.project);
 
   const navProps: ShellNavProps = {
     route: router.route,

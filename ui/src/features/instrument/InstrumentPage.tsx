@@ -8,7 +8,6 @@ import type {
   ControlFxTunerState,
   ControlPatch,
   ControlPatchSourceRequest,
-  ControlPatchStateCapture,
   ControlPlugin,
   ControlTrack,
 } from "../../api/client";
@@ -28,17 +27,14 @@ export interface InstrumentPageProps {
   readonly armedSlot: number;
   readonly following?: boolean;
   readonly chain?: ControlFxChain | null;
-  readonly chainError?: string | null;
+  readonly chainUnavailable?: boolean;
   readonly chainBusy?: boolean;
   readonly sourceBusy?: boolean;
   readonly editorOpen?: boolean;
   readonly editorBusy?: boolean;
-  readonly editorError?: string | null;
   readonly captureBusy?: boolean;
-  readonly capture?: ControlPatchStateCapture | null;
-  readonly captureError?: string | null;
   readonly plugins?: readonly ControlPlugin[] | null;
-  readonly pluginError?: string | null;
+  readonly pluginsUnavailable?: boolean;
   readonly audioInputs?: readonly ControlAudioChannel[] | null;
   readonly track?: ControlTrack | null;
   readonly gridTrack?: GridTrack | null;
@@ -91,17 +87,14 @@ export function InstrumentPage({
   armedSlot,
   following = true,
   chain = null,
-  chainError = null,
+  chainUnavailable = false,
   chainBusy = false,
   sourceBusy = false,
   editorOpen = false,
   editorBusy = false,
-  editorError = null,
   captureBusy = false,
-  capture = null,
-  captureError = null,
   plugins = null,
-  pluginError = null,
+  pluginsUnavailable = false,
   audioInputs = null,
   track = null,
   gridTrack = null,
@@ -147,7 +140,6 @@ export function InstrumentPage({
                   patch={patch}
                   editorOpen={editorOpen}
                   editorBusy={editorBusy}
-                  editorError={editorError}
                   {...(onOpenEditor !== undefined ? { onOpenEditor } : {})}
                   {...(onReloadPlugin !== undefined
                     ? {
@@ -162,15 +154,13 @@ export function InstrumentPage({
                 <SaveSoundAction
                   patch={patch}
                   captureBusy={captureBusy}
-                  capture={capture}
-                  captureError={captureError}
                   {...(onCaptureState !== undefined ? { onCaptureState } : {})}
                 />
 
                 <SourcePicker
                   patch={patch}
                   plugins={plugins}
-                  pluginError={pluginError}
+                  pluginsUnavailable={pluginsUnavailable}
                   audioInputs={audioInputs}
                   sourceBusy={sourceBusy}
                   {...(onSourceChange !== undefined ? { onSourceChange } : {})}
@@ -187,7 +177,7 @@ export function InstrumentPage({
               <InsertChain
                 patch={patch}
                 chain={chain}
-                chainError={chainError}
+                chainUnavailable={chainUnavailable}
                 chainBusy={chainBusy}
                 plugins={plugins}
                 track={track}

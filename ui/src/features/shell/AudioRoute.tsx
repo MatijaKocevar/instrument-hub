@@ -17,9 +17,7 @@ export function AudioRoute({
         audio={app.audio}
         measurement={app.measurement}
         wizard={app.audioWizard}
-        error={app.audioError}
-        measurementError={app.measurementError}
-        wizardError={app.audioWizardError}
+        unavailable={app.audioError !== null}
         busy={app.audioBusy}
         wizardBusy={app.audioWizardBusy}
         loading={state === null && app.audio === null}
@@ -38,11 +36,14 @@ export function AudioRoute({
         onDismissSetup={() => {
           store.dismissAudioWizard();
         }}
+        onRetry={() => {
+          void store.refresh();
+        }}
       />
 
       <MidiPanel
         midi={app.midi}
-        error={app.midiError}
+        unavailable={app.midiError !== null}
         busy={app.midiBusy}
         loading={app.midi === null}
         onChangeInput={(patch) => {

@@ -33,16 +33,20 @@ import { refreshSnapshot } from "./refresh";
 import type { AppSnapshot } from "./snapshot";
 import { StateSync } from "./stateSync";
 import { StoreCore } from "./storeCore";
+import { ToastCenter } from "./toastCenter";
+import type { Toast, ToastInput } from "./toastTypes";
 import { TrackActions } from "./track";
 import { TransportActions } from "./transport";
 
 export type { AppStoreOptions } from "./options";
 export type { AppSnapshot, ConnectionPhase } from "./snapshot";
+export type { Toast, ToastInput, ToastSeverity } from "./toastTypes";
 
 export class AppStore {
   private readonly api: ControlApi;
   private readonly options: ResolvedAppStoreOptions;
   private readonly core: StoreCore;
+  private readonly toasts = new ToastCenter();
   private readonly polling: PollLoop;
   private readonly sync: StateSync;
   private readonly patchArm: PatchArmActions;
@@ -70,6 +74,7 @@ export class AppStore {
       now: this.options.now,
       getSnapshot: this.core.getSnapshot,
       patch: this.core.patch,
+      notify: this.toasts.notify,
     };
 
     this.patchArm = new PatchArmActions(context);
@@ -84,8 +89,8 @@ export class AppStore {
     this.plugins = new PluginActions(context);
     this.midi = new MidiActions(context);
     this.audio = new AudioActions(context);
-    this.transport = new TransportActions(context, (slot) =>
-      this.patchArm.armSlot(slot),
+    this.transport = new TransportActions(context, (slot, report) =>
+      this.patchArm.armSlot(slot, report ?? true),
     );
     this.pairing = new PairingActions(context, {
       storage: this.options.storage,
@@ -137,6 +142,31 @@ export class AppStore {
 
   subscribe = (listener: () => void): (() => void) =>
     this.core.subscribe(listener);
+
+  getToasts = (): readonly Toast[] => this.toasts.getSnapshot();
+
+  subscribeToasts = (listener: () => void): (() => void) =>
+    this.toasts.subscribe(listener);
+
+  notify = (input: ToastInput): void => {
+    this.toasts.notify(input);
+  };
+
+  dismissToast = (id: number): void => {
+    this.toasts.dismiss(id);
+  };
+
+  dismissToastKey = (key: string): void => {
+    this.toasts.dismissKey(key);
+  };
+
+  resolveToast = (key: string, input: ToastInput): void => {
+    this.toasts.resolve(key, input);
+  };
+
+  clearToasts = (): void => {
+    this.toasts.clear();
+  };
 
   refresh = (): Promise<boolean> => this.polling.refresh();
 
@@ -191,10 +221,6 @@ export class AppStore {
 
   reloadInstrumentPlugin = (slot: number): Promise<boolean> =>
     this.patchReload.reloadInstrumentPlugin(slot);
-
-  clearInstrumentError = (): void => {
-    this.patchEditor.clearInstrumentError();
-  };
 
   savePatchSound = (slot: number): Promise<boolean> =>
     this.patchCapture.savePatchSound(slot);
@@ -296,6 +322,8 @@ export class AppStore {
       now: this.options.now,
       getSnapshot: this.core.getSnapshot,
       patch: this.core.patch,
+      notify: this.toasts.notify,
+      resolveToast: this.toasts.resolve,
       preservePending: (state) => this.withPendingState(state),
     });
   }

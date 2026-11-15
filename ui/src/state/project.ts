@@ -1,6 +1,6 @@
 import type { ControlProjectCommand } from "../api/client";
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast } from "./errors";
 
 export class ProjectActions {
   constructor(private readonly context: ActionContext) {}
@@ -9,10 +9,9 @@ export class ProjectActions {
     try {
       const project = await this.context.api.getProject();
 
-      this.patch({ project, projectError: null });
+      this.patch({ project });
       return true;
-    } catch (error) {
-      this.patch({ projectError: messageOf(error) });
+    } catch {
       return false;
     }
   };
@@ -25,10 +24,17 @@ export class ProjectActions {
         ...(name !== undefined ? { name } : {}),
       },
       true,
+      "Could not create project",
+      "Project created",
     );
 
   openProject = (path: string): Promise<boolean> =>
-    this.run({ action: "open", path }, true);
+    this.run(
+      { action: "open", path },
+      true,
+      "Could not open project",
+      "Project opened",
+    );
 
   openProjectDialog = async (): Promise<boolean> => {
     const path = await this.chooseProjectPath("open");
@@ -41,11 +47,21 @@ export class ProjectActions {
 
     return project === null || project.path.length === 0
       ? this.saveProjectAsDialog()
-      : this.run({ action: "save" });
+      : this.run(
+          { action: "save" },
+          false,
+          "Could not save project",
+          "Project saved",
+        );
   };
 
   saveProjectAs = (path: string): Promise<boolean> =>
-    this.run({ action: "save-as", path });
+    this.run(
+      { action: "save-as", path },
+      false,
+      "Could not save project",
+      "Project saved",
+    );
 
   saveProjectAsDialog = async (): Promise<boolean> => {
     const path = await this.chooseProjectPath("save");
@@ -53,12 +69,18 @@ export class ProjectActions {
     return path === null ? false : this.saveProjectAs(path);
   };
 
-  closeProject = (): Promise<boolean> => this.run({ action: "close" });
+  closeProject = (): Promise<boolean> =>
+    this.run(
+      { action: "close" },
+      false,
+      "Could not close project",
+      "Project closed",
+    );
 
   private chooseProjectPath = async (
     mode: "open" | "save",
   ): Promise<string | null> => {
-    this.patch({ projectBusy: true, projectError: null });
+    this.patch({ projectBusy: true });
 
     try {
       const project = this.context.getSnapshot().project;
@@ -80,16 +102,25 @@ export class ProjectActions {
 
       return status.state === "done" ? status.path : null;
     } catch (error) {
-      this.patch({ projectBusy: false, projectError: messageOf(error) });
+      this.patch({ projectBusy: false });
+      this.notify(
+        failureToast(
+          "Could not open the file chooser",
+          error,
+          "project-dialog",
+        ),
+      );
       return null;
     }
   };
 
   private run = async (
     command: ControlProjectCommand,
-    reloadState = false,
+    reloadState: boolean,
+    failureTitle: string,
+    successTitle: string,
   ): Promise<boolean> => {
-    this.patch({ projectBusy: true, projectError: null });
+    this.patch({ projectBusy: true });
 
     try {
       const project = await this.context.api.updateProject(command);
@@ -100,7 +131,6 @@ export class ProjectActions {
       this.patch({
         project,
         projectBusy: false,
-        projectError: null,
         ...(state !== null
           ? {
               phase: "ready" as const,
@@ -110,12 +140,24 @@ export class ProjectActions {
           : {}),
       });
 
+      this.notify({
+        severity: "success",
+        title: successTitle,
+        ...(project.name.length > 0 ? { detail: project.name } : {}),
+        key: "project",
+      });
+
       return true;
     } catch (error) {
-      this.patch({ projectBusy: false, projectError: messageOf(error) });
+      this.patch({ projectBusy: false });
+      this.notify(failureToast(failureTitle, error, "project"));
       return false;
     }
   };
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
+  }
 
   private patch(change: Parameters<ActionContext["patch"]>[0]): void {
     this.context.patch(change);

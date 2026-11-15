@@ -5,6 +5,7 @@ import App from "./App";
 import { createControlApi } from "./api/client";
 import { loadPairingToken } from "./features/pairing";
 import { RemoteRoute, isRemotePath } from "./features/remote";
+import { ToastViewport } from "./features/toasts";
 import { AppStoreProvider } from "./state/AppStoreContext";
 import { AppStore } from "./state/store";
 import "./styles.css";
@@ -35,6 +36,7 @@ createRoot(container).render(
   <StrictMode>
     <AppStoreProvider store={store}>
       {isRemoteRoute ? <RemoteRoute /> : <App />}
+      <ToastViewport surface={isRemoteRoute ? "remote" : "desktop"} />
     </AppStoreProvider>
   </StrictMode>,
 );

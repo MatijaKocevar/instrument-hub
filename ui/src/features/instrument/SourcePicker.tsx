@@ -22,7 +22,7 @@ const fallbackInputs: readonly ControlAudioChannel[] = [
 interface SourcePickerProps {
   readonly patch: ControlPatch;
   readonly plugins?: readonly ControlPlugin[] | null;
-  readonly pluginError?: string | null;
+  readonly pluginsUnavailable?: boolean;
   readonly audioInputs?: readonly ControlAudioChannel[] | null;
   readonly sourceBusy?: boolean;
   readonly onSourceChange?: (
@@ -34,7 +34,7 @@ interface SourcePickerProps {
 export function SourcePicker({
   patch,
   plugins,
-  pluginError,
+  pluginsUnavailable = false,
   audioInputs = null,
   sourceBusy,
   onSourceChange,
@@ -129,7 +129,9 @@ export function SourcePicker({
 
         {assignable.length === 0 ? (
           <p className="instrument__field-hint" data-testid="source-empty">
-            {pluginError ?? "No instrument plug-ins are installed."}
+            {pluginsUnavailable
+              ? "Plug-in list unavailable."
+              : "No instrument plug-ins are installed."}
           </p>
         ) : null}
       </div>

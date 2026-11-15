@@ -11,7 +11,7 @@ import {
   moveOrder,
 } from "../features/instrument";
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast, messageOf } from "./errors";
 
 export class FxActions {
   private fxSequence = 0;
@@ -51,6 +51,13 @@ export class FxActions {
           ? {}
           : { fxChain: null, fxSlot: slot }),
       });
+      this.notify(
+        failureToast(
+          "Could not load insert chain",
+          error,
+          `fx-chain:${String(slot)}`,
+        ),
+      );
       return false;
     }
   };
@@ -66,7 +73,12 @@ export class FxActions {
     slot: number,
     insert: ControlFxInsertRequest,
   ): Promise<boolean> =>
-    this.runFx(slot, () => this.context.api.addFxInsert(slot, insert), null);
+    this.runFx(
+      slot,
+      "Could not add insert",
+      () => this.context.api.addFxInsert(slot, insert),
+      null,
+    );
 
   updateFxInsert = async (
     slot: number,
@@ -75,6 +87,7 @@ export class FxActions {
   ): Promise<boolean> =>
     this.runFx(
       slot,
+      "Could not update insert",
       () => this.context.api.updateFxInsert(slot, index, update),
       this.optimisticChain(slot, (chain) =>
         chainWithInsertUpdate(chain, index, update),
@@ -84,6 +97,7 @@ export class FxActions {
   removeFxInsert = async (slot: number, index: number): Promise<boolean> =>
     this.runFx(
       slot,
+      "Could not remove insert",
       () => this.context.api.removeFxInsert(slot, index),
       this.optimisticChain(slot, (chain) => chainWithoutInsert(chain, index)),
     );
@@ -101,6 +115,7 @@ export class FxActions {
 
     return this.runFx(
       slot,
+      "Could not reorder inserts",
       () => this.context.api.reorderFxChain(slot, order),
       chainWithMove(chain, from, to),
     );
@@ -112,6 +127,7 @@ export class FxActions {
   ): Promise<boolean> =>
     this.runFx(
       slot,
+      "Could not replace insert chain",
       () => this.context.api.replaceFxChain(slot, inserts),
       null,
     );
@@ -127,6 +143,7 @@ export class FxActions {
 
   private async runFx(
     slot: number,
+    title: string,
     request: () => Promise<ControlFxChain>,
     optimistic: ControlFxChain | null,
   ): Promise<boolean> {
@@ -162,8 +179,13 @@ export class FxActions {
         });
       }
 
+      this.notify(failureToast(title, error, `fx-chain:${String(slot)}`));
       return false;
     }
+  }
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
   }
 
   private get snapshot() {

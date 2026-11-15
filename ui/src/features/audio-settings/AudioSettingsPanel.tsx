@@ -10,6 +10,7 @@ import type { MeasurementSource } from "../../api/audio";
 import { AudioSettingsFooter } from "./AudioSettingsFooter";
 import { AudioSettingsHeader } from "./AudioSettingsHeader";
 import { AudioSettingsSkeleton } from "./AudioSettingsSkeleton";
+import { AudioSettingsUnavailable } from "./AudioSettingsUnavailable";
 import { AudioSetupControl } from "./AudioSetupControl";
 import { ChannelMaps } from "./ChannelMaps";
 import { DeviceControls } from "./DeviceControls";
@@ -24,9 +25,7 @@ export interface AudioSettingsPanelProps {
   readonly audio: ControlAudioState | null;
   readonly measurement?: ControlAudioMeasurement | null;
   readonly wizard?: ControlAudioWizard | null;
-  readonly error?: string | null;
-  readonly measurementError?: string | null;
-  readonly wizardError?: string | null;
+  readonly unavailable?: boolean;
   readonly busy?: boolean;
   readonly wizardBusy?: boolean;
   readonly loading?: boolean;
@@ -35,15 +34,14 @@ export interface AudioSettingsPanelProps {
   readonly onRecommend?: () => void;
   readonly onApplySetup?: () => void;
   readonly onDismissSetup?: () => void;
+  readonly onRetry?: () => void;
 }
 
 export function AudioSettingsPanel({
   audio,
   measurement = null,
   wizard = null,
-  error = null,
-  measurementError = null,
-  wizardError = null,
+  unavailable = false,
   busy = false,
   wizardBusy = false,
   loading = false,
@@ -52,8 +50,15 @@ export function AudioSettingsPanel({
   onRecommend,
   onApplySetup,
   onDismissSetup,
+  onRetry,
 }: AudioSettingsPanelProps): ReactElement {
-  if (loading || audio === null) return <AudioSettingsSkeleton error={error} />;
+  if (loading || audio === null) {
+    return unavailable ? (
+      <AudioSettingsUnavailable onRetry={onRetry} />
+    ) : (
+      <AudioSettingsSkeleton />
+    );
+  }
 
   return (
     <section
@@ -66,12 +71,6 @@ export function AudioSettingsPanel({
     >
       <AudioSettingsHeader audio={audio} />
 
-      {error !== null && error.length > 0 ? (
-        <p className="audio-settings__error" data-testid="audio-error">
-          {error}
-        </p>
-      ) : null}
-
       <RestoreNotice audio={audio} busy={busy} onChange={onChange} />
 
       <DevicePicker audio={audio} busy={busy} onChange={onChange} />
@@ -81,7 +80,6 @@ export function AudioSettingsPanel({
       <AudioSetupControl
         wizard={wizard}
         busy={wizardBusy}
-        error={wizardError}
         onRecommend={onRecommend}
         onApply={onApplySetup}
         onDismiss={onDismissSetup}
@@ -102,7 +100,6 @@ export function AudioSettingsPanel({
         />
         <MeasureControl
           measurement={measurement}
-          error={measurementError}
           busy={busy}
           onMeasure={onMeasure}
         />

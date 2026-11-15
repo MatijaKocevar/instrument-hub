@@ -1,6 +1,6 @@
 import type { ControlPatchUpdate, ControlState } from "../api/client";
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast } from "./errors";
 import { withPatchUpdate } from "./patchModel";
 
 export class PatchUpdateActions {
@@ -24,7 +24,7 @@ export class PatchUpdateActions {
     this.patchInFlight += 1;
     this.pendingPatch = { slot, patch };
 
-    this.patch({ state: withPatchUpdate(previous, slot, patch), error: null });
+    this.patch({ state: withPatchUpdate(previous, slot, patch) });
 
     try {
       const state = await this.context.api.updatePatch(slot, patch);
@@ -33,7 +33,6 @@ export class PatchUpdateActions {
         this.patch({
           phase: "ready",
           state,
-          error: null,
           failedAttempts: 0,
           updatedAt: this.context.now(),
         });
@@ -41,8 +40,11 @@ export class PatchUpdateActions {
 
       return true;
     } catch (error) {
-      if (sequence === this.patchSequence)
-        this.patch({ error: messageOf(error), state: previous });
+      if (sequence === this.patchSequence) this.patch({ state: previous });
+
+      this.notify(
+        failureToast("Could not update patch", error, `patch:${String(slot)}`),
+      );
 
       return false;
     } finally {
@@ -62,6 +64,10 @@ export class PatchUpdateActions {
       this.pendingPatch.patch,
     );
   };
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
+  }
 
   private get snapshot() {
     return this.context.getSnapshot();

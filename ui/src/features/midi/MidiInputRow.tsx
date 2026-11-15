@@ -137,12 +137,6 @@ export function MidiInputRow({
         <MidiGridControls input={input} busy={busy} onChange={onChange} />
       ) : null}
 
-      {input.error.length > 0 ? (
-        <p className="midi__input-error" data-testid="midi-input-error">
-          {input.error}
-        </p>
-      ) : null}
-
       {input.lastEvent.length > 0 ? (
         <span className="midi__last" data-testid="midi-input-last">
           {input.lastEvent}

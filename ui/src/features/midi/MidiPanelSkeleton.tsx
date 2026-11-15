@@ -21,11 +21,7 @@ function MidiRowSkeleton(): ReactElement {
   );
 }
 
-export function MidiPanelSkeleton({
-  error = null,
-}: {
-  readonly error?: string | null;
-}): ReactElement {
+export function MidiPanelSkeleton(): ReactElement {
   return (
     <section
       className="midi"
@@ -41,12 +37,6 @@ export function MidiPanelSkeleton({
         </div>
         <Skeleton width="9rem" height="2rem" radius="999px" />
       </header>
-
-      {error !== null && error.length > 0 ? (
-        <p className="midi__error" data-testid="midi-error" role="alert">
-          {error}
-        </p>
-      ) : null}
 
       <ul className="midi__inputs" aria-hidden="true">
         {[0, 1, 2].map((index) => (

@@ -25,33 +25,21 @@ export function InstrumentRoute({
   const gridTrack =
     grid.tracks.find((candidate) => candidate.slot === instrumentSlot) ?? null;
 
-  const slotError =
-    instrumentPatch?.error !== undefined && instrumentPatch.error.length > 0
-      ? instrumentPatch.error
-      : null;
-  const actionError =
-    app.editorErrorSlot === instrumentSlot ? app.editorError : null;
-
   return (
     <InstrumentPage
       patch={instrumentPatch}
       armedSlot={armedSlot}
       following={followsArmedSlot(armedSlot)}
       chain={app.fxSlot === instrumentSlot ? app.fxChain : null}
-      chainError={app.fxSlot === instrumentSlot ? app.fxError : null}
+      chainUnavailable={app.fxSlot === instrumentSlot && app.fxError !== null}
       chainBusy={app.fxBusy}
       sourceBusy={app.sourceBusy}
       editorOpen={instrumentPatch?.editorOpen === true}
       editorBusy={app.editorBusy}
-      editorError={actionError ?? slotError}
       reloadBusy={app.reloadBusy && app.reloadSlot === instrumentSlot}
       captureBusy={app.captureBusy}
-      capture={app.captureSlot === instrumentSlot ? app.capture : null}
-      captureError={
-        app.captureSlot === instrumentSlot ? app.captureError : null
-      }
       plugins={app.plugins?.plugins ?? null}
-      pluginError={app.pluginError}
+      pluginsUnavailable={app.pluginError !== null}
       audioInputs={app.audio?.inputChannels ?? null}
       track={track}
       gridTrack={gridTrack}

@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, type ReactElement } from "react";
 
 import { useAppState, useAppStore } from "../../state/AppStoreContext";
 import { codeFromSearch, PairingGate } from "../pairing";
+import { useConnectionToasts } from "../toasts";
 import { RemoteStage } from "./RemoteStage";
 
 export function RemoteRoute(): ReactElement {
   const app = useAppState();
   const store = useAppStore();
+
+  useConnectionToasts(app.phase, app.error);
   const initialCode = useMemo(
     () =>
       typeof window === "undefined"
@@ -33,7 +36,6 @@ export function RemoteRoute(): ReactElement {
       <PairingGate
         pairing={app.pairing}
         busy={app.pairingBusy}
-        error={app.pairingError ?? app.error}
         initialCode={initialCode}
         onPair={(code) => {
           void store.pair(code);

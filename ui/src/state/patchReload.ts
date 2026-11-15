@@ -1,5 +1,5 @@
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast } from "./errors";
 
 export class PatchReloadActions {
   constructor(private readonly context: ActionContext) {}
@@ -8,8 +8,6 @@ export class PatchReloadActions {
     this.patch({
       reloadBusy: true,
       reloadSlot: slot,
-      editorError: null,
-      editorErrorSlot: -1,
     });
 
     try {
@@ -20,13 +18,16 @@ export class PatchReloadActions {
         state,
         reloadBusy: false,
         reloadSlot: -1,
-        editorOpenSlot: -1,
         editorBusy: false,
-        editorError: null,
-        editorErrorSlot: -1,
         error: null,
         failedAttempts: 0,
         updatedAt: this.context.now(),
+      });
+
+      this.notify({
+        severity: "success",
+        title: "Plug-in reloaded",
+        key: `reload:${String(slot)}`,
       });
 
       return true;
@@ -34,12 +35,21 @@ export class PatchReloadActions {
       this.patch({
         reloadBusy: false,
         reloadSlot: -1,
-        editorError: messageOf(error),
-        editorErrorSlot: slot,
       });
+      this.notify(
+        failureToast(
+          "Could not reload the plug-in",
+          error,
+          `reload:${String(slot)}`,
+        ),
+      );
       return false;
     }
   };
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
+  }
 
   private patch(change: Parameters<ActionContext["patch"]>[0]): void {
     this.context.patch(change);

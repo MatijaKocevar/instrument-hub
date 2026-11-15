@@ -5,7 +5,6 @@ import type {
   ControlFxChain,
   ControlMidiState,
   ControlPairingState,
-  ControlPatchStateCapture,
   ControlPluginList,
   ControlProjectOverview,
   ControlState,
@@ -21,26 +20,18 @@ export interface AppSnapshot {
   error: string | null;
   audioError: string | null;
   measurement: ControlAudioMeasurement | null;
-  measurementError: string | null;
   audioWizard: ControlAudioWizard | null;
   audioWizardBusy: boolean;
-  audioWizardError: string | null;
   audioBusy: boolean;
   fxChain: ControlFxChain | null;
   fxSlot: number;
   fxError: string | null;
   fxBusy: boolean;
   sourceBusy: boolean;
-  editorOpenSlot: number;
   editorBusy: boolean;
-  editorError: string | null;
-  editorErrorSlot: number;
   reloadBusy: boolean;
   reloadSlot: number;
   captureBusy: boolean;
-  captureSlot: number;
-  capture: ControlPatchStateCapture | null;
-  captureError: string | null;
   plugins: ControlPluginList | null;
   pluginError: string | null;
   pluginBusy: boolean;
@@ -48,10 +39,8 @@ export interface AppSnapshot {
   midiError: string | null;
   midiBusy: boolean;
   pairing: ControlPairingState | null;
-  pairingError: string | null;
   pairingBusy: boolean;
   project: ControlProjectOverview | null;
-  projectError: string | null;
   projectBusy: boolean;
   unauthorized: boolean;
   failedAttempts: number;
@@ -67,26 +56,18 @@ export function initialSnapshot(): AppSnapshot {
     error: null,
     audioError: null,
     measurement: null,
-    measurementError: null,
     audioWizard: null,
     audioWizardBusy: false,
-    audioWizardError: null,
     audioBusy: false,
     fxChain: null,
     fxSlot: -1,
     fxError: null,
     fxBusy: false,
     sourceBusy: false,
-    editorOpenSlot: -1,
     editorBusy: false,
-    editorError: null,
-    editorErrorSlot: -1,
     reloadBusy: false,
     reloadSlot: -1,
     captureBusy: false,
-    captureSlot: -1,
-    capture: null,
-    captureError: null,
     plugins: null,
     pluginError: null,
     pluginBusy: false,
@@ -94,10 +75,8 @@ export function initialSnapshot(): AppSnapshot {
     midiError: null,
     midiBusy: false,
     pairing: null,
-    pairingError: null,
     pairingBusy: false,
     project: null,
-    projectError: null,
     projectBusy: false,
     unauthorized: false,
     failedAttempts: 0,

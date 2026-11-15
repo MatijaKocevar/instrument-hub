@@ -54,10 +54,36 @@
   white-space: nowrap;
 }
 
-.midi__error {
-  margin: 0;
-  color: var(--ih-danger);
+.midi__unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ih-space-2);
+  min-height: 5rem;
+  padding: var(--ih-space-2);
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius-sm);
+  background: var(--ih-panel);
+  color: var(--ih-muted);
+  font-size: 13px;
+}
+
+.midi__retry {
+  min-height: 32px;
+  padding: 2px 10px;
+  border: 1px solid var(--ih-border-strong);
+  border-radius: var(--ih-radius-sm);
+  background: var(--ih-panel-raised);
+  color: var(--ih-text);
+  font: inherit;
   font-size: 12px;
+  cursor: pointer;
+}
+
+.midi__retry:hover {
+  border-color: var(--ih-accent);
+  background: var(--ih-panel-hover);
+  color: var(--ih-text-bright);
 }
 
 .midi__empty {
@@ -317,14 +343,6 @@
   font-size: 11px;
 }
 
-.midi__input-error {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: var(--ih-danger);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
 .midi__last {
   grid-column: 1 / -1;
   color: var(--ih-accent-bright);
@@ -409,10 +427,6 @@
 
   .midi__input-side {
     justify-self: start;
-    padding-left: 26px;
-  }
-
-  .midi__input-error {
     padding-left: 26px;
   }
 }

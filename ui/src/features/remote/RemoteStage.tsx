@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactElement } from "react";
 
 import { metersUrlFor } from "../grid";
 import { useAppState, useAppStore } from "../../state/AppStoreContext";
+import { useRemoteLinkToasts } from "../toasts";
 import { RemoteView } from "./RemoteView";
 import { remoteFromState, stepPatch } from "./model";
 import {
@@ -26,6 +27,8 @@ export function RemoteStage(): ReactElement {
   const metersUrl = useMemo(() => metersUrlFor(store.baseUrl), [store.baseUrl]);
   const link = useRemoteLink(metersUrl);
   const wakeLock = useWakeLock();
+
+  useRemoteLinkToasts(app.phase, link);
 
   const [contrast, setContrast] = useState<RemoteContrast>(() =>
     loadRemoteContrast(contrastStorage()),
@@ -63,7 +66,6 @@ export function RemoteStage(): ReactElement {
       model={model}
       connection={app.phase}
       loading={app.state === null}
-      error={app.error}
       link={link}
       contrast={contrast}
       wakeLock={wakeLock}

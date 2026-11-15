@@ -30,11 +30,7 @@ function ChannelMapSkeleton({ title }: { title: string }): ReactElement {
   );
 }
 
-export function AudioSettingsSkeleton({
-  error = null,
-}: {
-  readonly error?: string | null;
-}): ReactElement {
+export function AudioSettingsSkeleton(): ReactElement {
   return (
     <section
       className="audio-settings"
@@ -49,12 +45,6 @@ export function AudioSettingsSkeleton({
         </div>
         <Skeleton width="8.5rem" height="2rem" radius="999px" />
       </header>
-
-      {error !== null && error.length > 0 ? (
-        <p className="audio-settings__error" data-testid="audio-error">
-          {error}
-        </p>
-      ) : null}
 
       <section
         className="audio-settings__picker"

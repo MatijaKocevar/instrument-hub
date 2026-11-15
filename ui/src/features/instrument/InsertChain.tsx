@@ -20,7 +20,7 @@ import "./hotFx.css";
 interface InsertChainProps {
   readonly patch: ControlPatch;
   readonly chain?: ControlFxChain | null;
-  readonly chainError?: string | null;
+  readonly chainUnavailable?: boolean;
   readonly chainBusy?: boolean;
   readonly plugins?: readonly ControlPlugin[] | null;
   readonly track?: ControlTrack | null;
@@ -53,7 +53,7 @@ interface InsertChainProps {
 export function InsertChain({
   patch,
   chain,
-  chainError,
+  chainUnavailable = false,
   chainBusy,
   plugins,
   track = null,
@@ -69,8 +69,7 @@ export function InsertChain({
 }: InsertChainProps): ReactElement {
   const inserts = chain?.inserts ?? [];
   const missing = chain === null || chain === undefined;
-  const showSkeleton =
-    missing && (chainError === null || chainError === undefined);
+  const showSkeleton = missing && !chainUnavailable;
 
   return (
     <section
@@ -157,27 +156,27 @@ export function InsertChain({
         </div>
       </dl>
 
-      {chainError !== null && chainError !== undefined ? (
-        <div className="instrument__error" data-testid="fx-error" role="alert">
-          <span>{chainError}</span>
-          <button
-            className="instrument__button instrument__button--small"
-            type="button"
-            data-testid="fx-retry"
-            onClick={() => {
-              onRetryChain?.(patch.slot);
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      ) : null}
-
       <div className="instrument__chain-row">
         {missing ? (
           showSkeleton ? (
             <InsertChainSkeleton />
-          ) : null
+          ) : (
+            <div className="instrument__unavailable" role="status">
+              <span>Insert chain unavailable.</span>
+              {onRetryChain === undefined ? null : (
+                <button
+                  className="instrument__button instrument__button--small"
+                  type="button"
+                  data-testid="fx-retry"
+                  onClick={() => {
+                    onRetryChain(patch.slot);
+                  }}
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          )
         ) : inserts.length === 0 ? (
           <p className="instrument__empty" data-testid="fx-empty">
             No inserts yet. Load one to start the chain.

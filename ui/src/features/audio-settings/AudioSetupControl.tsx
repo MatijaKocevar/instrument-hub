@@ -7,7 +7,6 @@ import { AudioSetupDialog } from "./AudioSetupDialog";
 interface AudioSetupControlProps {
   readonly wizard: ControlAudioWizard | null;
   readonly busy: boolean;
-  readonly error: string | null;
   readonly onRecommend?: (() => void) | undefined;
   readonly onApply?: (() => void) | undefined;
   readonly onDismiss?: (() => void) | undefined;
@@ -16,7 +15,6 @@ interface AudioSetupControlProps {
 export function AudioSetupControl({
   wizard,
   busy,
-  error,
   onRecommend,
   onApply,
   onDismiss,
@@ -41,11 +39,10 @@ export function AudioSetupControl({
         Probes 64, 96 and 128 frames at every supported rate.
       </span>
 
-      {busy || wizard !== null || error !== null ? (
+      {busy || wizard !== null ? (
         <AudioSetupDialog
           wizard={wizard}
           busy={busy}
-          error={error}
           onApply={onApply}
           onDismiss={onDismiss}
         />

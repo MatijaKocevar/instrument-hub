@@ -9,7 +9,7 @@ import {
   trackVolumeStepForGain,
 } from "../features/grid";
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast } from "./errors";
 
 function trackAt(
   state: ControlState | null,
@@ -146,6 +146,8 @@ export class TrackActions {
     if (trackAt(previous, index) === null) return false;
 
     return this.run(
+      "track:select",
+      "Could not select track",
       (state) => withSelectedTrack(state, index),
       () => this.context.api.selectTrack(index),
     );
@@ -159,6 +161,8 @@ export class TrackActions {
       return false;
 
     return this.run(
+      "track:rename",
+      "Could not rename track",
       (state) => withTrackName(state, index, next),
       () => this.context.api.renameTrack(index, next),
     );
@@ -174,6 +178,8 @@ export class TrackActions {
     if (!assigned) return false;
 
     return this.run(
+      "track:toggle-fx",
+      "Could not toggle Hot FX",
       (state) => withToggledHotFx(state, index, hot),
       () => this.context.api.toggleTrackFx(index, hot),
     );
@@ -186,6 +192,8 @@ export class TrackActions {
     const clamped = clampTrackVolumeGain(gain);
 
     return this.run(
+      "track:volume",
+      "Could not set track volume",
       (state) => withTrackGain(state, index, clamped),
       () => this.context.api.setTrackVolume(index, clamped),
     );
@@ -207,6 +215,8 @@ export class TrackActions {
     const name = insert?.name ?? "";
 
     return this.run(
+      "track:assign-fx",
+      "Could not assign Hot FX",
       (state) =>
         withHotFxAssignment(
           state,
@@ -237,6 +247,8 @@ export class TrackActions {
   };
 
   private async run(
+    key: string,
+    title: string,
     optimistic: (state: ControlState) => ControlState,
     request: () => Promise<ControlState>,
   ): Promise<boolean> {
@@ -248,7 +260,7 @@ export class TrackActions {
     this.sequence = sequence;
     this.inFlight += 1;
 
-    this.patch({ state: optimistic(previous), error: null });
+    this.patch({ state: optimistic(previous) });
 
     try {
       const state = await request();
@@ -257,20 +269,23 @@ export class TrackActions {
         this.patch({
           phase: "ready",
           state,
-          error: null,
           failedAttempts: 0,
           updatedAt: this.context.now(),
         });
 
       return true;
     } catch (error) {
-      if (sequence === this.sequence)
-        this.patch({ error: messageOf(error), state: previous });
+      if (sequence === this.sequence) this.patch({ state: previous });
 
+      this.notify(failureToast(title, error, key));
       return false;
     } finally {
       this.inFlight -= 1;
     }
+  }
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
   }
 
   private get snapshot() {

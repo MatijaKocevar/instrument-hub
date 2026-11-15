@@ -1,9 +1,5 @@
 export { GridView, type GridViewProps } from "./GridView";
 export {
-  RecoveringBanner,
-  type RecoveringBannerProps,
-} from "./RecoveringBanner";
-export {
   clampColourIndex,
   EMPTY_COLOUR,
   trackColourForIndex,

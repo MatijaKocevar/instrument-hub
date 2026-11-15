@@ -1,11 +1,6 @@
 export { RemoteRoute } from "./RemoteRoute";
 export { RemoteView, type RemoteViewProps } from "./RemoteView";
 export {
-  remoteBanner,
-  type RemoteBanner,
-  type RemoteBannerTone,
-} from "./banner";
-export {
   INITIAL_LINK,
   MeterLink,
   type MeterLinkOptions,

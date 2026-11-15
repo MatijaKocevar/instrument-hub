@@ -14,7 +14,6 @@ export function SettingsRoute({
     <SettingsPage
       pairing={app.pairing}
       token={store.token}
-      pairingError={app.pairingError}
       pairingBusy={app.pairingBusy}
       connection={app.phase}
       baseUrl={store.baseUrl}

@@ -132,69 +132,6 @@
   background: var(--ih-warning);
 }
 
-.remote__banner {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--ih-space-2);
-  padding: 6px 8px;
-  border: 1px solid var(--ih-warning);
-  border-left-width: 3px;
-  border-radius: var(--ih-radius-sm);
-  background: var(--ih-warning-soft);
-  color: var(--ih-warning);
-}
-
-.remote__banner--critical {
-  border-color: var(--ih-danger);
-  background: var(--ih-danger-soft);
-  color: var(--ih-danger);
-}
-
-.remote__banner-dot {
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  margin-top: 3px;
-  border-radius: 50%;
-  background: var(--ih-warning);
-  animation: remote-pulse 1.2s linear infinite;
-}
-
-.remote__banner--critical .remote__banner-dot {
-  background: var(--ih-danger);
-}
-
-.remote__banner-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.remote__banner-title {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.remote__banner-detail {
-  font-size: 12px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-@keyframes remote-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.25;
-  }
-}
-
 .remote__eyebrow {
   margin: 0 0 2px;
   color: var(--ih-muted);
@@ -265,18 +202,6 @@
 
 .remote__status--offline::before {
   background: var(--ih-danger);
-}
-
-.remote__error {
-  margin: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--ih-danger);
-  border-left-width: 3px;
-  border-radius: var(--ih-radius-sm);
-  background: var(--ih-danger-soft);
-  color: var(--ih-danger);
-  font-size: 12px;
-  overflow-wrap: anywhere;
 }
 
 .remote__layout {
@@ -789,28 +714,8 @@
   color: #ffffff;
 }
 
-.remote[data-contrast="high"] .remote__banner--warning {
-  border-color: #ffd84d;
-  background: #000000;
-  color: #ffd84d;
-}
-
-.remote[data-contrast="high"] .remote__banner--critical {
-  border-color: #ff6b81;
-  background: #000000;
-  color: #ff9cab;
-}
-
-.remote[data-contrast="high"] .remote__banner-dot {
-  background: currentColor;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .remote button {
     transition: none;
-  }
-
-  .remote__banner-dot {
-    animation: none;
   }
 }

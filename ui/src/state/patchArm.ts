@@ -1,6 +1,6 @@
 import type { ControlState } from "../api/client";
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast } from "./errors";
 import { withArmedSlot } from "./patchModel";
 
 export class PatchArmActions {
@@ -9,7 +9,7 @@ export class PatchArmActions {
 
   constructor(private readonly context: ActionContext) {}
 
-  armSlot = async (slot: number | null): Promise<boolean> => {
+  armSlot = async (slot: number | null, report = true): Promise<boolean> => {
     const target = slot === null ? -1 : slot;
     const previous = this.snapshot.state;
 
@@ -20,7 +20,7 @@ export class PatchArmActions {
     this.armInFlight += 1;
 
     if (previous !== null)
-      this.patch({ state: withArmedSlot(previous, target), error: null });
+      this.patch({ state: withArmedSlot(previous, target) });
 
     try {
       const state = await this.context.api.armSlot(slot);
@@ -29,7 +29,6 @@ export class PatchArmActions {
         this.patch({
           phase: "ready",
           state,
-          error: null,
           failedAttempts: 0,
           updatedAt: this.context.now(),
         });
@@ -39,10 +38,12 @@ export class PatchArmActions {
     } catch (error) {
       if (sequence === this.armSequence) {
         this.patch({
-          error: messageOf(error),
           ...(previous === null ? {} : { state: previous }),
         });
       }
+
+      if (report)
+        this.notify(failureToast("Could not arm slot", error, "arm-slot"));
 
       return false;
     } finally {
@@ -57,6 +58,10 @@ export class PatchArmActions {
       ? withArmedSlot(state, current.armedSlot)
       : state;
   };
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
+  }
 
   private get snapshot() {
     return this.context.getSnapshot();

@@ -178,12 +178,6 @@ export function ProjectMenu({
           Close project
         </button>
 
-        {app.projectError !== null ? (
-          <p className="project-menu__error" data-testid="project-error">
-            {app.projectError}
-          </p>
-        ) : null}
-
         <div
           className="project-menu__subpanel project-menu__subpanel--recent"
           data-testid="project-recent-panel"

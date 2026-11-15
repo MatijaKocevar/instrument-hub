@@ -91,11 +91,42 @@
   background: var(--ih-inset);
 }
 
-.audio-settings__error,
 .audio-settings__measure-error {
   margin: 0;
   color: var(--ih-danger);
   font-size: 12px;
+}
+
+.audio-settings__unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ih-space-2);
+  min-height: 6rem;
+  padding: var(--ih-space-2);
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius);
+  background: var(--ih-panel);
+  color: var(--ih-muted);
+  font-size: 13px;
+}
+
+.audio-settings__unavailable-retry {
+  min-height: 32px;
+  padding: 2px 10px;
+  border: 1px solid var(--ih-border-strong);
+  border-radius: var(--ih-radius-sm);
+  background: var(--ih-panel-raised);
+  color: var(--ih-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.audio-settings__unavailable-retry:hover {
+  border-color: var(--ih-accent);
+  background: var(--ih-panel-hover);
+  color: var(--ih-text-bright);
 }
 
 .audio-settings__restore {

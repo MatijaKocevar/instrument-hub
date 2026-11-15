@@ -71,10 +71,6 @@ export function useShellData(router: RouterState) {
   );
 
   useEffect(() => {
-    store.clearInstrumentError();
-  }, [instrumentSlot, store]);
-
-  useEffect(() => {
     if (state === null || prefetched.current) return;
 
     prefetched.current = true;

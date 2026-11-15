@@ -8,22 +8,9 @@ import { formatMs } from "./model";
 
 function Measurement({
   measurement,
-  error,
 }: {
   measurement: ControlAudioMeasurement | null | undefined;
-  error: string | null | undefined;
 }): ReactElement {
-  if (error !== null && error !== undefined && error.length > 0) {
-    return (
-      <span
-        className="audio-settings__measure-error"
-        data-testid="measurement-error"
-      >
-        {error}
-      </span>
-    );
-  }
-
   if (measurement === null || measurement === undefined) {
     return (
       <span
@@ -43,9 +30,7 @@ function Measurement({
         data-testid="measure-result"
         data-valid="false"
       >
-        {measurement.error.length > 0
-          ? measurement.error
-          : "Measurement failed"}
+        Measurement failed
       </span>
     );
   }
@@ -68,14 +53,12 @@ function Measurement({
 
 interface MeasureControlProps {
   readonly measurement: ControlAudioMeasurement | null | undefined;
-  readonly error: string | null | undefined;
   readonly busy: boolean;
   readonly onMeasure?: ((source: MeasurementSource) => void) | undefined;
 }
 
 export function MeasureControl({
   measurement,
-  error,
   busy,
   onMeasure,
 }: MeasureControlProps): ReactElement {
@@ -107,7 +90,7 @@ export function MeasureControl({
         {busy ? <Spinner label="Measuring latency" /> : null}
         {busy ? "Working…" : "Measure"}
       </button>
-      <Measurement measurement={measurement} error={error} />
+      <Measurement measurement={measurement} />
     </div>
   );
 }

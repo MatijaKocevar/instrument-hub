@@ -105,13 +105,6 @@
   font-size: 12px;
 }
 
-.pairing__error,
-.pairing-gate__error {
-  margin: 0;
-  color: var(--ih-danger);
-  font-size: 12px;
-}
-
 .pairing__skeleton-qr {
   width: min(228px, 52vw);
   height: auto;

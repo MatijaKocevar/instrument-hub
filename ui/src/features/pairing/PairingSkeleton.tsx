@@ -4,11 +4,7 @@ import { Skeleton } from "../loading";
 import { PairingHeader } from "./PairingHeader";
 import "./pairing.css";
 
-export function PairingSkeleton({
-  error = null,
-}: {
-  readonly error?: string | null;
-}): ReactElement {
+export function PairingSkeleton(): ReactElement {
   return (
     <section
       className="pairing"
@@ -17,12 +13,6 @@ export function PairingSkeleton({
       aria-busy="true"
     >
       <PairingHeader lanEnabled={false} loading />
-
-      {error !== null && error.length > 0 ? (
-        <p className="pairing__error" role="alert" data-testid="pairing-error">
-          {error}
-        </p>
-      ) : null}
 
       <div className="pairing__actions" aria-hidden="true">
         <Skeleton width="10rem" height="2.75rem" radius="0.75rem" />

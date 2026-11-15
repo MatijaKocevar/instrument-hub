@@ -10,7 +10,6 @@ import { SettingsHeader } from "./SettingsHeader";
 export interface SettingsPageProps {
   readonly pairing: ControlPairingState | null;
   readonly token: string | null;
-  readonly pairingError?: string | null;
   readonly pairingBusy?: boolean;
   readonly connection: ConnectionPhase;
   readonly baseUrl: string;
@@ -29,7 +28,6 @@ export interface SettingsPageProps {
 export function SettingsPage({
   pairing,
   token,
-  pairingError = null,
   pairingBusy = false,
   connection,
   baseUrl,
@@ -52,7 +50,6 @@ export function SettingsPage({
       <PairingPanel
         pairing={pairing}
         token={token}
-        error={pairingError}
         busy={pairingBusy}
         loading={pairing === null}
         {...(onToggleLan === undefined ? {} : { onToggleLan })}

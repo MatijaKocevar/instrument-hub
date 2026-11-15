@@ -1,6 +1,5 @@
 import type { ReactElement } from "react";
 
-import { RecoveringBanner } from "./RecoveringBanner";
 import type { GridModel } from "./model";
 import { TrackGridSkeleton } from "./TrackGridSkeleton";
 import { TrackGridTable } from "./TrackGridTable";
@@ -38,10 +37,6 @@ export function GridView({
       data-armed-slot={model.armedSlot}
       data-loading={loading ? "true" : "false"}
     >
-      {model.pluginPage !== null ? (
-        <RecoveringBanner page={model.pluginPage} />
-      ) : null}
-
       {loading ? (
         <TrackGridSkeleton />
       ) : model.tracks.length === 0 ? (

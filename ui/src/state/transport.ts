@@ -1,6 +1,6 @@
 import type { ControlState, ControlTransportPatch } from "../api/client";
 import type { ActionContext } from "./actionContext";
-import { messageOf } from "./errors";
+import { failureToast } from "./errors";
 
 export class TransportActions {
   private transportSequence = 0;
@@ -8,10 +8,16 @@ export class TransportActions {
 
   constructor(
     private readonly context: ActionContext,
-    private readonly disarm: (slot: number | null) => Promise<boolean>,
+    private readonly disarm: (
+      slot: number | null,
+      report?: boolean,
+    ) => Promise<boolean>,
   ) {}
 
-  updateTransport = async (patch: ControlTransportPatch): Promise<boolean> => {
+  updateTransport = async (
+    patch: ControlTransportPatch,
+    report = true,
+  ): Promise<boolean> => {
     const previous = this.snapshot.state;
     const sequence = this.transportSequence + 1;
     this.transportSequence = sequence;
@@ -20,7 +26,6 @@ export class TransportActions {
     if (previous !== null) {
       this.patch({
         state: { ...previous, transport: { ...previous.transport, ...patch } },
-        error: null,
       });
     }
 
@@ -30,7 +35,6 @@ export class TransportActions {
       if (sequence === this.transportSequence && this.snapshot.state !== null) {
         this.patch({
           state: { ...this.snapshot.state, transport },
-          error: null,
         });
       }
 
@@ -38,10 +42,14 @@ export class TransportActions {
     } catch (error) {
       if (sequence === this.transportSequence) {
         this.patch({
-          error: messageOf(error),
           ...(previous === null ? {} : { state: previous }),
         });
       }
+
+      if (report)
+        this.notify(
+          failureToast("Could not change transport", error, "transport"),
+        );
 
       return false;
     } finally {
@@ -50,14 +58,35 @@ export class TransportActions {
   };
 
   panic = async (): Promise<boolean> => {
-    const disarmed = await this.disarm(null);
-    const stopped = await this.updateTransport({
-      playing: false,
-      ppq: 0,
-      positionSamples: 0,
+    const disarmed = await this.disarm(null, false);
+    const stopped = await this.updateTransport(
+      {
+        playing: false,
+        ppq: 0,
+        positionSamples: 0,
+      },
+      false,
+    );
+
+    if (!disarmed || !stopped) {
+      this.notify({
+        ...failureToast(
+          "Panic failed",
+          "The engine did not acknowledge the stop command.",
+          "panic",
+        ),
+        sticky: true,
+      });
+      return false;
+    }
+
+    this.notify({
+      severity: "success",
+      title: "All sound stopped",
+      key: "panic",
     });
 
-    return disarmed && stopped;
+    return true;
   };
 
   preservePending = (state: ControlState): ControlState => {
@@ -67,6 +96,10 @@ export class TransportActions {
       ? { ...state, transport: current.transport }
       : state;
   };
+
+  private notify(input: Parameters<ActionContext["notify"]>[0]): void {
+    this.context.notify(input);
+  }
 
   private get snapshot() {
     return this.context.getSnapshot();

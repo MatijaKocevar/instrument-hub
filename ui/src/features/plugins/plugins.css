@@ -388,21 +388,21 @@
   color: var(--ih-text-bright);
 }
 
-.plugins__error {
+.plugins__unavailable {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--ih-space-2);
-  padding: 6px 8px;
-  border: 1px solid var(--ih-danger);
-  border-left-width: 3px;
-  border-radius: var(--ih-radius-sm);
-  background: var(--ih-danger-soft);
-  color: var(--ih-danger);
-  font-size: 12px;
+  min-height: 4rem;
+  padding: var(--ih-space-2);
+  border: 1px solid var(--ih-border);
+  border-radius: var(--ih-radius);
+  background: var(--ih-panel);
+  color: var(--ih-muted);
+  font-size: 13px;
 }
 
-.plugins__error span {
+.plugins__unavailable span {
   min-width: 0;
   overflow-wrap: anywhere;
 }
