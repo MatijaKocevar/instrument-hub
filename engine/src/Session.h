@@ -335,7 +335,6 @@ namespace ihub
         void unregisterSandboxSlot (plugins::SandboxHost& host);
         plugins::SandboxHost* sandboxForSlot (int slot) const noexcept;
         void closeSandboxEditors (int keepSlot);
-        bool isWineHostedSlot (int slot) const;
 
         std::uint64_t nextSandboxGeneration (int slot);
         std::uint64_t bumpSandboxGeneration (int slot);
