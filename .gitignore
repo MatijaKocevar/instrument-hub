@@ -45,6 +45,7 @@ __pycache__/
 *.log
 
 # Editors and OS
+.playwright-mcp/
 .DS_Store
 Thumbs.db
 .idea/
