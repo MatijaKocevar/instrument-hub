@@ -39,19 +39,20 @@ export function AudioRoute({
         onRetry={() => {
           void store.refresh();
         }}
-      />
-
-      <MidiPanel
-        midi={app.midi}
-        unavailable={app.midiError !== null}
-        busy={app.midiBusy}
-        loading={app.midi === null}
-        onChangeInput={(patch) => {
-          void store.updateMidiInput(patch);
-        }}
-        onRefreshMidi={() => {
-          void store.refreshMidi();
-        }}
+        midiPanel={
+          <MidiPanel
+            midi={app.midi}
+            unavailable={app.midiError !== null}
+            busy={app.midiBusy}
+            loading={app.midi === null}
+            onChangeInput={(patch) => {
+              void store.updateMidiInput(patch);
+            }}
+            onRefreshMidi={() => {
+              void store.refreshMidi();
+            }}
+          />
+        }
       />
     </section>
   );

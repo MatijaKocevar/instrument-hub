@@ -848,3 +848,36 @@
   gap: var(--ih-space-2);
   align-items: stretch;
 }
+
+.audio-settings__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ih-space-1);
+  padding-bottom: var(--ih-space-1);
+  border-bottom: 1px solid var(--ih-border);
+}
+
+.audio-settings__tab {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: var(--ih-radius-sm);
+  padding: 0 14px;
+  background: transparent;
+  color: var(--ih-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.audio-settings__tab:hover {
+  background: var(--ih-panel);
+  color: var(--ih-text);
+}
+
+.audio-settings__tab[aria-selected="true"] {
+  border-color: var(--ih-accent);
+  background: var(--ih-accent-soft);
+  color: var(--ih-accent-bright);
+}

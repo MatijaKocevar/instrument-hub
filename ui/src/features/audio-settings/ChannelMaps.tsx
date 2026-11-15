@@ -79,18 +79,12 @@ export function ChannelMaps({
   onChange,
 }: ChannelMapsProps): ReactElement {
   return (
-    <details className="audio-settings__section" data-testid="channel-maps">
-      <summary className="audio-settings__section-summary">
-        Channels
-        <span className="audio-settings__section-hint">
-          {activeChannels(outputChannels).length} out ·{" "}
-          {activeChannels(inputChannels).length} in
-        </span>
-      </summary>
-
+    <section className="audio-settings__section" data-testid="channel-maps">
       <p className="audio-settings__section-note">
-        Enable only the channels your interface actually uses. Fewer active
-        channels keep the audio callback cheap.
+        {activeChannels(outputChannels).length} out ·{" "}
+        {activeChannels(inputChannels).length} in active. Enable only the
+        channels your interface uses; fewer active channels keep the audio
+        callback cheap.
       </p>
 
       <div className="audio-settings__maps">
@@ -107,6 +101,6 @@ export function ChannelMaps({
           onChange={onChange}
         />
       </div>
-    </details>
+    </section>
   );
 }
