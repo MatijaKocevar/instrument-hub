@@ -86,14 +86,19 @@ def commits_ahead(repo: Path, branch: str, base_branch: str) -> int:
     return int(result.stdout.strip() or "0")
 
 
-def merge_to_main(repo: Path, branch: str, base_branch: str) -> MergeResult:
+def merge_to_main(
+    repo: Path,
+    branch: str,
+    base_branch: str,
+    merge_label: str,
+) -> MergeResult:
     _git(repo, "checkout", base_branch)
 
     if commits_ahead(repo, branch, base_branch) == 0:
         _git(repo, "branch", "-D", branch, check=False)
         return MergeResult(merged=True, commit="")
 
-    message = f"Merge autopilot branch {branch}"
+    message = f"Merge task {merge_label}"
     result = _git(repo, "merge", "--no-ff", "-m", message, branch, check=False)
     if result.returncode != 0:
         _git(repo, "merge", "--abort", check=False)

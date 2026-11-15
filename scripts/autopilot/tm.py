@@ -243,6 +243,28 @@ def task_label(task: dict[str, Any]) -> str:
     return str(task.get("title") or task.get("id") or "untitled")
 
 
+def commit_subject(task: dict[str, Any]) -> str:
+    label = task_label(task)
+    text = label.lower()
+
+    if re.search(r"\b(bug|fix)\b", text):
+        kind = "fix"
+    elif re.search(r"\b(doc|docs|readme)\b", text):
+        kind = "docs"
+    elif re.search(r"\b(refactor|cleanup|clean|remove|rename|move|split)\b", text):
+        kind = "refactor"
+    elif re.search(r"\b(perf|performance|optimize|optimise|faster|speed)\b", text):
+        kind = "perf"
+    elif re.search(r"\b(ci|workflow)\b", text):
+        kind = "ci"
+    elif re.search(r"\bbuild\b", text):
+        kind = "build"
+    else:
+        kind = "feat"
+
+    return f"{kind}: {label}"
+
+
 def task_branch_slug(task: dict[str, Any]) -> str:
     title = str(task.get("title", ""))
     number = _task_number(task)
@@ -260,7 +282,7 @@ def task_branch_slug(task: dict[str, Any]) -> str:
             break
         words.append(word)
     slug = "-".join(words) or slug[:48].rstrip("-") or "task"
-    return f"autopilot/{prefix}-{slug}"
+    return f"task/{prefix}-{slug}"
 
 
 def task_sort_label(task: dict[str, Any]) -> str:

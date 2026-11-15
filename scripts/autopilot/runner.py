@@ -28,9 +28,11 @@ from .session import (
 from .tm import (
     TimeManagerClient,
     TimeManagerError,
+    commit_subject,
     sort_tasks,
     task_branch_slug,
     task_label,
+    task_sort_label,
 )
 
 
@@ -103,7 +105,7 @@ class AutopilotRunner:
 
         self.list_id = self._resolve_list_id(wait=not dry_run)
         log(
-            f"autopilot: repo={self.config.repo} list={self.config.tm.list_name} "
+            f"driver: repo={self.config.repo} list={self.config.tm.list_name} "
             f"model={self.config.model} agent={self.config.agent}"
         )
 
@@ -276,9 +278,14 @@ class AutopilotRunner:
     def _finish_done(self, task: dict[str, Any], branch: str, result: Any) -> None:
         commit = commit_all(
             self.config.repo,
-            f"autopilot: {task_label(task)}",
+            commit_subject(task),
         )
-        merge = merge_to_main(self.config.repo, branch, self.config.base_branch)
+        merge = merge_to_main(
+            self.config.repo,
+            branch,
+            self.config.base_branch,
+            task_sort_label(task),
+        )
         if not merge.merged:
             self._finalize_on_hold(
                 task,
@@ -335,7 +342,7 @@ class AutopilotRunner:
         try:
             commit = commit_all(
                 self.config.repo,
-                f"wip autopilot: {task_label(task)}",
+                f"chore: checkpoint {task_label(task)}",
             )
             return commit or ""
         except GitError as error:
