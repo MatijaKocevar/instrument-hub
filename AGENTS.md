@@ -138,7 +138,9 @@ contradict them.
   under `~/.ssh`, `~/.config`, or `/etc`. The autopilot may read only the
   `time-manager` MCP URL and token from the OpenCode config; never print,
   copy or store that token elsewhere.
-- Never `git push`, never create remotes, never force-push.
+- Never push, create remotes, force-push, tag or publish a release unless the
+  human explicitly asks for it in the current task. Do not do any of these on
+  your own initiative.
 - Never delete a directory you did not create in this run.
 - If a task needs a new dependency, prefer a header-only or vendored one.
   Ask the human before adding a system dependency.
