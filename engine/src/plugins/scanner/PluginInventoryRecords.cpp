@@ -24,10 +24,6 @@ namespace ihub::plugins::inventory_detail
                    description.name.toStdString () + "|" + std::to_string (uid);
         }
 
-        bool canHostEditor (const std::string& path)
-        {
-            return !juce::String (path).containsIgnoreCase ("vstbridge");
-        }
     }
 
     std::vector<PluginInfo> toPluginInfos (const std::vector<juce::PluginDescription>& descriptions)
@@ -50,20 +46,12 @@ namespace ihub::plugins::inventory_detail
                 continue;
 
             const auto identity = identityFor (description);
-            const auto existing = std::find (identities.begin (), identities.end (), identity);
 
-            if (existing == identities.end ())
-            {
-                identities.push_back (identity);
-                result.push_back (std::move (info));
+            if (std::find (identities.begin (), identities.end (), identity) != identities.end ())
                 continue;
-            }
 
-            const auto index =
-                static_cast<std::size_t> (std::distance (identities.begin (), existing));
-
-            if (!canHostEditor (result[index].path) && canHostEditor (info.path))
-                result[index] = std::move (info);
+            identities.push_back (identity);
+            result.push_back (std::move (info));
         }
 
         return result;
