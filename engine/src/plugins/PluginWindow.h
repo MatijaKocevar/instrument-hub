@@ -13,61 +13,61 @@ class PluginEditorWindow;
 class WindowCallbackToken;
 
 class PluginWindow {
- public:
-  PluginWindow();
-  ~PluginWindow();
+public:
+    PluginWindow();
+    ~PluginWindow();
 
-  bool open(juce::AudioProcessor& processor, const juce::String& title = {},
-            juce::Component* owner = nullptr, juce::String* error = nullptr);
+    bool open(juce::AudioProcessor& processor, const juce::String& title = {},
+              juce::Component* owner = nullptr, juce::String* error = nullptr);
 
-  bool open(PluginInstrument& instrument, const juce::String& title = {},
-            juce::Component* owner = nullptr, juce::String* error = nullptr);
+    bool open(PluginInstrument& instrument, const juce::String& title = {},
+              juce::Component* owner = nullptr, juce::String* error = nullptr);
 
-  const juce::String& getLastError() const noexcept { return lastError; }
+    const juce::String& getLastError() const noexcept { return lastError; }
 
-  void setHideOnClose(bool shouldHide) noexcept { hideOnClose = shouldHide; }
+    void setHideOnClose(bool shouldHide) noexcept { hideOnClose = shouldHide; }
 
-  void close();
+    void close();
 
-  bool isOpen() const noexcept { return openState; }
+    bool isOpen() const noexcept { return openState; }
 
-  void closeForUnload();
+    void closeForUnload();
 
-  juce::AudioProcessorEditor* getEditor() const noexcept;
+    juce::AudioProcessorEditor* getEditor() const noexcept;
 
-  juce::Component* getWindowComponent() const noexcept;
+    juce::Component* getWindowComponent() const noexcept;
 
-  juce::AudioProcessor* getProcessor() const noexcept { return processor; }
+    juce::AudioProcessor* getProcessor() const noexcept { return processor; }
 
-  std::function<void()> onClose;
+    std::function<void()> onClose;
 
-  std::function<void()> onBeforeClose;
+    std::function<void()> onBeforeClose;
 
-  static int getOpenWindowCount() noexcept;
+    static int getOpenWindowCount() noexcept;
 
-  static int getLiveInstanceCount() noexcept;
+    static int getLiveInstanceCount() noexcept;
 
- private:
-  bool showEditor(juce::AudioProcessor& processor, const juce::String& title,
-                  juce::Component* owner);
+private:
+    bool showEditor(juce::AudioProcessor& processor, const juce::String& title,
+                    juce::Component* owner);
 
-  void destroyWindow();
+    void destroyWindow();
 
-  void clearInstrumentCallback() noexcept;
+    void clearInstrumentCallback() noexcept;
 
-  inline static std::atomic<int> openWindowCount{0};
+    inline static std::atomic<int> openWindowCount{0};
 
-  std::unique_ptr<PluginEditorWindow> window;
-  bool hideOnClose = false;
-  bool openState = false;
-  bool hasLastPosition = false;
-  juce::Point<int> lastPosition;
-  juce::AudioProcessor* processor = nullptr;
-  PluginInstrument* instrument = nullptr;
-  mutable juce::String lastError;
-  std::shared_ptr<WindowCallbackToken> lifetime;
+    std::unique_ptr<PluginEditorWindow> window;
+    bool hideOnClose = false;
+    bool openState = false;
+    bool hasLastPosition = false;
+    juce::Point<int> lastPosition;
+    juce::AudioProcessor* processor = nullptr;
+    PluginInstrument* instrument = nullptr;
+    mutable juce::String lastError;
+    std::shared_ptr<WindowCallbackToken> lifetime;
 
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginWindow)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginWindow)
 };
 
 }  // namespace ihub::plugins

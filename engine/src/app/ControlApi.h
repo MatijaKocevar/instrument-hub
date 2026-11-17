@@ -37,38 +37,36 @@ class ProjectLifecycle;
 class MidiDeviceWatcher;
 
 class ControlApi {
- public:
-  ControlApi();
-  ~ControlApi();
+public:
+    ControlApi();
+    ~ControlApi();
 
-  bool start(const juce::String& commandLine, ihub::Session* session,
-             bool required, const juce::File& projectFile,
-             std::function<void()> midiRestore = {},
-             ihub::settings::SettingsStore* settings = nullptr,
-             const Api::AudioRestoreState& audioRestore = {},
-             bool persistProjectPath = true,
-             std::function<void(const juce::File&)> projectOpened = {});
+    bool start(const juce::String& commandLine, ihub::Session* session, bool required,
+               const juce::File& projectFile, std::function<void()> midiRestore = {},
+               ihub::settings::SettingsStore* settings = nullptr,
+               const Api::AudioRestoreState& audioRestore = {}, bool persistProjectPath = true,
+               std::function<void(const juce::File&)> projectOpened = {});
 
-  void stopServer();
-  void detachMidi();
-  void resetServer();
-  void resetAudio();
-  void flushProject();
+    void stopServer();
+    void detachMidi();
+    void resetServer();
+    void resetAudio();
+    void flushProject();
 
-  Api::StateStore* getState() noexcept { return apiState.get(); }
-  Api::MidiBridge* getMidiBridge() noexcept { return midiBridge.get(); }
+    Api::StateStore* getState() noexcept { return apiState.get(); }
+    Api::MidiBridge* getMidiBridge() noexcept { return midiBridge.get(); }
 
- private:
-  void resetProject();
+private:
+    void resetProject();
 
-  std::unique_ptr<ihub::plugins::PluginInventory> pluginInventory;
-  std::unique_ptr<Api::StateStore> apiState;
-  std::unique_ptr<Api::Server> apiServer;
-  std::unique_ptr<Api::MidiBridge> midiBridge;
-  std::unique_ptr<MidiDeviceWatcher> midiDeviceWatcher;
-  std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
-  std::unique_ptr<ProjectDialog> projectDialog;
-  std::unique_ptr<ProjectLifecycle> projectLifecycle;
+    std::unique_ptr<ihub::plugins::PluginInventory> pluginInventory;
+    std::unique_ptr<Api::StateStore> apiState;
+    std::unique_ptr<Api::Server> apiServer;
+    std::unique_ptr<Api::MidiBridge> midiBridge;
+    std::unique_ptr<MidiDeviceWatcher> midiDeviceWatcher;
+    std::unique_ptr<AudioEngine::AudioSettingsBridge> audioSettings;
+    std::unique_ptr<ProjectDialog> projectDialog;
+    std::unique_ptr<ProjectLifecycle> projectLifecycle;
 };
 
 }  // namespace ihub::app

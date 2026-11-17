@@ -13,51 +13,49 @@ namespace {
 int terminationPipe[2] = {-1, -1};
 
 void handleTerminationSignal(int) noexcept {
-  if (terminationPipe[1] < 0) return;
+    if (terminationPipe[1] < 0) return;
 
-  const char byte = 1;
-  const auto written = ::write(terminationPipe[1], &byte, 1);
-  (void)written;
+    const char byte = 1;
+    const auto written = ::write(terminationPipe[1], &byte, 1);
+    (void)written;
 }
 
 void monitorTerminationSignals() {
-  pollfd descriptor{};
-  descriptor.fd = terminationPipe[0];
-  descriptor.events = POLLIN;
+    pollfd descriptor{};
+    descriptor.fd = terminationPipe[0];
+    descriptor.events = POLLIN;
 
-  if (::poll(&descriptor, 1, -1) <= 0) return;
+    if (::poll(&descriptor, 1, -1) <= 0) return;
 
-  char buffer[16];
+    char buffer[16];
 
-  while (::read(terminationPipe[0], buffer, sizeof(buffer)) > 0) {
-  }
+    while (::read(terminationPipe[0], buffer, sizeof(buffer)) > 0) {
+    }
 
-  juce::MessageManager::callAsync([] {
-    if (auto* app = juce::JUCEApplicationBase::getInstance())
-      app->systemRequestedQuit();
-  });
+    juce::MessageManager::callAsync([] {
+        if (auto* app = juce::JUCEApplicationBase::getInstance()) app->systemRequestedQuit();
+    });
 }
 }  // namespace
 
 namespace ihub::app {
 
 bool installTerminationSignalHandler() noexcept {
-  if (terminationPipe[0] >= 0) return true;
+    if (terminationPipe[0] >= 0) return true;
 
-  if (::pipe2(terminationPipe, O_CLOEXEC | O_NONBLOCK) != 0) return false;
+    if (::pipe2(terminationPipe, O_CLOEXEC | O_NONBLOCK) != 0) return false;
 
-  struct sigaction action{};
-  action.sa_handler = handleTerminationSignal;
-  sigemptyset(&action.sa_mask);
-  action.sa_flags = SA_RESTART;
+    struct sigaction action{};
+    action.sa_handler = handleTerminationSignal;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_RESTART;
 
-  if (::sigaction(SIGTERM, &action, nullptr) != 0 ||
-      ::sigaction(SIGINT, &action, nullptr) != 0) {
-    return false;
-  }
+    if (::sigaction(SIGTERM, &action, nullptr) != 0 || ::sigaction(SIGINT, &action, nullptr) != 0) {
+        return false;
+    }
 
-  std::thread(monitorTerminationSignals).detach();
-  return true;
+    std::thread(monitorTerminationSignals).detach();
+    return true;
 }
 
 }  // namespace ihub::app

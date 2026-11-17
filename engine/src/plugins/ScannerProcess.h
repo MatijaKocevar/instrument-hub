@@ -15,41 +15,39 @@ inline constexpr const char* defaultFormat = "VST3";
 }  // namespace scanner_cli
 
 struct ScanResult {
-  juce::File file;
-  bool succeeded = false;
-  bool launched = false;
-  bool timedOut = false;
-  bool crashed = false;
-  int exitCode = 0;
-  double elapsedMs = 0.0;
-  juce::String error;
-  juce::String output;
-  std::vector<juce::PluginDescription> plugins;
+    juce::File file;
+    bool succeeded = false;
+    bool launched = false;
+    bool timedOut = false;
+    bool crashed = false;
+    int exitCode = 0;
+    double elapsedMs = 0.0;
+    juce::String error;
+    juce::String output;
+    std::vector<juce::PluginDescription> plugins;
 };
 
 struct ScannerProcessOptions {
-  juce::File helperExecutable;
+    juce::File helperExecutable;
 
-  int timeoutMs = 20000;
+    int timeoutMs = 20000;
 
-  juce::String formatName{scanner_cli::defaultFormat};
+    juce::String formatName{scanner_cli::defaultFormat};
 };
 
 class ScannerProcess {
- public:
-  explicit ScannerProcess(ScannerProcessOptions options = {});
+public:
+    explicit ScannerProcess(ScannerProcessOptions options = {});
 
-  ScanResult scanFile(const juce::File& pluginBundle);
+    ScanResult scanFile(const juce::File& pluginBundle);
 
-  const ScannerProcessOptions& getOptions() const noexcept { return options; }
+    const ScannerProcessOptions& getOptions() const noexcept { return options; }
 
-  static juce::File findHelperExecutable();
+    static juce::File findHelperExecutable();
 
-  juce::File getHelperExecutable() const noexcept {
-    return options.helperExecutable;
-  }
+    juce::File getHelperExecutable() const noexcept { return options.helperExecutable; }
 
- private:
-  ScannerProcessOptions options;
+private:
+    ScannerProcessOptions options;
 };
 }  // namespace ihub::plugins

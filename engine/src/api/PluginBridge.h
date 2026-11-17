@@ -8,7 +8,6 @@ class PluginInventory;
 
 namespace Api {
 
-void attachPluginInventory(Server& server,
-                           ihub::plugins::PluginInventory& inventory);
+void attachPluginInventory(Server& server, ihub::plugins::PluginInventory& inventory);
 
 }

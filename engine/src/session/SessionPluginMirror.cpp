@@ -10,180 +10,175 @@
 
 namespace ihub {
 bool Session::ensurePluginMirror(int slot, std::string& error) {
-  error.clear();
+    error.clear();
 
-  if (pluginState.getInstrument(slot) != nullptr) return true;
+    if (pluginState.getInstrument(slot) != nullptr) return true;
 
-  auto open = [this, slot](std::string& openError) {
-    try {
-      return ensurePluginMirrorNow(slot, openError);
-    } catch (const std::exception& exception) {
-      openError = exception.what();
-      return false;
-    } catch (...) {
-      openError = "the plugin editor could not be prepared";
-      return false;
+    auto open = [this, slot](std::string& openError) {
+        try {
+            return ensurePluginMirrorNow(slot, openError);
+        } catch (const std::exception& exception) {
+            openError = exception.what();
+            return false;
+        } catch (...) {
+            openError = "the plugin editor could not be prepared";
+            return false;
+        }
+    };
+
+    auto* manager = juce::MessageManager::getInstanceWithoutCreating();
+
+    if (manager != nullptr && !manager->isThisTheMessageThread()) {
+        bool opened = false;
+        std::string threadError;
+
+        std::thread worker([&open, &opened, &threadError] { opened = open(threadError); });
+        worker.join();
+
+        error = std::move(threadError);
+        return opened;
     }
-  };
 
-  auto* manager = juce::MessageManager::getInstanceWithoutCreating();
-
-  if (manager != nullptr && !manager->isThisTheMessageThread()) {
-    bool opened = false;
-    std::string threadError;
-
-    std::thread worker(
-        [&open, &opened, &threadError] { opened = open(threadError); });
-    worker.join();
-
-    error = std::move(threadError);
-    return opened;
-  }
-
-  return open(error);
+    return open(error);
 }
 
 bool Session::ensurePluginMirrorNow(int slot, std::string& error) {
-  error.clear();
+    error.clear();
 
-  if (pluginState.getInstrument(slot) != nullptr) return true;
+    if (pluginState.getInstrument(slot) != nullptr) return true;
 
-  auto* sandbox = getSandboxSlotControl(slot);
+    auto* sandbox = getSandboxSlotControl(slot);
 
-  if (sandbox == nullptr) {
-    error = "the patch is not hosted by the plugin sandbox";
-    return false;
-  }
-
-  if (sandbox->isFailed()) {
-    error =
-        "the plugin host failed: " + sandbox->getFailureReason().toStdString();
-    return false;
-  }
-
-  session::PluginStateIdentity identity;
-
-  if (!pluginIdentityForSlot(slot, identity)) {
-    error = "patch slot is out of range or is not a plugin";
-    return false;
-  }
-
-  if (identity.pluginPath.containsIgnoreCase("vstbridge")) {
-    error =
-        "the editor is unavailable for Wine-hosted plugins: the vstbridge host "
-        "aborts "
-        "the engine";
-    return false;
-  }
-
-  if (pluginFormats == nullptr) {
-    error = "the plugin formats are not available";
-    return false;
-  }
-
-  auto mirror = std::make_shared<plugins::PluginInstrument>();
-  juce::String loadError;
-
-  if (!mirror->loadFromFile(*pluginFormats, juce::File(identity.pluginPath),
-                            sampleRate, maximumBlockSize, loadError)) {
-    error = loadError.toStdString();
-    return false;
-  }
-
-  auto state = sandbox->getStateInformation();
-
-  if (state.getSize() == 0) state = pluginState.readState(slot, identity);
-
-  if (state.getSize() > 0) (void)mirror->setStateInformation(state);
-
-  mirror->setParameterChangedCallback(
-      [this, slot](const juce::String& id, float value) {
-        syncMirrorParameter(slot, id, value);
-      });
-
-  mirror->setStateChangedCallback([this, slot] { syncMirrorState(slot); });
-
-  plugins::PluginInstrument* stored = nullptr;
-
-  {
-    const std::lock_guard<std::mutex> lock(mirrorMutex);
-
-    if (slot < 0 || slot >= static_cast<int>(pluginMirrors.size())) {
-      error = "patch slot is out of range";
-      return false;
+    if (sandbox == nullptr) {
+        error = "the patch is not hosted by the plugin sandbox";
+        return false;
     }
 
-    auto& existing = pluginMirrors[static_cast<std::size_t>(slot)];
+    if (sandbox->isFailed()) {
+        error = "the plugin host failed: " + sandbox->getFailureReason().toStdString();
+        return false;
+    }
 
-    if (existing == nullptr) existing = std::move(mirror);
+    session::PluginStateIdentity identity;
 
-    stored = existing.get();
-  }
+    if (!pluginIdentityForSlot(slot, identity)) {
+        error = "patch slot is out of range or is not a plugin";
+        return false;
+    }
 
-  pluginState.registerInstrument(slot, *stored);
+    if (identity.pluginPath.containsIgnoreCase("vstbridge")) {
+        error =
+            "the editor is unavailable for Wine-hosted plugins: the vstbridge "
+            "host "
+            "aborts "
+            "the engine";
+        return false;
+    }
 
-  if (editorHost != nullptr) editorHost->registerInstrument(slot, stored);
+    if (pluginFormats == nullptr) {
+        error = "the plugin formats are not available";
+        return false;
+    }
 
-  return true;
+    auto mirror = std::make_shared<plugins::PluginInstrument>();
+    juce::String loadError;
+
+    if (!mirror->loadFromFile(*pluginFormats, juce::File(identity.pluginPath), sampleRate,
+                              maximumBlockSize, loadError)) {
+        error = loadError.toStdString();
+        return false;
+    }
+
+    auto state = sandbox->getStateInformation();
+
+    if (state.getSize() == 0) state = pluginState.readState(slot, identity);
+
+    if (state.getSize() > 0) (void)mirror->setStateInformation(state);
+
+    mirror->setParameterChangedCallback([this, slot](const juce::String& id, float value) {
+        syncMirrorParameter(slot, id, value);
+    });
+
+    mirror->setStateChangedCallback([this, slot] { syncMirrorState(slot); });
+
+    plugins::PluginInstrument* stored = nullptr;
+
+    {
+        const std::lock_guard<std::mutex> lock(mirrorMutex);
+
+        if (slot < 0 || slot >= static_cast<int>(pluginMirrors.size())) {
+            error = "patch slot is out of range";
+            return false;
+        }
+
+        auto& existing = pluginMirrors[static_cast<std::size_t>(slot)];
+
+        if (existing == nullptr) existing = std::move(mirror);
+
+        stored = existing.get();
+    }
+
+    pluginState.registerInstrument(slot, *stored);
+
+    if (editorHost != nullptr) editorHost->registerInstrument(slot, stored);
+
+    return true;
 }
 
 void Session::releasePluginMirror(int slot) {
-  std::shared_ptr<plugins::PluginInstrument> mirror;
+    std::shared_ptr<plugins::PluginInstrument> mirror;
 
-  {
-    const std::lock_guard<std::mutex> lock(mirrorMutex);
+    {
+        const std::lock_guard<std::mutex> lock(mirrorMutex);
 
-    if (slot < 0 || slot >= static_cast<int>(pluginMirrors.size())) return;
+        if (slot < 0 || slot >= static_cast<int>(pluginMirrors.size())) return;
 
-    mirror = std::move(pluginMirrors[static_cast<std::size_t>(slot)]);
-  }
+        mirror = std::move(pluginMirrors[static_cast<std::size_t>(slot)]);
+    }
 
-  if (mirror == nullptr) return;
+    if (mirror == nullptr) return;
 
-  mirror->setParameterChangedCallback(nullptr);
-  mirror->setStateChangedCallback(nullptr);
+    mirror->setParameterChangedCallback(nullptr);
+    mirror->setStateChangedCallback(nullptr);
 
-  if (editorHost != nullptr) {
-    std::string error;
-    (void)editorHost->close(slot, error);
-  }
+    if (editorHost != nullptr) {
+        std::string error;
+        (void)editorHost->close(slot, error);
+    }
 
-  pluginState.unregisterInstrument(*mirror);
+    pluginState.unregisterInstrument(*mirror);
 }
 
 void Session::releaseAllPluginMirrors() {
-  for (int slot = 0; slot < defaultLogicalSlots; ++slot)
-    releasePluginMirror(slot);
+    for (int slot = 0; slot < defaultLogicalSlots; ++slot) releasePluginMirror(slot);
 }
 
-void Session::syncMirrorParameter(int slot, const juce::String& id,
-                                  float normalisedValue) {
-  if (mirrorSync != nullptr)
-    mirrorSync->parameterChanged(slot, id, normalisedValue);
+void Session::syncMirrorParameter(int slot, const juce::String& id, float normalisedValue) {
+    if (mirrorSync != nullptr) mirrorSync->parameterChanged(slot, id, normalisedValue);
 }
 
 void Session::syncMirrorState(int slot) {
-  if (mirrorSync == nullptr) return;
+    if (mirrorSync == nullptr) return;
 
-  auto state = copyMirrorState(slot);
+    auto state = copyMirrorState(slot);
 
-  if (state.getSize() > 0) mirrorSync->stateChanged(slot, std::move(state));
+    if (state.getSize() > 0) mirrorSync->stateChanged(slot, std::move(state));
 }
 
 juce::MemoryBlock Session::copyMirrorState(int slot) const {
-  std::shared_ptr<plugins::PluginInstrument> mirror;
+    std::shared_ptr<plugins::PluginInstrument> mirror;
 
-  {
-    const std::lock_guard<std::mutex> lock(mirrorMutex);
+    {
+        const std::lock_guard<std::mutex> lock(mirrorMutex);
 
-    if (slot < 0 || slot >= static_cast<int>(pluginMirrors.size()) ||
-        pluginMirrors[static_cast<std::size_t>(slot)] == nullptr)
-      return {};
+        if (slot < 0 || slot >= static_cast<int>(pluginMirrors.size()) ||
+            pluginMirrors[static_cast<std::size_t>(slot)] == nullptr)
+            return {};
 
-    mirror = pluginMirrors[static_cast<std::size_t>(slot)];
-  }
+        mirror = pluginMirrors[static_cast<std::size_t>(slot)];
+    }
 
-  return mirror->getStateInformation();
+    return mirror->getStateInformation();
 }
 
 }  // namespace ihub

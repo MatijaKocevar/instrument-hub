@@ -17,8 +17,7 @@ juce::File pluginStateDirectoryFor(const std::filesystem::path& setFile);
 
 void applySourceKind(const juce::String& kind, ihub::SessionSlotConfig& slot);
 
-void loadPersistedSources(ihub::SessionConfig& config,
-                          const std::filesystem::path& setFile);
+void loadPersistedSources(ihub::SessionConfig& config, const std::filesystem::path& setFile);
 
 void persistSourceAssignment(const std::filesystem::path& setFile, int slot,
                              const ihub::SessionSlotConfig& source);

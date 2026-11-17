@@ -7,36 +7,34 @@ namespace AudioEngine {
 FxRack::FxRack(juce::AudioPluginFormatManager* formatManagerToUse)
     : formatManager(formatManagerToUse) {}
 
-void FxRack::rebuild(FxChain& chain, double sampleRate, int maximumBlockSize,
-                     int numChannels) {
-  juce::ignoreUnused(sampleRate, maximumBlockSize, numChannels);
+void FxRack::rebuild(FxChain& chain, double sampleRate, int maximumBlockSize, int numChannels) {
+    juce::ignoreUnused(sampleRate, maximumBlockSize, numChannels);
 
-  chain.clear();
+    chain.clear();
 
-  for (auto& insert : inserts)
-    if (insert.effect != nullptr) chain.add(insert.effect.get());
+    for (auto& insert : inserts)
+        if (insert.effect != nullptr) chain.add(insert.effect.get());
 
-  chain.refreshLatency();
+    chain.refreshLatency();
 }
 
 void FxRack::setTransport(const FxTransport& newTransport) noexcept {
-  transport = newTransport;
+    transport = newTransport;
 
-  for (auto& insert : inserts)
-    if (insert.effect != nullptr) applyTransportTo(*insert.effect);
+    for (auto& insert : inserts)
+        if (insert.effect != nullptr) applyTransportTo(*insert.effect);
 }
 
 void FxRack::applyTransportTo(InsertEffect& effect) const {
-  if (effect.getType() != FxInsertType::delay) return;
+    if (effect.getType() != FxInsertType::delay) return;
 
-  if (auto* delay =
-          static_cast<ihub::dsp::Delay*>(effect.getWrappedProcessor())) {
-    ihub::dsp::DelayTransport delayTransport;
-    delayTransport.playing = transport.playing;
-    delayTransport.bpm = transport.bpm;
-    delayTransport.ppq = transport.ppq;
-    delay->setTransport(delayTransport);
-  }
+    if (auto* delay = static_cast<ihub::dsp::Delay*>(effect.getWrappedProcessor())) {
+        ihub::dsp::DelayTransport delayTransport;
+        delayTransport.playing = transport.playing;
+        delayTransport.bpm = transport.bpm;
+        delayTransport.ppq = transport.ppq;
+        delay->setTransport(delayTransport);
+    }
 }
 
 }  // namespace AudioEngine

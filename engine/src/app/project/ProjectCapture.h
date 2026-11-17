@@ -17,8 +17,7 @@ class Session;
 namespace ihub::app {
 
 bool captureProject(ihub::Session& session, const Api::StateStore& state,
-                    const project::SetFile& base,
-                    const std::vector<int>& touchedSlots,
+                    const project::SetFile& base, const std::vector<int>& touchedSlots,
                     project::SetFile& destination, juce::String& error);
 
 }

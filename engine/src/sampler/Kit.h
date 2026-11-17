@@ -28,67 +28,63 @@ inline constexpr std::size_t maximumKitSamplePathBytes = 4096;
 inline constexpr double maximumTuneSemitones = 48.0;
 
 struct KitSampleRef {
-  std::string path;
+    std::string path;
 
-  float gain = 1.0f;
+    float gain = 1.0f;
 
-  float pan = 0.0f;
+    float pan = 0.0f;
 
-  double tuneSemitones = 0.0;
+    double tuneSemitones = 0.0;
 
-  double playbackRatio() const noexcept {
-    return std::pow(2.0, tuneSemitones / 12.0);
-  }
+    double playbackRatio() const noexcept { return std::pow(2.0, tuneSemitones / 12.0); }
 
-  bool operator==(const KitSampleRef&) const = default;
+    bool operator==(const KitSampleRef&) const = default;
 };
 
 struct VelocityLayer {
-  int minVelocity = minimumMidiVelocity;
-  int maxVelocity = maximumMidiVelocity;
+    int minVelocity = minimumMidiVelocity;
+    int maxVelocity = maximumMidiVelocity;
 
-  std::vector<KitSampleRef> roundRobin;
+    std::vector<KitSampleRef> roundRobin;
 
-  bool contains(int velocity) const noexcept {
-    return velocity >= minVelocity && velocity <= maxVelocity;
-  }
+    bool contains(int velocity) const noexcept {
+        return velocity >= minVelocity && velocity <= maxVelocity;
+    }
 
-  bool operator==(const VelocityLayer&) const = default;
+    bool operator==(const VelocityLayer&) const = default;
 };
 
 struct KitPad {
-  int note = 36;
-  std::string name;
+    int note = 36;
+    std::string name;
 
-  float gain = 1.0f;
+    float gain = 1.0f;
 
-  float pan = 0.0f;
+    float pan = 0.0f;
 
-  double tuneSemitones = 0.0;
+    double tuneSemitones = 0.0;
 
-  std::vector<VelocityLayer> layers;
+    std::vector<VelocityLayer> layers;
 
-  const VelocityLayer* layerForVelocity(int velocity) const noexcept;
+    const VelocityLayer* layerForVelocity(int velocity) const noexcept;
 
-  double playbackRatio() const noexcept {
-    return std::pow(2.0, tuneSemitones / 12.0);
-  }
+    double playbackRatio() const noexcept { return std::pow(2.0, tuneSemitones / 12.0); }
 
-  bool operator==(const KitPad&) const = default;
+    bool operator==(const KitPad&) const = default;
 };
 
 struct Kit {
-  static constexpr int currentVersion = kitSchemaVersion;
+    static constexpr int currentVersion = kitSchemaVersion;
 
-  int schemaVersion = currentVersion;
-  std::string name;
-  std::vector<KitPad> pads;
+    int schemaVersion = currentVersion;
+    std::string name;
+    std::vector<KitPad> pads;
 
-  bool operator==(const Kit&) const = default;
+    bool operator==(const Kit&) const = default;
 
-  const KitPad* findPad(int note) const noexcept;
+    const KitPad* findPad(int note) const noexcept;
 
-  bool validate(juce::String& error) const;
+    bool validate(juce::String& error) const;
 };
 
 bool isSafeSamplePath(std::string_view path) noexcept;

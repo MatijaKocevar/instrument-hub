@@ -9,8 +9,7 @@
 #include "session/MirrorSync.h"
 #include "session/SlotSources.h"
 
-#if defined(JUCE_MODULE_AVAILABLE_juce_gui_basics) && \
-    JUCE_MODULE_AVAILABLE_juce_gui_basics
+#if defined(JUCE_MODULE_AVAILABLE_juce_gui_basics) && JUCE_MODULE_AVAILABLE_juce_gui_basics
 #include "plugins/PluginWindow.h"
 #endif
 
@@ -23,422 +22,398 @@ namespace {
 constexpr float initToneAmplitude = 0.12f;
 }
 
-bool Session::build(const SessionConfig& newConfig, juce::String& error,
-                    bool keepDeviceOpen) {
-  error.clear();
+bool Session::build(const SessionConfig& newConfig, juce::String& error, bool keepDeviceOpen) {
+    error.clear();
 
-  const bool reuseDevice = keepDeviceOpen && devices.isOpen();
-  AudioEngine::DeviceSetup deviceSetup;
+    const bool reuseDevice = keepDeviceOpen && devices.isOpen();
+    AudioEngine::DeviceSetup deviceSetup;
 
-  if (reuseDevice) {
-    deviceSetup = devices.getManager().getCurrentSetup();
-    devices.setCallback(nullptr);
-  } else {
-    closeDevice();
-  }
+    if (reuseDevice) {
+        deviceSetup = devices.getManager().getCurrentSetup();
+        devices.setCallback(nullptr);
+    } else {
+        closeDevice();
+    }
 
-  prepared = false;
-  transportControl.reset();
+    prepared = false;
+    transportControl.reset();
 
-  if (editorHost != nullptr) editorHost->closeAll();
+    if (editorHost != nullptr) editorHost->closeAll();
 
-  closeSandboxEditors(-1);
+    closeSandboxEditors(-1);
 
-  if (mirrorSync != nullptr) mirrorSync->clear();
+    if (mirrorSync != nullptr) mirrorSync->clear();
 
-  releaseAllPluginMirrors();
+    releaseAllPluginMirrors();
 
-  cancelPendingLoads();
-  warmPool.shutdown();
-  resetPageHost();
-  shuttingDown.store(false, std::memory_order_release);
-  loadAbort = std::make_shared<std::atomic<bool>>(false);
-  switcher.reset();
-  engine.reset();
-  fxChain.reset();
-  warmPool.clearVoices();
-  pluginFormats.reset();
+    cancelPendingLoads();
+    warmPool.shutdown();
+    resetPageHost();
+    shuttingDown.store(false, std::memory_order_release);
+    loadAbort = std::make_shared<std::atomic<bool>>(false);
+    switcher.reset();
+    engine.reset();
+    fxChain.reset();
+    warmPool.clearVoices();
+    pluginFormats.reset();
 
-  {
-    const juce::String overrideValue(juce::SystemStats::getEnvironmentVariable(
-        "IHUB_SHARED_PLUGIN_HOST", {}));
-    const bool requested = overrideValue.isEmpty() ? newConfig.sharedPluginHost
-                                                   : overrideValue != "0";
-    sharedPluginHostEnabled = requested;
-  }
+    {
+        const juce::String overrideValue(
+            juce::SystemStats::getEnvironmentVariable("IHUB_SHARED_PLUGIN_HOST", {}));
+        const bool requested =
+            overrideValue.isEmpty() ? newConfig.sharedPluginHost : overrideValue != "0";
+        sharedPluginHostEnabled = requested;
+    }
 
-  {
-    const std::lock_guard<std::mutex> lock(pageSlotHandleMutex);
-    pageSlotHandles.assign(defaultLogicalSlots, nullptr);
-  }
+    {
+        const std::lock_guard<std::mutex> lock(pageSlotHandleMutex);
+        pageSlotHandles.assign(defaultLogicalSlots, nullptr);
+    }
 
-  {
-    const std::lock_guard<std::mutex> lock(slotErrorMutex);
-    slotErrors.assign(defaultLogicalSlots, {});
-  }
+    {
+        const std::lock_guard<std::mutex> lock(slotErrorMutex);
+        slotErrors.assign(defaultLogicalSlots, {});
+    }
 
-  {
-    const std::lock_guard<std::mutex> lock(sandboxMutex);
-    sandboxGenerations.assign(defaultLogicalSlots, 0);
-    sandboxGenerationCounter = 0;
-  }
+    {
+        const std::lock_guard<std::mutex> lock(sandboxMutex);
+        sandboxGenerations.assign(defaultLogicalSlots, 0);
+        sandboxGenerationCounter = 0;
+    }
 
-  pluginReloadRevisions.assign(defaultLogicalSlots, 0);
+    pluginReloadRevisions.assign(defaultLogicalSlots, 0);
 
-  config = newConfig;
+    config = newConfig;
 
-  if (reuseDevice) {
-    if (deviceSetup.sampleRate > 0.0)
-      config.device.sampleRate = deviceSetup.sampleRate;
+    if (reuseDevice) {
+        if (deviceSetup.sampleRate > 0.0) config.device.sampleRate = deviceSetup.sampleRate;
 
-    if (deviceSetup.bufferSize > 0)
-      config.device.bufferSize = deviceSetup.bufferSize;
+        if (deviceSetup.bufferSize > 0) config.device.bufferSize = deviceSetup.bufferSize;
 
-    if (deviceSetup.numOutputChannels > 0)
-      config.device.numOutputChannels = deviceSetup.numOutputChannels;
+        if (deviceSetup.numOutputChannels > 0)
+            config.device.numOutputChannels = deviceSetup.numOutputChannels;
 
-    if (deviceSetup.numInputChannels > 0)
-      config.device.numInputChannels = deviceSetup.numInputChannels;
-  }
+        if (deviceSetup.numInputChannels > 0)
+            config.device.numInputChannels = deviceSetup.numInputChannels;
+    }
 
-  if (config.slots.empty()) config.slots = makeDefaultSet();
+    if (config.slots.empty()) config.slots = makeDefaultSet();
 
-  if (config.warmSlots.empty())
-    for (int slot = 0; slot < static_cast<int>(config.slots.size()); ++slot)
-      config.warmSlots.push_back(slot);
+    if (config.warmSlots.empty())
+        for (int slot = 0; slot < static_cast<int>(config.slots.size()); ++slot)
+            config.warmSlots.push_back(slot);
 
-  if (config.device.sampleRate <= 0.0) config.device.sampleRate = 48000.0;
+    if (config.device.sampleRate <= 0.0) config.device.sampleRate = 48000.0;
 
-  if (config.device.bufferSize <= 0) config.device.bufferSize = 128;
+    if (config.device.bufferSize <= 0) config.device.bufferSize = 128;
 
-  if (config.device.numOutputChannels <= 0) config.device.numOutputChannels = 2;
+    if (config.device.numOutputChannels <= 0) config.device.numOutputChannels = 2;
 
-  const int slotCount = static_cast<int>(config.slots.size());
+    const int slotCount = static_cast<int>(config.slots.size());
 
-  if (slotCount <= 0) {
-    error = "the session description has no slots";
-    return false;
-  }
+    if (slotCount <= 0) {
+        error = "the session description has no slots";
+        return false;
+    }
 
-  {
-    const std::lock_guard<std::mutex> lock(sourceMutex);
-    sourceConfigs = config.slots;
-    sourceRevision = 0;
-  }
+    {
+        const std::lock_guard<std::mutex> lock(sourceMutex);
+        sourceConfigs = config.slots;
+        sourceRevision = 0;
+    }
 
-  if (slotCount > defaultLogicalSlots) {
-    error = "the session description has " + juce::String(slotCount) +
-            " slots; the Launchpad grid has " +
-            juce::String(defaultLogicalSlots);
-    return false;
-  }
+    if (slotCount > defaultLogicalSlots) {
+        error = "the session description has " + juce::String(slotCount) +
+                " slots; the Launchpad grid has " + juce::String(defaultLogicalSlots);
+        return false;
+    }
 
-  for (int index = 0; index < slotCount; ++index) {
-    const auto& slotConfig = config.slots[static_cast<std::size_t>(index)];
+    for (int index = 0; index < slotCount; ++index) {
+        const auto& slotConfig = config.slots[static_cast<std::size_t>(index)];
 
-    if (slotConfig.kind != SessionSlotKind::plugin ||
-        slotConfig.pluginState.getSize() == 0)
-      continue;
+        if (slotConfig.kind != SessionSlotKind::plugin || slotConfig.pluginState.getSize() == 0)
+            continue;
 
-    const session::PluginStateIdentity identity{
-        juce::String(slotConfig.path), juce::String(slotConfig.pluginId),
-        juce::String(slotConfig.pluginName)};
+        const session::PluginStateIdentity identity{juce::String(slotConfig.path),
+                                                    juce::String(slotConfig.pluginId),
+                                                    juce::String(slotConfig.pluginName)};
 
-    (void)pluginState.seedState(index, identity, slotConfig.pluginState);
-  }
+        (void)pluginState.seedState(index, identity, slotConfig.pluginState);
+    }
 
-  engine = std::make_unique<AudioEngine::AudioEngine>(
-      slotCount, config.device.numOutputChannels);
-  switcher =
-      std::make_unique<AudioEngine::SlotSwitcher>(config.fadeMilliseconds);
+    engine = std::make_unique<AudioEngine::AudioEngine>(slotCount, config.device.numOutputChannels);
+    switcher = std::make_unique<AudioEngine::SlotSwitcher>(config.fadeMilliseconds);
 
-  pluginFormats = std::make_unique<juce::AudioPluginFormatManager>();
+    pluginFormats = std::make_unique<juce::AudioPluginFormatManager>();
 
-#if defined(JUCE_MODULE_AVAILABLE_juce_gui_basics) && \
-    JUCE_MODULE_AVAILABLE_juce_gui_basics
-  juce::addDefaultFormatsToManager(*pluginFormats);
+#if defined(JUCE_MODULE_AVAILABLE_juce_gui_basics) && JUCE_MODULE_AVAILABLE_juce_gui_basics
+    juce::addDefaultFormatsToManager(*pluginFormats);
 #else
-  juce::addHeadlessDefaultFormatsToManager(*pluginFormats);
+    juce::addHeadlessDefaultFormatsToManager(*pluginFormats);
 #endif
 
-  const int neighbours = juce::jmax(1, config.neighbourCount);
+    const int neighbours = juce::jmax(1, config.neighbourCount);
 
-  warmPool.createPool(neighbours);
-  warmPool.createVoices(slotCount);
+    warmPool.createPool(neighbours);
+    warmPool.createVoices(slotCount);
 
-  warmPool.configure(
-      [this](int slotIndex, juce::String& factoryError) {
-        if (config.loadDelayMilliseconds > 0)
-          juce::Thread::sleep(config.loadDelayMilliseconds);
+    warmPool.configure(
+        [this](int slotIndex, juce::String& factoryError) {
+            if (config.loadDelayMilliseconds > 0) juce::Thread::sleep(config.loadDelayMilliseconds);
 
-        return createPooledSource(slotIndex, factoryError);
-      },
-      [this](AudioEngine::SlotSource& instance) {
-        if (auto* pageSlot = dynamic_cast<plugins::PageHostSlot*>(&instance);
-            pageSlot != nullptr) {
-          (void)capturePluginState(pageSlot->getSlotIndex());
+            return createPooledSource(slotIndex, factoryError);
+        },
+        [this](AudioEngine::SlotSource& instance) {
+            if (auto* pageSlot = dynamic_cast<plugins::PageHostSlot*>(&instance);
+                pageSlot != nullptr) {
+                (void)capturePluginState(pageSlot->getSlotIndex());
 
-          const std::lock_guard<std::mutex> lock(pageSlotHandleMutex);
-          const int slot = pageSlot->getSlotIndex();
+                const std::lock_guard<std::mutex> lock(pageSlotHandleMutex);
+                const int slot = pageSlot->getSlotIndex();
 
-          if (slot >= 0 && slot < static_cast<int>(pageSlotHandles.size()) &&
-              pageSlotHandles[static_cast<std::size_t>(slot)] == pageSlot)
-            pageSlotHandles[static_cast<std::size_t>(slot)] = nullptr;
-        } else if (auto* sandbox =
-                       dynamic_cast<plugins::SandboxHost*>(&instance);
-                   sandbox != nullptr) {
-          unregisterSandboxSlot(*sandbox);
-        } else if (auto* instrument =
-                       dynamic_cast<plugins::PluginInstrument*>(&instance);
-                   instrument != nullptr) {
-          capturePluginStateForInstance(instance);
-          pluginState.unregisterInstrument(*instrument);
+                if (slot >= 0 && slot < static_cast<int>(pageSlotHandles.size()) &&
+                    pageSlotHandles[static_cast<std::size_t>(slot)] == pageSlot)
+                    pageSlotHandles[static_cast<std::size_t>(slot)] = nullptr;
+            } else if (auto* sandbox = dynamic_cast<plugins::SandboxHost*>(&instance);
+                       sandbox != nullptr) {
+                unregisterSandboxSlot(*sandbox);
+            } else if (auto* instrument = dynamic_cast<plugins::PluginInstrument*>(&instance);
+                       instrument != nullptr) {
+                capturePluginStateForInstance(instance);
+                pluginState.unregisterInstrument(*instrument);
+            }
+
+            if (editorHost != nullptr) editorHost->closeBeforeDestroy(instance);
+        },
+        [this](int slot) {
+            session::PluginStateIdentity identity;
+
+            if (pluginIdentityForSlot(slot, identity))
+                pluginState.applyToRegistered(slot, identity);
+        },
+        switcher.get(), [this] { cancelPendingLoads(); });
+
+    bool anySolo = false;
+
+    for (const auto& slotConfig : config.slots) anySolo = anySolo || slotConfig.solo;
+
+    std::vector<AudioEngine::Slot*> slotPointers;
+    slotPointers.reserve(static_cast<std::size_t>(slotCount));
+
+    for (int index = 0; index < slotCount; ++index) {
+        const auto& slotConfig = config.slots[static_cast<std::size_t>(index)];
+        const bool silent = slotConfig.muted || (anySolo && !slotConfig.solo);
+
+        auto& slot = engine->getSlot(index);
+        slot.setSource(warmPool.getVoiceSource(index));
+        slot.setGain(silent ? 0.0f : slotConfig.gain);
+
+        slotPointers.push_back(&slot);
+    }
+
+    switcher->setSlots(slotPointers);
+
+    warmPool.setFormat(config.device.sampleRate, config.device.bufferSize);
+    warmPool.setNumSlots(slotCount);
+    warmPool.setProtectedSlots(config.warmSlots);
+
+    for (int index = 0; index < slotCount; ++index) {
+        const auto& slotConfig = config.slots[static_cast<std::size_t>(index)];
+
+        if (slotConfig.kind == SessionSlotKind::empty) {
+            warmPool.setRequest(index, {});
+            continue;
         }
 
-        if (editorHost != nullptr) editorHost->closeBeforeDestroy(instance);
-      },
-      [this](int slot) {
-        session::PluginStateIdentity identity;
-
-        if (pluginIdentityForSlot(slot, identity))
-          pluginState.applyToRegistered(slot, identity);
-      },
-      switcher.get(), [this] { cancelPendingLoads(); });
-
-  bool anySolo = false;
-
-  for (const auto& slotConfig : config.slots)
-    anySolo = anySolo || slotConfig.solo;
-
-  std::vector<AudioEngine::Slot*> slotPointers;
-  slotPointers.reserve(static_cast<std::size_t>(slotCount));
-
-  for (int index = 0; index < slotCount; ++index) {
-    const auto& slotConfig = config.slots[static_cast<std::size_t>(index)];
-    const bool silent = slotConfig.muted || (anySolo && !slotConfig.solo);
-
-    auto& slot = engine->getSlot(index);
-    slot.setSource(warmPool.getVoiceSource(index));
-    slot.setGain(silent ? 0.0f : slotConfig.gain);
-
-    slotPointers.push_back(&slot);
-  }
-
-  switcher->setSlots(slotPointers);
-
-  warmPool.setFormat(config.device.sampleRate, config.device.bufferSize);
-  warmPool.setNumSlots(slotCount);
-  warmPool.setProtectedSlots(config.warmSlots);
-
-  for (int index = 0; index < slotCount; ++index) {
-    const auto& slotConfig = config.slots[static_cast<std::size_t>(index)];
-
-    if (slotConfig.kind == SessionSlotKind::empty) {
-      warmPool.setRequest(index, {});
-      continue;
+        warmPool.setRequest(index, juce::String(index) + ":" + toString(slotConfig.kind) + ":" +
+                                       slotConfig.path + ":" + juce::String(slotConfig.frequency));
     }
 
-    warmPool.setRequest(
-        index, juce::String(index) + ":" + toString(slotConfig.kind) + ":" +
-                   slotConfig.path + ":" + juce::String(slotConfig.frequency));
-  }
+    prepare(config.device.sampleRate, config.device.bufferSize, config.device.numOutputChannels);
 
-  prepare(config.device.sampleRate, config.device.bufferSize,
-          config.device.numOutputChannels);
+    fxChain.setEngine(engine.get());
+    fxChain.setFormat(sampleRate, maximumBlockSize, numChannels);
+    fxChain.build(config.slots, *pluginFormats, transportControl.getFxTransport());
 
-  fxChain.setEngine(engine.get());
-  fxChain.setFormat(sampleRate, maximumBlockSize, numChannels);
-  fxChain.build(config.slots, *pluginFormats,
-                transportControl.getFxTransport());
+    const int initial = juce::jlimit(0, slotCount - 1, config.initialSlot);
+    warmPool.setActiveSlot(initial);
+    warmPool.preloadAll();
+    warmPool.resetArmState();
 
-  const int initial = juce::jlimit(0, slotCount - 1, config.initialSlot);
-  warmPool.setActiveSlot(initial);
-  warmPool.preloadAll();
-  warmPool.resetArmState();
+    if (reuseDevice) devices.setCallback(this);
 
-  if (reuseDevice) devices.setCallback(this);
-
-  return true;
+    return true;
 }
 
-std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource(
-    int slotIndex, juce::String& error) {
-  SessionSlotConfig slotConfig;
+std::unique_ptr<AudioEngine::SlotSource> Session::createPooledSource(int slotIndex,
+                                                                     juce::String& error) {
+    SessionSlotConfig slotConfig;
 
-  {
-    const std::lock_guard<std::mutex> lock(sourceMutex);
+    {
+        const std::lock_guard<std::mutex> lock(sourceMutex);
 
-    if (slotIndex < 0 || slotIndex >= static_cast<int>(sourceConfigs.size())) {
-      error = "warm request addresses slot " + juce::String(slotIndex);
-      return nullptr;
+        if (slotIndex < 0 || slotIndex >= static_cast<int>(sourceConfigs.size())) {
+            error = "warm request addresses slot " + juce::String(slotIndex);
+            return nullptr;
+        }
+
+        slotConfig = sourceConfigs[static_cast<std::size_t>(slotIndex)];
     }
 
-    slotConfig = sourceConfigs[static_cast<std::size_t>(slotIndex)];
-  }
+    const auto slotLabel = juce::String(slotIndex) + " (\"" + juce::String(slotConfig.name) + "\")";
 
-  const auto slotLabel =
-      juce::String(slotIndex) + " (\"" + juce::String(slotConfig.name) + "\")";
+    switch (slotConfig.kind) {
+        case SessionSlotKind::empty:
+            return session::makeSilentSource();
 
-  switch (slotConfig.kind) {
-    case SessionSlotKind::empty:
-      return session::makeSilentSource();
+        case SessionSlotKind::initTone:
+            return session::makeInitToneSource(slotConfig.frequency, initToneAmplitude);
 
-    case SessionSlotKind::initTone:
-      return session::makeInitToneSource(slotConfig.frequency,
-                                         initToneAmplitude);
+        case SessionSlotKind::sampler: {
+            if (slotConfig.path.isEmpty()) {
+                error = "slot " + slotLabel + " is a sampler slot but has no kit path";
+                return nullptr;
+            }
 
-    case SessionSlotKind::sampler: {
-      if (slotConfig.path.isEmpty()) {
-        error = "slot " + slotLabel + " is a sampler slot but has no kit path";
-        return nullptr;
-      }
+            auto samplerSource = session::makeSamplerSource(juce::File(slotConfig.path),
+                                                            config.device.sampleRate, error);
 
-      auto samplerSource = session::makeSamplerSource(
-          juce::File(slotConfig.path), config.device.sampleRate, error);
+            if (samplerSource == nullptr) {
+                error = "slot " + slotLabel + ": " + error;
+                return nullptr;
+            }
 
-      if (samplerSource == nullptr) {
-        error = "slot " + slotLabel + ": " + error;
-        return nullptr;
-      }
+            return samplerSource;
+        }
 
-      return samplerSource;
+        case SessionSlotKind::plugin: {
+            if (slotConfig.path.isEmpty()) {
+                error = "slot " + slotLabel + " is a plugin slot but has no bundle path";
+                return nullptr;
+            }
+
+            if (sharedPluginHostEnabled) return createSharedPageSlot(slotIndex, error);
+
+            plugins::SandboxHost::Options options;
+            options.pluginBundle = juce::File(slotConfig.path);
+            options.sampleRate = config.device.sampleRate;
+            options.maxBlockSize = config.device.bufferSize;
+            options.numChannels = juce::jlimit(1, 2, config.device.numOutputChannels);
+            options.slotIndex = slotIndex;
+            options.generation = nextSandboxGeneration(slotIndex);
+            options.startupTimeoutMs = 60000;
+
+            if (loadAbort != nullptr) {
+                const auto abort = loadAbort;
+                options.shouldAbortStart = [abort] {
+                    return abort->load(std::memory_order_relaxed);
+                };
+            }
+
+            auto instrument = std::make_unique<plugins::SandboxHost>(options);
+
+            instrument->setStatusCallback(
+                [this, slotIndex](plugins::SandboxHost::Status, const juce::String& reason) {
+                    setSlotError(slotIndex, reason);
+                    juce::Logger::writeToLog("session: slot " + juce::String(slotIndex) +
+                                             " plugin failed: " + reason);
+                });
+
+            if (!instrument->start(error)) {
+                error = "slot " + slotLabel + ": " + error;
+                setSlotError(slotIndex, error);
+                return nullptr;
+            }
+
+            const auto generation = options.generation;
+
+            instrument->setStateChangedCallback(
+                [this, slotIndex, generation](const juce::MemoryBlock& state, std::uint64_t) {
+                    if (!isCurrentSandboxGeneration(slotIndex, generation)) return;
+
+                    session::PluginStateIdentity current;
+
+                    if (!pluginIdentityForSlot(slotIndex, current)) return;
+
+                    if (pluginState.storeState(slotIndex, current, state))
+                        notifySlotStateChanged(slotIndex);
+                });
+
+            const session::PluginStateIdentity identity{juce::String(slotConfig.path),
+                                                        juce::String(slotConfig.pluginId),
+                                                        juce::String(slotConfig.pluginName)};
+
+            const auto storedState = pluginState.readState(slotIndex, identity);
+
+            if (storedState.getSize() > 0 && !instrument->setStateInformation(storedState)) {
+                juce::Logger::writeToLog("session: slot " + juce::String(slotIndex) +
+                                         " rejected stored plugin state");
+            }
+
+            registerSandboxSlot(slotIndex, *instrument, identity);
+            clearSlotError(slotIndex);
+
+            return instrument;
+        }
+
+        case SessionSlotKind::audioInput: {
+            auto instrument = std::make_unique<AudioInputInstrument>();
+            instrument->setInputChannel(slotConfig.inputChannel);
+            return instrument;
+        }
     }
 
-    case SessionSlotKind::plugin: {
-      if (slotConfig.path.isEmpty()) {
-        error =
-            "slot " + slotLabel + " is a plugin slot but has no bundle path";
-        return nullptr;
-      }
-
-      if (sharedPluginHostEnabled)
-        return createSharedPageSlot(slotIndex, error);
-
-      plugins::SandboxHost::Options options;
-      options.pluginBundle = juce::File(slotConfig.path);
-      options.sampleRate = config.device.sampleRate;
-      options.maxBlockSize = config.device.bufferSize;
-      options.numChannels = juce::jlimit(1, 2, config.device.numOutputChannels);
-      options.slotIndex = slotIndex;
-      options.generation = nextSandboxGeneration(slotIndex);
-      options.startupTimeoutMs = 60000;
-
-      if (loadAbort != nullptr) {
-        const auto abort = loadAbort;
-        options.shouldAbortStart = [abort] {
-          return abort->load(std::memory_order_relaxed);
-        };
-      }
-
-      auto instrument = std::make_unique<plugins::SandboxHost>(options);
-
-      instrument->setStatusCallback([this, slotIndex](
-                                        plugins::SandboxHost::Status,
-                                        const juce::String& reason) {
-        setSlotError(slotIndex, reason);
-        juce::Logger::writeToLog("session: slot " + juce::String(slotIndex) +
-                                 " plugin failed: " + reason);
-      });
-
-      if (!instrument->start(error)) {
-        error = "slot " + slotLabel + ": " + error;
-        setSlotError(slotIndex, error);
-        return nullptr;
-      }
-
-      const auto generation = options.generation;
-
-      instrument->setStateChangedCallback(
-          [this, slotIndex, generation](const juce::MemoryBlock& state,
-                                        std::uint64_t) {
-            if (!isCurrentSandboxGeneration(slotIndex, generation)) return;
-
-            session::PluginStateIdentity current;
-
-            if (!pluginIdentityForSlot(slotIndex, current)) return;
-
-            if (pluginState.storeState(slotIndex, current, state))
-              notifySlotStateChanged(slotIndex);
-          });
-
-      const session::PluginStateIdentity identity{
-          juce::String(slotConfig.path), juce::String(slotConfig.pluginId),
-          juce::String(slotConfig.pluginName)};
-
-      const auto storedState = pluginState.readState(slotIndex, identity);
-
-      if (storedState.getSize() > 0 &&
-          !instrument->setStateInformation(storedState)) {
-        juce::Logger::writeToLog("session: slot " + juce::String(slotIndex) +
-                                 " rejected stored plugin state");
-      }
-
-      registerSandboxSlot(slotIndex, *instrument, identity);
-      clearSlotError(slotIndex);
-
-      return instrument;
-    }
-
-    case SessionSlotKind::audioInput: {
-      auto instrument = std::make_unique<AudioInputInstrument>();
-      instrument->setInputChannel(slotConfig.inputChannel);
-      return instrument;
-    }
-  }
-
-  error = "slot " + slotLabel + " has an unknown source kind";
-  return nullptr;
+    error = "slot " + slotLabel + " has an unknown source kind";
+    return nullptr;
 }
 
-void Session::prepare(double newSampleRate, int newMaximumBlockSize,
-                      int newNumChannels) {
-  if (engine == nullptr) {
-    prepared = false;
-    return;
-  }
+void Session::prepare(double newSampleRate, int newMaximumBlockSize, int newNumChannels) {
+    if (engine == nullptr) {
+        prepared = false;
+        return;
+    }
 
-  sampleRate = newSampleRate > 0.0 ? newSampleRate : 48000.0;
-  maximumBlockSize = juce::jmax(1, newMaximumBlockSize);
-  numChannels = juce::jmax(1, newNumChannels);
+    sampleRate = newSampleRate > 0.0 ? newSampleRate : 48000.0;
+    maximumBlockSize = juce::jmax(1, newMaximumBlockSize);
+    numChannels = juce::jmax(1, newNumChannels);
 
-  warmPool.setFormat(sampleRate, maximumBlockSize);
+    warmPool.setFormat(sampleRate, maximumBlockSize);
 
-  engine->prepare(sampleRate, maximumBlockSize, numChannels);
+    engine->prepare(sampleRate, maximumBlockSize, numChannels);
 
-  if (switcher != nullptr)
-    switcher->prepare(sampleRate, maximumBlockSize, numChannels);
+    if (switcher != nullptr) switcher->prepare(sampleRate, maximumBlockSize, numChannels);
 
-  transportControl.prepare(sampleRate, maximumBlockSize);
+    transportControl.prepare(sampleRate, maximumBlockSize);
 
-  meters.prepare(juce::jmax(1, engine->getNumSlots()));
+    meters.prepare(juce::jmax(1, engine->getNumSlots()));
 
-  renderBuffer.setSize(numChannels, maximumBlockSize, false, true, true);
-  renderBuffer.clear();
+    renderBuffer.setSize(numChannels, maximumBlockSize, false, true, true);
+    renderBuffer.clear();
 
-  latencyProbeActive.store(false, std::memory_order_relaxed);
-  latencyProbeRequested.store(false, std::memory_order_relaxed);
-  latencyProbeEmit.store(false, std::memory_order_relaxed);
-  latencyProbeComplete.store(true, std::memory_order_relaxed);
-  latencyProbePosition.store(0, std::memory_order_relaxed);
-  latencyProbeInputChannels.store(0, std::memory_order_relaxed);
-  latencyProbeInput.assign(latencyProbeCaptureSamples, 0.0f);
+    latencyProbeActive.store(false, std::memory_order_relaxed);
+    latencyProbeRequested.store(false, std::memory_order_relaxed);
+    latencyProbeEmit.store(false, std::memory_order_relaxed);
+    latencyProbeComplete.store(true, std::memory_order_relaxed);
+    latencyProbePosition.store(0, std::memory_order_relaxed);
+    latencyProbeInputChannels.store(0, std::memory_order_relaxed);
+    latencyProbeInput.assign(latencyProbeCaptureSamples, 0.0f);
 
-  midi.prepare();
+    midi.prepare();
 
-  prepared = true;
+    prepared = true;
 }
 
 void Session::resetGraph() noexcept {
-  if (engine != nullptr) engine->reset();
+    if (engine != nullptr) engine->reset();
 
-  if (switcher != nullptr) switcher->reset();
+    if (switcher != nullptr) switcher->reset();
 
-  transportControl.rewind();
+    transportControl.rewind();
 
-  meters.reset();
+    meters.reset();
 
-  renderBuffer.clear();
-  midi.reset();
+    renderBuffer.clear();
+    midi.reset();
 }
 
 }  // namespace ihub

@@ -6,25 +6,25 @@
 namespace Controller {
 
 std::filesystem::path Mapping::findDefaultSetFile() {
-  if (const char* environment = std::getenv("INSTRUMENT_HUB_SET")) {
-    const std::filesystem::path fromEnvironment(environment);
+    if (const char* environment = std::getenv("INSTRUMENT_HUB_SET")) {
+        const std::filesystem::path fromEnvironment(environment);
 
-    if (!fromEnvironment.empty()) return fromEnvironment;
-  }
+        if (!fromEnvironment.empty()) return fromEnvironment;
+    }
 
-  std::error_code ec;
-  const auto directory = std::filesystem::current_path(ec);
+    std::error_code ec;
+    const auto directory = std::filesystem::current_path(ec);
 
-  if (ec) return {};
+    if (ec) return {};
 
-  const std::filesystem::path candidates[]{
-      directory / "tracks-set.yaml", directory / "shared" / "tracks-set.yaml",
-      directory / "blank-set.yaml", directory / "shared" / "blank-set.yaml"};
+    const std::filesystem::path candidates[]{
+        directory / "tracks-set.yaml", directory / "shared" / "tracks-set.yaml",
+        directory / "blank-set.yaml", directory / "shared" / "blank-set.yaml"};
 
-  for (const auto& candidate : candidates)
-    if (std::filesystem::exists(candidate, ec)) return candidate;
+    for (const auto& candidate : candidates)
+        if (std::filesystem::exists(candidate, ec)) return candidate;
 
-  return {};
+    return {};
 }
 
 }  // namespace Controller

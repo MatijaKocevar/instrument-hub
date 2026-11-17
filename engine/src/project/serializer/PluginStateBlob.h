@@ -8,7 +8,7 @@ namespace ihub::project::serializer {
 
 juce::var pluginStateToVar(const PluginStateChunk& chunk);
 
-bool parsePluginStates(const juce::MemoryBlock& manifest, juce::ZipFile& zip,
-                       SetFile& set, juce::String& error);
+bool parsePluginStates(const juce::MemoryBlock& manifest, juce::ZipFile& zip, SetFile& set,
+                       juce::String& error);
 
 }  // namespace ihub::project::serializer

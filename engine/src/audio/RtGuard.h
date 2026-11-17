@@ -21,90 +21,83 @@ inline thread_local bool skipMallocHook = false;
 }  // namespace RtDetail
 
 class RtGuard final {
- public:
-  enum class Violation { allocation, lock, log, scope };
+public:
+    enum class Violation { allocation, lock, log, scope };
 
-  struct Counters {
-    std::uint64_t allocations = 0;
-    std::uint64_t locks = 0;
-    std::uint64_t logs = 0;
-    std::uint64_t scopeErrors = 0;
+    struct Counters {
+        std::uint64_t allocations = 0;
+        std::uint64_t locks = 0;
+        std::uint64_t logs = 0;
+        std::uint64_t scopeErrors = 0;
 
-    std::uint64_t total() const noexcept {
-      return allocations + locks + logs + scopeErrors;
-    }
-  };
+        std::uint64_t total() const noexcept { return allocations + locks + logs + scopeErrors; }
+    };
 
-  static constexpr bool isCompiledIn() noexcept {
+    static constexpr bool isCompiledIn() noexcept {
 #if IHUB_RT_GUARD
-    return true;
+        return true;
 #else
-    return false;
-#endif
-  }
-
-  class Scope final {
-   public:
-    Scope() noexcept {
-#if IHUB_RT_GUARD
-      ++RtDetail::audioScopeDepth;
-      RtDetail::openScopes.fetch_add(1, std::memory_order_relaxed);
+        return false;
 #endif
     }
 
-    ~Scope() noexcept {
+    class Scope final {
+    public:
+        Scope() noexcept {
 #if IHUB_RT_GUARD
-      if (RtDetail::audioScopeDepth <= 0)
-        RtGuard::noteViolation(Violation::scope,
-                               "Scope destroyed without a matching entry");
-      else
-        --RtDetail::audioScopeDepth;
-
-      RtDetail::openScopes.fetch_sub(1, std::memory_order_relaxed);
+            ++RtDetail::audioScopeDepth;
+            RtDetail::openScopes.fetch_add(1, std::memory_order_relaxed);
 #endif
-    }
+        }
 
-    Scope(const Scope&) = delete;
-    Scope& operator=(const Scope&) = delete;
-  };
+        ~Scope() noexcept {
+#if IHUB_RT_GUARD
+            if (RtDetail::audioScopeDepth <= 0)
+                RtGuard::noteViolation(Violation::scope,
+                                       "Scope destroyed without a matching entry");
+            else
+                --RtDetail::audioScopeDepth;
 
-  static int getOpenScopeCount() noexcept;
+            RtDetail::openScopes.fetch_sub(1, std::memory_order_relaxed);
+#endif
+        }
 
-  static bool assertNoOpenScopes() noexcept;
+        Scope(const Scope&) = delete;
+        Scope& operator=(const Scope&) = delete;
+    };
 
-  static void setEnabled(bool shouldBeEnabled) noexcept;
-  static bool isEnabled() noexcept;
+    static int getOpenScopeCount() noexcept;
 
-  static void setStrict(bool shouldBeStrict) noexcept;
-  static bool isStrict() noexcept;
+    static bool assertNoOpenScopes() noexcept;
 
-  static bool isInsideAudioScope() noexcept {
-    return RtDetail::audioScopeDepth > 0;
-  }
+    static void setEnabled(bool shouldBeEnabled) noexcept;
+    static bool isEnabled() noexcept;
 
-  static int getThreadScopeDepth() noexcept {
-    return RtDetail::audioScopeDepth;
-  }
+    static void setStrict(bool shouldBeStrict) noexcept;
+    static bool isStrict() noexcept;
 
-  static void noteAllocation(const char* what = nullptr) noexcept;
-  static void noteLock(const char* what = nullptr) noexcept;
-  static void noteLog() noexcept;
+    static bool isInsideAudioScope() noexcept { return RtDetail::audioScopeDepth > 0; }
 
-  static void noteViolation(Violation kind,
-                            const char* detail = nullptr) noexcept;
+    static int getThreadScopeDepth() noexcept { return RtDetail::audioScopeDepth; }
 
-  static Counters getCounters() noexcept;
-  static std::uint64_t getViolationCount() noexcept;
-  static void resetCounters() noexcept;
+    static void noteAllocation(const char* what = nullptr) noexcept;
+    static void noteLock(const char* what = nullptr) noexcept;
+    static void noteLog() noexcept;
 
-  static void installLogProbe() noexcept;
-  static void uninstallLogProbe() noexcept;
-  static bool isLogProbeInstalled() noexcept;
+    static void noteViolation(Violation kind, const char* detail = nullptr) noexcept;
 
-  static const char* toString(Violation kind) noexcept;
+    static Counters getCounters() noexcept;
+    static std::uint64_t getViolationCount() noexcept;
+    static void resetCounters() noexcept;
 
- private:
-  [[noreturn]] static void fail(Violation kind, const char* detail) noexcept;
+    static void installLogProbe() noexcept;
+    static void uninstallLogProbe() noexcept;
+    static bool isLogProbeInstalled() noexcept;
+
+    static const char* toString(Violation kind) noexcept;
+
+private:
+    [[noreturn]] static void fail(Violation kind, const char* detail) noexcept;
 };
 
 }  // namespace AudioEngine

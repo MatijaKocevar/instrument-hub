@@ -2,122 +2,115 @@
 
 namespace Api::Routes {
 
-void registerPairingRoutes(httplib::Server& server,
-                           const RouteContext& context) {
-  server.Get("/pairing", [context](const httplib::Request&,
-                                   httplib::Response& response) {
-    if (context.pairing == nullptr) {
-      setError(response, 503, "pairing is not available");
-      return;
-    }
+void registerPairingRoutes(httplib::Server& server, const RouteContext& context) {
+    server.Get("/pairing", [context](const httplib::Request&, httplib::Response& response) {
+        if (context.pairing == nullptr) {
+            setError(response, 503, "pairing is not available");
+            return;
+        }
 
-    decorate(context, response);
-    setJson(response, 200, pairingToVar(context.pairing->snapshot()));
-  });
+        decorate(context, response);
+        setJson(response, 200, pairingToVar(context.pairing->snapshot()));
+    });
 
-  server.Post("/pairing/lan", [context](const httplib::Request& request,
-                                        httplib::Response& response) {
-    if (context.pairing == nullptr || context.setLanMode == nullptr) {
-      setError(response, 503, "pairing is not available");
-      return;
-    }
+    server.Post(
+        "/pairing/lan", [context](const httplib::Request& request, httplib::Response& response) {
+            if (context.pairing == nullptr || context.setLanMode == nullptr) {
+                setError(response, 503, "pairing is not available");
+                return;
+            }
 
-    juce::var body;
-    std::string error;
+            juce::var body;
+            std::string error;
 
-    if (!parseJsonObject(request, body, error)) {
-      setError(response, 400, error);
-      return;
-    }
+            if (!parseJsonObject(request, body, error)) {
+                setError(response, 400, error);
+                return;
+            }
 
-    auto* object = body.getDynamicObject();
+            auto* object = body.getDynamicObject();
 
-    if (!object->hasProperty("enabled")) {
-      setError(response, 400, "body must contain \"enabled\" (boolean)");
-      return;
-    }
+            if (!object->hasProperty("enabled")) {
+                setError(response, 400, "body must contain \"enabled\" (boolean)");
+                return;
+            }
 
-    bool enabled = false;
+            bool enabled = false;
 
-    if (!detail::readBool(object->getProperty("enabled"), "enabled", enabled,
-                          error)) {
-      setError(response, 400, error);
-      return;
-    }
+            if (!detail::readBool(object->getProperty("enabled"), "enabled", enabled, error)) {
+                setError(response, 400, error);
+                return;
+            }
 
-    decorate(context, response);
-    setJson(response, 200, pairingToVar(context.setLanMode(enabled)));
-    context.state.notifyChanged("pairing", -1);
-  });
+            decorate(context, response);
+            setJson(response, 200, pairingToVar(context.setLanMode(enabled)));
+            context.state.notifyChanged("pairing", -1);
+        });
 
-  server.Post("/pairing/revoke", [context](const httplib::Request&,
-                                           httplib::Response& response) {
-    if (context.pairing == nullptr) {
-      setError(response, 503, "pairing is not available");
-      return;
-    }
+    server.Post("/pairing/revoke", [context](const httplib::Request&, httplib::Response& response) {
+        if (context.pairing == nullptr) {
+            setError(response, 503, "pairing is not available");
+            return;
+        }
 
-    context.pairing->revokeAll();
+        context.pairing->revokeAll();
 
-    decorate(context, response);
-    setJson(response, 200, pairingToVar(context.pairing->snapshot()));
-    context.state.notifyChanged("pairing", -1);
-  });
+        decorate(context, response);
+        setJson(response, 200, pairingToVar(context.pairing->snapshot()));
+        context.state.notifyChanged("pairing", -1);
+    });
 
-  server.Post("/pair", [context](const httplib::Request& request,
-                                 httplib::Response& response) {
-    if (context.pairing == nullptr) {
-      setError(response, 503, "pairing is not available");
-      return;
-    }
+    server.Post("/pair", [context](const httplib::Request& request, httplib::Response& response) {
+        if (context.pairing == nullptr) {
+            setError(response, 503, "pairing is not available");
+            return;
+        }
 
-    juce::var body;
-    std::string error;
+        juce::var body;
+        std::string error;
 
-    if (!parseJsonObject(request, body, error)) {
-      setError(response, 400, error);
-      return;
-    }
+        if (!parseJsonObject(request, body, error)) {
+            setError(response, 400, error);
+            return;
+        }
 
-    auto* object = body.getDynamicObject();
-    std::string code;
-    std::string clientName;
+        auto* object = body.getDynamicObject();
+        std::string code;
+        std::string clientName;
 
-    if (!object->hasProperty("code")) {
-      setError(response, 400, "body must contain \"code\"");
-      return;
-    }
+        if (!object->hasProperty("code")) {
+            setError(response, 400, "body must contain \"code\"");
+            return;
+        }
 
-    if (!readString(object->getProperty("code"), "code", code, error)) {
-      setError(response, 400, error);
-      return;
-    }
+        if (!readString(object->getProperty("code"), "code", code, error)) {
+            setError(response, 400, error);
+            return;
+        }
 
-    if (object->hasProperty("clientName")) {
-      if (!readString(object->getProperty("clientName"), "clientName",
-                      clientName, error)) {
-        setError(response, 400, error);
-        return;
-      }
-    }
+        if (object->hasProperty("clientName")) {
+            if (!readString(object->getProperty("clientName"), "clientName", clientName, error)) {
+                setError(response, 400, error);
+                return;
+            }
+        }
 
-    std::string token;
+        std::string token;
 
-    if (!context.pairing->pair(code, token, error, std::move(clientName))) {
-      setError(response, context.pairing->isLanEnabled() ? 401 : 403, error);
-      return;
-    }
+        if (!context.pairing->pair(code, token, error, std::move(clientName))) {
+            setError(response, context.pairing->isLanEnabled() ? 401 : 403, error);
+            return;
+        }
 
-    auto result = makeObject();
-    result.getDynamicObject()->setProperty("token", juce::String(token));
-    result.getDynamicObject()->setProperty(
-        "pairedClients",
-        static_cast<int>(context.pairing->pairedClientCount()));
+        auto result = makeObject();
+        result.getDynamicObject()->setProperty("token", juce::String(token));
+        result.getDynamicObject()->setProperty(
+            "pairedClients", static_cast<int>(context.pairing->pairedClientCount()));
 
-    decorate(context, response);
-    setJson(response, 200, result);
-    context.state.notifyChanged("pairing", -1);
-  });
+        decorate(context, response);
+        setJson(response, 200, result);
+        context.state.notifyChanged("pairing", -1);
+    });
 }
 
 }  // namespace Api::Routes

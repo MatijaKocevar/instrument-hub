@@ -35,30 +35,30 @@ const char* toString(SourceKind kind) noexcept;
 bool sourceKindFromString(std::string_view text, SourceKind& kind) noexcept;
 
 struct InstrumentConfig {
-  SourceKind kind = SourceKind::empty;
+    SourceKind kind = SourceKind::empty;
 
-  std::string id;
+    std::string id;
 
-  std::string name;
+    std::string name;
 
-  std::string pluginState;
+    std::string pluginState;
 
-  std::string pluginFormat = "VST3";
-  std::string pluginId;
-  std::string pluginName;
-  std::string pluginManufacturer;
-  std::string pluginVersion;
-  std::string pluginPath;
+    std::string pluginFormat = "VST3";
+    std::string pluginId;
+    std::string pluginName;
+    std::string pluginManufacturer;
+    std::string pluginVersion;
+    std::string pluginPath;
 
-  std::string samplePath;
+    std::string samplePath;
 
-  int inputChannel = 0;
+    int inputChannel = 0;
 
-  float gain = 1.0f;
+    float gain = 1.0f;
 
-  bool directMonitor = false;
+    bool directMonitor = false;
 
-  bool operator==(const InstrumentConfig&) const = default;
+    bool operator==(const InstrumentConfig&) const = default;
 };
 
 enum class FxKind { builtin = 0, plugin };
@@ -67,98 +67,96 @@ const char* toString(FxKind kind) noexcept;
 bool fxKindFromString(std::string_view text, FxKind& kind) noexcept;
 
 struct FxConfig {
-  FxKind kind = FxKind::builtin;
+    FxKind kind = FxKind::builtin;
 
-  std::string type;
+    std::string type;
 
-  std::string id;
+    std::string id;
 
-  std::string name;
+    std::string name;
 
-  std::string pluginState;
+    std::string pluginState;
 
-  bool bypassed = false;
+    bool bypassed = false;
 
-  std::map<std::string, float> parameters;
+    std::map<std::string, float> parameters;
 
-  bool operator==(const FxConfig&) const = default;
+    bool operator==(const FxConfig&) const = default;
 };
 
 struct SlotConfig {
-  int index = -1;
+    int index = -1;
 
-  std::string name;
+    std::string name;
 
-  float gain = 1.0f;
+    float gain = 1.0f;
 
-  std::string colour = defaultSlotColour;
+    std::string colour = defaultSlotColour;
 
-  int colorIndex = 0;
+    int colorIndex = 0;
 
-  float pan = 0.0f;
+    float pan = 0.0f;
 
-  bool solo = false;
+    bool solo = false;
 
-  bool active = false;
-  bool muted = false;
+    bool active = false;
+    bool muted = false;
 
-  InstrumentConfig instrument;
-  std::vector<FxConfig> fxChain;
+    InstrumentConfig instrument;
+    std::vector<FxConfig> fxChain;
 
-  bool operator==(const SlotConfig&) const = default;
+    bool operator==(const SlotConfig&) const = default;
 
-  float volumeDb() const noexcept;
-  void setVolumeDb(float decibels) noexcept;
+    float volumeDb() const noexcept;
+    void setVolumeDb(float decibels) noexcept;
 
-  bool hasPluginState() const noexcept {
-    return !instrument.pluginState.empty();
-  }
+    bool hasPluginState() const noexcept { return !instrument.pluginState.empty(); }
 };
 
 struct PluginStateChunk {
-  std::string uuid;
-  std::string format = "VST3";
-  std::string pluginId;
-  std::string name;
-  std::string manufacturer;
-  std::string version;
+    std::string uuid;
+    std::string format = "VST3";
+    std::string pluginId;
+    std::string name;
+    std::string manufacturer;
+    std::string version;
 
-  juce::MemoryBlock data;
+    juce::MemoryBlock data;
 
-  bool operator==(const PluginStateChunk&) const = default;
+    bool operator==(const PluginStateChunk&) const = default;
 };
 
 struct TransportConfig {
-  double bpm = 120.0;
-  double positionPpq = 0.0;
-  bool playing = false;
+    double bpm = 120.0;
+    double positionPpq = 0.0;
+    bool playing = false;
 
-  bool operator==(const TransportConfig&) const = default;
+    bool operator==(const TransportConfig&) const = default;
 };
 
 struct SetFile {
-  static constexpr int currentVersion = currentSetSchemaVersion;
+    static constexpr int currentVersion = currentSetSchemaVersion;
 
-  int schemaVersion = currentVersion;
-  std::string name = "Untitled Set";
+    int schemaVersion = currentVersion;
+    std::string name = "Untitled Set";
 
-  std::string notes;
+    std::string notes;
 
-  std::vector<SlotConfig> slots;
-  std::vector<PluginStateChunk> pluginStates;
+    std::vector<SlotConfig> slots;
+    std::vector<PluginStateChunk> pluginStates;
 
-  std::string mappingYaml;
+    std::string mappingYaml;
 
-  TransportConfig transport;
+    TransportConfig transport;
 
-  bool operator==(const SetFile&) const = default;
+    bool operator==(const SetFile&) const = default;
 
-  bool validate(juce::String& error) const;
+    bool validate(juce::String& error) const;
 
-  const PluginStateChunk* findPluginState(std::string_view uuid) const noexcept;
-  PluginStateChunk* findPluginState(std::string_view uuid) noexcept;
+    const PluginStateChunk* findPluginState(std::string_view uuid) const noexcept;
+    PluginStateChunk* findPluginState(std::string_view uuid) noexcept;
 
-  bool applyTo(AudioEngine::AudioEngine& engine, juce::String& error) const;
+    bool applyTo(AudioEngine::AudioEngine& engine, juce::String& error) const;
 };
 
 }  // namespace ihub::project

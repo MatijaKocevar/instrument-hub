@@ -8,32 +8,32 @@
 namespace ihub::session {
 
 class MidiBridge {
- public:
-  static constexpr int queueCapacity = 1024;
+public:
+    static constexpr int queueCapacity = 1024;
 
-  MidiBridge() = default;
+    MidiBridge() = default;
 
-  void prepare();
+    void prepare();
 
-  void reset() noexcept;
+    void reset() noexcept;
 
-  bool push(const juce::MidiMessage& message) noexcept;
+    bool push(const juce::MidiMessage& message) noexcept;
 
-  void drain(juce::MidiBuffer& destination) noexcept;
+    void drain(juce::MidiBuffer& destination) noexcept;
 
-  int getQueuedCount() const noexcept { return fifo.getNumReady(); }
+    int getQueuedCount() const noexcept { return fifo.getNumReady(); }
 
-  juce::MidiBuffer& block() noexcept { return blockMidi; }
+    juce::MidiBuffer& block() noexcept { return blockMidi; }
 
- private:
-  struct QueuedMidi {
-    std::array<std::uint8_t, 3> data{};
-    std::uint8_t size = 0;
-  };
+private:
+    struct QueuedMidi {
+        std::array<std::uint8_t, 3> data{};
+        std::uint8_t size = 0;
+    };
 
-  juce::AbstractFifo fifo{queueCapacity};
-  std::array<QueuedMidi, queueCapacity> queue{};
-  juce::MidiBuffer blockMidi;
+    juce::AbstractFifo fifo{queueCapacity};
+    std::array<QueuedMidi, queueCapacity> queue{};
+    juce::MidiBuffer blockMidi;
 };
 
 }  // namespace ihub::session

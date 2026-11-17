@@ -5,7 +5,6 @@
 namespace AudioEngine::detail {
 
 Api::AudioLatencyState computeLatencyBudget(int bufferSize, double sampleRate,
-                                            int deviceLatencySamples,
-                                            int chainSamples);
+                                            int deviceLatencySamples, int chainSamples);
 
 }

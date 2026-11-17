@@ -10,13 +10,13 @@ namespace ihub::diag {
 inline constexpr std::uint32_t crashDumpFormatVersion = 1;
 
 struct CrashDumpOptions {
-  std::string path;
+    std::string path;
 
-  LogRing* ring = nullptr;
+    LogRing* ring = nullptr;
 
-  bool dumpOnTermination = false;
+    bool dumpOnTermination = false;
 
-  bool reRaiseSignal = true;
+    bool reRaiseSignal = true;
 };
 
 bool installCrashDump(const CrashDumpOptions& options = {});

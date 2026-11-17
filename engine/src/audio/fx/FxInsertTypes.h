@@ -8,90 +8,82 @@
 
 namespace AudioEngine {
 
-enum class FxInsertType {
-  equalizer = 0,
-  compressor,
-  delay,
-  reverb,
-  drive,
-  tuner,
-  vst3
-};
+enum class FxInsertType { equalizer = 0, compressor, delay, reverb, drive, tuner, vst3 };
 
 const char* toString(FxInsertType type) noexcept;
 
 bool fxInsertTypeFromString(std::string_view text, FxInsertType& type) noexcept;
 
 struct FxInsertConfig {
-  FxInsertType type = FxInsertType::equalizer;
+    FxInsertType type = FxInsertType::equalizer;
 
-  std::string path;
+    std::string path;
 
-  std::string id;
+    std::string id;
 
-  std::string name;
+    std::string name;
 
-  bool bypassed = false;
+    bool bypassed = false;
 
-  float wet = 1.0f;
+    float wet = 1.0f;
 
-  std::map<std::string, float> parameters;
+    std::map<std::string, float> parameters;
 };
 
 struct FxInsertPatch {
-  std::optional<std::string> name;
-  std::optional<bool> bypassed;
-  std::optional<float> wet;
+    std::optional<std::string> name;
+    std::optional<bool> bypassed;
+    std::optional<float> wet;
 
-  std::optional<int> position;
+    std::optional<int> position;
 
-  std::optional<std::map<std::string, float>> parameters;
+    std::optional<std::map<std::string, float>> parameters;
 };
 
 struct FxInsertSnapshot {
-  int index = 0;
-  FxInsertType type = FxInsertType::equalizer;
+    int index = 0;
+    FxInsertType type = FxInsertType::equalizer;
 
-  std::string kind;
+    std::string kind;
 
-  std::string id;
-  std::string name;
+    std::string id;
+    std::string name;
 
-  bool bypassed = false;
-  float wet = 1.0f;
+    bool bypassed = false;
+    float wet = 1.0f;
 
-  int latencySamples = 0;
+    int latencySamples = 0;
 
-  std::map<std::string, float> parameters;
+    std::map<std::string, float> parameters;
 };
 
 struct FxChainSnapshot {
-  int slot = -1;
+    int slot = -1;
 
-  int instrumentLatencySamples = 0;
+    int instrumentLatencySamples = 0;
 
-  int fxLatencySamples = 0;
+    int fxLatencySamples = 0;
 
-  int latencySamples = 0;
+    int latencySamples = 0;
 
-  double latencyMs = 0.0;
+    double latencyMs = 0.0;
 
-  std::vector<FxInsertSnapshot> inserts;
+    std::vector<FxInsertSnapshot> inserts;
 };
 
 struct FxTunerReading {
-  bool valid = false;
-  float frequencyHz = 0.0f;
-  int midiNote = -1;
-  float cents = 0.0f;
-  float confidence = 0.0f;
-  float levelDb = -120.0f;
+    bool valid = false;
+    float frequencyHz = 0.0f;
+    int midiNote = -1;
+    float cents = 0.0f;
+    float confidence = 0.0f;
+    float levelDb = -120.0f;
 };
 
 struct FxTransport {
-  bool playing = false;
-  double bpm = 120.0;
-  double ppq = 0.0;
+    bool playing = false;
+    double bpm = 120.0;
+    double ppq = 0.0;
 };
 
 }  // namespace AudioEngine

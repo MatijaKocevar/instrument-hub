@@ -17,12 +17,11 @@ class SettingsStore;
 namespace ihub::app {
 
 struct SessionStartup {
-  std::unique_ptr<ihub::Session> session;
-  Api::AudioRestoreState audioRestore;
+    std::unique_ptr<ihub::Session> session;
+    Api::AudioRestoreState audioRestore;
 };
 
-SessionStartup startSession(const juce::String& commandLine,
-                            const juce::File& projectFile,
+SessionStartup startSession(const juce::String& commandLine, const juce::File& projectFile,
                             ihub::settings::SettingsStore* settings = nullptr);
 
 }  // namespace ihub::app

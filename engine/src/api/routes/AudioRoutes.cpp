@@ -5,216 +5,207 @@
 namespace Api::Routes {
 
 namespace {
-bool readChannelList(const juce::var& value, const char* name,
-                     std::vector<int>& destination, std::string& error) {
-  const auto* array = value.getArray();
+bool readChannelList(const juce::var& value, const char* name, std::vector<int>& destination,
+                     std::string& error) {
+    const auto* array = value.getArray();
 
-  if (array == nullptr) {
-    error = std::string(name) + " must be an array of channel indices";
-    return false;
-  }
-
-  std::vector<int> channels;
-  std::set<int> seen;
-
-  for (const auto& item : *array) {
-    std::int64_t parsed = 0;
-
-    if (!detail::readInteger(item, name, 0, 63, parsed, error)) return false;
-
-    if (!seen.insert(static_cast<int>(parsed)).second) {
-      error = std::string(name) + " contains duplicate channel " +
-              juce::String(parsed).toStdString();
-      return false;
+    if (array == nullptr) {
+        error = std::string(name) + " must be an array of channel indices";
+        return false;
     }
 
-    channels.push_back(static_cast<int>(parsed));
-  }
+    std::vector<int> channels;
+    std::set<int> seen;
 
-  destination = std::move(channels);
-  return true;
+    for (const auto& item : *array) {
+        std::int64_t parsed = 0;
+
+        if (!detail::readInteger(item, name, 0, 63, parsed, error)) return false;
+
+        if (!seen.insert(static_cast<int>(parsed)).second) {
+            error = std::string(name) + " contains duplicate channel " +
+                    juce::String(parsed).toStdString();
+            return false;
+        }
+
+        channels.push_back(static_cast<int>(parsed));
+    }
+
+    destination = std::move(channels);
+    return true;
 }
 }  // namespace
 
 void registerAudioRoutes(httplib::Server& server, const RouteContext& context) {
-  server.Get("/audio",
-             [context](const httplib::Request&, httplib::Response& response) {
-               decorate(context, response);
+    server.Get("/audio", [context](const httplib::Request&, httplib::Response& response) {
+        decorate(context, response);
 
-               const auto audio = context.audioProvider != nullptr
-                                      ? context.audioProvider()
-                                      : AudioStateSnapshot{};
+        const auto audio =
+            context.audioProvider != nullptr ? context.audioProvider() : AudioStateSnapshot{};
 
-               setJson(response, 200, audioStateToVar(audio));
-             });
+        setJson(response, 200, audioStateToVar(audio));
+    });
 
-  server.Post("/audio", [context](const httplib::Request& request,
-                                  httplib::Response& response) {
-    juce::var body;
-    std::string error;
+    server.Post("/audio", [context](const httplib::Request& request, httplib::Response& response) {
+        juce::var body;
+        std::string error;
 
-    if (!parseJsonObject(request, body, error)) {
-      setError(response, 400, error);
-      return;
-    }
-
-    AudioSettingsPatch patch;
-    const auto& properties = body.getDynamicObject()->getProperties();
-
-    if (properties.isEmpty()) {
-      setError(response, 400, "body must contain at least one audio setting");
-      return;
-    }
-
-    for (int index = 0; index < properties.size(); ++index) {
-      const auto& name = properties.getName(index);
-      const auto& value = properties.getValueAt(index);
-      const auto key = name.toString();
-
-      if (key == "deviceType") {
-        std::string parsed;
-
-        if (!readString(value, "deviceType", parsed, error)) {
-          setError(response, 400, error);
-          return;
+        if (!parseJsonObject(request, body, error)) {
+            setError(response, 400, error);
+            return;
         }
 
-        patch.deviceType = std::move(parsed);
-      } else if (key == "deviceName") {
-        std::string parsed;
+        AudioSettingsPatch patch;
+        const auto& properties = body.getDynamicObject()->getProperties();
 
-        if (!readString(value, "deviceName", parsed, error)) {
-          setError(response, 400, error);
-          return;
+        if (properties.isEmpty()) {
+            setError(response, 400, "body must contain at least one audio setting");
+            return;
         }
 
-        patch.deviceName = std::move(parsed);
-      } else if (key == "sampleRate") {
-        double parsed = 0.0;
+        for (int index = 0; index < properties.size(); ++index) {
+            const auto& name = properties.getName(index);
+            const auto& value = properties.getValueAt(index);
+            const auto key = name.toString();
 
-        if (!detail::readNumber(value, "sampleRate", 8000.0, 384000.0, parsed,
-                                error)) {
-          setError(response, 400, error);
-          return;
+            if (key == "deviceType") {
+                std::string parsed;
+
+                if (!readString(value, "deviceType", parsed, error)) {
+                    setError(response, 400, error);
+                    return;
+                }
+
+                patch.deviceType = std::move(parsed);
+            } else if (key == "deviceName") {
+                std::string parsed;
+
+                if (!readString(value, "deviceName", parsed, error)) {
+                    setError(response, 400, error);
+                    return;
+                }
+
+                patch.deviceName = std::move(parsed);
+            } else if (key == "sampleRate") {
+                double parsed = 0.0;
+
+                if (!detail::readNumber(value, "sampleRate", 8000.0, 384000.0, parsed, error)) {
+                    setError(response, 400, error);
+                    return;
+                }
+
+                patch.sampleRate = parsed;
+            } else if (key == "bufferSize") {
+                std::int64_t parsed = 0;
+
+                if (!detail::readInteger(value, "bufferSize", 16, 8192, parsed, error)) {
+                    setError(response, 400, error);
+                    return;
+                }
+
+                patch.bufferSize = static_cast<int>(parsed);
+            } else if (key == "inputChannels") {
+                std::vector<int> parsed;
+
+                if (!readChannelList(value, "inputChannels", parsed, error)) {
+                    setError(response, 400, error);
+                    return;
+                }
+
+                patch.inputChannels = std::move(parsed);
+            } else if (key == "outputChannels") {
+                std::vector<int> parsed;
+
+                if (!readChannelList(value, "outputChannels", parsed, error)) {
+                    setError(response, 400, error);
+                    return;
+                }
+
+                patch.outputChannels = std::move(parsed);
+            } else {
+                setError(response, 400, "unknown audio setting: " + key.toStdString());
+                return;
+            }
         }
 
-        patch.sampleRate = parsed;
-      } else if (key == "bufferSize") {
-        std::int64_t parsed = 0;
-
-        if (!detail::readInteger(value, "bufferSize", 16, 8192, parsed,
-                                 error)) {
-          setError(response, 400, error);
-          return;
+        if (context.audioApply == nullptr) {
+            setError(response, 503, "no audio backend is attached");
+            return;
         }
 
-        patch.bufferSize = static_cast<int>(parsed);
-      } else if (key == "inputChannels") {
-        std::vector<int> parsed;
-
-        if (!readChannelList(value, "inputChannels", parsed, error)) {
-          setError(response, 400, error);
-          return;
+        if (!context.audioApply(patch, error)) {
+            setError(response, 400, error);
+            return;
         }
 
-        patch.inputChannels = std::move(parsed);
-      } else if (key == "outputChannels") {
-        std::vector<int> parsed;
+        context.state.notifyChanged("device", -1);
 
-        if (!readChannelList(value, "outputChannels", parsed, error)) {
-          setError(response, 400, error);
-          return;
+        decorate(context, response);
+
+        const auto audio =
+            context.audioProvider != nullptr ? context.audioProvider() : AudioStateSnapshot{};
+
+        setJson(response, 200, audioStateToVar(audio));
+    });
+
+    server.Post("/audio/measure",
+                [context](const httplib::Request& request, httplib::Response& response) {
+                    const auto source = request.get_param_value("source");
+
+                    if (source == "device") {
+                        if (context.audioMeasureDevice == nullptr) {
+                            setError(response, 503, "selected-device measurement is unavailable");
+                            return;
+                        }
+
+                        decorate(context, response);
+                        setJson(response, 200, audioMeasurementToVar(context.audioMeasureDevice()));
+                        return;
+                    }
+
+                    if (context.audioMeasure == nullptr) {
+                        setError(response, 503, "no audio backend is attached");
+                        return;
+                    }
+
+                    decorate(context, response);
+                    setJson(response, 200, audioMeasurementToVar(context.audioMeasure()));
+                });
+
+    server.Post("/audio/wizard", [context](const httplib::Request&, httplib::Response& response) {
+        if (context.audioWizard == nullptr) {
+            setError(response, 503, "the audio setup wizard is unavailable");
+            return;
         }
 
-        patch.outputChannels = std::move(parsed);
-      } else {
-        setError(response, 400, "unknown audio setting: " + key.toStdString());
-        return;
-      }
-    }
+        decorate(context, response);
+        setJson(response, 200, audioWizardToVar(context.audioWizard()));
+    });
 
-    if (context.audioApply == nullptr) {
-      setError(response, 503, "no audio backend is attached");
-      return;
-    }
+    server.Post(
+        "/audio/wizard/apply", [context](const httplib::Request&, httplib::Response& response) {
+            if (context.audioWizardApply == nullptr) {
+                setError(response, 503, "the audio setup wizard is unavailable");
+                return;
+            }
 
-    if (!context.audioApply(patch, error)) {
-      setError(response, 400, error);
-      return;
-    }
+            std::string error;
 
-    context.state.notifyChanged("device", -1);
+            if (!context.audioWizardApply(error)) {
+                setError(response, 400,
+                         error.empty() ? "could not apply the recommended setup" : error);
+                return;
+            }
 
-    decorate(context, response);
+            context.state.notifyChanged("device", -1);
 
-    const auto audio = context.audioProvider != nullptr
-                           ? context.audioProvider()
-                           : AudioStateSnapshot{};
+            decorate(context, response);
 
-    setJson(response, 200, audioStateToVar(audio));
-  });
+            const auto audio =
+                context.audioProvider != nullptr ? context.audioProvider() : AudioStateSnapshot{};
 
-  server.Post("/audio/measure", [context](const httplib::Request& request,
-                                          httplib::Response& response) {
-    const auto source = request.get_param_value("source");
-
-    if (source == "device") {
-      if (context.audioMeasureDevice == nullptr) {
-        setError(response, 503, "selected-device measurement is unavailable");
-        return;
-      }
-
-      decorate(context, response);
-      setJson(response, 200,
-              audioMeasurementToVar(context.audioMeasureDevice()));
-      return;
-    }
-
-    if (context.audioMeasure == nullptr) {
-      setError(response, 503, "no audio backend is attached");
-      return;
-    }
-
-    decorate(context, response);
-    setJson(response, 200, audioMeasurementToVar(context.audioMeasure()));
-  });
-
-  server.Post("/audio/wizard", [context](const httplib::Request&,
-                                         httplib::Response& response) {
-    if (context.audioWizard == nullptr) {
-      setError(response, 503, "the audio setup wizard is unavailable");
-      return;
-    }
-
-    decorate(context, response);
-    setJson(response, 200, audioWizardToVar(context.audioWizard()));
-  });
-
-  server.Post("/audio/wizard/apply", [context](const httplib::Request&,
-                                               httplib::Response& response) {
-    if (context.audioWizardApply == nullptr) {
-      setError(response, 503, "the audio setup wizard is unavailable");
-      return;
-    }
-
-    std::string error;
-
-    if (!context.audioWizardApply(error)) {
-      setError(response, 400,
-               error.empty() ? "could not apply the recommended setup" : error);
-      return;
-    }
-
-    context.state.notifyChanged("device", -1);
-
-    decorate(context, response);
-
-    const auto audio = context.audioProvider != nullptr
-                           ? context.audioProvider()
-                           : AudioStateSnapshot{};
-
-    setJson(response, 200, audioStateToVar(audio));
-  });
+            setJson(response, 200, audioStateToVar(audio));
+        });
 }
 
 }  // namespace Api::Routes

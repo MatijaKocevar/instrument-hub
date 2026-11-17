@@ -12,181 +12,170 @@ bool sameRate(double a, double b) { return std::abs(a - b) < 0.5; }
 
 juce::AudioDeviceManager::AudioDeviceSetup DeviceManager::makeNativeSetup(
     const DeviceSetup& setup) const {
-  juce::AudioDeviceManager::AudioDeviceSetup native;
-  native.inputDeviceName = setup.inputDeviceName;
-  native.outputDeviceName = setup.outputDeviceName;
-  native.sampleRate = setup.sampleRate;
-  native.bufferSize = setup.bufferSize;
-  native.useDefaultInputChannels = false;
-  native.useDefaultOutputChannels = false;
+    juce::AudioDeviceManager::AudioDeviceSetup native;
+    native.inputDeviceName = setup.inputDeviceName;
+    native.outputDeviceName = setup.outputDeviceName;
+    native.sampleRate = setup.sampleRate;
+    native.bufferSize = setup.bufferSize;
+    native.useDefaultInputChannels = false;
+    native.useDefaultOutputChannels = false;
 
-  native.inputChannels = setup.inputChannels;
+    native.inputChannels = setup.inputChannels;
 
-  if (native.inputChannels.isZero() && setup.inputDeviceName.isNotEmpty())
-    native.inputChannels = DeviceSetup::channelMask(setup.numInputChannels);
+    if (native.inputChannels.isZero() && setup.inputDeviceName.isNotEmpty())
+        native.inputChannels = DeviceSetup::channelMask(setup.numInputChannels);
 
-  native.outputChannels = setup.outputChannels;
+    native.outputChannels = setup.outputChannels;
 
-  if (native.outputChannels.isZero() && setup.outputDeviceName.isNotEmpty())
-    native.outputChannels = DeviceSetup::channelMask(setup.numOutputChannels);
+    if (native.outputChannels.isZero() && setup.outputDeviceName.isNotEmpty())
+        native.outputChannels = DeviceSetup::channelMask(setup.numOutputChannels);
 
-  return native;
+    return native;
 }
 
-bool DeviceManager::applyNativeSetup(
-    const juce::AudioDeviceManager::AudioDeviceSetup& native,
-    juce::String* errorMessage) {
-  const auto error = deviceManager.setAudioDeviceSetup(native, true);
-  const bool open = deviceManager.getCurrentAudioDevice() != nullptr;
+bool DeviceManager::applyNativeSetup(const juce::AudioDeviceManager::AudioDeviceSetup& native,
+                                     juce::String* errorMessage) {
+    const auto error = deviceManager.setAudioDeviceSetup(native, true);
+    const bool open = deviceManager.getCurrentAudioDevice() != nullptr;
 
-  if (errorMessage != nullptr) {
-    if (error.isNotEmpty())
-      *errorMessage = detail::describeDeviceError(error);
-    else if (!open)
-      *errorMessage = "no audio device was opened";
-  }
+    if (errorMessage != nullptr) {
+        if (error.isNotEmpty())
+            *errorMessage = detail::describeDeviceError(error);
+        else if (!open)
+            *errorMessage = "no audio device was opened";
+    }
 
-  return error.isEmpty() && open;
+    return error.isEmpty() && open;
 }
 
 bool DeviceManager::open(const DeviceSetup& setup, juce::String* errorMessage) {
-  ensureInitialised();
+    ensureInitialised();
 
-  if (setup.inputDeviceName.isEmpty() && setup.outputDeviceName.isEmpty()) {
-    if (errorMessage != nullptr)
-      *errorMessage = "no input or output device name given";
+    if (setup.inputDeviceName.isEmpty() && setup.outputDeviceName.isEmpty()) {
+        if (errorMessage != nullptr) *errorMessage = "no input or output device name given";
 
-    return false;
-  }
-
-  auto typeName = setup.deviceTypeName;
-
-  if (typeName.isEmpty()) typeName = deviceManager.getCurrentAudioDeviceType();
-
-  if (findDeviceType(typeName) == nullptr) {
-    const auto available = getDeviceTypeNames();
-
-    if (available.isEmpty()) {
-      if (errorMessage != nullptr)
-        *errorMessage = "no audio device types are available";
-
-      return false;
+        return false;
     }
 
-    typeName = available[0];
-  }
+    auto typeName = setup.deviceTypeName;
 
-  if (deviceManager.getCurrentAudioDeviceType() != typeName) {
-    deviceManager.setCurrentAudioDeviceType(typeName, true);
-  }
+    if (typeName.isEmpty()) typeName = deviceManager.getCurrentAudioDeviceType();
 
-  auto resolved = setup;
-  resolved.deviceTypeName = typeName;
-  resolved.outputDeviceName =
-      resolveListedName(typeName, setup.outputDeviceName);
+    if (findDeviceType(typeName) == nullptr) {
+        const auto available = getDeviceTypeNames();
 
-  if (setup.inputDeviceName.isNotEmpty())
-    resolved.inputDeviceName =
-        setup.inputDeviceName == setup.outputDeviceName
-            ? resolved.outputDeviceName
-            : resolveListedName(typeName, setup.inputDeviceName);
+        if (available.isEmpty()) {
+            if (errorMessage != nullptr) *errorMessage = "no audio device types are available";
 
-  if (typeName != "JACK") {
-    jackQuantum.restore();
-  } else {
-    juce::String quantumError;
+            return false;
+        }
 
-    if (!jackQuantum.apply(resolved.bufferSize, &quantumError)) {
-      if (errorMessage != nullptr) *errorMessage = quantumError;
-
-      return false;
+        typeName = available[0];
     }
-  }
 
-  if (!applyNativeSetup(makeNativeSetup(resolved), errorMessage)) {
-    if (typeName == "JACK") jackQuantum.restore();
+    if (deviceManager.getCurrentAudioDeviceType() != typeName) {
+        deviceManager.setCurrentAudioDeviceType(typeName, true);
+    }
 
-    return false;
-  }
+    auto resolved = setup;
+    resolved.deviceTypeName = typeName;
+    resolved.outputDeviceName = resolveListedName(typeName, setup.outputDeviceName);
 
-  currentDisplayName = setup.outputDeviceName.isNotEmpty()
-                           ? setup.outputDeviceName
-                           : setup.inputDeviceName;
-  cardCacheValid = false;
-  return true;
+    if (setup.inputDeviceName.isNotEmpty())
+        resolved.inputDeviceName = setup.inputDeviceName == setup.outputDeviceName
+                                       ? resolved.outputDeviceName
+                                       : resolveListedName(typeName, setup.inputDeviceName);
+
+    if (typeName != "JACK") {
+        jackQuantum.restore();
+    } else {
+        juce::String quantumError;
+
+        if (!jackQuantum.apply(resolved.bufferSize, &quantumError)) {
+            if (errorMessage != nullptr) *errorMessage = quantumError;
+
+            return false;
+        }
+    }
+
+    if (!applyNativeSetup(makeNativeSetup(resolved), errorMessage)) {
+        if (typeName == "JACK") jackQuantum.restore();
+
+        return false;
+    }
+
+    currentDisplayName =
+        setup.outputDeviceName.isNotEmpty() ? setup.outputDeviceName : setup.inputDeviceName;
+    cardCacheValid = false;
+    return true;
 }
 
-bool DeviceManager::setDevice(const DeviceSetup& setup,
-                              juce::String* errorMessage) {
-  return open(setup, errorMessage);
+bool DeviceManager::setDevice(const DeviceSetup& setup, juce::String* errorMessage) {
+    return open(setup, errorMessage);
 }
 
 bool DeviceManager::setBufferSize(int bufferSize, juce::String* errorMessage) {
-  if (!isOpen()) {
-    if (errorMessage != nullptr) *errorMessage = "no audio device is open";
+    if (!isOpen()) {
+        if (errorMessage != nullptr) *errorMessage = "no audio device is open";
 
-    return false;
-  }
+        return false;
+    }
 
-  if (getCurrentDeviceTypeName() == "JACK") {
-    if (getCurrentBufferSize() == bufferSize) return true;
+    if (getCurrentDeviceTypeName() == "JACK") {
+        if (getCurrentBufferSize() == bufferSize) return true;
 
-    if (errorMessage != nullptr)
-      *errorMessage = "restart the app to change the JACK buffer size";
+        if (errorMessage != nullptr)
+            *errorMessage = "restart the app to change the JACK buffer size";
 
-    return false;
-  }
+        return false;
+    }
 
-  auto native = deviceManager.getAudioDeviceSetup();
+    auto native = deviceManager.getAudioDeviceSetup();
 
-  if (native.bufferSize == bufferSize && getCurrentBufferSize() == bufferSize)
+    if (native.bufferSize == bufferSize && getCurrentBufferSize() == bufferSize) return true;
+
+    native.bufferSize = bufferSize;
+
+    if (!applyNativeSetup(native, errorMessage)) return false;
+
+    const int actual = getCurrentBufferSize();
+
+    if (actual != bufferSize) {
+        if (errorMessage != nullptr)
+            *errorMessage = "device selected " + juce::String(actual) + " samples instead of " +
+                            juce::String(bufferSize);
+
+        return false;
+    }
+
     return true;
-
-  native.bufferSize = bufferSize;
-
-  if (!applyNativeSetup(native, errorMessage)) return false;
-
-  const int actual = getCurrentBufferSize();
-
-  if (actual != bufferSize) {
-    if (errorMessage != nullptr)
-      *errorMessage = "device selected " + juce::String(actual) +
-                      " samples instead of " + juce::String(bufferSize);
-
-    return false;
-  }
-
-  return true;
 }
 
-bool DeviceManager::setSampleRate(double sampleRate,
-                                  juce::String* errorMessage) {
-  if (!isOpen()) {
-    if (errorMessage != nullptr) *errorMessage = "no audio device is open";
+bool DeviceManager::setSampleRate(double sampleRate, juce::String* errorMessage) {
+    if (!isOpen()) {
+        if (errorMessage != nullptr) *errorMessage = "no audio device is open";
 
-    return false;
-  }
+        return false;
+    }
 
-  auto native = deviceManager.getAudioDeviceSetup();
+    auto native = deviceManager.getAudioDeviceSetup();
 
-  if (sameRate(native.sampleRate, sampleRate) &&
-      sameRate(getCurrentSampleRate(), sampleRate))
+    if (sameRate(native.sampleRate, sampleRate) && sameRate(getCurrentSampleRate(), sampleRate))
+        return true;
+
+    native.sampleRate = sampleRate;
+
+    if (!applyNativeSetup(native, errorMessage)) return false;
+
+    if (!sameRate(getCurrentSampleRate(), sampleRate)) {
+        if (errorMessage != nullptr)
+            *errorMessage = "device selected " + juce::String(getCurrentSampleRate()) +
+                            " Hz instead of " + juce::String(sampleRate) + " Hz";
+
+        return false;
+    }
+
     return true;
-
-  native.sampleRate = sampleRate;
-
-  if (!applyNativeSetup(native, errorMessage)) return false;
-
-  if (!sameRate(getCurrentSampleRate(), sampleRate)) {
-    if (errorMessage != nullptr)
-      *errorMessage = "device selected " +
-                      juce::String(getCurrentSampleRate()) + " Hz instead of " +
-                      juce::String(sampleRate) + " Hz";
-
-    return false;
-  }
-
-  return true;
 }
 
 }  // namespace AudioEngine

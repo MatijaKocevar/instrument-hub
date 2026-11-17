@@ -6,16 +6,16 @@ namespace ihub::plugins {
 class SandboxHost;
 
 class SandboxWatchdog final : public juce::Thread {
- public:
-  SandboxWatchdog(SandboxHost& hostToWatch, int timeoutMs);
+public:
+    SandboxWatchdog(SandboxHost& hostToWatch, int timeoutMs);
 
-  void run() override;
+    void run() override;
 
- private:
-  SandboxHost& host;
-  const int hangTimeoutMs;
+private:
+    SandboxHost& host;
+    const int hangTimeoutMs;
 
-  JUCE_DECLARE_NON_COPYABLE(SandboxWatchdog)
+    JUCE_DECLARE_NON_COPYABLE(SandboxWatchdog)
 };
 
 }  // namespace ihub::plugins

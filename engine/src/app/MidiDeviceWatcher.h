@@ -12,20 +12,20 @@ class StateStore;
 namespace ihub::app {
 
 class MidiDeviceWatcher final : private juce::Timer {
- public:
-  static constexpr int pollIntervalMs = 1500;
+public:
+    static constexpr int pollIntervalMs = 1500;
 
-  explicit MidiDeviceWatcher(Api::StateStore& stateToUse);
-  ~MidiDeviceWatcher() override;
+    explicit MidiDeviceWatcher(Api::StateStore& stateToUse);
+    ~MidiDeviceWatcher() override;
 
-  MidiDeviceWatcher(const MidiDeviceWatcher&) = delete;
-  MidiDeviceWatcher& operator=(const MidiDeviceWatcher&) = delete;
+    MidiDeviceWatcher(const MidiDeviceWatcher&) = delete;
+    MidiDeviceWatcher& operator=(const MidiDeviceWatcher&) = delete;
 
- private:
-  void timerCallback() override;
+private:
+    void timerCallback() override;
 
-  Api::StateStore& state;
-  std::vector<std::string> knownIds;
+    Api::StateStore& state;
+    std::vector<std::string> knownIds;
 };
 
 }  // namespace ihub::app

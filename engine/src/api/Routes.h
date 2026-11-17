@@ -15,26 +15,22 @@ std::string toJson(const juce::var& value);
 
 void setJson(httplib::Response& response, int status, const juce::var& value);
 
-void setError(httplib::Response& response, int status,
-              const std::string& message);
+void setError(httplib::Response& response, int status, const std::string& message);
 
 void addCorsHeaders(httplib::Response& response);
 
-bool parseJsonObject(const httplib::Request& request, juce::var& result,
-                     std::string& error);
+bool parseJsonObject(const httplib::Request& request, juce::var& result, std::string& error);
 
 namespace detail {
 bool isNumber(const juce::var& value) noexcept;
 
-bool readNumber(const juce::var& value, const char* name, double minimum,
-                double maximum, double& destination, std::string& error);
+bool readNumber(const juce::var& value, const char* name, double minimum, double maximum,
+                double& destination, std::string& error);
 
-bool readBool(const juce::var& value, const char* name, bool& destination,
-              std::string& error);
+bool readBool(const juce::var& value, const char* name, bool& destination, std::string& error);
 
 bool readInteger(const juce::var& value, const char* name, std::int64_t minimum,
-                 std::int64_t maximum, std::int64_t& destination,
-                 std::string& error);
+                 std::int64_t maximum, std::int64_t& destination, std::string& error);
 }  // namespace detail
 
 juce::var stateToVar(const StateSnapshot& state);
@@ -56,31 +52,31 @@ juce::var projectDialogStatusToVar(const ProjectDialogStatus& status);
 juce::var midiStateToVar(const MidiStateSnapshot& midi);
 
 struct RouteContext {
-  StateStore& state;
+    StateStore& state;
 
-  std::function<void(httplib::Response&)> decorate;
+    std::function<void(httplib::Response&)> decorate;
 
-  AudioStateProvider audioProvider;
-  AudioApplyHandler audioApply;
-  AudioMeasureHandler audioMeasure;
-  AudioMeasureHandler audioMeasureDevice;
-  AudioWizardHandler audioWizard;
-  AudioWizardApplyHandler audioWizardApply;
+    AudioStateProvider audioProvider;
+    AudioApplyHandler audioApply;
+    AudioMeasureHandler audioMeasure;
+    AudioMeasureHandler audioMeasureDevice;
+    AudioWizardHandler audioWizard;
+    AudioWizardApplyHandler audioWizardApply;
 
-  PairingManager* pairing = nullptr;
+    PairingManager* pairing = nullptr;
 
-  std::function<PairingSnapshot(bool)> setLanMode;
+    std::function<PairingSnapshot(bool)> setLanMode;
 
-  PluginInventoryProvider pluginProvider;
-  PluginRescanHandler pluginRescan;
+    PluginInventoryProvider pluginProvider;
+    PluginRescanHandler pluginRescan;
 
-  MidiStateProvider midiProvider;
-  MidiInputHandler midiUpdateInput;
+    MidiStateProvider midiProvider;
+    MidiInputHandler midiUpdateInput;
 
-  ProjectOverviewProvider projectProvider;
-  ProjectCommandHandler projectCommand;
-  ProjectDialogBeginHandler projectDialogBegin;
-  ProjectDialogPollHandler projectDialogPoll;
+    ProjectOverviewProvider projectProvider;
+    ProjectCommandHandler projectCommand;
+    ProjectDialogBeginHandler projectDialogBegin;
+    ProjectDialogPollHandler projectDialogPoll;
 };
 
 void registerRoutes(httplib::Server& server, RouteContext context);

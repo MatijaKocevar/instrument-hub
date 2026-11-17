@@ -4,8 +4,7 @@
 
 namespace Controller::MappingDetail {
 
-bool decodeDocument(const YamlValue& root, SetMapping& out,
-                    MappingError& error);
+bool decodeDocument(const YamlValue& root, SetMapping& out, MappingError& error);
 
 bool decodeTracks(const YamlValue& root, SetMapping& out, MappingError& error);
 
@@ -13,8 +12,7 @@ bool decodeMacros(const YamlValue& root, SetMapping& out, MappingError& error);
 
 bool decodePads(const YamlValue& root, SetMapping& out, MappingError& error);
 
-bool decodeEncoders(const YamlValue& root, SetMapping& out,
-                    MappingError& error);
+bool decodeEncoders(const YamlValue& root, SetMapping& out, MappingError& error);
 
 bool decodeBanks(const YamlValue& root, SetMapping& out, MappingError& error);
 

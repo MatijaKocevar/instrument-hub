@@ -15,158 +15,147 @@ constexpr double defaultFrequencies[] = {110.0,  123.47, 138.59, 146.83,
 }
 
 const char* toString(SessionSlotKind kind) noexcept {
-  switch (kind) {
-    case SessionSlotKind::empty:
-      return "empty";
-    case SessionSlotKind::initTone:
-      return "init-tone";
-    case SessionSlotKind::sampler:
-      return "sampler";
-    case SessionSlotKind::plugin:
-      return "plugin";
-    case SessionSlotKind::audioInput:
-      return "audio-input";
-  }
+    switch (kind) {
+        case SessionSlotKind::empty:
+            return "empty";
+        case SessionSlotKind::initTone:
+            return "init-tone";
+        case SessionSlotKind::sampler:
+            return "sampler";
+        case SessionSlotKind::plugin:
+            return "plugin";
+        case SessionSlotKind::audioInput:
+            return "audio-input";
+    }
 
-  return "empty";
+    return "empty";
 }
 
 const char* toString(SessionWarmState state) noexcept {
-  switch (state) {
-    case SessionWarmState::cold:
-      return "cold";
-    case SessionWarmState::warming:
-      return "warming";
-    case SessionWarmState::warm:
-      return "warm";
-    case SessionWarmState::active:
-      return "active";
-    case SessionWarmState::fading:
-      return "fading";
-  }
+    switch (state) {
+        case SessionWarmState::cold:
+            return "cold";
+        case SessionWarmState::warming:
+            return "warming";
+        case SessionWarmState::warm:
+            return "warm";
+        case SessionWarmState::active:
+            return "active";
+        case SessionWarmState::fading:
+            return "fading";
+    }
 
-  return "cold";
+    return "cold";
 }
 
 const char* toString(SessionLayout layout) noexcept {
-  (void)layout;
-  return "tracks";
+    (void)layout;
+    return "tracks";
 }
 
 Session::Session() {
-  config.slots = makeDefaultSet();
-  pluginMirrors.resize(defaultLogicalSlots);
-  slotErrors.resize(defaultLogicalSlots);
-  sandboxGenerations.resize(defaultLogicalSlots);
-  pluginReloadRevisions.resize(defaultLogicalSlots);
-  pageSlotHandles.assign(defaultLogicalSlots, nullptr);
-  loadAbort = std::make_shared<std::atomic<bool>>(false);
+    config.slots = makeDefaultSet();
+    pluginMirrors.resize(defaultLogicalSlots);
+    slotErrors.resize(defaultLogicalSlots);
+    sandboxGenerations.resize(defaultLogicalSlots);
+    pluginReloadRevisions.resize(defaultLogicalSlots);
+    pageSlotHandles.assign(defaultLogicalSlots, nullptr);
+    loadAbort = std::make_shared<std::atomic<bool>>(false);
 
-  editorHost = std::make_unique<session::EditorHost>(
-      defaultLogicalSlots,
-      [this](int slot, SessionSlotConfig& slotConfig) {
-        const std::lock_guard<std::mutex> lock(sourceMutex);
+    editorHost = std::make_unique<session::EditorHost>(
+        defaultLogicalSlots,
+        [this](int slot, SessionSlotConfig& slotConfig) {
+            const std::lock_guard<std::mutex> lock(sourceMutex);
 
-        if (slot < 0 || slot >= static_cast<int>(sourceConfigs.size()))
-          return false;
+            if (slot < 0 || slot >= static_cast<int>(sourceConfigs.size())) return false;
 
-        slotConfig = sourceConfigs[static_cast<std::size_t>(slot)];
-        return true;
-      },
-      [this](int slot) { return pluginState.getInstrument(slot); },
-      [this](int slot) {
-        (void)capturePluginState(slot);
-        syncMirrorState(slot);
-      });
+            slotConfig = sourceConfigs[static_cast<std::size_t>(slot)];
+            return true;
+        },
+        [this](int slot) { return pluginState.getInstrument(slot); },
+        [this](int slot) {
+            (void)capturePluginState(slot);
+            syncMirrorState(slot);
+        });
 
-  mirrorSync = std::make_unique<session::MirrorSync>(
-      defaultLogicalSlots,
-      [this](int slot) { return getSandboxSlotControl(slot); });
+    mirrorSync = std::make_unique<session::MirrorSync>(
+        defaultLogicalSlots, [this](int slot) { return getSandboxSlotControl(slot); });
 }
 
 Session::~Session() {
-  beginShutdown();
-  closeDevice();
+    beginShutdown();
+    closeDevice();
 
-  if (editorHost != nullptr) editorHost->closeAll();
+    if (editorHost != nullptr) editorHost->closeAll();
 
-  if (mirrorSync != nullptr) mirrorSync->shutdown();
+    if (mirrorSync != nullptr) mirrorSync->shutdown();
 
-  releaseAllPluginMirrors();
-  warmPool.shutdown();
-  resetPageHost();
-  switcher.reset();
-  engine.reset();
-  fxChain.reset();
-  warmPool.clearVoices();
-  pluginFormats.reset();
-  mirrorSync.reset();
-  editorHost.reset();
+    releaseAllPluginMirrors();
+    warmPool.shutdown();
+    resetPageHost();
+    switcher.reset();
+    engine.reset();
+    fxChain.reset();
+    warmPool.clearVoices();
+    pluginFormats.reset();
+    mirrorSync.reset();
+    editorHost.reset();
 }
 
-std::vector<SessionSlotConfig> Session::makeDefaultSet(
-    SessionSlotKind defaultKind) {
-  std::vector<SessionSlotConfig> slots;
-  slots.reserve(static_cast<std::size_t>(defaultTrackSlots));
+std::vector<SessionSlotConfig> Session::makeDefaultSet(SessionSlotKind defaultKind) {
+    std::vector<SessionSlotConfig> slots;
+    slots.reserve(static_cast<std::size_t>(defaultTrackSlots));
 
-  for (int index = 0; index < defaultTrackSlots; ++index) {
-    SessionSlotConfig slot;
-    slot.name = "Track " + std::to_string(index + 1);
-    slot.kind = defaultKind;
-    slot.instrumentKind = toString(defaultKind);
-    slot.gain = 1.0f;
+    for (int index = 0; index < defaultTrackSlots; ++index) {
+        SessionSlotConfig slot;
+        slot.name = "Track " + std::to_string(index + 1);
+        slot.kind = defaultKind;
+        slot.instrumentKind = toString(defaultKind);
+        slot.gain = 1.0f;
 
-    slots.push_back(std::move(slot));
-  }
+        slots.push_back(std::move(slot));
+    }
 
-  return slots;
+    return slots;
 }
 
-int Session::getNumSlots() const noexcept {
-  return engine != nullptr ? engine->getNumSlots() : 0;
-}
+int Session::getNumSlots() const noexcept { return engine != nullptr ? engine->getNumSlots() : 0; }
 
 AudioEngine::AudioEngine& Session::getEngine() noexcept {
-  jassert(engine != nullptr);
-  return *engine;
+    jassert(engine != nullptr);
+    return *engine;
 }
 
 const AudioEngine::AudioEngine& Session::getEngine() const noexcept {
-  jassert(engine != nullptr);
-  return *engine;
+    jassert(engine != nullptr);
+    return *engine;
 }
 
 AudioEngine::SlotSwitcher& Session::getSwitcher() noexcept {
-  jassert(switcher != nullptr);
-  return *switcher;
+    jassert(switcher != nullptr);
+    return *switcher;
 }
 
 const AudioEngine::SlotSwitcher& Session::getSwitcher() const noexcept {
-  jassert(switcher != nullptr);
-  return *switcher;
+    jassert(switcher != nullptr);
+    return *switcher;
 }
 
 int Session::getSlotLatencySamples(int slot) const noexcept {
-  if (engine == nullptr || slot < 0 || slot >= engine->getNumSlots()) return 0;
+    if (engine == nullptr || slot < 0 || slot >= engine->getNumSlots()) return 0;
 
-  return engine->getSlot(slot).latencySamples();
+    return engine->getSlot(slot).latencySamples();
 }
 
 std::vector<SessionSlotConfig> Session::copySourceConfigs() const {
-  const std::lock_guard<std::mutex> lock(sourceMutex);
-  return sourceConfigs;
+    const std::lock_guard<std::mutex> lock(sourceMutex);
+    return sourceConfigs;
 }
 
-float Session::getSlotMeterPeak(int slot) const noexcept {
-  return meters.getSlotPeak(slot);
-}
+float Session::getSlotMeterPeak(int slot) const noexcept { return meters.getSlotPeak(slot); }
 
-float Session::getMasterMeterPeak() const noexcept {
-  return meters.getMasterPeak();
-}
+float Session::getMasterMeterPeak() const noexcept { return meters.getMasterPeak(); }
 
-int Session::getNeighbourCount() const noexcept {
-  return config.neighbourCount;
-}
+int Session::getNeighbourCount() const noexcept { return config.neighbourCount; }
 
 }  // namespace ihub

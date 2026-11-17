@@ -23,212 +23,187 @@ namespace ihub::app {
 ControlApi::ControlApi() = default;
 
 ControlApi::~ControlApi() {
-  stopServer();
-  detachMidi();
-  resetServer();
-  resetAudio();
+    stopServer();
+    detachMidi();
+    resetServer();
+    resetAudio();
 }
 
-bool ControlApi::start(const juce::String& commandLine, ihub::Session* session,
-                       bool required, const juce::File& projectFile,
-                       std::function<void()> midiRestore,
+bool ControlApi::start(const juce::String& commandLine, ihub::Session* session, bool required,
+                       const juce::File& projectFile, std::function<void()> midiRestore,
                        ihub::settings::SettingsStore* settings,
-                       const Api::AudioRestoreState& audioRestore,
-                       bool persistProjectPath,
+                       const Api::AudioRestoreState& audioRestore, bool persistProjectPath,
                        std::function<void(const juce::File&)> projectOpened) {
-  Api::Server::Options options;
+    Api::Server::Options options;
 
-  if (const auto port = getCommandLineValue(commandLine, "--api-port");
-      port.isNotEmpty())
-    options.port = port.getIntValue();
+    if (const auto port = getCommandLineValue(commandLine, "--api-port"); port.isNotEmpty())
+        options.port = port.getIntValue();
 
-  if (const auto address = getCommandLineValue(commandLine, "--api-host");
-      address.isNotEmpty())
-    options.address = address.toStdString();
+    if (const auto address = getCommandLineValue(commandLine, "--api-host"); address.isNotEmpty())
+        options.address = address.toStdString();
 
-  options.authToken =
-      getCommandLineValue(commandLine, "--api-token").toStdString();
-  options.lanMode =
-      commandLine.contains("--lan") || commandLine.contains("--lan-mode");
+    options.authToken = getCommandLineValue(commandLine, "--api-token").toStdString();
+    options.lanMode = commandLine.contains("--lan") || commandLine.contains("--lan-mode");
 
-  const int apiSlots = session != nullptr ? session->getNumSlots()
-                                          : ihub::Session::defaultLogicalSlots;
-  apiState = std::make_unique<Api::StateStore>(apiSlots, settings);
-  apiServer = std::make_unique<Api::Server>(*apiState, options);
-  projectDialog = std::make_unique<ProjectDialog>();
-  apiServer->setProjectDialogHandlers(
-      [this](const Api::ProjectDialogRequest& request, std::uint64_t& id,
-             std::string& error) {
-        return projectDialog != nullptr &&
-               projectDialog->begin(request, id, error);
-      },
-      [this](std::uint64_t id, Api::ProjectDialogStatus& status,
-             std::string& error) {
-        return projectDialog != nullptr &&
-               projectDialog->poll(id, status, error);
-      });
-  pluginInventory = std::make_unique<ihub::plugins::PluginInventory>();
-  Api::attachPluginInventory(*apiServer, *pluginInventory);
+    const int apiSlots =
+        session != nullptr ? session->getNumSlots() : ihub::Session::defaultLogicalSlots;
+    apiState = std::make_unique<Api::StateStore>(apiSlots, settings);
+    apiServer = std::make_unique<Api::Server>(*apiState, options);
+    projectDialog = std::make_unique<ProjectDialog>();
+    apiServer->setProjectDialogHandlers(
+        [this](const Api::ProjectDialogRequest& request, std::uint64_t& id, std::string& error) {
+            return projectDialog != nullptr && projectDialog->begin(request, id, error);
+        },
+        [this](std::uint64_t id, Api::ProjectDialogStatus& status, std::string& error) {
+            return projectDialog != nullptr && projectDialog->poll(id, status, error);
+        });
+    pluginInventory = std::make_unique<ihub::plugins::PluginInventory>();
+    Api::attachPluginInventory(*apiServer, *pluginInventory);
 
-  const auto inventory = pluginInventory->snapshot();
+    const auto inventory = pluginInventory->snapshot();
 
-  if (inventory.scanned) {
-    std::cout << "plugins: " << inventory.total
-              << " installed VST3 type(s) in the inventory" << std::endl;
-  } else if (pluginInventory->requestRescan()) {
-    std::cout << "plugins: scanning VST3 directories in the background"
-              << std::endl;
-  }
-
-  midiBridge = std::make_unique<Api::MidiBridge>();
-  midiBridge->setSettingsStore(settings);
-  midiBridge->setRestoreHandler(std::move(midiRestore));
-
-  if (session != nullptr)
-    midiBridge->setMidiSink([session](const juce::MidiMessage& message) {
-      return session != nullptr && session->pushMidi(message);
-    });
-
-  apiServer->setMidiHandlers(
-      [this] { return midiBridge->snapshot(); },
-      [this](const Api::MidiInputPatch& patch, std::string& error) {
-        return midiBridge->updateInput(patch, error);
-      });
-
-  midiDeviceWatcher = std::make_unique<MidiDeviceWatcher>(*apiState);
-
-  audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
-  audioSettings->setSettingsStore(settings);
-  audioSettings->setRestoreState(audioRestore);
-
-  if (session != nullptr) {
-    audioSettings->setDeviceManager(&session->getDevices());
-    Api::attachSession(*apiState, *apiServer, *session);
-    audioSettings->setTimingMonitor(&session->getEngine().getTimingMonitor());
-
-    projectLifecycle = std::make_unique<ProjectLifecycle>(*session, *apiState,
-                                                          *apiServer, settings);
-    projectLifecycle->setOpenedHandler(std::move(projectOpened));
-
-    if (projectFile != juce::File()) {
-      juce::String projectError;
-
-      if (projectLifecycle->attach(projectFile, persistProjectPath,
-                                   projectError))
-        std::cout << "project: autosave targets "
-                  << projectFile.getFullPathName() << std::endl;
-      else
-        std::cerr << "project: autosave is off: " << projectError << std::endl;
+    if (inventory.scanned) {
+        std::cout << "plugins: " << inventory.total << " installed VST3 type(s) in the inventory"
+                  << std::endl;
+    } else if (pluginInventory->requestRescan()) {
+        std::cout << "plugins: scanning VST3 directories in the background" << std::endl;
     }
-  }
 
-  if (session == nullptr && (commandLine.contains("--audio") ||
-                             commandLine.contains("--audio-loopback"))) {
-    juce::String audioError;
+    midiBridge = std::make_unique<Api::MidiBridge>();
+    midiBridge->setSettingsStore(settings);
+    midiBridge->setRestoreHandler(std::move(midiRestore));
 
-    if (audioSettings->openLoopback(&audioError)) {
-      std::cout << "audio: opened Loopback at "
-                << audioSettings->snapshot().sampleRate << " Hz / "
-                << audioSettings->snapshot().bufferSize << " frames"
-                << std::endl;
-    } else {
-      std::cerr << "audio: could not open the Loopback device: " << audioError
-                << std::endl;
+    if (session != nullptr)
+        midiBridge->setMidiSink([session](const juce::MidiMessage& message) {
+            return session != nullptr && session->pushMidi(message);
+        });
+
+    apiServer->setMidiHandlers([this] { return midiBridge->snapshot(); },
+                               [this](const Api::MidiInputPatch& patch, std::string& error) {
+                                   return midiBridge->updateInput(patch, error);
+                               });
+
+    midiDeviceWatcher = std::make_unique<MidiDeviceWatcher>(*apiState);
+
+    audioSettings = std::make_unique<AudioEngine::AudioSettingsBridge>();
+    audioSettings->setSettingsStore(settings);
+    audioSettings->setRestoreState(audioRestore);
+
+    if (session != nullptr) {
+        audioSettings->setDeviceManager(&session->getDevices());
+        Api::attachSession(*apiState, *apiServer, *session);
+        audioSettings->setTimingMonitor(&session->getEngine().getTimingMonitor());
+
+        projectLifecycle =
+            std::make_unique<ProjectLifecycle>(*session, *apiState, *apiServer, settings);
+        projectLifecycle->setOpenedHandler(std::move(projectOpened));
+
+        if (projectFile != juce::File()) {
+            juce::String projectError;
+
+            if (projectLifecycle->attach(projectFile, persistProjectPath, projectError))
+                std::cout << "project: autosave targets " << projectFile.getFullPathName()
+                          << std::endl;
+            else
+                std::cerr << "project: autosave is off: " << projectError << std::endl;
+        }
     }
-  }
 
-  const auto measureDevice = [session] {
-    if (session != nullptr && session->getDevices().isOpen())
-      return session->measureLatency();
+    if (session == nullptr &&
+        (commandLine.contains("--audio") || commandLine.contains("--audio-loopback"))) {
+        juce::String audioError;
 
-    Api::AudioMeasurementState measurement;
-    measurement.error = "the audio device is not open";
-    return measurement;
-  };
+        if (audioSettings->openLoopback(&audioError)) {
+            std::cout << "audio: opened Loopback at " << audioSettings->snapshot().sampleRate
+                      << " Hz / " << audioSettings->snapshot().bufferSize << " frames" << std::endl;
+        } else {
+            std::cerr << "audio: could not open the Loopback device: " << audioError << std::endl;
+        }
+    }
 
-  audioSettings->setDeviceMeasureHandler(measureDevice);
+    const auto measureDevice = [session] {
+        if (session != nullptr && session->getDevices().isOpen()) return session->measureLatency();
 
-  apiServer->setAudioHandlers(
-      [this] { return audioSettings->snapshot(); },
-      [this](const Api::AudioSettingsPatch& patch, std::string& error) {
-        return audioSettings->apply(patch, error);
-      },
-      [this] { return audioSettings->measure(); }, measureDevice);
+        Api::AudioMeasurementState measurement;
+        measurement.error = "the audio device is not open";
+        return measurement;
+    };
 
-  apiServer->setAudioWizardHandlers(
-      [this] { return audioSettings->recommendSetup(); },
-      [this](std::string& error) {
-        return audioSettings->applyRecommendation(error);
-      });
+    audioSettings->setDeviceMeasureHandler(measureDevice);
 
-  if (!apiServer->start()) {
-    std::cerr << "api: FAILED to bind " << options.address << ":"
-              << options.port
-              << (apiServer->hasAuthToken() ? " (auth enabled)" : "")
-              << std::endl;
-    resetProject();
-    apiServer.reset();
-    midiBridge.reset();
-    audioSettings.reset();
-    apiState.reset();
+    apiServer->setAudioHandlers([this] { return audioSettings->snapshot(); },
+                                [this](const Api::AudioSettingsPatch& patch, std::string& error) {
+                                    return audioSettings->apply(patch, error);
+                                },
+                                [this] { return audioSettings->measure(); }, measureDevice);
 
-    if (!required)
-      std::cerr << "api: continuing without the control server" << std::endl;
+    apiServer->setAudioWizardHandlers(
+        [this] { return audioSettings->recommendSetup(); },
+        [this](std::string& error) { return audioSettings->applyRecommendation(error); });
 
-    return false;
-  }
+    if (!apiServer->start()) {
+        std::cerr << "api: FAILED to bind " << options.address << ":" << options.port
+                  << (apiServer->hasAuthToken() ? " (auth enabled)" : "") << std::endl;
+        resetProject();
+        apiServer.reset();
+        midiBridge.reset();
+        audioSettings.reset();
+        apiState.reset();
 
-  std::cout << "api: listening on http://" << apiServer->getAddress() << ":"
-            << apiServer->getPort() << " meters=" << options.meterHz << "Hz"
-            << " auth=" << (apiServer->hasAuthToken() ? "enabled" : "disabled")
-            << " lan="
-            << (apiServer->isLanModeEnabled() ? "enabled" : "disabled")
-            << std::endl;
+        if (!required) std::cerr << "api: continuing without the control server" << std::endl;
 
-  return true;
+        return false;
+    }
+
+    std::cout << "api: listening on http://" << apiServer->getAddress() << ":"
+              << apiServer->getPort() << " meters=" << options.meterHz << "Hz"
+              << " auth=" << (apiServer->hasAuthToken() ? "enabled" : "disabled")
+              << " lan=" << (apiServer->isLanModeEnabled() ? "enabled" : "disabled") << std::endl;
+
+    return true;
 }
 
 void ControlApi::stopServer() {
-  if (apiServer != nullptr) apiServer->stop();
+    if (apiServer != nullptr) apiServer->stop();
 }
 
 void ControlApi::detachMidi() {
-  midiDeviceWatcher.reset();
+    midiDeviceWatcher.reset();
 
-  if (midiBridge != nullptr) {
-    midiBridge->setLaunchpad(nullptr);
-    midiBridge.reset();
-  }
+    if (midiBridge != nullptr) {
+        midiBridge->setLaunchpad(nullptr);
+        midiBridge.reset();
+    }
 }
 
 void ControlApi::resetServer() {
-  resetProject();
-  apiServer.reset();
-  projectDialog.reset();
+    resetProject();
+    apiServer.reset();
+    projectDialog.reset();
 }
 
 void ControlApi::resetAudio() {
-  resetProject();
-  audioSettings.reset();
-  apiState.reset();
+    resetProject();
+    audioSettings.reset();
+    apiState.reset();
 }
 
 void ControlApi::resetProject() {
-  if (projectLifecycle != nullptr) {
-    projectLifecycle->shutdown();
-    projectLifecycle.reset();
-  }
+    if (projectLifecycle != nullptr) {
+        projectLifecycle->shutdown();
+        projectLifecycle.reset();
+    }
 
-  if (apiState != nullptr) {
-    apiState->setEditHandler({});
-    apiState->setProjectStateProvider({});
-  }
+    if (apiState != nullptr) {
+        apiState->setEditHandler({});
+        apiState->setProjectStateProvider({});
+    }
 }
 
 void ControlApi::flushProject() {
-  if (projectLifecycle == nullptr) return;
+    if (projectLifecycle == nullptr) return;
 
-  projectLifecycle->flush();
+    projectLifecycle->flush();
 }
 
 }  // namespace ihub::app

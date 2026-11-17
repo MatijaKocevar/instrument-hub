@@ -10,7 +10,7 @@
 namespace ihub::app {
 
 bool saveTrackLayoutToMapping(const std::string& mappingYaml,
-                              const std::vector<Api::TrackConfig>& tracks,
-                              std::string& destination, juce::String& error);
+                              const std::vector<Api::TrackConfig>& tracks, std::string& destination,
+                              juce::String& error);
 
 }

@@ -12,23 +12,23 @@ namespace Api {
 class PairingManager;
 
 class AuthGuard {
- public:
-  explicit AuthGuard(PairingManager& pairing, std::string token = {});
+public:
+    explicit AuthGuard(PairingManager& pairing, std::string token = {});
 
-  AuthGuard(const AuthGuard&) = delete;
-  AuthGuard& operator=(const AuthGuard&) = delete;
+    AuthGuard(const AuthGuard&) = delete;
+    AuthGuard& operator=(const AuthGuard&) = delete;
 
-  void setToken(std::string token);
+    void setToken(std::string token);
 
-  bool hasToken() const;
+    bool hasToken() const;
 
-  bool authorized(const httplib::Request& request) const;
+    bool authorized(const httplib::Request& request) const;
 
- private:
-  PairingManager& pairing;
+private:
+    PairingManager& pairing;
 
-  mutable std::mutex mutex;
-  std::string token;
+    mutable std::mutex mutex;
+    std::string token;
 };
 
 }  // namespace Api

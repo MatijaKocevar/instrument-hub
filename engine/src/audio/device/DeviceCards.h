@@ -7,11 +7,11 @@
 namespace AudioEngine::detail {
 
 struct AlsaCard {
-  juce::String id;
-  juce::String name;
-  juce::String pcmName;
-  int device = 0;
-  bool hasInput = false;
+    juce::String id;
+    juce::String name;
+    juce::String pcmName;
+    int device = 0;
+    bool hasInput = false;
 };
 
 std::vector<AlsaCard> enumerateAlsaCards();

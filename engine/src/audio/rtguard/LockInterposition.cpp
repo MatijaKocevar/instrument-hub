@@ -13,57 +13,56 @@
 extern "C" {
 int __real_pthread_mutex_lock(pthread_mutex_t*);
 int __wrap_pthread_mutex_lock(pthread_mutex_t* mutex) {
-  AudioEngine::RtGuard::noteLock("pthread_mutex_lock");
-  return __real_pthread_mutex_lock(mutex);
+    AudioEngine::RtGuard::noteLock("pthread_mutex_lock");
+    return __real_pthread_mutex_lock(mutex);
 }
 
 int __real_pthread_mutex_trylock(pthread_mutex_t*);
 int __wrap_pthread_mutex_trylock(pthread_mutex_t* mutex) {
-  AudioEngine::RtGuard::noteLock("pthread_mutex_trylock");
-  return __real_pthread_mutex_trylock(mutex);
+    AudioEngine::RtGuard::noteLock("pthread_mutex_trylock");
+    return __real_pthread_mutex_trylock(mutex);
 }
 
 int __real_pthread_mutex_timedlock(pthread_mutex_t*, const struct timespec*);
-int __wrap_pthread_mutex_timedlock(pthread_mutex_t* mutex,
-                                   const struct timespec* timeout) {
-  AudioEngine::RtGuard::noteLock("pthread_mutex_timedlock");
-  return __real_pthread_mutex_timedlock(mutex, timeout);
+int __wrap_pthread_mutex_timedlock(pthread_mutex_t* mutex, const struct timespec* timeout) {
+    AudioEngine::RtGuard::noteLock("pthread_mutex_timedlock");
+    return __real_pthread_mutex_timedlock(mutex, timeout);
 }
 
 int __real_pthread_spin_lock(pthread_spinlock_t*);
 int __wrap_pthread_spin_lock(pthread_spinlock_t* lock) {
-  AudioEngine::RtGuard::noteLock("pthread_spin_lock");
-  return __real_pthread_spin_lock(lock);
+    AudioEngine::RtGuard::noteLock("pthread_spin_lock");
+    return __real_pthread_spin_lock(lock);
 }
 
 int __real_pthread_spin_trylock(pthread_spinlock_t*);
 int __wrap_pthread_spin_trylock(pthread_spinlock_t* lock) {
-  AudioEngine::RtGuard::noteLock("pthread_spin_trylock");
-  return __real_pthread_spin_trylock(lock);
+    AudioEngine::RtGuard::noteLock("pthread_spin_trylock");
+    return __real_pthread_spin_trylock(lock);
 }
 
 int __real_pthread_rwlock_rdlock(pthread_rwlock_t*);
 int __wrap_pthread_rwlock_rdlock(pthread_rwlock_t* lock) {
-  AudioEngine::RtGuard::noteLock("pthread_rwlock_rdlock");
-  return __real_pthread_rwlock_rdlock(lock);
+    AudioEngine::RtGuard::noteLock("pthread_rwlock_rdlock");
+    return __real_pthread_rwlock_rdlock(lock);
 }
 
 int __real_pthread_rwlock_wrlock(pthread_rwlock_t*);
 int __wrap_pthread_rwlock_wrlock(pthread_rwlock_t* lock) {
-  AudioEngine::RtGuard::noteLock("pthread_rwlock_wrlock");
-  return __real_pthread_rwlock_wrlock(lock);
+    AudioEngine::RtGuard::noteLock("pthread_rwlock_wrlock");
+    return __real_pthread_rwlock_wrlock(lock);
 }
 
 int __real_pthread_rwlock_tryrdlock(pthread_rwlock_t*);
 int __wrap_pthread_rwlock_tryrdlock(pthread_rwlock_t* lock) {
-  AudioEngine::RtGuard::noteLock("pthread_rwlock_tryrdlock");
-  return __real_pthread_rwlock_tryrdlock(lock);
+    AudioEngine::RtGuard::noteLock("pthread_rwlock_tryrdlock");
+    return __real_pthread_rwlock_tryrdlock(lock);
 }
 
 int __real_pthread_rwlock_trywrlock(pthread_rwlock_t*);
 int __wrap_pthread_rwlock_trywrlock(pthread_rwlock_t* lock) {
-  AudioEngine::RtGuard::noteLock("pthread_rwlock_trywrlock");
-  return __real_pthread_rwlock_trywrlock(lock);
+    AudioEngine::RtGuard::noteLock("pthread_rwlock_trywrlock");
+    return __real_pthread_rwlock_trywrlock(lock);
 }
 }
 

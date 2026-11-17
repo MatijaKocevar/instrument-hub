@@ -8,8 +8,7 @@ namespace ihub::settings {
 
 bool sameMidiInput(const MidiInput& left, const MidiInput& right);
 
-bool containsMidiInput(const std::vector<MidiInput>& inputs,
-                       const MidiInput& candidate);
+bool containsMidiInput(const std::vector<MidiInput>& inputs, const MidiInput& candidate);
 
 void addMidiInput(std::vector<MidiInput>& inputs, const MidiInput& input);
 

@@ -7,17 +7,16 @@
 namespace ihub::app {
 
 struct ProjectPathResolution {
-  juce::File file;
-  bool fromCommandLine = false;
+    juce::File file;
+    bool fromCommandLine = false;
 };
 
 juce::File defaultProjectFile();
 
 juce::File expandProjectPath(const juce::String& value);
 
-ProjectPathResolution resolveProjectPath(
-    const juce::String& commandLine,
-    const ihub::settings::ProjectSettings& stored);
+ProjectPathResolution resolveProjectPath(const juce::String& commandLine,
+                                         const ihub::settings::ProjectSettings& stored);
 
 juce::File resolveProjectFile(const juce::String& commandLine);
 

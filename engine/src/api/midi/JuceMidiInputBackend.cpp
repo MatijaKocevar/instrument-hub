@@ -16,135 +16,126 @@ std::string toStd(const juce::String& value) { return value.toStdString(); }
 
 template <typename Function>
 auto onMessageThread(Function&& function)
-    -> decltype(juce::MessageManager::callSync(
-        std::forward<Function>(function))) {
-  if (juce::MessageManager::getInstanceWithoutCreating() == nullptr) return {};
+    -> decltype(juce::MessageManager::callSync(std::forward<Function>(function))) {
+    if (juce::MessageManager::getInstanceWithoutCreating() == nullptr) return {};
 
-  return juce::MessageManager::callSync(std::forward<Function>(function));
+    return juce::MessageManager::callSync(std::forward<Function>(function));
 }
 
 #if JUCE_LINUX
 int alsaClientForIdentifier(const std::string& identifier) {
-  int client = -1;
-  int port = -1;
+    int client = -1;
+    int port = -1;
 
-  if (std::sscanf(identifier.c_str(), "ALSA:%d:%d", &client, &port) != 2 &&
-      std::sscanf(identifier.c_str(), "%d-%d", &client, &port) != 2)
-    return -1;
+    if (std::sscanf(identifier.c_str(), "ALSA:%d:%d", &client, &port) != 2 &&
+        std::sscanf(identifier.c_str(), "%d-%d", &client, &port) != 2)
+        return -1;
 
-  return client;
+    return client;
 }
 
 class AlsaClientNames {
- public:
-  AlsaClientNames() {
-    if (snd_seq_open(&sequencer, "default", SND_SEQ_OPEN_INPUT,
-                     SND_SEQ_NONBLOCK) < 0)
-      sequencer = nullptr;
-  }
+public:
+    AlsaClientNames() {
+        if (snd_seq_open(&sequencer, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK) < 0)
+            sequencer = nullptr;
+    }
 
-  ~AlsaClientNames() {
-    if (sequencer != nullptr) snd_seq_close(sequencer);
-  }
+    ~AlsaClientNames() {
+        if (sequencer != nullptr) snd_seq_close(sequencer);
+    }
 
-  std::string nameFor(int client) const {
-    if (sequencer == nullptr || client < 0) return {};
+    std::string nameFor(int client) const {
+        if (sequencer == nullptr || client < 0) return {};
 
-    snd_seq_client_info_t* info = nullptr;
-    snd_seq_client_info_alloca(&info);
+        snd_seq_client_info_t* info = nullptr;
+        snd_seq_client_info_alloca(&info);
 
-    if (snd_seq_get_any_client_info(sequencer, client, info) < 0) return {};
+        if (snd_seq_get_any_client_info(sequencer, client, info) < 0) return {};
 
-    const auto* name = snd_seq_client_info_get_name(info);
-    return name != nullptr ? std::string(name) : std::string{};
-  }
+        const auto* name = snd_seq_client_info_get_name(info);
+        return name != nullptr ? std::string(name) : std::string{};
+    }
 
- private:
-  snd_seq_t* sequencer = nullptr;
+private:
+    snd_seq_t* sequencer = nullptr;
 };
 #endif
 
 class JuceMidiInputHandle final : public MidiInputHandle {
- public:
-  explicit JuceMidiInputHandle(std::unique_ptr<juce::MidiInput> device)
-      : input(std::move(device)) {}
+public:
+    explicit JuceMidiInputHandle(std::unique_ptr<juce::MidiInput> device)
+        : input(std::move(device)) {}
 
-  ~JuceMidiInputHandle() override {
-    if (input == nullptr) return;
+    ~JuceMidiInputHandle() override {
+        if (input == nullptr) return;
 
-    auto device = std::move(input);
+        auto device = std::move(input);
 
-    (void)onMessageThread(
-        [device = std::move(device)]() mutable { device.reset(); });
-  }
+        (void)onMessageThread([device = std::move(device)]() mutable { device.reset(); });
+    }
 
-  void start() override {
-    if (input != nullptr) input->start();
-  }
+    void start() override {
+        if (input != nullptr) input->start();
+    }
 
-  void stop() override {
-    if (input != nullptr) input->stop();
-  }
+    void stop() override {
+        if (input != nullptr) input->stop();
+    }
 
- private:
-  std::unique_ptr<juce::MidiInput> input;
+private:
+    std::unique_ptr<juce::MidiInput> input;
 };
 
 class JuceMidiInputBackend final : public MidiInputBackend {
- public:
-  explicit JuceMidiInputBackend(juce::MidiInputCallback& callback)
-      : midiCallback(callback) {}
+public:
+    explicit JuceMidiInputBackend(juce::MidiInputCallback& callback) : midiCallback(callback) {}
 
-  std::vector<MidiInputDevice> list() override {
-    return listJuceMidiInputDevices();
-  }
+    std::vector<MidiInputDevice> list() override { return listJuceMidiInputDevices(); }
 
-  std::unique_ptr<MidiInputHandle> open(const std::string& id) override {
-    auto input = onMessageThread([this, &id] {
-      return juce::MidiInput::openDevice(juce::String(id), &midiCallback);
-    });
+    std::unique_ptr<MidiInputHandle> open(const std::string& id) override {
+        auto input = onMessageThread(
+            [this, &id] { return juce::MidiInput::openDevice(juce::String(id), &midiCallback); });
 
-    if (!input.has_value() || *input == nullptr) return {};
+        if (!input.has_value() || *input == nullptr) return {};
 
-    return std::make_unique<JuceMidiInputHandle>(std::move(*input));
-  }
+        return std::make_unique<JuceMidiInputHandle>(std::move(*input));
+    }
 
- private:
-  juce::MidiInputCallback& midiCallback;
+private:
+    juce::MidiInputCallback& midiCallback;
 };
 
 }  // namespace
 
 std::vector<MidiInputDevice> listJuceMidiInputDevices() {
-  const auto available =
-      onMessageThread([] { return juce::MidiInput::getAvailableDevices(); });
+    const auto available = onMessageThread([] { return juce::MidiInput::getAvailableDevices(); });
 
-  if (!available.has_value()) return {};
+    if (!available.has_value()) return {};
 
-  std::vector<MidiInputDevice> devices;
-
-#if JUCE_LINUX
-  AlsaClientNames clients;
-#endif
-
-  for (const auto& device : *available) {
-    MidiInputDevice entry;
-    entry.id = toStd(device.identifier);
-    entry.name = toStd(device.name);
+    std::vector<MidiInputDevice> devices;
 
 #if JUCE_LINUX
-    entry.client = clients.nameFor(alsaClientForIdentifier(entry.id));
+    AlsaClientNames clients;
 #endif
 
-    devices.push_back(std::move(entry));
-  }
+    for (const auto& device : *available) {
+        MidiInputDevice entry;
+        entry.id = toStd(device.identifier);
+        entry.name = toStd(device.name);
 
-  return devices;
+#if JUCE_LINUX
+        entry.client = clients.nameFor(alsaClientForIdentifier(entry.id));
+#endif
+
+        devices.push_back(std::move(entry));
+    }
+
+    return devices;
 }
 
-std::unique_ptr<MidiInputBackend> makeJuceMidiInputBackend(
-    juce::MidiInputCallback& callback) {
-  return std::make_unique<JuceMidiInputBackend>(callback);
+std::unique_ptr<MidiInputBackend> makeJuceMidiInputBackend(juce::MidiInputCallback& callback) {
+    return std::make_unique<JuceMidiInputBackend>(callback);
 }
 
 }  // namespace Api
