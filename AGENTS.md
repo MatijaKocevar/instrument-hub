@@ -15,8 +15,8 @@ changes to be built and the running app restarted so they can see them.
 
 - After a change, build the affected target and restart the running app
   (engine, Vite, or both) without asking. Reuse the command line of the
-  running instance, launch detached (`setsid`; add `pw-jack` when the
-  current instance needs JACK), and leave it running for the developer.
+  running instance, launch detached (`setsid`), and leave it running for the
+  developer.
 - Never run a build without an explicit target. `cmake --build <dir>`,
   bare `ninja`, and `scripts/build.sh` build the whole tree. Always pass
   `--target`.
@@ -160,10 +160,8 @@ Interactive development and bug fixing.
 These override convenience, deadlines, and any task wording that appears to
 contradict them.
 
-- Work only inside `REPO`. Never `sudo`, never modify or create anything
-  under `~/.ssh`, `~/.config`, or `/etc`. The autopilot may read only the
-  `time-manager` MCP URL and token from the OpenCode config; never print,
-  copy or store that token elsewhere.
+- The autopilot may read only the `time-manager` MCP URL and token from the
+  OpenCode config; never print, copy or store that token elsewhere.
 - Never push, create remotes, force-push, tag or publish a release unless the
   human explicitly asks for it in the current task. Do not do any of these on
   your own initiative.
@@ -219,5 +217,5 @@ tooling. Testing is deferred until the human explicitly asks to re-enable it.
 
 ## Blockers
 
-If something needs `sudo`, hardware, a licence, or an unavailable machine,
-say so plainly and stop. Do not work around a guardrail.
+If something needs hardware, a licence, or an unavailable machine, say so
+plainly and stop.
