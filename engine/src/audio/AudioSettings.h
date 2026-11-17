@@ -13,104 +13,99 @@
 #include <string>
 #include <vector>
 
-namespace ihub::settings
-{
-    class SettingsStore;
+namespace ihub::settings {
+class SettingsStore;
 }
 
-namespace AudioEngine
-{
+namespace AudioEngine {
 
-    class AudioSettingsBridge
-    {
-    public:
-        AudioSettingsBridge ();
-        ~AudioSettingsBridge () = default;
+class AudioSettingsBridge {
+ public:
+  AudioSettingsBridge();
+  ~AudioSettingsBridge() = default;
 
-        void setDeviceManager (DeviceManager* manager);
+  void setDeviceManager(DeviceManager* manager);
 
-        void setSettingsStore (ihub::settings::SettingsStore* store);
+  void setSettingsStore(ihub::settings::SettingsStore* store);
 
-        void setRestoreState (const Api::AudioRestoreState& state);
+  void setRestoreState(const Api::AudioRestoreState& state);
 
-        bool openLoopback (juce::String* errorMessage = nullptr);
+  bool openLoopback(juce::String* errorMessage = nullptr);
 
-        bool openFirstOutput (juce::String* errorMessage = nullptr);
+  bool openFirstOutput(juce::String* errorMessage = nullptr);
 
-        void close ();
+  void close();
 
-        Api::AudioStateSnapshot snapshot ();
+  Api::AudioStateSnapshot snapshot();
 
-        bool apply (const Api::AudioSettingsPatch& patch, std::string& error);
+  bool apply(const Api::AudioSettingsPatch& patch, std::string& error);
 
-        Api::AudioMeasurementState measure ();
+  Api::AudioMeasurementState measure();
 
-        Api::AudioWizardState recommendSetup ();
+  Api::AudioWizardState recommendSetup();
 
-        bool applyRecommendation (std::string& error);
+  bool applyRecommendation(std::string& error);
 
-        void setDeviceMeasureHandler (Api::AudioMeasureHandler handler);
+  void setDeviceMeasureHandler(Api::AudioMeasureHandler handler);
 
-        void setChainLatencySamples (int samples) noexcept;
+  void setChainLatencySamples(int samples) noexcept;
 
-        void setTimingMonitor (TimingMonitor* monitor) noexcept;
+  void setTimingMonitor(TimingMonitor* monitor) noexcept;
 
-    private:
-        struct CachedDevice
-        {
-            juce::String type;
-            juce::String name;
-            juce::String description;
-            bool available = true;
-            juce::String unavailableReason;
-            bool hasInput = false;
-            bool hasOutput = false;
-            juce::StringArray inputNames;
-            juce::StringArray outputNames;
-            juce::Array<double> sampleRates;
-            juce::Array<int> bufferSizes;
-        };
+ private:
+  struct CachedDevice {
+    juce::String type;
+    juce::String name;
+    juce::String description;
+    bool available = true;
+    juce::String unavailableReason;
+    bool hasInput = false;
+    bool hasOutput = false;
+    juce::StringArray inputNames;
+    juce::StringArray outputNames;
+    juce::Array<double> sampleRates;
+    juce::Array<int> bufferSizes;
+  };
 
-        DeviceManager& liveManager () noexcept
-        {
-            return injectedManager != nullptr ? *injectedManager : ownedManager;
-        }
+  DeviceManager& liveManager() noexcept {
+    return injectedManager != nullptr ? *injectedManager : ownedManager;
+  }
 
-        const DeviceManager& liveManager () const noexcept
-        {
-            return injectedManager != nullptr ? *injectedManager : ownedManager;
-        }
+  const DeviceManager& liveManager() const noexcept {
+    return injectedManager != nullptr ? *injectedManager : ownedManager;
+  }
 
-        void refreshDevices ();
-        const CachedDevice* findDevice (const juce::String& type, const juce::String& name) const;
-        juce::String firstOutputDeviceOfType (const juce::String& type) const;
-        juce::String firstDeviceType () const;
+  void refreshDevices();
+  const CachedDevice* findDevice(const juce::String& type,
+                                 const juce::String& name) const;
+  juce::String firstOutputDeviceOfType(const juce::String& type) const;
+  juce::String firstDeviceType() const;
 
-        bool openCachedDevice (const CachedDevice& device, juce::String* errorMessage);
+  bool openCachedDevice(const CachedDevice& device, juce::String* errorMessage);
 
-        mutable std::mutex mutex;
+  mutable std::mutex mutex;
 
-        DeviceManager ownedManager;
-        DeviceManager probeManager;
-        DeviceManager* injectedManager = nullptr;
-        std::vector<CachedDevice> devices;
-        juce::StringArray deviceTypeNames;
+  DeviceManager ownedManager;
+  DeviceManager probeManager;
+  DeviceManager* injectedManager = nullptr;
+  std::vector<CachedDevice> devices;
+  juce::StringArray deviceTypeNames;
 
-        juce::String pendingType;
-        juce::String pendingName;
-        double pendingSampleRate = 48000.0;
-        int pendingBufferSize = 128;
+  juce::String pendingType;
+  juce::String pendingName;
+  double pendingSampleRate = 48000.0;
+  int pendingBufferSize = 128;
 
-        ihub::settings::SettingsStore* settingsStore = nullptr;
-        Api::AudioRestoreState restoreState;
+  ihub::settings::SettingsStore* settingsStore = nullptr;
+  Api::AudioRestoreState restoreState;
 
-        std::atomic<int> chainLatencySamples{0};
-        TimingMonitor* timingMonitor = nullptr;
+  std::atomic<int> chainLatencySamples{0};
+  TimingMonitor* timingMonitor = nullptr;
 
-        Api::AudioMeasureHandler deviceMeasure;
-        Api::AudioWizardState lastRecommendation;
+  Api::AudioMeasureHandler deviceMeasure;
+  Api::AudioWizardState lastRecommendation;
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioSettingsBridge)
-    };
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioSettingsBridge)
+};
 
-}
+}  // namespace AudioEngine

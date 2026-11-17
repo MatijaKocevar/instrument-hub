@@ -10,29 +10,26 @@
 #include <sys/resource.h>
 #endif
 
-namespace
-{
-    void disableCoreDumps ()
-    {
+namespace {
+void disableCoreDumps() {
 #if defined(RLIMIT_CORE)
-        struct rlimit limit{0, 0};
+  struct rlimit limit{0, 0};
 
-        setrlimit (RLIMIT_CORE, &limit);
+  setrlimit(RLIMIT_CORE, &limit);
 #endif
-    }
 }
+}  // namespace
 
-int main (int argc, char** argv)
-{
-    ihub::plugins::capFileDescriptorLimit ();
-    disableCoreDumps ();
+int main(int argc, char** argv) {
+  ihub::plugins::capFileDescriptorLimit();
+  disableCoreDumps();
 
-    juce::ScopedJuceInitialiser_GUI juceInitialiser;
+  juce::ScopedJuceInitialiser_GUI juceInitialiser;
 
-    const juce::StringArray commandLine (argv, argc);
+  const juce::StringArray commandLine(argv, argc);
 
-    if (commandLine.contains (ihub::plugins::sandbox::cli::pageMapFlag))
-        return ihub::plugins::SandboxPageClient::run (commandLine);
+  if (commandLine.contains(ihub::plugins::sandbox::cli::pageMapFlag))
+    return ihub::plugins::SandboxPageClient::run(commandLine);
 
-    return ihub::plugins::SandboxClient::run (commandLine);
+  return ihub::plugins::SandboxClient::run(commandLine);
 }

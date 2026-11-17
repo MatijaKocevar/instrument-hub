@@ -1,15 +1,14 @@
 #pragma once
 
-namespace ihub::settings
-{
-    class SettingsStore;
+namespace ihub::settings {
+class SettingsStore;
 }
 
-namespace AudioEngine
-{
+namespace AudioEngine {
 
-    class DeviceManager;
+class DeviceManager;
 
-    bool persistAudioSettings (ihub::settings::SettingsStore& store, const DeviceManager& manager);
+bool persistAudioSettings(ihub::settings::SettingsStore& store,
+                          const DeviceManager& manager);
 
-}
+}  // namespace AudioEngine

@@ -1,61 +1,55 @@
 #include "audio/DeviceManager.h"
 
-namespace AudioEngine
-{
+namespace AudioEngine {
 
-    juce::AudioIODeviceType* DeviceManager::findDeviceType (const juce::String& typeName)
-    {
-        ensureInitialised ();
+juce::AudioIODeviceType* DeviceManager::findDeviceType(
+    const juce::String& typeName) {
+  ensureInitialised();
 
-        for (auto* type : deviceManager.getAvailableDeviceTypes ())
-        {
-            if (type->getTypeName () == typeName)
-            {
-                type->scanForDevices ();
-                return type;
-            }
-        }
-
-        return nullptr;
+  for (auto* type : deviceManager.getAvailableDeviceTypes()) {
+    if (type->getTypeName() == typeName) {
+      type->scanForDevices();
+      return type;
     }
+  }
 
-    std::unique_ptr<juce::AudioIODevice> DeviceManager::createRawDevice (
-        const juce::String& typeName, const juce::String& outputName, const juce::String& inputName)
-    {
-        auto* type = findDeviceType (typeName);
+  return nullptr;
+}
 
-        if (type == nullptr)
-            return {};
+std::unique_ptr<juce::AudioIODevice> DeviceManager::createRawDevice(
+    const juce::String& typeName, const juce::String& outputName,
+    const juce::String& inputName) {
+  auto* type = findDeviceType(typeName);
 
-        const auto inputNames = type->getDeviceNames (true);
-        const auto outputNames = type->getDeviceNames (false);
+  if (type == nullptr) return {};
 
-        const bool hasInput = inputName.isNotEmpty () && inputNames.contains (inputName);
-        const bool hasOutput = outputName.isNotEmpty () && outputNames.contains (outputName);
+  const auto inputNames = type->getDeviceNames(true);
+  const auto outputNames = type->getDeviceNames(false);
 
-        if (!hasInput && !hasOutput)
-            return {};
+  const bool hasInput =
+      inputName.isNotEmpty() && inputNames.contains(inputName);
+  const bool hasOutput =
+      outputName.isNotEmpty() && outputNames.contains(outputName);
 
-        return std::unique_ptr<juce::AudioIODevice> (type->createDevice (
-            hasOutput ? outputName : juce::String (), hasInput ? inputName : juce::String ()));
-    }
+  if (!hasInput && !hasOutput) return {};
 
-    juce::String DeviceManager::resolveListedName (const juce::String& typeName,
-                                                   const juce::String& deviceName)
-    {
-        if (deviceName.isEmpty ())
-            return {};
+  return std::unique_ptr<juce::AudioIODevice>(
+      type->createDevice(hasOutput ? outputName : juce::String(),
+                         hasInput ? inputName : juce::String()));
+}
 
-        for (const auto& info : getDevices ())
-        {
-            if (info.typeName != typeName)
-                continue;
+juce::String DeviceManager::resolveListedName(const juce::String& typeName,
+                                              const juce::String& deviceName) {
+  if (deviceName.isEmpty()) return {};
 
-            if (info.name == deviceName || info.juceName == deviceName)
-                return info.juceName.isNotEmpty () ? info.juceName : info.name;
-        }
+  for (const auto& info : getDevices()) {
+    if (info.typeName != typeName) continue;
 
-        return deviceName;
-    }
+    if (info.name == deviceName || info.juceName == deviceName)
+      return info.juceName.isNotEmpty() ? info.juceName : info.name;
+  }
 
-} // namespace AudioEngine
+  return deviceName;
+}
+
+}  // namespace AudioEngine

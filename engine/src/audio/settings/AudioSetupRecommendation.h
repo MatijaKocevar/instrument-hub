@@ -4,12 +4,12 @@
 
 #include <vector>
 
-namespace AudioEngine::detail
-{
+namespace AudioEngine::detail {
 
-    int chooseProbeCandidate (const std::vector<Api::AudioProbeState>& candidates,
-                              double preferredSampleRate);
+int chooseProbeCandidate(const std::vector<Api::AudioProbeState>& candidates,
+                         double preferredSampleRate);
 
-    void finalizeAudioWizard (Api::AudioWizardState& wizard, double preferredSampleRate);
+void finalizeAudioWizard(Api::AudioWizardState& wizard,
+                         double preferredSampleRate);
 
-}
+}  // namespace AudioEngine::detail

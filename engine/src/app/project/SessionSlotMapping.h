@@ -3,9 +3,9 @@
 #include "SessionConfig.h"
 #include "project/SetFile.h"
 
-namespace ihub::app
-{
+namespace ihub::app {
 
-    void applyProjectSlot (const ihub::project::SlotConfig& source, ihub::SessionSlotConfig& slot);
+void applyProjectSlot(const ihub::project::SlotConfig& source,
+                      ihub::SessionSlotConfig& slot);
 
 }

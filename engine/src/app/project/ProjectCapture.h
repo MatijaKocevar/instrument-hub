@@ -6,24 +6,19 @@
 
 #include <vector>
 
-namespace Api
-{
-    class StateStore;
+namespace Api {
+class StateStore;
 }
 
-namespace ihub
-{
-    class Session;
+namespace ihub {
+class Session;
 }
 
-namespace ihub::app
-{
+namespace ihub::app {
 
-    bool captureProject (ihub::Session& session,
-                         const Api::StateStore& state,
-                         const project::SetFile& base,
-                         const std::vector<int>& touchedSlots,
-                         project::SetFile& destination,
-                         juce::String& error);
+bool captureProject(ihub::Session& session, const Api::StateStore& state,
+                    const project::SetFile& base,
+                    const std::vector<int>& touchedSlots,
+                    project::SetFile& destination, juce::String& error);
 
 }

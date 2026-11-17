@@ -4,11 +4,10 @@
 
 #include <optional>
 
-namespace ihub::app
-{
+namespace ihub::app {
 
-    std::optional<juce::Rectangle<int>> leftmostDisplayBounds ();
+std::optional<juce::Rectangle<int>> leftmostDisplayBounds();
 
-    bool startMaximisedOnLeftDisplay (juce::DocumentWindow& window);
+bool startMaximisedOnLeftDisplay(juce::DocumentWindow& window);
 
-}
+}  // namespace ihub::app

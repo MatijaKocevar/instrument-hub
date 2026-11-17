@@ -5,32 +5,30 @@
 #include <cstdint>
 #include <string>
 
-namespace ihub::diag
-{
+namespace ihub::diag {
 
-    inline constexpr std::uint32_t crashDumpFormatVersion = 1;
+inline constexpr std::uint32_t crashDumpFormatVersion = 1;
 
-    struct CrashDumpOptions
-    {
-        std::string path;
+struct CrashDumpOptions {
+  std::string path;
 
-        LogRing* ring = nullptr;
+  LogRing* ring = nullptr;
 
-        bool dumpOnTermination = false;
+  bool dumpOnTermination = false;
 
-        bool reRaiseSignal = true;
-    };
+  bool reRaiseSignal = true;
+};
 
-    bool installCrashDump (const CrashDumpOptions& options = {});
+bool installCrashDump(const CrashDumpOptions& options = {});
 
-    void uninstallCrashDump () noexcept;
+void uninstallCrashDump() noexcept;
 
-    bool isCrashDumpInstalled () noexcept;
+bool isCrashDumpInstalled() noexcept;
 
-    std::string getCrashDumpPath ();
+std::string getCrashDumpPath();
 
-    std::string defaultCrashDumpPath ();
+std::string defaultCrashDumpPath();
 
-    bool writeCrashDump (int fd, const LogRing& ring, int signalNumber) noexcept;
+bool writeCrashDump(int fd, const LogRing& ring, int signalNumber) noexcept;
 
-}
+}  // namespace ihub::diag

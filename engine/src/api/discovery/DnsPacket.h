@@ -4,14 +4,14 @@
 #include <cstdint>
 #include <vector>
 
-namespace Api
-{
+namespace Api {
 
-    struct DiscoveryService;
+struct DiscoveryService;
 
-    std::vector<std::uint8_t> buildResponse (const DiscoveryService& service, bool goodbye);
+std::vector<std::uint8_t> buildResponse(const DiscoveryService& service,
+                                        bool goodbye);
 
-    bool
-    wantsResponse (const std::uint8_t* data, std::size_t size, const DiscoveryService& service);
+bool wantsResponse(const std::uint8_t* data, std::size_t size,
+                   const DiscoveryService& service);
 
-}
+}  // namespace Api

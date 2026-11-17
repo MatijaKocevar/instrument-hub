@@ -6,42 +6,37 @@
 
 #include <utility>
 
-namespace Controller
-{
+namespace Controller {
 
-    bool parseSetMappingYaml (const std::string& yaml, SetMapping& result, MappingError& error)
-    {
-        error = {};
+bool parseSetMappingYaml(const std::string& yaml, SetMapping& result,
+                         MappingError& error) {
+  error = {};
 
-        MappingDetail::YamlValue root;
+  MappingDetail::YamlValue root;
 
-        if (!MappingDetail::parseYaml (yaml, root, error))
-            return false;
+  if (!MappingDetail::parseYaml(yaml, root, error)) return false;
 
-        SetMapping parsed;
+  SetMapping parsed;
 
-        if (!MappingDetail::decodeDocument (root, parsed, error))
-            return false;
+  if (!MappingDetail::decodeDocument(root, parsed, error)) return false;
 
-        result = std::move (parsed);
-        return true;
-    }
-
-    bool
-    loadSetMappingFile (const std::filesystem::path& file, SetMapping& result, MappingError& error)
-    {
-        error = {};
-
-        std::string contents;
-        std::string readError;
-
-        if (!MappingDetail::readFileContents (file, contents, readError))
-        {
-            error = {0, readError};
-            return false;
-        }
-
-        return parseSetMappingYaml (contents, result, error);
-    }
-
+  result = std::move(parsed);
+  return true;
 }
+
+bool loadSetMappingFile(const std::filesystem::path& file, SetMapping& result,
+                        MappingError& error) {
+  error = {};
+
+  std::string contents;
+  std::string readError;
+
+  if (!MappingDetail::readFileContents(file, contents, readError)) {
+    error = {0, readError};
+    return false;
+  }
+
+  return parseSetMappingYaml(contents, result, error);
+}
+
+}  // namespace Controller

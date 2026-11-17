@@ -1,28 +1,24 @@
-BasedOnStyle: LLVM
+---
 Language: Cpp
 Standard: c++20
-IndentWidth: 4
+BasedOnStyle: Google
+
+# Google C++ Style Guide (https://google.github.io/styleguide/cppguide.html)
+IndentWidth: 2
 TabWidth: 4
 UseTab: Never
-ColumnLimit: 100
-BreakBeforeBraces: Allman
-SpaceBeforeParens: Always
+ColumnLimit: 80
+AccessModifierOffset: -1
+BreakBeforeBraces: Attach
+NamespaceIndentation: None
+FixNamespaceComments: true
+
+# Keep the repository's include grouping (project, JUCE, std) intact and
+# only sort inside each block.
+IncludeBlocks: Preserve
+SortIncludes: CaseSensitive
+IndentPPDirectives: None
+
 PointerAlignment: Left
 DerivePointerAlignment: false
-NamespaceIndentation: All
-AccessModifierOffset: -4
-AlignAfterOpenBracket: Align
-AlignOperands: Align
-ContinuationIndentWidth: 4
-BreakBeforeBinaryOperators: None
-BreakConstructorInitializers: BeforeColon
-AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: true
-IndentCaseLabels: true
-IndentPPDirectives: None
-FixNamespaceComments: false
-BinPackArguments: false
-BinPackParameters: false
-SortIncludes: CaseSensitive
+...

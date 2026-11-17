@@ -6,12 +6,11 @@
 
 #include <vector>
 
-namespace AudioEngine
-{
+namespace AudioEngine {
 
-    AudioRestoreOutcome restoreAudioDevice (const ihub::settings::AudioSettings& stored,
-                                            const AudioDeviceOverrides& overrides,
-                                            const std::vector<DeviceInfo>& devices,
-                                            const AudioDeviceOpener& opener);
+AudioRestoreOutcome restoreAudioDevice(
+    const ihub::settings::AudioSettings& stored,
+    const AudioDeviceOverrides& overrides,
+    const std::vector<DeviceInfo>& devices, const AudioDeviceOpener& opener);
 
 }

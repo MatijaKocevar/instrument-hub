@@ -6,21 +6,20 @@
 
 #include <alsa/asoundlib.h>
 
-namespace AudioEngine::detail
-{
+namespace AudioEngine::detail {
 
-    struct AlsaPcmPair
-    {
-        juce::String playback;
-        juce::String capture;
-    };
+struct AlsaPcmPair {
+  juce::String playback;
+  juce::String capture;
+};
 
-    bool findAlsaLoopbackPair (AlsaPcmPair& pair);
+bool findAlsaLoopbackPair(AlsaPcmPair& pair);
 
-    bool configureAlsaPcm (snd_pcm_t* pcm, double& sampleRate, int& periodSize, int& bufferSize);
+bool configureAlsaPcm(snd_pcm_t* pcm, double& sampleRate, int& periodSize,
+                      int& bufferSize);
 
-    int recoverAlsaPcm (snd_pcm_t* pcm, int error);
+int recoverAlsaPcm(snd_pcm_t* pcm, int error);
 
-}
+}  // namespace AudioEngine::detail
 
 #endif

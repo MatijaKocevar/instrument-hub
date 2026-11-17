@@ -13,143 +13,134 @@
 #include <mutex>
 #include <optional>
 
-namespace Controller
-{
+namespace Controller {
 
-    class LaunchpadDriver final : private juce::MidiInputCallback
-    {
-    public:
-        struct DeviceSelection
-        {
-            juce::String inputIdentifier;
-            juce::String outputIdentifier;
-            juce::String inputName;
-            juce::String outputName;
-        };
+class LaunchpadDriver final : private juce::MidiInputCallback {
+ public:
+  struct DeviceSelection {
+    juce::String inputIdentifier;
+    juce::String outputIdentifier;
+    juce::String inputName;
+    juce::String outputName;
+  };
 
-        struct DriverListeners
-        {
-            std::function<void (int padIndex, bool pressed)> padEvent;
-            std::function<void (int cc, bool pressed)> buttonEvent;
-        };
+  struct DriverListeners {
+    std::function<void(int padIndex, bool pressed)> padEvent;
+    std::function<void(int cc, bool pressed)> buttonEvent;
+  };
 
-        LaunchpadDriver ();
-        ~LaunchpadDriver () override;
+  LaunchpadDriver();
+  ~LaunchpadDriver() override;
 
-        static bool isLaunchpadName (const juce::String& deviceName);
+  static bool isLaunchpadName(const juce::String& deviceName);
 
-        static std::optional<DeviceSelection> findDevice ();
+  static std::optional<DeviceSelection> findDevice();
 
-        void setListeners (DriverListeners newListeners);
+  void setListeners(DriverListeners newListeners);
 
-        bool connect ();
+  bool connect();
 
-        bool connect (const DeviceSelection& selection);
+  bool connect(const DeviceSelection& selection);
 
-        void disconnect ();
+  void disconnect();
 
-        bool isConnected () const noexcept;
+  bool isConnected() const noexcept;
 
-        bool canSendLeds () const noexcept;
+  bool canSendLeds() const noexcept;
 
-        juce::String getInputName () const;
-        juce::String getOutputName () const;
-        juce::String getLastError () const;
+  juce::String getInputName() const;
+  juce::String getOutputName() const;
+  juce::String getLastError() const;
 
-        bool sendHandshake ();
+  bool sendHandshake();
 
-        bool hasReceivedHandshakeEcho () const noexcept;
+  bool hasReceivedHandshakeEcho() const noexcept;
 
-        void setPadState (int padIndex, PadState state);
+  void setPadState(int padIndex, PadState state);
 
-        PadState getPadState (int padIndex) const noexcept;
+  PadState getPadState(int padIndex) const noexcept;
 
-        void setPadLed (int padIndex, PatchLed led);
+  void setPadLed(int padIndex, PatchLed led);
 
-        void setPadRgb (int padIndex,
-                        std::uint8_t red,
-                        std::uint8_t green,
-                        std::uint8_t blue,
-                        std::uint8_t snapshotVelocity = 0);
+  void setPadRgb(int padIndex, std::uint8_t red, std::uint8_t green,
+                 std::uint8_t blue, std::uint8_t snapshotVelocity = 0);
 
-        PatchLed getPadLed (int padIndex) const noexcept;
+  PatchLed getPadLed(int padIndex) const noexcept;
 
-        void setPatchLed (int padIndex, int colorIndex, bool armed, bool warming, bool error);
+  void setPatchLed(int padIndex, int colorIndex, bool armed, bool warming,
+                   bool error);
 
-        void setAllPadStates (PadState state);
+  void setAllPadStates(PadState state);
 
-        void setButtonState (int cc, PadState state);
+  void setButtonState(int cc, PadState state);
 
-        PadState getButtonState (int cc) const noexcept;
+  PadState getButtonState(int cc) const noexcept;
 
-        void setAllButtonStates (PadState state);
+  void setAllButtonStates(PadState state);
 
-        static constexpr int controlButtonCount =
-            Launchpad::topRowCount + Launchpad::rightColumnCount;
+  static constexpr int controlButtonCount =
+      Launchpad::topRowCount + Launchpad::rightColumnCount;
 
-        void refreshLeds ();
+  void refreshLeds();
 
-        void clearLeds ();
+  void clearLeds();
 
-        bool sendPadColour (int padIndex,
-                            Launchpad::Colour colour,
-                            Launchpad::LedMode mode = Launchpad::LedMode::Static);
+  bool sendPadColour(int padIndex, Launchpad::Colour colour,
+                     Launchpad::LedMode mode = Launchpad::LedMode::Static);
 
-        bool sendPadVelocity (int padIndex,
-                              std::uint8_t velocity,
-                              Launchpad::LedMode mode = Launchpad::LedMode::Static);
+  bool sendPadVelocity(int padIndex, std::uint8_t velocity,
+                       Launchpad::LedMode mode = Launchpad::LedMode::Static);
 
-        bool sendButtonColour (int cc,
-                               Launchpad::Colour colour,
-                               Launchpad::LedMode mode = Launchpad::LedMode::Static);
+  bool sendButtonColour(int cc, Launchpad::Colour colour,
+                        Launchpad::LedMode mode = Launchpad::LedMode::Static);
 
-        bool sendSysEx (const Launchpad::SysExFrame& frame);
+  bool sendSysEx(const Launchpad::SysExFrame& frame);
 
-        using MessageSink = std::function<void (const juce::MidiMessage&)>;
+  using MessageSink = std::function<void(const juce::MidiMessage&)>;
 
-        void setMessageSink (MessageSink sink);
+  void setMessageSink(MessageSink sink);
 
-        void injectMidiMessage (const juce::MidiMessage& message);
+  void injectMidiMessage(const juce::MidiMessage& message);
 
-    private:
-        void handleIncomingMidiMessage (juce::MidiInput* source,
-                                        const juce::MidiMessage& message) override;
+ private:
+  void handleIncomingMidiMessage(juce::MidiInput* source,
+                                 const juce::MidiMessage& message) override;
 
-        void dispatchPad (int padIndex, bool pressed);
-        void dispatchButton (int cc, bool pressed);
+  void dispatchPad(int padIndex, bool pressed);
+  void dispatchButton(int cc, bool pressed);
 
-        static int controlButtonSlot (int cc) noexcept;
+  static int controlButtonSlot(int cc) noexcept;
 
-        bool sendBytes (const std::uint8_t* bytes, int size);
+  bool sendBytes(const std::uint8_t* bytes, int size);
 
-        void setError (const juce::String& message);
-        void clearError ();
+  void setError(const juce::String& message);
+  void clearError();
 
-        std::unique_ptr<juce::MidiInput> input;
-        std::unique_ptr<juce::MidiOutput> output;
+  std::unique_ptr<juce::MidiInput> input;
+  std::unique_ptr<juce::MidiOutput> output;
 
-        juce::String inputName;
-        juce::String outputName;
-        juce::String lastError;
+  juce::String inputName;
+  juce::String outputName;
+  juce::String lastError;
 
-        mutable std::mutex sendMutex;
-        mutable std::mutex listenerMutex;
-        mutable std::mutex errorMutex;
+  mutable std::mutex sendMutex;
+  mutable std::mutex listenerMutex;
+  mutable std::mutex errorMutex;
 
-        DriverListeners listeners;
+  DriverListeners listeners;
 
-        std::array<std::atomic<std::uint8_t>, Launchpad::padCount> padStates{};
-        std::array<std::atomic<std::uint16_t>, Launchpad::padCount> padLeds{};
-        std::array<std::atomic<std::uint32_t>, Launchpad::padCount> padRgb{};
-        std::array<std::atomic<std::uint8_t>, controlButtonCount> buttonStates{};
+  std::array<std::atomic<std::uint8_t>, Launchpad::padCount> padStates{};
+  std::array<std::atomic<std::uint16_t>, Launchpad::padCount> padLeds{};
+  std::array<std::atomic<std::uint32_t>, Launchpad::padCount> padRgb{};
+  std::array<std::atomic<std::uint8_t>, controlButtonCount> buttonStates{};
 
-        std::atomic<bool> connected{false};
-        std::atomic<bool> handshakeEcho{false};
+  std::atomic<bool> connected{false};
+  std::atomic<bool> handshakeEcho{false};
 
-        mutable std::mutex sinkMutex;
-        MessageSink messageSink;
+  mutable std::mutex sinkMutex;
+  MessageSink messageSink;
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LaunchpadDriver)
-    };
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LaunchpadDriver)
+};
 
-}
+}  // namespace Controller

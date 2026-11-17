@@ -8,93 +8,84 @@
 #include <functional>
 #include <vector>
 
-namespace ihub::plugins
-{
-    struct ScanFailure
-    {
-        juce::File file;
-        juce::String reason;
-        bool crashed = false;
-        bool timedOut = false;
-        juce::String helperOutput;
-    };
+namespace ihub::plugins {
+struct ScanFailure {
+  juce::File file;
+  juce::String reason;
+  bool crashed = false;
+  bool timedOut = false;
+  juce::String helperOutput;
+};
 
-    struct ScanReport
-    {
-        int filesDiscovered = 0;
-        int succeeded = 0;
-        int failed = 0;
+struct ScanReport {
+  int filesDiscovered = 0;
+  int succeeded = 0;
+  int failed = 0;
 
-        int cacheHits = 0;
+  int cacheHits = 0;
 
-        bool usedCache = false;
-        bool wroteCache = false;
-        bool helperAvailable = false;
-        bool wroteReport = false;
-        juce::File reportFile;
-        juce::File cacheFile;
+  bool usedCache = false;
+  bool wroteCache = false;
+  bool helperAvailable = false;
+  bool wroteReport = false;
+  juce::File reportFile;
+  juce::File cacheFile;
 
-        double elapsedMs = 0.0;
+  double elapsedMs = 0.0;
 
-        std::vector<juce::PluginDescription> plugins;
-        std::vector<ScanFailure> failures;
-    };
+  std::vector<juce::PluginDescription> plugins;
+  std::vector<ScanFailure> failures;
+};
 
-    class Scanner
-    {
-    public:
-        struct Options
-        {
-            juce::File dataDirectory;
+class Scanner {
+ public:
+  struct Options {
+    juce::File dataDirectory;
 
-            juce::File helperExecutable;
+    juce::File helperExecutable;
 
-            int timeoutMs = 20000;
-            bool recursive = true;
+    int timeoutMs = 20000;
+    bool recursive = true;
 
-            bool loadExisting = true;
+    bool loadExisting = true;
 
-            bool useCache = true;
+    bool useCache = true;
 
-            bool retryCrashedPlugins = false;
+    bool retryCrashedPlugins = false;
 
-            juce::File cacheFile;
+    juce::File cacheFile;
 
-            std::function<void (const juce::String&)> logSink;
-        };
+    std::function<void(const juce::String&)> logSink;
+  };
 
-        Scanner ();
-        explicit Scanner (Options options);
+  Scanner();
+  explicit Scanner(Options options);
 
-        ScanReport scan (const juce::StringArray& directories);
-        ScanReport scan (const juce::FileSearchPath& directories);
+  ScanReport scan(const juce::StringArray& directories);
+  ScanReport scan(const juce::FileSearchPath& directories);
 
-        const juce::KnownPluginList& getKnownPlugins () const noexcept
-        {
-            return knownPlugins;
-        }
+  const juce::KnownPluginList& getKnownPlugins() const noexcept {
+    return knownPlugins;
+  }
 
-        const juce::File& getReportFile () const noexcept
-        {
-            return reportFile;
-        }
+  const juce::File& getReportFile() const noexcept { return reportFile; }
 
-        static juce::File defaultDataDirectory ();
-        static juce::File defaultReportFile ();
+  static juce::File defaultDataDirectory();
+  static juce::File defaultReportFile();
 
-        static constexpr const char* reportFileName = "KnownPluginList.xml";
+  static constexpr const char* reportFileName = "KnownPluginList.xml";
 
-    private:
-        void log (const juce::String& message);
-        bool loadPersistedTypes ();
-        juce::StringArray discoverFiles (const juce::StringArray& directories);
+ private:
+  void log(const juce::String& message);
+  bool loadPersistedTypes();
+  juce::StringArray discoverFiles(const juce::StringArray& directories);
 
-        Options options;
-        juce::AudioPluginFormatManager formatManager;
-        juce::AudioPluginFormat* vst3Format = nullptr;
-        juce::KnownPluginList knownPlugins;
-        ScannerProcess process;
-        PluginCache cache;
-        juce::File reportFile;
-    };
-}
+  Options options;
+  juce::AudioPluginFormatManager formatManager;
+  juce::AudioPluginFormat* vst3Format = nullptr;
+  juce::KnownPluginList knownPlugins;
+  ScannerProcess process;
+  PluginCache cache;
+  juce::File reportFile;
+};
+}  // namespace ihub::plugins

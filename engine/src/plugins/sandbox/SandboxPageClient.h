@@ -2,16 +2,14 @@
 
 #include <juce_core/juce_core.h>
 
-namespace ihub::plugins
-{
+namespace ihub::plugins {
 
-    class SandboxPageClient final
-    {
-    public:
-        static int run (const juce::StringArray& commandLine);
+class SandboxPageClient final {
+ public:
+  static int run(const juce::StringArray& commandLine);
 
-    private:
-        SandboxPageClient () = delete;
-    };
+ private:
+  SandboxPageClient() = delete;
+};
 
-} // namespace ihub::plugins
+}  // namespace ihub::plugins

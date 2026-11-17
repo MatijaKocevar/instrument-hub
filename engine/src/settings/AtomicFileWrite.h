@@ -4,13 +4,12 @@
 
 #include <functional>
 
-namespace ihub::settings
-{
+namespace ihub::settings {
 
-    using AtomicWriter = std::function<bool (const juce::File&, const juce::String&)>;
+using AtomicWriter =
+    std::function<bool(const juce::File&, const juce::String&)>;
 
-    bool writeFileAtomically (const juce::File& target,
-                              const juce::String& contents,
-                              const AtomicWriter& writer = {});
+bool writeFileAtomically(const juce::File& target, const juce::String& contents,
+                         const AtomicWriter& writer = {});
 
-}
+}  // namespace ihub::settings

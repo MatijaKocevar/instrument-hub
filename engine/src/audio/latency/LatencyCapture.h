@@ -4,26 +4,25 @@
 
 #include <vector>
 
-namespace AudioEngine::detail
-{
+namespace AudioEngine::detail {
 
-    struct CapturedLoopbackImpulse
-    {
-        bool valid = false;
+struct CapturedLoopbackImpulse {
+  bool valid = false;
 
-        juce::String playbackDevice;
-        juce::String captureDevice;
+  juce::String playbackDevice;
+  juce::String captureDevice;
 
-        double sampleRate = 0.0;
-        int bufferSize = 0;
+  double sampleRate = 0.0;
+  int bufferSize = 0;
 
-        int impulseOffset = 0;
-        std::vector<float> reference;
-        std::vector<float> captured;
+  int impulseOffset = 0;
+  std::vector<float> reference;
+  std::vector<float> captured;
 
-        juce::String error;
-    };
+  juce::String error;
+};
 
-    CapturedLoopbackImpulse captureLoopbackImpulse (const LatencyProbeOptions& options);
+CapturedLoopbackImpulse captureLoopbackImpulse(
+    const LatencyProbeOptions& options);
 
-}
+}  // namespace AudioEngine::detail

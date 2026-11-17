@@ -3,43 +3,38 @@
 #include <atomic>
 #include <cstdint>
 
-namespace httplib
-{
-    class Server;
+namespace httplib {
+class Server;
 }
 
-namespace Api
-{
+namespace Api {
 
-    class AuthGuard;
-    class MeterSampler;
-    class StateBroadcast;
+class AuthGuard;
+class MeterSampler;
+class StateBroadcast;
 
-    class WebSocketRoutes
-    {
-    public:
-        WebSocketRoutes (MeterSampler& meters,
-                         StateBroadcast& broadcast,
-                         const AuthGuard& auth,
-                         const std::atomic<bool>& running);
+class WebSocketRoutes {
+ public:
+  WebSocketRoutes(MeterSampler& meters, StateBroadcast& broadcast,
+                  const AuthGuard& auth, const std::atomic<bool>& running);
 
-        WebSocketRoutes (const WebSocketRoutes&) = delete;
-        WebSocketRoutes& operator= (const WebSocketRoutes&) = delete;
+  WebSocketRoutes(const WebSocketRoutes&) = delete;
+  WebSocketRoutes& operator=(const WebSocketRoutes&) = delete;
 
-        void registerRoutes (httplib::Server& server);
+  void registerRoutes(httplib::Server& server);
 
-        std::uint64_t getMeterFrameCount () const noexcept;
+  std::uint64_t getMeterFrameCount() const noexcept;
 
-        int getActiveConnections () const noexcept;
+  int getActiveConnections() const noexcept;
 
-    private:
-        MeterSampler& meters;
-        StateBroadcast& broadcast;
-        const AuthGuard& auth;
-        const std::atomic<bool>& running;
+ private:
+  MeterSampler& meters;
+  StateBroadcast& broadcast;
+  const AuthGuard& auth;
+  const std::atomic<bool>& running;
 
-        std::atomic<int> activeConnections{0};
-        std::atomic<std::uint64_t> meterFramesSent{0};
-    };
+  std::atomic<int> activeConnections{0};
+  std::atomic<std::uint64_t> meterFramesSent{0};
+};
 
-}
+}  // namespace Api

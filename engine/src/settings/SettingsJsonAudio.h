@@ -6,11 +6,11 @@
 
 #include <vector>
 
-namespace ihub::settings::detail
-{
+namespace ihub::settings::detail {
 
-    void readAudioSettings (const juce::var& value, AudioSettings& audio);
+void readAudioSettings(const juce::var& value, AudioSettings& audio);
 
-    void writeAudioSettings (juce::DynamicObject& object, const AudioSettings& audio);
+void writeAudioSettings(juce::DynamicObject& object,
+                        const AudioSettings& audio);
 
-}
+}  // namespace ihub::settings::detail

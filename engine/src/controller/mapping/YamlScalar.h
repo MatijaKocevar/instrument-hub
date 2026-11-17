@@ -4,9 +4,9 @@
 
 #include <string>
 
-namespace Controller::MappingDetail
-{
+namespace Controller::MappingDetail {
 
-    bool decodeScalar (const std::string& raw, YamlValue& out, MappingError& error, int line);
+bool decodeScalar(const std::string& raw, YamlValue& out, MappingError& error,
+                  int line);
 
 }

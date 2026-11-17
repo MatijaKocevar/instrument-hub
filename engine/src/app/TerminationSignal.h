@@ -1,8 +1,7 @@
 #pragma once
 
-namespace ihub::app
-{
+namespace ihub::app {
 
-    bool installTerminationSignalHandler () noexcept;
+bool installTerminationSignalHandler() noexcept;
 
-} // namespace ihub::app
+}  // namespace ihub::app

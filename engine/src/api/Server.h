@@ -8,80 +8,80 @@
 #include <memory>
 #include <string>
 
-namespace Api
-{
+namespace Api {
 
-    class StateBroadcast;
+class StateBroadcast;
 
-    class Server
-    {
-    public:
-        struct Options
-        {
-            std::string address = "127.0.0.1";
-            int port = 8080;
+class Server {
+ public:
+  struct Options {
+    std::string address = "127.0.0.1";
+    int port = 8080;
 
-            std::string authToken;
+    std::string authToken;
 
-            bool lanMode = false;
+    bool lanMode = false;
 
-            int meterHz = 30;
-        };
+    int meterHz = 30;
+  };
 
-        explicit Server (StateStore& state);
-        Server (StateStore& state, Options options);
-        ~Server ();
+  explicit Server(StateStore& state);
+  Server(StateStore& state, Options options);
+  ~Server();
 
-        Server (const Server&) = delete;
-        Server& operator= (const Server&) = delete;
+  Server(const Server&) = delete;
+  Server& operator=(const Server&) = delete;
 
-        bool start ();
-        void stop ();
+  bool start();
+  void stop();
 
-        bool isRunning () const noexcept;
-        bool isListening () const noexcept;
+  bool isRunning() const noexcept;
+  bool isListening() const noexcept;
 
-        int getPort () const noexcept;
-        std::string getAddress () const;
+  int getPort() const noexcept;
+  std::string getAddress() const;
 
-        void setMeterProvider (MeterProvider provider);
+  void setMeterProvider(MeterProvider provider);
 
-        void setAudioHandlers (AudioStateProvider provider,
-                               AudioApplyHandler apply,
-                               AudioMeasureHandler measure,
-                               AudioMeasureHandler measureDevice = {});
+  void setAudioHandlers(AudioStateProvider provider, AudioApplyHandler apply,
+                        AudioMeasureHandler measure,
+                        AudioMeasureHandler measureDevice = {});
 
-        void setAudioWizardHandlers (AudioWizardHandler recommend, AudioWizardApplyHandler apply);
+  void setAudioWizardHandlers(AudioWizardHandler recommend,
+                              AudioWizardApplyHandler apply);
 
-        void setPluginHandlers (PluginInventoryProvider provider, PluginRescanHandler rescan);
+  void setPluginHandlers(PluginInventoryProvider provider,
+                         PluginRescanHandler rescan);
 
-        void setMidiHandlers (MidiStateProvider provider, MidiInputHandler updateInput);
+  void setMidiHandlers(MidiStateProvider provider,
+                       MidiInputHandler updateInput);
 
-        void setProjectHandlers (ProjectOverviewProvider provider, ProjectCommandHandler command);
+  void setProjectHandlers(ProjectOverviewProvider provider,
+                          ProjectCommandHandler command);
 
-        void setProjectDialogHandlers (ProjectDialogBeginHandler begin,
-                                       ProjectDialogPollHandler poll);
+  void setProjectDialogHandlers(ProjectDialogBeginHandler begin,
+                                ProjectDialogPollHandler poll);
 
-        void setAuthToken (std::string token);
-        bool hasAuthToken () const;
+  void setAuthToken(std::string token);
+  bool hasAuthToken() const;
 
-        PairingManager& getPairing ();
-        const PairingManager& getPairing () const;
+  PairingManager& getPairing();
+  const PairingManager& getPairing() const;
 
-        Discovery& getDiscovery ();
-        const Discovery& getDiscovery () const;
+  Discovery& getDiscovery();
+  const Discovery& getDiscovery() const;
 
-        StateBroadcast& getStateBroadcast ();
-        const StateBroadcast& getStateBroadcast () const;
+  StateBroadcast& getStateBroadcast();
+  const StateBroadcast& getStateBroadcast() const;
 
-        PairingSnapshot setLanMode (bool enabled);
-        bool isLanModeEnabled () const;
+  PairingSnapshot setLanMode(bool enabled);
+  bool isLanModeEnabled() const;
 
-        std::uint64_t getMeterFrameCount () const noexcept;
+  std::uint64_t getMeterFrameCount() const noexcept;
 
-    private:
-        struct Impl;
-        std::unique_ptr<Impl> impl;
-    };
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> impl;
+};
 
-}
+}  // namespace Api

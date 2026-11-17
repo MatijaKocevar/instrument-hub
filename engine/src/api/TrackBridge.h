@@ -1,20 +1,17 @@
 #pragma once
 
-namespace Api
-{
+namespace Api {
 
-    class StateStore;
+class StateStore;
 
 }
 
-namespace ihub
-{
-    class Session;
+namespace ihub {
+class Session;
 }
 
-namespace Api
-{
+namespace Api {
 
-    void attachTrackState (StateStore& state, ihub::Session& session);
+void attachTrackState(StateStore& state, ihub::Session& session);
 
 }
