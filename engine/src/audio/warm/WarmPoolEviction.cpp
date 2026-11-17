@@ -6,18 +6,18 @@
 namespace AudioEngine {
 
 int WarmPool::getLiveInstanceCount() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return liveCountLocked();
 }
 
 int WarmPool::getPeakLiveInstanceCount() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     (void)liveCountLocked();
     return peakLiveCount;
 }
 
 int WarmPool::getPinnedCount() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
 
     int pinned = 0;
 
@@ -28,18 +28,18 @@ int WarmPool::getPinnedCount() const {
 }
 
 std::uint64_t WarmPool::getEvictionCount() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return evictionCount;
 }
 
 bool WarmPool::isIdle() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return isIdleLocked();
 }
 
 void WarmPool::clear() {
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
 
         for (int index = 0; index < numSlots; ++index) retireLocked(index, true);
 

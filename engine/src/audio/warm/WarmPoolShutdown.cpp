@@ -10,7 +10,7 @@ bool WarmPool::shutdown(int timeoutMs) noexcept {
     DestroyHook hook;
 
     {
-        std::unique_lock<std::mutex> lock(mutex);
+        std::unique_lock<std::recursive_mutex> lock(mutex);
 
         if (shutdownComplete) return true;
 

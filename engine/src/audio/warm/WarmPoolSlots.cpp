@@ -6,7 +6,7 @@ namespace AudioEngine {
 
 void WarmPool::setNeighbourCount(int count) {
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
         neighbourCount = juce::jmax(0, count);
 
         retryDeferred = true;
@@ -17,13 +17,13 @@ void WarmPool::setNeighbourCount(int count) {
 }
 
 int WarmPool::getNeighbourCount() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return neighbourCount;
 }
 
 void WarmPool::setNumSlots(int count) {
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
 
         const int clamped = juce::jmax(0, count);
 
@@ -59,13 +59,13 @@ void WarmPool::setNumSlots(int count) {
 }
 
 int WarmPool::getNumSlots() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return numSlots;
 }
 
 void WarmPool::setRequest(int slotIndex, Request request) {
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
 
         if (!isValidSlotLocked(slotIndex)) return;
 
@@ -88,7 +88,7 @@ void WarmPool::setRequest(int slotIndex, Request request) {
 }
 
 WarmPool::Request WarmPool::getRequest(int slotIndex) const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
 
     if (!isValidSlotLocked(slotIndex)) return {};
 
@@ -96,7 +96,7 @@ WarmPool::Request WarmPool::getRequest(int slotIndex) const {
 }
 
 bool WarmPool::hasRequest(int slotIndex) const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
 
     if (!isValidSlotLocked(slotIndex)) return false;
 

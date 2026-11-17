@@ -14,7 +14,7 @@ std::unique_ptr<WarmPool::Instance> WarmPool::createInstance(const Request& requ
     int blockSize = 0;
 
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
         currentFactory = factory;
         shouldPrepare = hasFormat;
         rate = sampleRate;
@@ -44,7 +44,7 @@ std::unique_ptr<WarmPool::Instance> WarmPool::createInstance(const Request& requ
 }
 
 void WarmPool::run() {
-    std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock<std::recursive_mutex> lock(mutex);
 
     for (;;) {
         if (quit) break;

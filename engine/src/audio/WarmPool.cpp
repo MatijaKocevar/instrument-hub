@@ -11,22 +11,22 @@ WarmPool::WarmPool(int neighbourCountToUse)
       worker([this] { run(); }) {}
 
 void WarmPool::setFactory(Factory newFactory) {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     factory = std::move(newFactory);
 }
 
 void WarmPool::setDestroyHook(DestroyHook hook) {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     destroyHook = std::move(hook);
 }
 
 void WarmPool::setWarmCallback(WarmCallback callback) {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     warmCallback = std::move(callback);
 }
 
 void WarmPool::setFormat(double newSampleRate, int newMaximumBlockSize) {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
 
     sampleRate = newSampleRate > 0.0 ? newSampleRate : 48000.0;
     maximumBlockSize = juce::jmax(1, newMaximumBlockSize);
@@ -37,27 +37,27 @@ void WarmPool::setFormat(double newSampleRate, int newMaximumBlockSize) {
 }
 
 int WarmPool::getInstanceLimit() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return limitLocked();
 }
 
 std::uint64_t WarmPool::getWarmCount() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return warmCount;
 }
 
 std::vector<int> WarmPool::getProtectedSlots() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return protectedLocked();
 }
 
 int WarmPool::getProtectedCount() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return static_cast<int>(protectedLocked().size());
 }
 
 std::vector<WarmPool::SlotInfo> WarmPool::describe() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
 
     std::vector<SlotInfo> result;
     result.reserve(static_cast<size_t>(numSlots));
@@ -80,7 +80,7 @@ std::vector<WarmPool::SlotInfo> WarmPool::describe() const {
 }
 
 bool WarmPool::waitForIdle(int timeoutMs) {
-    std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock<std::recursive_mutex> lock(mutex);
 
     return condition.wait_for(lock, std::chrono::milliseconds(juce::jmax(0, timeoutMs)),
                               [this] { return isIdleLocked(); });

@@ -12,7 +12,7 @@ constexpr int minimumWarmInstances = 1;
 
 void WarmPool::setProtectedSlots(std::vector<int> newSlots) {
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
 
         explicitProtectedSlots = std::move(newSlots);
         retryDeferred = true;

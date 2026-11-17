@@ -7,7 +7,7 @@ namespace AudioEngine {
 
 void WarmPool::setActiveSlot(int slotIndex) {
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
         setActiveLocked(slotIndex);
     }
 
@@ -15,7 +15,7 @@ void WarmPool::setActiveSlot(int slotIndex) {
 }
 
 int WarmPool::getActiveSlot() const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
     return activeSlot;
 }
 
@@ -23,7 +23,7 @@ WarmPool::Instance* WarmPool::armSlot(int slotIndex) {
     Instance* instance = nullptr;
 
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
 
         if (!isValidSlotLocked(slotIndex)) return nullptr;
 
@@ -43,7 +43,7 @@ WarmPool::Instance* WarmPool::armSlot(int slotIndex) {
 }
 
 WarmPool::Instance* WarmPool::acquire(int slotIndex) {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
 
     if (!isValidSlotLocked(slotIndex)) return nullptr;
 
@@ -58,7 +58,7 @@ WarmPool::Instance* WarmPool::acquire(int slotIndex) {
 
 void WarmPool::release(int slotIndex) {
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
 
         if (!isValidSlotLocked(slotIndex)) return;
 
@@ -88,7 +88,7 @@ WarmPool::PreloadReport WarmPool::preloadAll() {
     PreloadReport report;
 
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::recursive_mutex> lock(mutex);
 
         for (const int index : protectedLocked()) {
             const auto& slot = slots[static_cast<size_t>(index)];
@@ -125,7 +125,7 @@ WarmPool::PreloadReport WarmPool::preloadAll() {
 }
 
 bool WarmPool::isWarm(int slotIndex) const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
 
     if (!isValidSlotLocked(slotIndex)) return false;
 
@@ -133,7 +133,7 @@ bool WarmPool::isWarm(int slotIndex) const {
 }
 
 bool WarmPool::isWarming(int slotIndex) const {
-    const std::lock_guard<std::mutex> lock(mutex);
+    const std::lock_guard<std::recursive_mutex> lock(mutex);
 
     if (!isValidSlotLocked(slotIndex)) return false;
 

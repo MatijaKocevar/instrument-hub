@@ -157,9 +157,9 @@ private:
 
     void notifyWorker();
 
-    mutable std::mutex mutex;
-    std::condition_variable condition;
-    std::condition_variable workerDoneCondition;
+    mutable std::recursive_mutex mutex;
+    std::condition_variable_any condition;
+    std::condition_variable_any workerDoneCondition;
 
     bool quit = false;
     bool workerDone = false;
