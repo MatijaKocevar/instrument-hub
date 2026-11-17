@@ -12,8 +12,4 @@ if [[ ! -x "$BINARY" ]]; then
     exit 1
 fi
 
-if command -v pw-jack >/dev/null 2>&1; then
-    exec pw-jack "$ROOT/$BINARY" "$@"
-fi
-
 exec "$ROOT/$BINARY" "$@"

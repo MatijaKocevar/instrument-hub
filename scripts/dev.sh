@@ -91,13 +91,8 @@ printf '\n  App is ready: http://localhost:5173/\n\n'
 
 export DISPLAY="${DISPLAY:-:0}"
 
-APP_RUNNER=()
-if command -v pw-jack >/dev/null 2>&1; then
-    APP_RUNNER=(pw-jack)
-fi
-
 if [[ "$WATCH" == "0" ]]; then
-    "${APP_RUNNER[@]}" ./build-debug/engine/instrument-hub "${ENGINE_ARGS[@]}"
+    ./build-debug/engine/instrument-hub "${ENGINE_ARGS[@]}"
     exit 0
 fi
 
@@ -112,7 +107,7 @@ source_files() {
 }
 
 start_app() {
-    "${APP_RUNNER[@]}" "./$BINARY" "${ENGINE_ARGS[@]}" &
+    "./$BINARY" "${ENGINE_ARGS[@]}" &
     APP_PID=$!
 }
 
