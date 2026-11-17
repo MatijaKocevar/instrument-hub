@@ -1,6 +1,7 @@
 #include "AuthGuard.h"
 
 #include "Pairing.h"
+#include "api/UiRoutes.h"
 
 #include <httplib.h>
 
@@ -13,6 +14,10 @@ namespace {
 bool isLoopbackAddress(const std::string& address) {
     return address == "127.0.0.1" || address == "::1" || address == "[::1]" ||
            address == "::ffff:127.0.0.1" || address.rfind("127.", 0) == 0;
+}
+
+bool isWebSocketPath(const std::string& path) {
+    return path == "/meters" || path == "/events" || path == "/midi-input";
 }
 }  // namespace
 
@@ -34,6 +39,10 @@ bool AuthGuard::authorized(const httplib::Request& request) const {
 
     if (request.path.rfind("/pairing", 0) == 0) return isLoopbackAddress(request.remote_addr);
 
+    if (Routes::isUiRequestPath(request.path)) return true;
+
+    if (isLoopbackAddress(request.remote_addr)) return true;
+
     std::string expected;
     bool lanEnabled = false;
 
@@ -53,6 +62,9 @@ bool AuthGuard::authorized(const httplib::Request& request) const {
 
         if (authorization.rfind(bearer, 0) == 0) supplied = authorization.substr(bearer.size());
     }
+
+    if (supplied.empty() && isWebSocketPath(request.path))
+        supplied = request.get_param_value("token");
 
     if (!expected.empty() && supplied == expected) return true;
 

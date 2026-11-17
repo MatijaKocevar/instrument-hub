@@ -59,7 +59,8 @@ PairingManager::PairingManager(std::string advertisedAddressToUse, int portToUse
                                                        : std::move(advertisedAddressToUse)),
       port(portToUse > 0 ? portToUse : 8080) {}
 
-void PairingManager::setEndpoint(std::string advertisedAddressToUse, int portToUse) {
+void PairingManager::setEndpoint(std::string advertisedAddressToUse, int portToUse,
+                                 std::string schemeToUse) {
     const std::lock_guard<std::mutex> lock(mutex);
 
     if (!advertisedAddressToUse.empty())
@@ -68,6 +69,8 @@ void PairingManager::setEndpoint(std::string advertisedAddressToUse, int portToU
         advertisedAddress = discoverLanAddress();
 
     if (portToUse > 0) port = portToUse;
+
+    if (!schemeToUse.empty()) scheme = std::move(schemeToUse);
 }
 
 std::string PairingManager::getAdvertisedAddress() const {
@@ -255,7 +258,8 @@ void PairingManager::issueCodeLocked() {
 std::string PairingManager::makePayloadLocked() const {
     if (!lanEnabled || code.empty()) return {};
 
-    return "http://" + joinHostAndPort(advertisedAddress, port) + pairingPath + "?code=" + code;
+    return scheme + "://" + joinHostAndPort(advertisedAddress, port) + pairingPath +
+           "?code=" + code;
 }
 
 std::string PairingManager::randomDigits(int count) {

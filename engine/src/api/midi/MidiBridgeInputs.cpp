@@ -53,6 +53,15 @@ std::vector<MidiInputState> MidiBridge::enumerateInputs() {
 }
 
 bool MidiBridge::setInputEnabled(const std::string& id, bool enabled, std::string& error) {
+    if (isNetworkId(id)) {
+        if (!setNetworkEnabled(id.substr(4), enabled)) {
+            error = "unknown MIDI input: " + id;
+            return false;
+        }
+
+        return true;
+    }
+
     const auto inputs = listDevices();
     const auto device =
         std::find_if(inputs.begin(), inputs.end(),

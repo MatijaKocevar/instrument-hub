@@ -1,5 +1,7 @@
 #pragma once
 
+#include "NetworkMidi.h"
+
 #include <atomic>
 #include <cstdint>
 
@@ -21,6 +23,8 @@ public:
     WebSocketRoutes(const WebSocketRoutes&) = delete;
     WebSocketRoutes& operator=(const WebSocketRoutes&) = delete;
 
+    void setNetworkMidiHandlers(NetworkMidiHandlers handlers);
+
     void registerRoutes(httplib::Server& server);
 
     std::uint64_t getMeterFrameCount() const noexcept;
@@ -33,8 +37,11 @@ private:
     const AuthGuard& auth;
     const std::atomic<bool>& running;
 
+    NetworkMidiHandlers networkMidi;
+
     std::atomic<int> activeConnections{0};
     std::atomic<std::uint64_t> meterFramesSent{0};
+    std::atomic<std::uint64_t> nextSession{1};
 };
 
 }  // namespace Api

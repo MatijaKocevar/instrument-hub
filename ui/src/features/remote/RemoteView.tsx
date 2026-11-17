@@ -28,6 +28,8 @@ export interface RemoteViewProps {
   readonly onTogglePlay?: () => void;
   readonly onStop?: () => void;
   readonly onPanic?: () => void;
+  readonly onOpenMidi?: (() => void) | undefined;
+  readonly midiOn?: boolean;
 }
 
 export function RemoteView({
@@ -44,6 +46,8 @@ export function RemoteView({
   onTogglePlay,
   onStop,
   onPanic,
+  onOpenMidi,
+  midiOn = false,
 }: RemoteViewProps): ReactElement {
   const playing = model.transport.playing;
 
@@ -66,6 +70,8 @@ export function RemoteView({
         contrast={contrast}
         wakeLock={wakeLock}
         onToggleContrast={onToggleContrast}
+        onOpenMidi={onOpenMidi}
+        midiOn={midiOn}
       />
 
       <RemoteLayout

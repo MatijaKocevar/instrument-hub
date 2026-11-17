@@ -52,6 +52,11 @@ void MidiBridge::closeInputs() {
     for (auto& entry : closing) {
         if (entry.second.input != nullptr) entry.second.input->stop();
     }
+
+    {
+        const std::lock_guard<std::mutex> lock(networkMutex);
+        networkClients.clear();
+    }
 }
 
 }  // namespace Api

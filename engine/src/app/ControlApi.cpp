@@ -45,6 +45,13 @@ bool ControlApi::start(const juce::String& commandLine, ihub::Session* session, 
     options.authToken = getCommandLineValue(commandLine, "--api-token").toStdString();
     options.lanMode = commandLine.contains("--lan") || commandLine.contains("--lan-mode");
 
+    const auto tlsDirectory =
+        settings != nullptr
+            ? settings->getFile().getParentDirectory().getChildFile("tls")
+            : ihub::settings::SettingsStore::defaultFile().getParentDirectory().getChildFile("tls");
+
+    options.tlsDirectory = tlsDirectory.getFullPathName().toStdString();
+
     const int apiSlots =
         session != nullptr ? session->getNumSlots() : ihub::Session::defaultLogicalSlots;
     apiState = std::make_unique<Api::StateStore>(apiSlots, settings);
@@ -82,6 +89,24 @@ bool ControlApi::start(const juce::String& commandLine, ihub::Session* session, 
                                [this](const Api::MidiInputPatch& patch, std::string& error) {
                                    return midiBridge->updateInput(patch, error);
                                });
+
+    apiServer->setNetworkMidiHandlers(Api::NetworkMidiHandlers{
+        [this](const std::string& id, const std::string& name, std::uint64_t connectionSession) {
+            if (midiBridge != nullptr) midiBridge->attachNetworkClient(id, name, connectionSession);
+
+            if (apiState != nullptr) apiState->notifyChanged("midi", -1);
+        },
+        [this](const std::string& id, std::uint64_t connectionSession) {
+            if (midiBridge != nullptr) midiBridge->detachNetworkClient(id, connectionSession);
+
+            if (apiState != nullptr) apiState->notifyChanged("midi", -1);
+        },
+        [this](const std::string& id, std::uint64_t connectionSession, const std::uint8_t* data,
+               int size) {
+            return midiBridge != nullptr &&
+                   midiBridge->networkMidi(id, connectionSession, data, size);
+        },
+    });
 
     midiDeviceWatcher = std::make_unique<MidiDeviceWatcher>(*apiState);
 

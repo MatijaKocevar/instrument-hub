@@ -3,9 +3,16 @@
 #include "api/midi/MidiBridgeSupport.h"
 #include "controller/LaunchpadDriver.h"
 
+#include <string>
+
 namespace Api {
+namespace {
+constexpr const char* networkPrefix = "net:";
+}
 
 MidiInputState MidiBridge::makeState(const MidiInputDevice& device) const {
+    if (isNetworkId(device.id)) return makeNetworkState(device);
+
     auto state = Detail::baseStateFor(device);
 
     if (state.role == "launchpad") {
@@ -47,13 +54,44 @@ MidiInputState MidiBridge::makeState(const MidiInputDevice& device) const {
         }
     }
 
+    applyGridState(state, device.id);
+
+    return state;
+}
+
+MidiInputState MidiBridge::makeNetworkState(const MidiInputDevice& device) const {
+    MidiInputState state;
+    state.id = device.id;
+    state.name = device.name;
+    state.role = "keyboard";
+    state.port = "WiFi";
+
+    {
+        const auto clientId = device.id.substr(std::string(networkPrefix).size());
+        const std::lock_guard<std::mutex> lock(networkMutex);
+        const auto client = networkClients.find(clientId);
+
+        if (client == networkClients.end()) return state;
+
+        state.enabled = client->second.enabled;
+        state.open = client->second.connected && client->second.enabled;
+        state.events = client->second.events;
+        state.lastEvent = client->second.lastEvent;
+    }
+
+    applyGridState(state, device.id);
+
+    return state;
+}
+
+void MidiBridge::applyGridState(MidiInputState& state, const std::string& id) const {
     MidiGridMap map;
     bool isGrid = false;
     std::string gridError;
 
     {
         const std::lock_guard<std::mutex> lock(gridMutex);
-        const auto grid = grids.find(device.id);
+        const auto grid = grids.find(id);
 
         if (grid != grids.end()) {
             isGrid = true;
@@ -62,7 +100,7 @@ MidiInputState MidiBridge::makeState(const MidiInputDevice& device) const {
         }
     }
 
-    if (!isGrid) return state;
+    if (!isGrid) return;
 
     state.role = "grid";
     state.noteBase = map.noteBase();
@@ -74,8 +112,24 @@ MidiInputState MidiBridge::makeState(const MidiInputDevice& device) const {
     } else if (!map.isLearning() && !map.isConfigured()) {
         state.error = "set a note base or learn all 64 pads before using this grid";
     }
+}
 
-    return state;
+void MidiBridge::appendNetworkInputs(MidiStateSnapshot& state) const {
+    std::vector<MidiInputDevice> devices;
+
+    {
+        const std::lock_guard<std::mutex> lock(networkMutex);
+        devices.reserve(networkClients.size());
+
+        for (const auto& entry : networkClients) {
+            if (!entry.second.connected) continue;
+
+            devices.push_back(
+                MidiInputDevice{networkPrefix + entry.first, entry.second.name, "WiFi"});
+        }
+    }
+
+    for (const auto& device : devices) state.inputs.push_back(makeNetworkState(device));
 }
 
 MidiStateSnapshot MidiBridge::snapshot() {
@@ -87,6 +141,8 @@ MidiStateSnapshot MidiBridge::snapshot() {
     MidiStateSnapshot state;
 
     for (const auto& device : listDevices()) state.inputs.push_back(makeState(device));
+
+    appendNetworkInputs(state);
 
     return state;
 }

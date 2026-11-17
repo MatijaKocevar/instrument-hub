@@ -15,12 +15,18 @@ bool isKeyboardRole(const std::string& role) { return role == "keyboard"; }
 bool MidiBridge::updateInput(const MidiInputPatch& patch, std::string& error) {
     error.clear();
 
-    const auto inputs = listDevices();
-    const auto device =
-        std::find_if(inputs.begin(), inputs.end(),
-                     [&patch](const MidiInputDevice& input) { return input.id == patch.id; });
+    std::optional<MidiInputDevice> device = findNetworkDevice(patch.id);
 
-    if (device == inputs.end()) {
+    if (!device.has_value()) {
+        const auto inputs = listDevices();
+        const auto found =
+            std::find_if(inputs.begin(), inputs.end(),
+                         [&patch](const MidiInputDevice& input) { return input.id == patch.id; });
+
+        if (found != inputs.end()) device = *found;
+    }
+
+    if (!device.has_value()) {
         error = "unknown MIDI input: " + patch.id;
         return false;
     }

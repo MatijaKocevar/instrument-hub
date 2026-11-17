@@ -34,7 +34,7 @@ public:
 
     explicit PairingManager(std::string advertisedAddress = {}, int port = 8080);
 
-    void setEndpoint(std::string advertisedAddress, int port);
+    void setEndpoint(std::string advertisedAddress, int port, std::string scheme = "http");
 
     void setAccountChangeHandler(AccountChangeHandler handler);
 
@@ -72,6 +72,7 @@ private:
     bool lanEnabled = false;
     std::string advertisedAddress;
     int port = 8080;
+    std::string scheme = "http";
 
     std::string code;
     std::chrono::steady_clock::time_point codeExpiry;

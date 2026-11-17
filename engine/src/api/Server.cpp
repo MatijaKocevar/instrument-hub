@@ -5,10 +5,12 @@
 #include "Routes.h"
 #include "StateBroadcast.h"
 #include "WebSocketRoutes.h"
+#include "api/tls/TlsCertificate.h"
 
 #include "settings/SettingsStore.h"
 
 #include <httplib.h>
+#include <juce_core/juce_core.h>
 
 #include <chrono>
 #include <condition_variable>
@@ -16,6 +18,7 @@
 #include <mutex>
 #include <thread>
 #include <utility>
+#include <vector>
 
 namespace Api {
 
@@ -48,15 +51,19 @@ struct Server::Impl {
         }
     }
 
-    std::string desiredAddress() const {
-        return pairing.isLanEnabled() ? "0.0.0.0" : options.address;
-    }
-
     void startDiscoveryLocked() {
+        const auto tlsPort = boundTlsPort.load(std::memory_order_acquire);
+        const bool secure = tlsPort > 0;
+
         DiscoveryService service;
         service.instanceName = "Instrument Hub";
-        service.port = boundPort.load(std::memory_order_acquire);
+        service.port = secure ? tlsPort : boundPort.load(std::memory_order_acquire);
         service.address = pairing.getAdvertisedAddress();
+        service.txt = {
+            {"path", "/remote"},
+            {"version", "0.1.0"},
+            {"scheme", secure ? "https" : "http"},
+        };
 
         if (service.address.rfind("127.", 0) == 0) service.address.clear();
 
@@ -65,43 +72,7 @@ struct Server::Impl {
                       << discovery.getLastError() << std::endl;
     }
 
-    bool bindListenerLocked() {
-        if (listening.load(std::memory_order_acquire)) return true;
-
-        http = std::make_unique<httplib::Server>();
-
-        http->set_pre_routing_handler([this](const httplib::Request& request,
-                                             httplib::Response& response) {
-            const bool webSocketUpgrade = request.path == "/meters" || request.path == "/events";
-
-            if (!webSocketUpgrade) requestsInFlight.fetch_add(1, std::memory_order_acq_rel);
-
-            if (rebinding.load(std::memory_order_acquire)) {
-                if (!webSocketUpgrade) requestsInFlight.fetch_sub(1, std::memory_order_acq_rel);
-
-                setError(response, 503, "the control API is switching LAN mode");
-                return httplib::Server::HandlerResponse::Handled;
-            }
-
-            if (request.method == "OPTIONS") {
-                addCorsHeaders(response);
-                response.status = 204;
-                return httplib::Server::HandlerResponse::Handled;
-            }
-
-            if (!auth.authorized(request)) {
-                setError(response, 401, "unauthorized");
-                return httplib::Server::HandlerResponse::Handled;
-            }
-
-            return httplib::Server::HandlerResponse::Unhandled;
-        });
-
-        http->set_post_routing_handler([this](const httplib::Request& request, httplib::Response&) {
-            if (request.path != "/meters" && request.path != "/events")
-                requestsInFlight.fetch_sub(1, std::memory_order_acq_rel);
-        });
-
+    RouteContext makeRouteContext() {
         RouteContext context{state, {}, {}, {}, {}, {}, {}, {}, &pairing,
                              {},    {}, {}, {}, {}, {}, {}, {}, {}};
 
@@ -125,10 +96,120 @@ struct Server::Impl {
 
         context.setLanMode = [this](bool enabled) { return applyLanMode(enabled); };
 
+        return context;
+    }
+
+    void configureServer(httplib::Server& server) {
+        server.set_pre_routing_handler(
+            [this](const httplib::Request& request, httplib::Response& response) {
+                if (request.method == "OPTIONS") {
+                    addCorsHeaders(response);
+                    response.status = 204;
+                    return httplib::Server::HandlerResponse::Handled;
+                }
+
+                if (!auth.authorized(request)) {
+                    setError(response, 401, "unauthorized");
+                    return httplib::Server::HandlerResponse::Handled;
+                }
+
+                return httplib::Server::HandlerResponse::Unhandled;
+            });
+    }
+
+    bool startTlsLocked() {
+        if (boundTlsPort.load(std::memory_order_acquire) > 0) return true;
+
+        if (options.tlsDirectory.empty()) return false;
+
+        std::cout << "tls: starting on port " << options.tlsPort << std::endl;
+
+        std::vector<std::string> addresses;
+        juce::Array<juce::IPAddress> localAddresses;
+        juce::IPAddress::findAllAddresses(localAddresses, false);
+
+        for (const auto& address : localAddresses) {
+            const auto text = address.toString().toStdString();
+
+            if (text.rfind("127.", 0) == 0) continue;
+
+            addresses.push_back(text);
+        }
+
+        Tls::Certificate certificate;
+        std::string error;
+
+        if (!Tls::ensureCertificate(options.tlsDirectory, addresses, certificate, error)) {
+            std::cerr << "tls: " << error << std::endl;
+            return false;
+        }
+
+        std::cout << "tls: certificate ready" << std::endl;
+
+        auto server = std::make_unique<httplib::SSLServer>(certificate.certificatePath.c_str(),
+                                                           certificate.privateKeyPath.c_str());
+
+        if (!server->is_valid()) {
+            std::cerr << "tls: the certificate could not be loaded" << std::endl;
+            return false;
+        }
+
+        configureServer(*server);
+
+        const auto context = makeRouteContext();
+        registerRoutes(*server, context);
+        webSockets.registerRoutes(*server);
+
+        std::cout << "tls: routes registered" << std::endl;
+
+        int port = options.tlsPort;
+
+        if (port > 0 && !server->bind_to_port("0.0.0.0", port))
+            port = server->bind_to_any_port("0.0.0.0");
+        else if (port <= 0)
+            port = server->bind_to_any_port("0.0.0.0");
+
+        if (port <= 0) {
+            std::cerr << "tls: could not bind port " << options.tlsPort << std::endl;
+            return false;
+        }
+
+        https = std::move(server);
+        boundTlsPort.store(port, std::memory_order_release);
+        tlsThread = std::thread([this] { https->listen_after_bind(); });
+        pairing.setEndpoint({}, port, "https");
+
+        std::cout << "tls: listening on https://0.0.0.0:" << port << std::endl;
+
+        return true;
+    }
+
+    void stopTlsLocked() {
+        if (https != nullptr) https->stop();
+
+        if (tlsThread.joinable()) tlsThread.join();
+
+        https.reset();
+
+        if (boundTlsPort.exchange(0, std::memory_order_acq_rel) > 0) {
+            const auto port = boundPort.load(std::memory_order_acquire);
+
+            if (port > 0) pairing.setEndpoint({}, port, "http");
+        }
+    }
+
+    bool bindListenerLocked() {
+        if (listening.load(std::memory_order_acquire)) return true;
+
+        http = std::make_unique<httplib::Server>();
+
+        configureServer(*http);
+
+        const auto context = makeRouteContext();
         registerRoutes(*http, context);
         webSockets.registerRoutes(*http);
 
-        const auto address = desiredAddress();
+        const auto address = options.address;
         int port = nextPort;
 
         if (port > 0) {
@@ -149,9 +230,18 @@ struct Server::Impl {
         nextPort = port;
         listenerAddress = address;
         listening.store(true, std::memory_order_release);
-        pairing.setEndpoint({}, port);
+        pairing.setEndpoint({}, port, "http");
 
-        if (pairing.isLanEnabled()) startDiscoveryLocked();
+        if (pairing.isLanEnabled()) {
+            if (!startTlsLocked()) {
+                pairing.setEndpoint({}, port, "http");
+                std::cerr << "tls: continuing without HTTPS; the phone MIDI bridge is "
+                             "unavailable"
+                          << std::endl;
+            } else {
+                startDiscoveryLocked();
+            }
+        }
 
         listenerThread = std::thread([this] { http->listen_after_bind(); });
 
@@ -160,6 +250,7 @@ struct Server::Impl {
 
     void stopListenerLocked() {
         discovery.stop();
+        stopTlsLocked();
 
         if (!listening.exchange(false, std::memory_order_acq_rel)) {
             if (http != nullptr) http.reset();
@@ -175,19 +266,43 @@ struct Server::Impl {
         boundPort.store(0, std::memory_order_release);
     }
 
-    bool rebindLocked() {
-        stopListenerLocked();
-        return bindListenerLocked();
+    void updateLanLocked() {
+        if (!running.load(std::memory_order_acquire)) return;
+
+        if (pairing.isLanEnabled()) {
+            if (!startTlsLocked()) {
+                pairing.setEndpoint({}, boundPort.load(std::memory_order_acquire), "http");
+                discovery.stop();
+                std::cerr << "tls: continuing without HTTPS; the phone MIDI bridge is "
+                             "unavailable"
+                          << std::endl;
+                return;
+            }
+
+            startDiscoveryLocked();
+            return;
+        }
+
+        discovery.stop();
+        stopTlsLocked();
     }
 
     PairingSnapshot applyLanMode(bool enabled) {
         const auto changed = pairing.setLanEnabled(enabled);
+
+        if (changed) {
+            if (enabled)
+                pairing.setEndpoint({}, options.tlsPort, "https");
+            else
+                pairing.setEndpoint({}, boundPort.load(std::memory_order_acquire), "http");
+        }
+
         const auto snapshot = pairing.snapshot();
 
         if (changed) {
             {
                 const std::lock_guard<std::mutex> lock(controlMutex);
-                rebindRequested = true;
+                lanChangeRequested = true;
             }
 
             controlCv.notify_one();
@@ -196,37 +311,18 @@ struct Server::Impl {
         return snapshot;
     }
 
-    void waitForRequestsToDrain() {
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
-
-        while (requestsInFlight.load(std::memory_order_acquire) > 0 &&
-               std::chrono::steady_clock::now() < deadline) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
     void controlLoop() {
         for (;;) {
             std::unique_lock<std::mutex> lock(controlMutex);
-            controlCv.wait(lock, [this] { return controlStop || rebindRequested; });
+            controlCv.wait(lock, [this] { return controlStop || lanChangeRequested; });
 
             if (controlStop) return;
 
-            rebindRequested = false;
+            lanChangeRequested = false;
             lock.unlock();
 
-            rebinding.store(true, std::memory_order_release);
-            waitForRequestsToDrain();
-
-            {
-                const std::lock_guard<std::mutex> life(lifecycleMutex);
-
-                if (running.load(std::memory_order_acquire)) rebindLocked();
-            }
-
-            rebinding.store(false, std::memory_order_release);
+            const std::lock_guard<std::mutex> life(lifecycleMutex);
+            updateLanLocked();
         }
     }
 
@@ -235,8 +331,6 @@ struct Server::Impl {
 
     std::atomic<bool> running{false};
     std::atomic<bool> listening{false};
-    std::atomic<bool> rebinding{false};
-    std::atomic<int> requestsInFlight{0};
     std::atomic<int> boundPort{0};
 
     mutable std::mutex configMutex;
@@ -264,17 +358,20 @@ struct Server::Impl {
     WebSocketRoutes webSockets;
 
     std::unique_ptr<httplib::Server> http;
+    std::unique_ptr<httplib::SSLServer> https;
     std::thread listenerThread;
+    std::thread tlsThread;
     std::thread controlThread;
 
     mutable std::mutex lifecycleMutex;
     std::string listenerAddress;
     int nextPort = 0;
+    std::atomic<int> boundTlsPort{0};
 
     std::mutex controlMutex;
     std::condition_variable controlCv;
     bool controlStop = false;
-    bool rebindRequested = false;
+    bool lanChangeRequested = false;
 };
 
 Server::Server(StateStore& state) : Server(state, Options{}) {}
@@ -299,7 +396,7 @@ bool Server::start() {
     {
         const std::lock_guard<std::mutex> lock(self.controlMutex);
         self.controlStop = false;
-        self.rebindRequested = false;
+        self.lanChangeRequested = false;
     }
 
     self.controlThread = std::thread([&self] { self.controlLoop(); });
@@ -313,7 +410,7 @@ void Server::stop() {
     {
         const std::lock_guard<std::mutex> lock(self.controlMutex);
         self.controlStop = true;
-        self.rebindRequested = false;
+        self.lanChangeRequested = false;
     }
 
     self.controlCv.notify_all();
@@ -344,6 +441,10 @@ bool Server::isListening() const noexcept {
 }
 
 int Server::getPort() const noexcept { return impl->boundPort.load(std::memory_order_acquire); }
+
+int Server::getTlsPort() const noexcept {
+    return impl->boundTlsPort.load(std::memory_order_acquire);
+}
 
 std::string Server::getAddress() const {
     const std::lock_guard<std::mutex> life(impl->lifecycleMutex);
@@ -379,6 +480,10 @@ void Server::setMidiHandlers(MidiStateProvider provider, MidiInputHandler update
     const std::lock_guard<std::mutex> lock(impl->configMutex);
     impl->midiProvider = std::move(provider);
     impl->midiUpdateInput = std::move(updateInput);
+}
+
+void Server::setNetworkMidiHandlers(NetworkMidiHandlers handlers) {
+    impl->webSockets.setNetworkMidiHandlers(std::move(handlers));
 }
 
 void Server::setProjectHandlers(ProjectOverviewProvider provider, ProjectCommandHandler command) {

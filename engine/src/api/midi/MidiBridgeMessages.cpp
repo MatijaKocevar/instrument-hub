@@ -73,7 +73,9 @@ bool MidiBridge::routeGridMessage(const std::string& id, const juce::MidiMessage
 
 bool MidiBridge::processMidiMessage(const std::string& deviceId, const juce::String& deviceName,
                                     const juce::MidiMessage& message) {
-    if (roleForName(deviceName) == "launchpad") return false;
+    const bool network = isNetworkId(deviceId);
+
+    if (!network && roleForName(deviceName) == "launchpad") return false;
 
     bool isGrid = false;
 
@@ -86,6 +88,8 @@ bool MidiBridge::processMidiMessage(const std::string& deviceId, const juce::Str
         (void)routeGridMessage(deviceId, message);
         return true;
     }
+
+    if (network) return sendToSession(message);
 
     return forwardMidiMessage(deviceName, message);
 }

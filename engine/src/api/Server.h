@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Discovery.h"
+#include "NetworkMidi.h"
 #include "Pairing.h"
 #include "StateStore.h"
 
@@ -23,6 +24,9 @@ public:
         bool lanMode = false;
 
         int meterHz = 30;
+
+        int tlsPort = 8443;
+        std::string tlsDirectory;
     };
 
     explicit Server(StateStore& state);
@@ -41,6 +45,8 @@ public:
     int getPort() const noexcept;
     std::string getAddress() const;
 
+    int getTlsPort() const noexcept;
+
     void setMeterProvider(MeterProvider provider);
 
     void setAudioHandlers(AudioStateProvider provider, AudioApplyHandler apply,
@@ -51,6 +57,8 @@ public:
     void setPluginHandlers(PluginInventoryProvider provider, PluginRescanHandler rescan);
 
     void setMidiHandlers(MidiStateProvider provider, MidiInputHandler updateInput);
+
+    void setNetworkMidiHandlers(NetworkMidiHandlers handlers);
 
     void setProjectHandlers(ProjectOverviewProvider provider, ProjectCommandHandler command);
 

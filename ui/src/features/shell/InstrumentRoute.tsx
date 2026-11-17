@@ -43,7 +43,7 @@ export function InstrumentRoute({
       audioInputs={app.audio?.inputChannels ?? null}
       track={track}
       gridTrack={gridTrack}
-      metersUrl={metersUrlFor(store.baseUrl)}
+      metersUrl={metersUrlFor(store.baseUrl, store.token)}
       loading={state === null}
       onPanChange={(slot, pan) => {
         void store.updatePatch(slot, { pan });

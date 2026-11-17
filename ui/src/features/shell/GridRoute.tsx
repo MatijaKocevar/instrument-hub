@@ -25,7 +25,7 @@ export function GridRoute({
   return (
     <GridView
       model={grid}
-      metersUrl={metersUrlFor(store.baseUrl)}
+      metersUrl={metersUrlFor(store.baseUrl, store.token)}
       loading={state === null}
       onSelectTrack={selectTrack}
       onOpenTrack={openTrack}

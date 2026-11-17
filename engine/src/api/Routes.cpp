@@ -1,5 +1,6 @@
 #include "Routes.h"
 
+#include "api/UiRoutes.h"
 #include "api/routes/RouteHelpers.h"
 
 namespace Api {
@@ -16,6 +17,7 @@ void registerRoutes(httplib::Server& server, RouteContext context) {
     Routes::registerPluginRoutes(server, context);
     Routes::registerTransportRoutes(server, context);
     Routes::registerPairingRoutes(server, context);
+    Routes::registerUiRoutes(server);
 }
 
 }  // namespace Api

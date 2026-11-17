@@ -109,6 +109,7 @@ target_compile_definitions(instrument-hub
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:instrument-hub,JUCE_VERSION>"
         JUCE_JACK=1
         JUCE_PLUGINHOST_VST3=1
+        CPPHTTPLIB_OPENSSL_SUPPORT=1
 )
 
 target_link_libraries(instrument-hub
@@ -132,6 +133,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(ALSA REQUIRED)
     target_link_libraries(instrument-hub PRIVATE X11::X11 ALSA::ALSA)
 endif()
+
+find_package(OpenSSL REQUIRED)
+target_link_libraries(instrument-hub PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 
 if(IHUB_ENABLE_RT_GUARD)
     target_compile_definitions(instrument-hub PRIVATE IHUB_RT_GUARD=1)

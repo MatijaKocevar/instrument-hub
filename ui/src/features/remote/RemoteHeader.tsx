@@ -17,6 +17,8 @@ export interface RemoteHeaderProps {
   readonly contrast: RemoteContrast;
   readonly wakeLock: WakeLockStatus;
   readonly onToggleContrast: (() => void) | undefined;
+  readonly onOpenMidi: (() => void) | undefined;
+  readonly midiOn: boolean;
 }
 
 export function RemoteHeader({
@@ -25,6 +27,8 @@ export function RemoteHeader({
   contrast,
   wakeLock,
   onToggleContrast,
+  onOpenMidi,
+  midiOn,
 }: RemoteHeaderProps): ReactElement {
   return (
     <header className="remote__header">
@@ -51,6 +55,22 @@ export function RemoteHeader({
             Screen may sleep
           </span>
         ) : null}
+
+        <button
+          className={`remote__midi${midiOn ? " remote__midi--on" : ""}`}
+          type="button"
+          data-testid="remote-midi"
+          data-midi-on={midiOn ? "true" : "false"}
+          aria-pressed={midiOn}
+          aria-label={
+            midiOn
+              ? "WiFi MIDI is on; open the bridge settings"
+              : "Open the MIDI over WiFi bridge"
+          }
+          onClick={onOpenMidi}
+        >
+          {midiOn ? "MIDI ON" : "MIDI"}
+        </button>
 
         <button
           className="remote__contrast"

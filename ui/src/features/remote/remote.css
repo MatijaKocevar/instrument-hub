@@ -81,6 +81,22 @@
   min-width: 0;
 }
 
+.remote button.remote__midi {
+  padding: 4px 8px;
+  border-color: var(--ih-accent, #c6f24e);
+  background: transparent;
+  color: var(--ih-accent, #c6f24e);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.remote button.remote__midi--on {
+  background: var(--ih-accent, #c6f24e);
+  color: var(--ih-outline-dark, #10130a);
+}
+
 .remote button.remote__contrast {
   padding: 4px 8px;
   border-color: var(--remote-line);

@@ -1587,6 +1587,35 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /midi-input:
+    get:
+      tags: [midi]
+      operationId: midiInputWebSocket
+      summary: Phone MIDI bridge (WebSocket upgrade)
+      description: |
+        Upgrade to a WebSocket for a paired phone that reads a USB MIDI
+        keyboard with Web MIDI. The first text frame must be
+        `{"type":"hello","id":"<client-id>","name":"<name>"}`. The server
+        answers `{"type":"ready"}` and lists the input as `net:<client-id>`.
+
+        MIDI messages are binary frames with a one-byte tag: `0x01` followed
+        by the raw one to three byte MIDI message. Text frames carry control
+        messages: `{"type":"ping"}` is answered with `{"type":"pong"}`, and
+        `{"type":"bye"}` closes the bridge.
+
+        The pairing token may be supplied as `?token=` because browsers
+        cannot set request headers on a WebSocket handshake. Held notes are
+        released when the socket closes.
+      security:
+        - tokenHeader: []
+        - bearerAuth: []
+        - {}
+      responses:
+        "101":
+          description: WebSocket upgrade accepted; MIDI frames follow.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /pairing:
     get:
       tags: [pairing]
@@ -3356,11 +3385,13 @@ components:
       properties:
         id:
           type: string
-          description: JUCE device identifier, stable across resumes.
+          description: |
+            JUCE device identifier, stable across resumes. A phone bridge is
+            `net:<client-id>` and exists only while that phone is connected.
           example: "ALSA:5:0"
         name:
           type: string
-          description: ALSA device name.
+          description: ALSA device name, or the phone bridge name.
           example: "Keystation Mini 32 MK3 USB Audio"
         role:
           type: string
@@ -3371,7 +3402,9 @@ components:
             device-specific programmer-mode protocol.
         port:
           type: string
-          description: Short port label (`MI`, `DA`, `USB`), empty when the name has none.
+          description: |
+            Short port label (`MI`, `DA`, `USB` or `WiFi`), empty when the
+            name has none.
         enabled:
           type: boolean
           description: The user's switch for this input.

@@ -5,6 +5,14 @@ All notable changes to Instrument Hub are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- MIDI over WiFi: a paired Android phone can read a USB-MIDI keyboard with
+  Chrome's Web MIDI support and forward it to the desktop as a normal MIDI
+  input, over an HTTPS listener with a self-signed certificate.
+
 ## [0.3.0] - 2026-11-15
 
 ### Added

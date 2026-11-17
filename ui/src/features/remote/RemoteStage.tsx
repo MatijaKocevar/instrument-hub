@@ -19,12 +19,21 @@ function contrastStorage(): ContrastStorage | null {
   return typeof localStorage === "undefined" ? null : localStorage;
 }
 
-export function RemoteStage(): ReactElement {
+export function RemoteStage({
+  onOpenMidi,
+  midiOn = false,
+}: {
+  readonly onOpenMidi?: () => void;
+  readonly midiOn?: boolean;
+}): ReactElement {
   const app = useAppState();
   const store = useAppStore();
   const model = useMemo(() => remoteFromState(app.state), [app.state]);
 
-  const metersUrl = useMemo(() => metersUrlFor(store.baseUrl), [store.baseUrl]);
+  const metersUrl = useMemo(
+    () => metersUrlFor(store.baseUrl, store.token),
+    [store.baseUrl, store.token],
+  );
   const link = useRemoteLink(metersUrl);
   const wakeLock = useWakeLock();
 
@@ -92,6 +101,8 @@ export function RemoteStage(): ReactElement {
       onPanic={() => {
         void store.panic();
       }}
+      onOpenMidi={onOpenMidi}
+      midiOn={midiOn}
     />
   );
 }

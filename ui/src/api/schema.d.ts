@@ -788,6 +788,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/midi-input": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Phone MIDI bridge (WebSocket upgrade)
+         * @description Upgrade to a WebSocket for a paired phone that reads a USB MIDI
+         *     keyboard with Web MIDI. The first text frame must be
+         *     `{"type":"hello","id":"<client-id>","name":"<name>"}`. The server
+         *     answers `{"type":"ready"}` and lists the input as `net:<client-id>`.
+         *
+         *     MIDI messages are binary frames with a one-byte tag: `0x01` followed
+         *     by the raw one to three byte MIDI message. Text frames carry control
+         *     messages: `{"type":"ping"}` is answered with `{"type":"pong"}`, and
+         *     `{"type":"bye"}` closes the bridge.
+         *
+         *     The pairing token may be supplied as `?token=` because browsers
+         *     cannot set request headers on a WebSocket handshake. Held notes are
+         *     released when the socket closes.
+         */
+        get: operations["midiInputWebSocket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pairing": {
         parameters: {
             query?: never;
@@ -1684,12 +1716,13 @@ export interface components {
         };
         MidiInput: {
             /**
-             * @description JUCE device identifier, stable across resumes.
+             * @description JUCE device identifier, stable across resumes. A phone bridge is
+             *     `net:<client-id>` and exists only while that phone is connected.
              * @example ALSA:5:0
              */
             id: string;
             /**
-             * @description ALSA device name.
+             * @description ALSA device name, or the phone bridge name.
              * @example Keystation Mini 32 MK3 USB Audio
              */
             name: string;
@@ -1700,7 +1733,10 @@ export interface components {
              * @enum {string}
              */
             role: "launchpad" | "keyboard" | "grid";
-            /** @description Short port label (`MI`, `DA`, `USB`), empty when the name has none. */
+            /**
+             * @description Short port label (`MI`, `DA`, `USB` or `WiFi`), empty when the
+             *     name has none.
+             */
             port: string;
             /** @description The user's switch for this input. */
             enabled: boolean;
@@ -3083,6 +3119,25 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description WebSocket upgrade accepted; state frames follow. */
+            101: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    midiInputWebSocket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description WebSocket upgrade accepted; MIDI frames follow. */
             101: {
                 headers: {
                     [name: string]: unknown;

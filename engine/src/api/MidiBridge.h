@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,15 @@ public:
     bool processMidiMessage(const std::string& deviceId, const juce::String& deviceName,
                             const juce::MidiMessage& message);
 
+    static bool isNetworkId(const std::string& id);
+
+    void attachNetworkClient(const std::string& id, const std::string& name, std::uint64_t session);
+
+    void detachNetworkClient(const std::string& id, std::uint64_t session);
+
+    bool networkMidi(const std::string& id, std::uint64_t session, const std::uint8_t* data,
+                     int size);
+
     using RestoreHandler = std::function<void()>;
     void setRestoreHandler(RestoreHandler handler);
 
@@ -80,6 +90,19 @@ private:
         std::chrono::steady_clock::time_point learnDeadline{};
     };
 
+    struct NetworkClient {
+        static constexpr int noteCount = 16 * 128;
+
+        std::uint64_t session = 0;
+        std::string name;
+        bool enabled = true;
+        bool connected = false;
+        std::uint64_t events = 0;
+        std::string lastEvent;
+        std::array<bool, noteCount> notes{};
+        std::uint16_t channels = 0;
+    };
+
     void handleIncomingMidiMessage(juce::MidiInput* source,
                                    const juce::MidiMessage& message) override;
 
@@ -90,6 +113,13 @@ private:
     void forgetInput(const MidiInputDevice& device);
 
     MidiInputState makeState(const MidiInputDevice& device) const;
+    MidiInputState makeNetworkState(const MidiInputDevice& device) const;
+    void applyGridState(MidiInputState& state, const std::string& id) const;
+    void appendNetworkInputs(MidiStateSnapshot& state) const;
+    std::optional<MidiInputDevice> findNetworkDevice(const std::string& id) const;
+    bool setNetworkEnabled(const std::string& id, bool enabled);
+    void releaseNetworkNotes(std::array<bool, NetworkClient::noteCount> notes,
+                             std::uint16_t channels);
     bool routeGridMessage(const std::string& id, const juce::MidiMessage& message);
     void restoreGridConfigs();
     void persistGridSettings();
@@ -118,6 +148,9 @@ private:
 
     mutable std::mutex gridMutex;
     std::map<std::string, GridEntry> grids;
+
+    mutable std::mutex networkMutex;
+    std::map<std::string, NetworkClient> networkClients;
 
     mutable std::mutex settingsMutex;
 
